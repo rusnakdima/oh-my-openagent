@@ -344,7 +344,7 @@ describe("resolveSubagentExecution", () => {
 
     //#then
     expect(result.error).toBeUndefined()
-    expect(result.agentToUse).toBe("plan")
+    expect(result.agentToUse).toBe("omo-plan")
     expect(result.categoryModel).toBeUndefined()
   })
 
@@ -404,7 +404,7 @@ describe("resolveSubagentExecution", () => {
 
       //#then
       expect(result.error).toBeUndefined()
-      expect(result.agentToUse).toBe("plan")
+      expect(result.agentToUse).toBe("omo-plan")
       expect(result.categoryModel).toBeUndefined()
     },
   )
@@ -459,7 +459,7 @@ describe("resolveSubagentExecution", () => {
 
       //#then
       expect(result.error).toBeUndefined()
-      expect(result.agentToUse).toBe("plan")
+      expect(result.agentToUse).toBe("omo-plan")
       expect(result.categoryModel).toBeUndefined()
     },
   )
