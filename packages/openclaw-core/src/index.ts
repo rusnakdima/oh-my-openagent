@@ -83,6 +83,9 @@ export async function wakeOpenClaw(
       question: enrichedContext.question,
       tmuxTail,
       event,
+      eventType: event, // alias of event (documented name)
+      messageContent: enrichedContext.prompt, // alias of prompt (documented name)
+      promptSummary: enrichedContext.contextSummary, // alias of contextSummary (documented name)
       timestamp: now,
       replyChannel,
       replyTarget,
