@@ -30,7 +30,13 @@ export function createEventTeamHandlers(args: {
       }, teamModeConfig)
     : undefined;
   const teamLeadQuiescenceHandler = teamModeConfig
-    ? createTeamLeadQuiescenceHandler(teamModeConfig)
+    ? createTeamLeadQuiescenceHandler(
+        teamModeConfig,
+        {
+          directory: args.pluginContext.directory,
+          client: buildTeamIdleWakeHintClient(args.pluginContext.client),
+        },
+      )
     : undefined;
 
   return {

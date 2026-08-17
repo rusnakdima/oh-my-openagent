@@ -12,15 +12,17 @@
  * Fixes #4990 — "Team-mode lead can stall after full quiescence".
  */
 import type { TeamModeConfig } from "../../config/schema/team-mode"
+import type { Task } from "@oh-my-opencode/team-core/types"
 import { findResolvedMemberSession } from "../../features/team-mode/member-session-resolution"
 import {
   loadRuntimeState,
 } from "../../features/team-mode/team-state-store/store"
-import { listUnreadMessages } from "../../features/team-mode/team-mailbox/mailbox"
-import { listTasks } from "../../features/team-mode/team-tasklist/tasklist"
+import { listUnreadMessages } from "../../features/team-mode/team-mailbox/inbox"
+import { listTasks } from "../../features/team-mode/team-tasklist/list"
 import { resolveSessionEventID } from "../../shared/event-session-id"
 import { log } from "../../shared/logger"
 import { dispatchInternalPrompt } from "../../shared/prompt-async-gate"
+import type { TeamIdleWakeHintNarrowClient } from "../../plugin/build-team-idle-wake-hint-client"
 
 type HookInput = { event: { type: string; properties?: unknown } }
 export type HookImpl = (input: HookInput) => Promise<void>
@@ -54,8 +56,25 @@ function areAllMembersQuiescent(
  * The prompt asks the lead to review team_task_list and team_status to decide
  * whether work remains or the team run can be concluded.
  */
+type PromptAsyncInput = {
+  path: { id: string }
+  body: {
+    parts: Array<{ type: "text"; text: string }>
+    agent?: string
+    model?: { providerID: string; modelID: string }
+    variant?: string
+  }
+  query: { directory: string }
+}
+
+type TeamLeadQuiescenceContext = {
+  directory: string
+  client: TeamIdleWakeHintNarrowClient
+}
+
 export function createTeamLeadQuiescenceHandler(
   teamModeConfig: TeamModeConfig,
+  ctx: TeamLeadQuiescenceContext,
 ): HookImpl {
   return async (input: HookInput) => {
     if (input.event.type !== "session.idle") return
@@ -103,7 +122,7 @@ export function createTeamLeadQuiescenceHandler(
       const tasks = await listTasks(runtimeMember.teamRunId, teamModeConfig)
       totalTaskCount = tasks.length
       pendingTaskCount = tasks.filter(
-        (t) => t.status === "pending" || t.status === "claimed",
+        (t: Task) => t.status === "pending" || t.status === "claimed",
       ).length
     } catch {
       // Task list unavailable — still prompt the lead to review state.
@@ -123,12 +142,16 @@ export function createTeamLeadQuiescenceHandler(
 
     await dispatchInternalPrompt({
       mode: "async",
+      client: ctx.client,
       sessionID,
+      source: "team-lead-quiescence-handler",
       input: {
+        path: { id: sessionID },
         body: {
           parts: [{ type: "text" as const, text: continuationPrompt }],
         },
-      },
+        query: { directory: ctx.directory },
+      } as PromptAsyncInput,
     })
 
     log("team lead quiescence: dispatched continuation", {
