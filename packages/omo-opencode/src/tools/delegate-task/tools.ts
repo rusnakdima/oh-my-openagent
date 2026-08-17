@@ -1,6 +1,8 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin"
 import type { DelegatedModelConfig, ToolContextWithMetadata, DelegateTaskToolOptions } from "./types"
 import { log } from "../../shared/logger"
+import { getSessionModel } from "../../shared/session-model-state"
+import { getMainSessionID } from "../../features/claude-code-session-state"
 import { buildSystemContent } from "./prompt-builder"
 import {
   resolveSkillContent,
@@ -131,15 +133,22 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         return `Invalid arguments: Must provide either category or subagent_type.`
       }
 
+      // TUI model from session state (authoritative when parentContext.model is set)
       let systemDefaultModel: string | undefined
       try {
-        const openCodeConfig = await options.client.config.get()
-        systemDefaultModel = (openCodeConfig as { data?: { model?: string } })?.data?.model
-      } catch (error) {
-        if (!(error instanceof Error)) throw error
+        const mainSessionID = getMainSessionID()
+        const sessionModel = mainSessionID ? getSessionModel(mainSessionID) : undefined
+        systemDefaultModel = sessionModel ? `${sessionModel.providerID}/${sessionModel.modelID}` : undefined
+      } catch {
         systemDefaultModel = undefined
       }
+      log("[task] model resolution", {
+        parentContextModel: parentContext.model,
+        systemDefaultModel,
+      })
 
+      // If parentContext.model is set, use it as inheritedModel for category resolution
+      // This preserves the original behavior where parent context model can override category defaults
       const inheritedModel = parentContext.model
         ? `${parentContext.model.providerID}/${parentContext.model.modelID}`
         : undefined

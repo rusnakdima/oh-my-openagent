@@ -20,6 +20,16 @@ type CategoryModelConfig = {
   variant?: string
 }
 
+const SUBAGENT_CATEGORIES = new Set([
+  "oracle",
+  "librarian",
+  "explore",
+  "multimodal-looker",
+  "metis",
+  "momus",
+  "sisyphus-junior",
+])
+
 function formatModelLabel(model: string): string {
   const slashIndex = model.lastIndexOf("/")
   if (slashIndex < 0 || slashIndex === model.length - 1) {
@@ -69,9 +79,15 @@ export function resolveRoster(directory: string): RosterRow[] {
   try {
     const config = validatePluginConfig(directory).config
     const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config))
-    return [...resolution.agents, ...resolution.categories]
-      .map(toRosterRow)
-      .sort((left, right) => left.label.localeCompare(right.label))
+    const showSubagentAgents = config.tui?.sidebar?.showSubagentAgents ?? false
+
+    const entries = [...resolution.agents, ...resolution.categories]
+
+    const filteredEntries = showSubagentAgents
+      ? entries
+      : entries.filter((entry) => !SUBAGENT_CATEGORIES.has(entry.name.toLowerCase()))
+
+    return filteredEntries.map(toRosterRow).sort((left, right) => left.label.localeCompare(right.label))
   } catch (error) {
     if (error instanceof Error) {
       return []
