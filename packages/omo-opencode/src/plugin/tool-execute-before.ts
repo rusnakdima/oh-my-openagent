@@ -35,6 +35,9 @@ export function createToolExecuteBeforeHandler(args: {
   const { ctx, hooks, backgroundManager } = args
 
   return async (input, output): Promise<void> => {
+    // btwToolGuard: block tools on /btw answer turns (runs first, before other pre-tool hooks)
+    await hooks.btwToolGuard?.["tool.execute.before"]?.(input, output)
+
     // Strip mcp_ prefix from tool names — the model may emit mcp_background_output
     // but the runtime registry has it as background_output (fixes #2697)
     if (/^mcp_/i.test(input.tool)) {
