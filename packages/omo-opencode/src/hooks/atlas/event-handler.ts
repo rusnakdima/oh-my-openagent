@@ -5,6 +5,7 @@ import { HOOK_NAME } from "./hook-name"
 import { isAbortError } from "./is-abort-error"
 import { handleAtlasSessionIdle } from "./idle-event"
 import type { AtlasHookOptions, SessionState } from "./types"
+import { getRuntimeFallbackErrorMessage } from "@oh-my-opencode/model-core"
 
 export function createAtlasEventHandler(input: {
   ctx: PluginInput
@@ -27,6 +28,22 @@ export function createAtlasEventHandler(input: {
 
       log(`[${HOOK_NAME}] session.error`, { sessionID, isAbort })
       if (!isAbort) {
+        // Show a toast so the user knows what went wrong before Atlas continues
+        const errorMessage = getRuntimeFallbackErrorMessage(props?.error)
+        const errorSummary = errorMessage
+          ? `Subagent error: ${errorMessage.slice(0, 200)}`
+          : "Subagent encountered an error. Atlas is continuing."
+        await ctx.client.tui
+          .showToast({
+            body: {
+              title: "Subagent Error",
+              message: errorSummary,
+              variant: "error",
+              duration: 10000,
+            },
+          })
+          .catch(() => {})
+
         const previousInjectedAt = state.lastContinuationInjectedAt
         await handleAtlasSessionIdle({ ctx, options, getState, sessionID })
         if (

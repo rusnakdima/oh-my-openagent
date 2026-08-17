@@ -107,6 +107,12 @@ export function classifyRuntimeFallbackError(error: unknown): RuntimeFallbackErr
   return undefined
 }
 
+const SERVER_ERROR_PATTERN = /(?:^|\s)(?:5\d\d|internal\s+server\s+error|server\s+error)(?:\s|$)/i
+
+function isServerErrorMessage(message: string): boolean {
+  return SERVER_ERROR_PATTERN.test(message)
+}
+
 export function isRuntimeFallbackRetryableError(
   error: unknown,
   retryOnErrors: readonly number[],
@@ -138,6 +144,12 @@ export function isRuntimeFallbackRetryableError(
     }
 
     options.onUnsafeRetryableSignalRejected?.({ statusCode, retryOnErrors })
+  }
+
+  // Server error message pattern: catch cases where statusCode was not extractable
+  // but the error message itself contains a 5xx indicator
+  if (isServerErrorMessage(message)) {
+    return true
   }
 
   return RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS.some((pattern) => pattern.test(message))
