@@ -79,6 +79,13 @@ export function createEventHandler(args: {
     managers.tmuxSessionManager?.onEvent?.(input.event);
     await runEventHookSafely("teamIdleWakeHint", teamHandlers.teamIdleWakeHint, input);
     await runEventHookSafely("teamMemberStatusHandler", teamHandlers.teamMemberStatusHandler, input);
+    // #4990: fires after teamIdleWakeHint returns early (no unread messages).
+    // Checks member quiescence and dispatches a continuation prompt to the lead.
+    await runEventHookSafely(
+      "teamLeadQuiescenceHandler",
+      teamHandlers.teamLeadQuiescenceHandler,
+      input,
+    );
   };
 
   const dispatchSyntheticIdle = async (syntheticIdle: EventInput): Promise<void> => {

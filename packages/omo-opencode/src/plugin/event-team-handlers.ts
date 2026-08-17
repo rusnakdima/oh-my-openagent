@@ -1,5 +1,6 @@
 import { createTeamIdleWakeHint } from "../hooks/team-session-events/team-idle-wake-hint";
 import { createTeamLeadOrphanHandler } from "../hooks/team-session-events/team-lead-orphan-handler";
+import { createTeamLeadQuiescenceHandler } from "../hooks/team-session-events/team-lead-quiescence-handler";
 import { createTeamMemberErrorHandler } from "../hooks/team-session-events/team-member-error-handler";
 import { createTeamMemberStatusHandler } from "../hooks/team-session-events/team-member-status-handler";
 import { buildTeamIdleWakeHintClient } from "./build-team-idle-wake-hint-client";
@@ -28,11 +29,15 @@ export function createEventTeamHandlers(args: {
         client: buildTeamIdleWakeHintClient(args.pluginContext.client),
       }, teamModeConfig)
     : undefined;
+  const teamLeadQuiescenceHandler = teamModeConfig
+    ? createTeamLeadQuiescenceHandler(teamModeConfig)
+    : undefined;
 
   return {
     teamIdleWakeHint,
     teamLeadOrphanHandler,
     teamMemberErrorHandler,
     teamMemberStatusHandler,
+    teamLeadQuiescenceHandler,
   };
 }
