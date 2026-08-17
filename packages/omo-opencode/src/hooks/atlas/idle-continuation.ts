@@ -20,6 +20,26 @@ import type { AtlasHookOptions, SessionState } from "./types"
 
 const ACTIVE_BACKGROUND_TASK_STATUSES = new Set(["pending", "running"])
 
+// Cache boulder state to avoid repeated file I/O on every retry cycle.
+// Write-through on modification; invalidated after 5s to catch external changes.
+interface BoulderStateCacheEntry {
+  state: ReturnType<typeof readBoulderState>
+  expiresAt: number
+}
+const boulderStateCache = new Map<string, BoulderStateCacheEntry>()
+const BOULDER_CACHE_TTL_MS = 5_000
+
+function getCachedBoulderState(directory: string): ReturnType<typeof readBoulderState> {
+  const now = Date.now()
+  const cached = boulderStateCache.get(directory)
+  if (cached && now < cached.expiresAt) {
+    return cached.state
+  }
+  const state = readBoulderState(directory)
+  boulderStateCache.set(directory, { state, expiresAt: now + BOULDER_CACHE_TTL_MS })
+  return state
+}
+
 export function hasRunningBackgroundTasks(sessionID: string, options?: AtlasHookOptions): boolean {
   const backgroundManager = options?.backgroundManager
   return backgroundManager
@@ -54,7 +74,7 @@ export async function injectContinuation(input: {
   input.sessionState.isInjectingContinuation = true
 
   try {
-    const currentBoulder = readBoulderState(input.ctx.directory)
+    const currentBoulder = getCachedBoulderState(input.ctx.directory)
     const normalizedSessionID = normalizeSessionId(input.sessionID)
     const currentPlanPath = currentBoulder
       ? resolveBoulderPlanPath(input.ctx.directory, currentBoulder)
@@ -181,7 +201,7 @@ export function scheduleRetry(input: {
         return
       }
 
-      const currentBoulder = readBoulderState(ctx.directory)
+      const currentBoulder = getCachedBoulderState(ctx.directory)
       if (!currentBoulder) return
       const normalizedSessionID = normalizeSessionId(sessionID)
       if (!currentBoulder.session_ids?.includes(normalizedSessionID)) return

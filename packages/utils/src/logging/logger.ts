@@ -45,7 +45,7 @@ export function createLogger(options: LoggerOptions): BoundLogger {
   let logFile = initialLogFile
   let maxLogFileSizeBytes = maxLogFileSizeDefault
   let maxLogFileBackups = maxLogFileBackupsDefault
-  let buffer: string[] = []
+  let buffer: Array<{ message: string; data?: unknown }> = []
   let flushTimer: ReturnType<typeof setTimeout> | null = null
 
   function rotateLogFileIfNeeded(): void {
@@ -73,8 +73,22 @@ export function createLogger(options: LoggerOptions): BoundLogger {
 
   function flush(): void {
     if (buffer.length === 0) return
-    const data = buffer.join("")
+    // Serialize lazily — only call JSON.stringify when we are actually writing to disk,
+    // not on every log() call. This avoids expensive serialization for entries
+    // that might never be flushed (e.g. if the process exits before the flush timer).
+    const entries: string[] = []
+    for (const { message, data } of buffer) {
+      try {
+        entries.push(`[${new Date().toISOString()}] ${message}${data ? ` ${JSON.stringify(data)}` : ""}\n`)
+      } catch {
+        // Cyclic or otherwise non-serializable data — skip this entry but continue.
+        // This preserves the original behaviour where log() swallows serialization errors
+        // and the buffer entry is simply dropped on flush failure.
+      }
+    }
+    const data = entries.join("")
     buffer = []
+    if (data.length === 0) return
     try {
       fs.appendFileSync(logFile, data)
       rotateLogFileIfNeeded()
@@ -93,9 +107,7 @@ export function createLogger(options: LoggerOptions): BoundLogger {
 
   function log(message: string, data?: unknown): void {
     try {
-      const timestamp = new Date().toISOString()
-      const logEntry = `[${timestamp}] ${message} ${data ? JSON.stringify(data) : ""}\n`
-      buffer.push(logEntry)
+      buffer.push({ message, data })
       if (buffer.length >= bufferSizeLimit) {
         flush()
       } else {
