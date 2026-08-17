@@ -105,19 +105,19 @@ function orderedCustomAgentSources(
 ): Record<string, unknown> {
   // Filter out builtin agent names to prevent opencodeConfigAgents/userAgents from
   // overwriting correct modes from builtinAgents (step 2 cannot overwrite step 1)
-  const builtinAgentNameSet = new Set(BUILTIN_AGENT_NAMES);
-  const isNotBuiltinAgent = (name: string) => !builtinAgentNameSet.has(name as typeof BUILTIN_AGENT_NAMES[number]);
+  const builtinAgentNameSet = new Set<string>(BUILTIN_AGENT_NAMES);
+  const isNotBuiltinAgent = (name: string) => !builtinAgentNameSet.has(name);
 
   const filterBuiltinAgents = <T extends Record<string, unknown>>(agents: T): T =>
     Object.fromEntries(Object.entries(agents).filter(([k]) => isNotBuiltinAgent(k))) as T;
 
   return {
-    ...filterDisabledAgents(sources.pluginAgents, disabledAgentNames),
-    ...filterDisabledAgents(sources.userAgents, disabledAgentNames),
-    ...filterDisabledAgents(sources.opencodeGlobalAgents, disabledAgentNames),
-    ...filterDisabledAgents(sources.projectAgents, disabledAgentNames),
-    ...filterDisabledAgents(sources.opencodeProjectAgents, disabledAgentNames),
-    ...filterDisabledAgents(sources.agentDefinitionAgents, disabledAgentNames),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.pluginAgents, disabledAgentNames)),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.userAgents, disabledAgentNames)),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.opencodeGlobalAgents, disabledAgentNames)),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.projectAgents, disabledAgentNames)),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.opencodeProjectAgents, disabledAgentNames)),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.agentDefinitionAgents, disabledAgentNames)),
     ...filterBuiltinAgents(
       filterDisabledAgents(sources.opencodeConfigAgents, disabledAgentNames),
     ),
@@ -217,8 +217,7 @@ async function assembleSisyphusEnabledConfig(params: AssembleAgentConfigParams):
               if (key === "build") return false;
               if (key === "plan" && shouldDemotePlan) return false;
               // Exclude builtin agent names so they don't overwrite correct modes from builtinAgents
-              if (BUILTIN_AGENT_NAMES.includes(key as typeof BUILTIN_AGENT_NAMES[number]))
-                return false;
+              if ((BUILTIN_AGENT_NAMES as readonly string[]).includes(key)) return false;
               // Exclude OpenCode native agents
               const nativeAgents = ["compaction", "general"];
               if (nativeAgents.includes(key)) return false;
