@@ -21,6 +21,8 @@ import {
   createFsyncSkipWarningHook,
   createNotepadWriteGuardHook,
   createPlanFormatValidatorHook,
+  createBtwToolGuardHook,
+  type BtwToolGuardDeps,
 } from "../../hooks"
 import {
   getOpenCodeVersion,
@@ -49,6 +51,7 @@ export type ToolGuardHooks = {
   teamToolGating: ReturnType<typeof createTeamToolGating> | null
   notepadWriteGuard: ReturnType<typeof createNotepadWriteGuardHook> | null
   planFormatValidator: ReturnType<typeof createPlanFormatValidatorHook> | null
+  btwToolGuard: ReturnType<typeof createBtwToolGuardHook> | null
 }
 
 export function createToolGuardHooks(args: {
@@ -157,6 +160,12 @@ export function createToolGuardHooks(args: {
     ? safeHook("notepad-write-guard", () => createNotepadWriteGuardHook())
     : null
 
+  // btwToolGuard is always enabled (context-shielded /btw command; no config gate)
+  const btwToolGuardDeps: BtwToolGuardDeps = {
+    client: ctx.client as BtwToolGuardDeps["client"],
+  }
+  const btwToolGuard = createBtwToolGuardHook(btwToolGuardDeps)
+
   return {
     commentChecker,
     toolOutputTruncator,
@@ -176,5 +185,6 @@ export function createToolGuardHooks(args: {
     teamToolGating,
     notepadWriteGuard,
     planFormatValidator,
+    btwToolGuard,
   }
 }
