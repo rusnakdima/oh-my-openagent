@@ -42,7 +42,17 @@ export function mergeAgentConfig(
   directory?: string
 ): AgentConfig {
   const migratedOverride = migrateAgentConfig(override as Record<string, unknown>) as AgentOverrideConfig
-  const { prompt_append, reasoning, ...rest } = migratedOverride
+  // Strip mode/model/fallback_models from user overrides — these are factory-defined and
+  // must not be overridden by user config. OpenCode UI controls model selection;
+  // user config controls category routing, skills, temperature, etc.
+  const {
+    prompt_append,
+    reasoning,
+    mode: _userMode,
+    model: _userModel,
+    fallback_models: _userFallback,
+    ...rest
+  } = migratedOverride
   const merged = deepMerge(base, rest as Partial<AgentConfig>)
 
   // Lower canonical `reasoning` to OpenCode's `variant` at build time so that

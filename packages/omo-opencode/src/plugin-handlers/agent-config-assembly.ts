@@ -85,18 +85,40 @@ function filterCustomAgentSources(
   };
 }
 
+const BUILTIN_AGENT_NAMES = [
+  "sisyphus",
+  "hephaestus",
+  "atlas",
+  "prometheus",
+  "oracle",
+  "librarian",
+  "explore",
+  "metis",
+  "momus",
+  "multimodal-looker",
+  "sisyphus-junior",
+] as const;
+
 function orderedCustomAgentSources(
   sources: Omit<AgentSources, "configAgent" | "customAgentSummaries">,
   disabledAgentNames: ReadonlySet<string>,
 ): Record<string, unknown> {
+  // Filter out builtin agent names to prevent custom sources (including pluginAgents)
+  // from overwriting correct modes from builtinAgents (step 2 cannot overwrite step 1)
+  const builtinAgentNameSet = new Set(BUILTIN_AGENT_NAMES);
+  const isNotBuiltinAgent = (name: string) => !builtinAgentNameSet.has(name as typeof BUILTIN_AGENT_NAMES[number]);
+
+  const filterBuiltinAgents = <T extends Record<string, unknown>>(agents: T): T =>
+    Object.fromEntries(Object.entries(agents).filter(([k]) => isNotBuiltinAgent(k))) as T;
+
   return {
-    ...filterDisabledAgents(sources.pluginAgents, disabledAgentNames),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.pluginAgents, disabledAgentNames)),
     ...filterDisabledAgents(sources.userAgents, disabledAgentNames),
     ...filterDisabledAgents(sources.opencodeGlobalAgents, disabledAgentNames),
     ...filterDisabledAgents(sources.projectAgents, disabledAgentNames),
     ...filterDisabledAgents(sources.opencodeProjectAgents, disabledAgentNames),
     ...filterDisabledAgents(sources.agentDefinitionAgents, disabledAgentNames),
-    ...filterDisabledAgents(sources.opencodeConfigAgents, disabledAgentNames),
+    ...filterBuiltinAgents(filterDisabledAgents(sources.opencodeConfigAgents, disabledAgentNames)),
   };
 }
 
