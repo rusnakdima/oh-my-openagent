@@ -47,13 +47,15 @@ export async function pollSyncSession(
   input: {
     sessionID: string
     agentToUse: string
-    toastManager: { removeTask: (id: string) => void } | null | undefined
+    toastManager: { removeTask: (id: string) => void; showToast?: (opts: { title: string; message: string; variant: string; duration: number }) => void } | null | undefined
     taskId: string | undefined
     anchorMessageCount?: number
     maxAssistantTurns?: number
     hasActiveChildBackgroundTasks?: (sessionID: string) => boolean
     hasPendingParentWake?: (sessionID: string) => boolean
     childWakeGraceMs?: number
+    /** Called when the status fetch circuit breaker trips after consecutive failures */
+    onCircuitBreakerTripped?: (message: string) => void
   },
   timeoutMs?: number
 ): Promise<string | null> {
@@ -66,6 +68,8 @@ export async function pollSyncSession(
   let timedOut = false
   let assistantTurnCount = 0
   let lastSeenAssistantId: string | undefined
+  let consecutiveStatusFailures = 0
+  const MAX_CONSECUTIVE_STATUS_FAILURES = 3
   const childSettleMs = input.childWakeGraceMs ?? CHILD_WAKE_GRACE_MS
   let childWaitAssistantId: string | undefined
   let childSettleStartedAt = 0
@@ -152,6 +156,16 @@ export async function pollSyncSession(
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
       log("[task] Poll status fetch failed, checking messages", { sessionID: input.sessionID, error: errorMessage })
+      consecutiveStatusFailures++
+      if (consecutiveStatusFailures >= MAX_CONSECUTIVE_STATUS_FAILURES) {
+        const msg = `Session status unavailable after ${consecutiveStatusFailures} attempts. The session may have been deleted server-side.`
+        log("[task] Circuit breaker tripped: consecutive status failures", {
+          sessionID: input.sessionID,
+          consecutiveStatusFailures,
+        })
+        input.onCircuitBreakerTripped?.(msg)
+        return msg
+      }
     }
 
     if (pollCount % 10 === 0) {
@@ -166,6 +180,7 @@ export async function pollSyncSession(
 
     if (isActiveSessionStatus(sessionStatus)) {
       inactiveStart = Date.now()
+      consecutiveStatusFailures = 0
       continue
     }
 

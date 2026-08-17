@@ -52,7 +52,12 @@ export function classifyRuntimeFallbackError(error: unknown): RuntimeFallbackErr
     return "abort"
   }
 
-  if (errorName === "contextoverflowerror") {
+  if (
+    errorName === "contextoverflowerror" ||
+    // Broader match: any provider error name containing "context" + "window/overflow"
+    (errorName?.includes("context") &&
+      (errorName?.includes("overflow") || errorName?.includes("window") || errorName?.includes("limit")))
+  ) {
     return "context_overflow"
   }
 
@@ -120,7 +125,20 @@ export function isRuntimeFallbackRetryableError(
 ): boolean {
   const statusCode = getRuntimeFallbackStatusCode(error, retryOnErrors)
   const message = getRuntimeFallbackErrorMessage(error)
+  const errorName = getRuntimeFallbackErrorName(error)?.toLowerCase().replace(/[_-]/g, "")
   const errorType = classifyRuntimeFallbackError(error)
+
+  // Guard by name pattern first — catches providers that use non-standard error names
+  // for context overflow (e.g. ContextWindowExceededError, context_limit_error).
+  const isContextOverflowByName =
+    errorName?.includes("context") &&
+    (errorName?.includes("overflow") ||
+      errorName?.includes("window") ||
+      errorName?.includes("limit"))
+
+  if (isContextOverflowByName) {
+    return false
+  }
 
   // OpenCode starts native compaction for this error; fallback would abort that compaction on its timeout.
   if (errorType === "abort" || errorType === "context_overflow") return false

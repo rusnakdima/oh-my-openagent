@@ -193,6 +193,14 @@ export async function executeSyncContinuation(
         toastManager,
         taskId,
         anchorMessageCount,
+        onCircuitBreakerTripped: (msg) => {
+          toastManager?.showToast?.({
+            title: "Session Unavailable",
+            message: msg,
+            variant: "error",
+            duration: 8000,
+          })
+        },
       }, syncPollTimeoutMs)
       if (pollError && shouldAttemptPollErrorRecovery(pollError)) {
         if (anchorMessageCount === undefined) {

@@ -150,6 +150,14 @@ export async function runSyncTaskLoop(input: SyncTaskRunnerInput): Promise<strin
       taskId,
       hasActiveChildBackgroundTasks,
       hasPendingParentWake,
+      onCircuitBreakerTripped: (msg) => {
+        toastManager?.showToast?.({
+          title: "Session Unavailable",
+          message: msg,
+          variant: "error",
+          duration: 8000,
+        })
+      },
     }, syncPollTimeoutMs)
     if (pollError) {
       if (shouldAttemptPollErrorRecovery(pollError)) {
