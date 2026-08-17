@@ -4,7 +4,7 @@ import {
   extractPromptText,
   findSlashCommandPartIndex,
 } from "./detector"
-import { executeSlashCommand, type ExecutorOptions } from "./executor"
+import { executeSlashCommand, type ExecuteResult, type ExecutorOptions } from "./executor"
 import { log } from "../../shared"
 import { resolveSessionEventID } from "../../shared/event-session-id"
 import {
@@ -12,6 +12,14 @@ import {
   AUTO_SLASH_COMMAND_TAG_OPEN,
 } from "./constants"
 import { createProcessedCommandStore } from "./processed-command-store"
+import { BTW_AUTO_SLASH_COMMAND_MARKER } from "../btw-context-strip/predicates"
+import { clearBtwTurnActive, markBtwTurnActive } from "../btw-tool-guard/turn-state"
+import {
+  getMainSessionID,
+  subagentSessions,
+  syncSubagentSessions,
+} from "../../features/claude-code-session-state"
+import { lookupTeamSession } from "../../features/team-mode/team-session-registry"
 import type {
   AutoSlashCommandHookInput,
   AutoSlashCommandHookOutput,
@@ -55,6 +63,26 @@ function getCommandExecutionEventID(input: CommandExecuteBeforeInput): string | 
   return null
 }
 
+function markBtwCommandMessage(
+  command: string,
+  output: { message?: Record<string, unknown> },
+): void {
+  if (command.toLowerCase() !== "btw") {
+    return
+  }
+
+  output.message ??= {}
+  output.message[BTW_AUTO_SLASH_COMMAND_MARKER] = true
+}
+
+function markBtwCommandPart(command: string, part: Record<string, unknown>): void {
+  if (command.toLowerCase() !== "btw") {
+    return
+  }
+
+  part[BTW_AUTO_SLASH_COMMAND_MARKER] = true
+}
+
 function partsContainAutoSlashCommandTags(parts: Array<{ text?: string }>): boolean {
   return parts.some((part) =>
     typeof part.text === "string"
@@ -65,11 +93,42 @@ function partsContainAutoSlashCommandTags(parts: Array<{ text?: string }>): bool
   )
 }
 
+function isBtwChatTraffic(promptText: string, parts: Array<Record<string, unknown>>): boolean {
+  if (parts.some((part) => part[BTW_AUTO_SLASH_COMMAND_MARKER] === true)) {
+    return true
+  }
+
+  return detectSlashCommand(promptText)?.command.toLowerCase() === "btw"
+}
+
+// The builtin /btw is documented as primary-session-only; expanding it in
+// subagent, team, or non-main sessions would inject the template where the
+// tool guard does not protect it, so those sessions keep the raw text instead.
+function isPrimaryBtwSession(sessionID: string): boolean {
+  if (subagentSessions.has(sessionID) || syncSubagentSessions.has(sessionID)) {
+    return false
+  }
+
+  if (lookupTeamSession(sessionID)) {
+    return false
+  }
+
+  const mainSessionID = getMainSessionID()
+  return !mainSessionID || mainSessionID === sessionID
+}
+
+// A custom project/user/skill command named "btw" shadows the builtin and must
+// NOT inherit the builtin's marking, stripping, or read-only guard semantics.
+function isBuiltinBtwResult(command: string, scope: ExecuteResult["scope"]): boolean {
+  return command.toLowerCase() === "btw" && scope === "builtin"
+}
+
 export interface AutoSlashCommandHookOptions {
   skills?: LoadedSkill[]
   pluginsEnabled?: boolean
   enabledPluginsOverride?: Record<string, boolean>
   directory?: string
+  disabledCommands?: string[]
 }
 
 export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions) {
@@ -78,6 +137,7 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
     pluginsEnabled: options?.pluginsEnabled,
     enabledPluginsOverride: options?.enabledPluginsOverride,
     directory: options?.directory,
+    disabledCommands: options?.disabledCommands,
   }
   const sessionProcessedCommands = createProcessedCommandStore()
   const sessionProcessedCommandExecutions = createProcessedCommandStore()
@@ -94,11 +154,18 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
     ): Promise<void> => {
       const promptText = extractPromptText(output.parts)
 
+      // Non-/btw traffic ends any active /btw turn; /btw traffic (fresh or a
+      // tagged refire of the same marked message) must keep the guard state.
+      if (!isBtwChatTraffic(promptText, output.parts)) {
+        clearBtwTurnActive(input.sessionID)
+      }
+
       // Debug logging to diagnose slash command issues
       if (promptText.startsWith("/")) {
+        const isBtwCommand = promptText.toLowerCase().startsWith("/btw")
         log(`[auto-slash-command] chat.message hook received slash command`, {
           sessionID: input.sessionID,
-          promptText: promptText.slice(0, 100),
+          promptText: isBtwCommand ? "[redacted /btw side-question]" : promptText.slice(0, 100),
         })
       }
 
@@ -125,13 +192,12 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
 
       log(`[auto-slash-command] Detected: /${parsed.command}`, {
         sessionID: input.sessionID,
-        args: parsed.args,
+        args: parsed.command.toLowerCase() === "btw" ? "[redacted /btw side-question]" : parsed.args,
       })
 
       const executionOptions: ExecutorOptions = {
         ...executorOptions,
         agent: input.agent,
-        sessionID: input.sessionID,
       }
 
       const result = await executeSlashCommand(parsed, executionOptions)
@@ -150,8 +216,21 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
         return
       }
 
+      const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope)
+      if (isBuiltinBtw && !isPrimaryBtwSession(input.sessionID)) {
+        log(`[auto-slash-command] Skipping builtin /btw expansion outside the primary session`, {
+          sessionID: input.sessionID,
+        })
+        return
+      }
+
       const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
       output.parts[idx].text = taggedContent
+      if (isBuiltinBtw) {
+        markBtwCommandPart(parsed.command, output.parts[idx])
+        markBtwCommandMessage(parsed.command, output)
+        markBtwTurnActive(input.sessionID)
+      }
 
       log(`[auto-slash-command] Replaced message with command template`, {
         sessionID: input.sessionID,
@@ -163,6 +242,10 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
       input: CommandExecuteBeforeInput,
       output: CommandExecuteBeforeOutput
     ): Promise<void> => {
+      if (input.command.toLowerCase() !== "btw") {
+        clearBtwTurnActive(input.sessionID)
+      }
+
       if (partsContainAutoSlashCommandTags(output.parts)) {
         return
       }
@@ -178,7 +261,7 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
       log(`[auto-slash-command] command.execute.before received`, {
         sessionID: input.sessionID,
         command: input.command,
-        arguments: input.arguments,
+        arguments: input.command.toLowerCase() === "btw" ? "[redacted /btw side-question]" : input.arguments,
       })
 
       const parsed = {
@@ -190,7 +273,6 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
       const executionOptions: ExecutorOptions = {
         ...executorOptions,
         agent: input.agent,
-        sessionID: input.sessionID,
       }
 
       const result = await executeSlashCommand(parsed, executionOptions)
@@ -200,6 +282,14 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
           sessionID: input.sessionID,
           command: input.command,
           error: result.error,
+        })
+        return
+      }
+
+      const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope)
+      if (isBuiltinBtw && !isPrimaryBtwSession(input.sessionID)) {
+        log(`[auto-slash-command] Skipping builtin /btw expansion outside the primary session`, {
+          sessionID: input.sessionID,
         })
         return
       }
@@ -214,8 +304,19 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
       const idx = findSlashCommandPartIndex(output.parts)
       if (idx >= 0) {
         output.parts[idx].text = taggedContent
+        if (isBuiltinBtw) {
+          markBtwCommandPart(parsed.command, output.parts[idx])
+        }
       } else {
-        output.parts.unshift({ type: "text", text: taggedContent })
+        const injectedPart = { type: "text", text: taggedContent }
+        if (isBuiltinBtw) {
+          markBtwCommandPart(parsed.command, injectedPart)
+        }
+        output.parts.unshift(injectedPart)
+      }
+      if (isBuiltinBtw) {
+        markBtwCommandMessage(parsed.command, output)
+        markBtwTurnActive(input.sessionID)
       }
 
       log(`[auto-slash-command] command.execute.before - injected template`, {
@@ -239,6 +340,7 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
 
       sessionProcessedCommands.cleanupSession(sessionID)
       sessionProcessedCommandExecutions.cleanupSession(sessionID)
+      clearBtwTurnActive(sessionID)
     },
     dispose,
   }

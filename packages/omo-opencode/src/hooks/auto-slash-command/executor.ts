@@ -17,15 +17,6 @@ interface SkillCommandInfo {
 
 type CommandInfo = DiscoveredCommandInfo | SkillCommandInfo
 
-const COMMAND_TEMPLATE_VARIABLE_PATTERN = /\$\{user_message\}|\$ARGUMENTS|\$SESSION_ID|\$TIMESTAMP/g
-
-class MissingCommandSessionIDError extends Error {
-  constructor() {
-    super("Command template requires a session ID")
-    this.name = "MissingCommandSessionIDError"
-  }
-}
-
 function skillToCommandInfo(skill: LoadedSkill): SkillCommandInfo {
   return {
     name: skill.name,
@@ -50,15 +41,18 @@ export interface ExecutorOptions {
   enabledPluginsOverride?: Record<string, boolean>
   agent?: string
   directory?: string
-  sessionID?: string
+  disabledCommands?: string[]
 }
 
 
 async function discoverAllCommands(options?: ExecutorOptions): Promise<CommandInfo[]> {
+  const disabledBuiltins = new Set(
+    (options?.disabledCommands ?? []).map((name) => name.toLowerCase()),
+  )
   const discoveredCommands = commandDiscovery.discoverCommandsSync(options?.directory ?? process.cwd(), {
     pluginsEnabled: options?.pluginsEnabled,
     enabledPluginsOverride: options?.enabledPluginsOverride,
-  })
+  }).filter((cmd) => cmd.scope !== "builtin" || !disabledBuiltins.has(cmd.name.toLowerCase()))
 
   const skills = options?.skills ?? await discoverAllSkills()
   const skillCommands = skills.map(skillToCommandInfo)
@@ -85,28 +79,7 @@ async function findCommand(commandName: string, options?: ExecutorOptions): Prom
   ) ?? null
 }
 
-function substituteCommandTemplate(content: string, args: string, sessionID: string | undefined): string {
-  if (content.includes("$SESSION_ID") && !sessionID) {
-    throw new MissingCommandSessionIDError()
-  }
-
-  const timestamp = new Date().toISOString()
-  return content.replace(COMMAND_TEMPLATE_VARIABLE_PATTERN, (variable) => {
-    switch (variable) {
-      case "${user_message}":
-      case "$ARGUMENTS":
-        return args
-      case "$SESSION_ID":
-        return sessionID ?? ""
-      case "$TIMESTAMP":
-        return timestamp
-      default:
-        return variable
-    }
-  })
-}
-
-async function formatCommandTemplate(cmd: CommandInfo, args: string, sessionID?: string): Promise<string> {
+async function formatCommandTemplate(cmd: CommandInfo, args: string): Promise<string> {
   const sections: string[] = []
 
   sections.push(`# /${cmd.name} Command\n`)
@@ -139,14 +112,13 @@ async function formatCommandTemplate(cmd: CommandInfo, args: string, sessionID?:
   const commandDir = cmd.path ? dirname(cmd.path) : process.cwd()
   const withFileRefs = await resolveFileReferencesInText(content, commandDir)
   const resolvedContent = await resolveCommandsInText(withFileRefs)
-  const substitutedContent = substituteCommandTemplate(resolvedContent, args, sessionID)
+  const resolvedArguments = args
+  const substitutedContent = resolvedContent
+    .replace(/\$\{user_message\}/g, resolvedArguments)
+    .replace(/\$ARGUMENTS/g, resolvedArguments)
   sections.push(substitutedContent.trim())
 
-  if (
-    args &&
-    !resolvedContent.includes("${user_message}") &&
-    !resolvedContent.includes("$ARGUMENTS")
-  ) {
+  if (args) {
     sections.push("\n\n---\n")
     sections.push("## User Request\n")
     sections.push(args)
@@ -158,6 +130,7 @@ async function formatCommandTemplate(cmd: CommandInfo, args: string, sessionID?:
 export interface ExecuteResult {
   success: boolean
   replacementText?: string
+  scope?: CommandInfo["scope"]
   error?: string
 }
 
@@ -181,10 +154,11 @@ export async function executeSlashCommand(parsed: ParsedSlashCommand, options?: 
   }
 
   try {
-    const template = await formatCommandTemplate(command, parsed.args, options?.sessionID)
+    const template = await formatCommandTemplate(command, parsed.args)
     return {
       success: true,
       replacementText: template,
+      scope: command.scope,
     }
   } catch (err) {
     return {
