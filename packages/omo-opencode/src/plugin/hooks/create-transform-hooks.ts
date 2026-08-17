@@ -9,12 +9,14 @@ import {
   createTeamMailboxInjector,
   createTeamModeStatusInjector,
   createToolPairValidatorHook,
+  createBtwContextStripHook,
 } from "../../hooks"
 import {
   contextCollector,
   createContextInjectorMessagesTransformHook,
 } from "../../features/context-injector"
 import { safeCreateHook } from "../../shared/safe-create-hook"
+import { isBtwMarked } from "../../hooks/btw-context-strip/predicates"
 
 export type TransformHooks = {
   claudeCodeHooks: ReturnType<typeof createClaudeCodeHooksHook> | null
@@ -24,6 +26,7 @@ export type TransformHooks = {
   teamMailboxInjector: ReturnType<typeof createTeamMailboxInjector> | null
   toolPairValidator: ReturnType<typeof createToolPairValidatorHook> | null
   monitorStatusInjector: ReturnType<typeof createMonitorStatusInjectorHook> | null
+  btwContextStrip: ReturnType<typeof createBtwContextStripHook>
 }
 
 export function createTransformHooks(args: {
@@ -105,6 +108,9 @@ export function createTransformHooks(args: {
       )
     : null
 
+  // btwContextStrip is always enabled (context-shielded /btw command; no config gate)
+  const btwContextStrip = createBtwContextStripHook(isBtwMarked)
+
   return {
     claudeCodeHooks,
     keywordDetector,
@@ -113,5 +119,6 @@ export function createTransformHooks(args: {
     teamMailboxInjector,
     toolPairValidator,
     monitorStatusInjector,
+    btwContextStrip,
   }
 }
