@@ -152,6 +152,7 @@ export async function createBuiltinAgents(
     directory,
     useTaskSystem,
     disableOmoEnv,
+    uiSelectedModel,
   })
   if (hephaestusConfig) {
     result["hephaestus"] = hephaestusConfig

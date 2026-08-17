@@ -76,8 +76,14 @@ export function collectPendingBuiltinAgents(input: {
 
     const isPrimaryAgent = isFactory(source) && source.mode === "primary"
 
+    // When no explicit override is set, pass the UI-selected model to ALL agents (primary and subagent).
+    // This ensures TUI model selector applies uniformly across the entire agent roster.
+    // The model resolution pipeline already stops at explicit models (uiSelectedModel / userModel)
+    // without traversing fallback chains, so this is safe: subagents get the UI model verbatim
+    // when the user has made an explicit selection, and fall back to their chains only when
+    // no explicit selection exists.
     let resolution = applyModelResolution({
-      uiSelectedModel: (isPrimaryAgent && override?.model === undefined) ? uiSelectedModel : undefined,
+      uiSelectedModel: override?.model === undefined ? uiSelectedModel : undefined,
       userModel: override?.model,
       requirement,
       availableModels,
