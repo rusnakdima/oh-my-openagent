@@ -76,7 +76,7 @@ describe("buildAvailableSkills - agentName filtering", () => {
     const skills = [makeSkill("sisyphus-only", { agent: "sisyphus" })]
 
     // when
-    const result = buildAvailableSkills(skills, undefined, undefined, undefined, "oracle")
+    const result = buildAvailableSkills(skills, undefined, undefined, undefined, undefined, "oracle")
 
     // then: wrong agent → excluded
     expect(result.map((s) => s.name)).not.toContain("sisyphus-only")
@@ -102,7 +102,7 @@ describe("buildAvailableSkills - agentName filtering", () => {
     ]
 
     // when
-    const result = buildAvailableSkills(skills, undefined, undefined, undefined, "sisyphus")
+    const result = buildAvailableSkills(skills, undefined, undefined, undefined, undefined, "sisyphus")
 
     // then
     const names = result.map((s) => s.name)
