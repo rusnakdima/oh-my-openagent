@@ -208,30 +208,29 @@ export function resolveModelPipeline(
       const connectedProviders = constraints.connectedProviders ?? providerCache.readConnectedProvidersCache()
       const connectedSet = connectedProviders ? new Set(connectedProviders) : null
 
-      if (connectedSet === null) {
-        log("Model fallback chain skipped (no connected providers cache) - falling through to system default")
-      } else {
-        for (const entry of fallbackChain) {
-          for (const provider of entry.providers) {
-            if (connectedSet.has(provider)) {
-              const transformedModelId = deps.transformModelForProvider(provider, entry.model)
-              const model = `${provider}/${transformedModelId}`
-              log("Model resolved via fallback chain (connected provider)", {
-                provider,
-                model: transformedModelId,
-                variant: entry.variant,
-              })
-              return {
-                model,
-                provenance: "provider-fallback",
-                variant: entry.variant,
-                attempted,
-              }
-            }
+      for (const entry of fallbackChain) {
+        for (const provider of entry.providers) {
+          // When connectedSet is null (cold cache), we cannot verify provider connectivity.
+          // Still try the chain entry — transformModelForProvider is pure and safe to call.
+          if (connectedSet !== null && !connectedSet.has(provider)) {
+            continue
+          }
+          const transformedModelId = deps.transformModelForProvider(provider, entry.model)
+          const model = `${provider}/${transformedModelId}`
+          log("Model resolved via fallback chain (connected provider)", {
+            provider,
+            model: transformedModelId,
+            variant: entry.variant,
+          })
+          return {
+            model,
+            provenance: "provider-fallback",
+            variant: entry.variant,
+            attempted,
           }
         }
-        log("No connected provider found in fallback chain, falling through to system default")
       }
+      log("No connected provider found in fallback chain, falling through to system default")
     } else {
       for (const entry of fallbackChain) {
         for (const provider of entry.providers) {
