@@ -1,16 +1,11 @@
 import type { AgentOverrides } from "../../config/schema"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
 import { fuzzyMatchModel } from "../../shared/model-availability"
-import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-models"
 import { normalizeModelFormat } from "../../shared/model-format-normalizer"
-import { flattenToFallbackModelStrings, normalizeFallbackModels } from "../../shared/model-resolver"
-import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
 import { log } from "../../shared/logger"
 import { getAvailableModelsForDelegateTask } from "./available-models"
 import { applyCategoryParams } from "./delegated-model-config"
 import type { ExecutorContext } from "./executor-types"
-import { applyFallbackEntrySettings } from "./fallback-entry-settings"
-import { resolveEffectiveFallbackEntry } from "./fallback-entry-resolution"
 import { resolveModelForDelegateTask } from "./model-selection"
 import type { AgentInfo } from "./subagent-discovery"
 import type { ResolvedSubagentModel } from "./subagent-resolution-types"
@@ -26,35 +21,23 @@ export async function resolveSubagentModel(
   executorCtx: ExecutorContext,
 ): Promise<ResolvedSubagentModel> {
   let categoryModel = undefined
-  let fallbackChain = undefined
 
   const agentConfigKey = getAgentConfigKey(agentToUse)
   const agentOverride = findAgentOverride(executorCtx.agentOverrides, agentConfigKey)
-  const agentRequirement = AGENT_MODEL_REQUIREMENTS[agentConfigKey]
   const agentCategoryConfig = agentOverride?.category
     ? executorCtx.userCategories?.[agentOverride.category]
     : undefined
   const agentCategoryModel = agentCategoryConfig?.model
   const hasExplicitUserModel = Boolean(agentOverride?.model ?? agentCategoryModel)
-  const normalizedAgentFallbackModels = normalizeFallbackModels(
-    agentOverride?.fallback_models
-    ?? agentCategoryConfig?.fallback_models
-  )
 
   const availableModels = await getAvailableModelsForDelegateTask(executorCtx.client)
   const normalizedMatchedModel = matchedAgent.model
     ? normalizeModelFormat(matchedAgent.model)
     : undefined
-  const matchedAgentModelStr = normalizedMatchedModel
-    ? `${normalizedMatchedModel.providerID}/${normalizedMatchedModel.modelID}`
-    : undefined
 
-  if (agentOverride?.model || agentCategoryModel || agentRequirement || matchedAgent.model) {
+  if (agentOverride?.model || agentCategoryModel || matchedAgent.model) {
     const resolution = resolveModelForDelegateTask({
       userModel: agentOverride?.model ?? agentCategoryModel,
-      userFallbackModels: flattenToFallbackModelStrings(normalizedAgentFallbackModels),
-      categoryDefaultModel: matchedAgentModelStr,
-      fallbackChain: agentRequirement?.fallbackChain,
       availableModels,
       systemDefaultModel: undefined,
     })
@@ -81,29 +64,6 @@ export async function resolveSubagentModel(
         })
       }
     }
-
-    const defaultProviderID = categoryModel?.providerID
-      ?? normalizedMatchedModel?.providerID
-      ?? "opencode"
-    const configuredFallbackChain = buildFallbackChainFromModels(
-      normalizedAgentFallbackModels,
-      defaultProviderID,
-    )
-    fallbackChain = configuredFallbackChain
-      ?? ((resolutionSkipped || hasExplicitUserModel) ? undefined : agentRequirement?.fallbackChain)
-    const effectiveEntry = resolveEffectiveFallbackEntry({
-      categoryModel,
-      configuredFallbackChain,
-      resolution,
-    })
-
-    if (categoryModel && effectiveEntry) {
-      categoryModel = applyFallbackEntrySettings({
-        categoryModel,
-        effectiveEntry,
-        variantOverride: agentOverride?.variant,
-      })
-    }
   }
 
   if (!categoryModel && normalizedMatchedModel) {
@@ -118,5 +78,5 @@ export async function resolveSubagentModel(
     }
   }
 
-  return { categoryModel, fallbackChain }
+  return { categoryModel }
 }

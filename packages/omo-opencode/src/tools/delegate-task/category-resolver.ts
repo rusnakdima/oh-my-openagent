@@ -1,20 +1,16 @@
 import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
 import type { DelegateTaskArgs } from "./types"
 import type { ExecutorContext } from "./executor-types"
-import type { FallbackEntry } from "../../shared/model-requirements"
 import { mergeCategories } from "../../shared/merge-categories"
 import { SISYPHUS_JUNIOR_AGENT } from "./sisyphus-junior-agent"
 import { resolveCategoryConfig } from "./categories"
 import { BUILTIN_CATEGORY_REQUIRES_MODEL, CATEGORY_PROMPT_APPEND_RESOLVERS } from "./constants"
 import { parseModelString } from "../../shared/model-string-parser"
 import { CATEGORY_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
-import { normalizeFallbackModels, flattenToFallbackModelStrings } from "../../shared/model-resolver"
-import { buildFallbackChainFromModels, findMostSpecificFallbackEntry } from "../../shared/fallback-chain-from-models"
 import { getAvailableModelsForDelegateTask } from "./available-models"
 import { resolveModelForDelegateTask } from "./model-selection"
 import type { DelegatedModelConfig } from "./types"
 import { applyCategoryParams } from "./delegated-model-config"
-import { applyFallbackEntrySettings } from "./fallback-entry-settings"
 
 function getConfiguredModel(entry: string | { model: string } | undefined): string | undefined {
   return typeof entry === "string" ? entry : entry?.model
@@ -45,7 +41,6 @@ export interface CategoryResolutionResult {
   modelInfo: ModelFallbackInfo | undefined
   actualModel: string | undefined
   isUnstableAgent: boolean
-  fallbackChain?: FallbackEntry[]  // For runtime retry on model errors
   error?: string
 }
 
@@ -111,15 +106,10 @@ Available categories: ${allCategoryNames}`)
   const canonicalPrimaryEntry = resolved.config.models?.[0]
   const configuredPrimaryModel = getConfiguredModel(canonicalPrimaryEntry)
   const categoryResolvedModel = hasCanonicalModels ? configuredPrimaryModel : resolved.model
-  const normalizedConfiguredFallbackModels = normalizeFallbackModels(
-    hasCanonicalModels ? resolved.config.models?.slice(1) : resolved.config.fallback_models,
-  )
   let actualModel: string | undefined
   let modelInfo: ModelFallbackInfo | undefined
   let categoryModel: DelegatedModelConfig | undefined
   let isModelResolutionSkipped = false
-  let fallbackEntry: FallbackEntry | undefined
-  let matchedFallback = false
 
   const overrideModel = sisyphusJuniorModel
   const explicitCategoryModel = hasCanonicalModels
@@ -144,12 +134,6 @@ Available categories: ${allCategoryNames}`)
   } else {
     const resolution = resolveModelForDelegateTask({
       userModel: explicitCategoryModel ?? overrideModel,
-      userFallbackModels: flattenToFallbackModelStrings(normalizedConfiguredFallbackModels),
-      categoryDefaultModel: categoryResolvedModel,
-      isUserConfiguredCategoryModel: hasCanonicalModels
-        ? configuredPrimaryModel !== undefined
-        : resolved.isUserConfiguredModel,
-      fallbackChain: requirement.fallbackChain,
       availableModels,
       systemDefaultModel,
     })
@@ -167,14 +151,7 @@ Available categories: ${allCategoryNames}`)
         modelInfo = { model: userModelOverride, type: "user-defined", source: "override" }
       }
     } else if (resolution) {
-      const {
-        model: resolvedModel,
-        variant: resolvedVariant,
-        fallbackEntry: resolvedFallbackEntry,
-        matchedFallback: resolvedMatchedFallback,
-      } = resolution
-      fallbackEntry = resolvedFallbackEntry
-      matchedFallback = resolvedMatchedFallback === true
+      const { model: resolvedModel, variant: resolvedVariant } = resolution
       actualModel = resolvedModel
 
       if (!parseModelString(actualModel)) {
@@ -232,42 +209,6 @@ Available categories: ${categoryNames.join(", ")}`)
   const resolvedModel = actualModel?.toLowerCase()
   const isUnstableAgent = resolved.config.is_unstable_agent ?? (resolvedModel ? resolvedModel.includes("gemini") || resolvedModel.includes("minimax") : false)
 
-  const defaultProviderID = categoryModel?.providerID
-    ?? parseModelString(actualModel ?? "")?.providerID
-    ?? "opencode"
-  const configuredFallbackChain = buildFallbackChainFromModels(
-    normalizedConfiguredFallbackModels,
-    defaultProviderID,
-  )
-  const canonicalModelChain = hasCanonicalModels
-    ? buildFallbackChainFromModels(resolved.config.models, defaultProviderID)
-    : undefined
-
-  // Canonical model entries carry settings for both the primary and fallback rungs.
-  // Legacy fallback-only settings are promoted only when resolution selected a fallback.
-  const effectiveEntry = categoryModel
-    ? hasCanonicalModels
-      ? (canonicalModelChain
-          ? findMostSpecificFallbackEntry(categoryModel.providerID, categoryModel.modelID, canonicalModelChain)
-          : undefined)
-      : matchedFallback
-        ? (
-            fallbackEntry
-            ?? (configuredFallbackChain
-              ? findMostSpecificFallbackEntry(categoryModel.providerID, categoryModel.modelID, configuredFallbackChain)
-              : undefined)
-          )
-        : undefined
-    : undefined
-
-  if (categoryModel && effectiveEntry) {
-    categoryModel = applyFallbackEntrySettings({
-      categoryModel,
-      effectiveEntry,
-      variantOverride: userCategories?.[args.category!]?.variant,
-    })
-  }
-
   return {
     agentToUse: SISYPHUS_JUNIOR_AGENT,
     categoryModel,
@@ -276,7 +217,5 @@ Available categories: ${categoryNames.join(", ")}`)
     modelInfo,
     actualModel,
     isUnstableAgent,
-    // Don't use hardcoded fallback chain when resolution was skipped (cold cache)
-    fallbackChain: configuredFallbackChain ?? ((isModelResolutionSkipped || explicitCategoryModel || overrideModel) ? undefined : requirement?.fallbackChain),
   }
 }

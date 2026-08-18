@@ -1,4 +1,3 @@
-import type { FallbackEntry } from "../../shared/model-requirements"
 import type { AgentInfo } from "./subagent-discovery"
 import type { DelegatedModelConfig } from "./types"
 
@@ -10,7 +9,6 @@ export interface ResolveSubagentExecutionOptions {
 export interface ResolveSubagentExecutionResult {
   agentToUse: string
   categoryModel: DelegatedModelConfig | undefined
-  fallbackChain?: FallbackEntry[]
   error?: string
 }
 
@@ -28,5 +26,4 @@ export type SubagentAgentMatch =
 
 export interface ResolvedSubagentModel {
   readonly categoryModel: DelegatedModelConfig | undefined
-  readonly fallbackChain: FallbackEntry[] | undefined
 }

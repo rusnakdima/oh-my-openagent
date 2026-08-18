@@ -29,8 +29,8 @@ export async function resolveSubagentExecution(
     }
 
     agentToUse = agentMatch.agentToUse
-    const { categoryModel, fallbackChain } = await resolveSubagentModel(agentToUse, agentMatch.matchedAgent, executorCtx)
-    return { agentToUse, categoryModel, fallbackChain }
+    const { categoryModel } = await resolveSubagentModel(agentToUse, agentMatch.matchedAgent, executorCtx)
+    return { agentToUse, categoryModel }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
     log("[delegate-task] Failed to resolve subagent execution", {

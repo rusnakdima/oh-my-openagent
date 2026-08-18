@@ -201,7 +201,6 @@ export async function createTeamRun(
             teamRunId: runtimeState.teamRunId,
             suppressTmuxSpawn: true,
             model: resolvedMember.model,
-            fallbackChain: resolvedMember.fallbackChain,
             skillContent: resolvedMember.systemContent,
             category: member.kind === "category" ? member.category : undefined,
             sessionPermission: QUESTION_DENIED_SESSION_PERMISSION,

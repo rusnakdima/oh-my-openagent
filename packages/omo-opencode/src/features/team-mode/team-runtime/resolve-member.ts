@@ -1,4 +1,3 @@
-import type { FallbackEntry } from "../../../shared/model-requirements"
 import type { DelegatedModelConfig } from "../../../shared/model-resolution-types"
 import type { ExecutorContext } from "../../../tools/delegate-task/executor-types"
 import type { DelegateTaskArgs } from "../../../tools/delegate-task/types"
@@ -20,7 +19,6 @@ export interface ResolvedMember {
   memberName: string
   agentToUse: string
   model: DelegatedModelConfig | undefined
-  fallbackChain: FallbackEntry[] | undefined
   systemContent: string
 }
 
@@ -86,7 +84,6 @@ export async function resolveMember(
         memberName: member.name,
         agentToUse: execution.agentToUse,
         model: execution.categoryModel,
-        fallbackChain: execution.fallbackChain,
         systemContent: resolveSystemContent({
           agentToUse: execution.agentToUse,
           categoryPromptAppend: execution.categoryPromptAppend,
@@ -118,7 +115,6 @@ export async function resolveMember(
       memberName: member.name,
       agentToUse: execution.agentToUse,
       model: execution.categoryModel,
-      fallbackChain: execution.fallbackChain,
       systemContent: resolveSystemContent({
         agentToUse: execution.agentToUse,
         model: execution.categoryModel,
