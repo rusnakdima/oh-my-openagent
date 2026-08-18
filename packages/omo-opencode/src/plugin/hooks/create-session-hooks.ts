@@ -28,6 +28,7 @@ import {
   createPreemptiveCompactionHook,
   createRuntimeFallbackHook,
   createLegacyPluginToastHook,
+  createOpenSpecSessionHook,
 } from "../../hooks"
 import { createGoalHook } from "../../hooks/goal"
 import {
@@ -65,6 +66,7 @@ export type SessionHooks = {
   taskResumeInfo: ReturnType<typeof createTaskResumeInfoHook> | null
   runtimeFallback: ReturnType<typeof createRuntimeFallbackHook> | null
   legacyPluginToast: ReturnType<typeof createLegacyPluginToastHook> | null
+  openspecSession: ReturnType<typeof createOpenSpecSessionHook> | null
 }
 
 export function createSessionHooks(args: {
@@ -235,6 +237,18 @@ export function createSessionHooks(args: {
     ? safeHook("legacy-plugin-toast", () => createLegacyPluginToastHook(ctx))
     : null
 
+  const openspecSession =
+    isHookEnabled("openspec-session") && pluginConfig.openspec?.enabled
+      ? safeHook("openspec-session", () =>
+          createOpenSpecSessionHook(ctx, {
+            projectDir: ctx.directory,
+            specDir: pluginConfig.openspec?.spec_dir,
+            autoInject: pluginConfig.openspec?.auto_inject ?? true,
+            shortenInterview: pluginConfig.openspec?.shorten_interview ?? false,
+            taskWriteBack: pluginConfig.openspec?.task_write_back ?? true,
+          }))
+      : null
+
   return {
     preemptiveCompaction,
     sessionNotification,
@@ -260,5 +274,6 @@ export function createSessionHooks(args: {
     taskResumeInfo,
     runtimeFallback,
     legacyPluginToast,
+    openspecSession,
   }
 }

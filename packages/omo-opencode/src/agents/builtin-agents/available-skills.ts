@@ -15,9 +15,10 @@ export function buildAvailableSkills(
   browserProvider?: BrowserAutomationProvider,
   disabledSkills?: Set<string>,
   teamModeEnabled?: boolean,
+  openspecEnabled?: boolean,
   agentName?: string,
 ): AvailableSkill[] {
-  const builtinSkills = createBuiltinSkills({ browserProvider, disabledSkills, teamModeEnabled })
+  const builtinSkills = createBuiltinSkills({ browserProvider, disabledSkills, teamModeEnabled, openspecEnabled })
   const builtinSkillNames = new Set(builtinSkills.map(s => s.name))
 
   const builtinAvailable: AvailableSkill[] = builtinSkills.map((skill) => ({

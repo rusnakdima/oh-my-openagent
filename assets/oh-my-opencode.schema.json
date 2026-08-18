@@ -64,7 +64,12 @@
           "start-work",
           "stop-continuation",
           "remove-ai-slops",
-          "hyperplan"
+          "hyperplan",
+          "wiki-init",
+          "wiki-ingest",
+          "wiki-query",
+          "wiki-lint",
+          "wiki-update"
         ]
       }
     },
@@ -9150,6 +9155,39 @@
         "enabled",
         "auto_start",
         "default_max_iterations"
+      ],
+      "additionalProperties": false
+    },
+    "openspec": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": false,
+          "type": "boolean"
+        },
+        "spec_dir": {
+          "default": "openspec",
+          "type": "string"
+        },
+        "auto_inject": {
+          "default": true,
+          "type": "boolean"
+        },
+        "shorten_interview": {
+          "default": false,
+          "type": "boolean"
+        },
+        "task_write_back": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled",
+        "spec_dir",
+        "auto_inject",
+        "shorten_interview",
+        "task_write_back"
       ],
       "additionalProperties": false
     },

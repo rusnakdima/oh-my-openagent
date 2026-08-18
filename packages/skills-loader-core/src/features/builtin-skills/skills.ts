@@ -17,12 +17,14 @@ import {
   securityReviewSkill,
   visualQaSkill,
   teamModeSkill,
+  openspecSkill,
 } from "./skills/index"
 
 export interface CreateBuiltinSkillsOptions {
   browserProvider?: BrowserAutomationProvider
   disabledSkills?: Set<string>
   teamModeEnabled?: boolean
+  openspecEnabled?: boolean
   /**
    * Extra CLI arguments appended to the default `@playwright/mcp@latest`
    * invocation when `browserProvider` resolves to the `playwright` MCP variant.
@@ -38,6 +40,7 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
     browserProvider = "playwright",
     disabledSkills,
     teamModeEnabled = false,
+    openspecEnabled = false,
     playwrightMcpArgs,
   } = options
 
@@ -69,6 +72,10 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
 
   if (teamModeEnabled && !disabledSkills?.has("team-mode")) {
     skills.push(teamModeSkill)
+  }
+
+  if (openspecEnabled && !disabledSkills?.has("openspec")) {
+    skills.push(openspecSkill)
   }
 
   if (!disabledSkills) {
