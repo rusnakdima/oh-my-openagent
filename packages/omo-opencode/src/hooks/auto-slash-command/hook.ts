@@ -250,87 +250,107 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
       input: CommandExecuteBeforeInput,
       output: CommandExecuteBeforeOutput
     ): Promise<void> => {
-      if (input.command.toLowerCase() !== "btw") {
-        clearBtwTurnActive(input.sessionID)
-      }
+      try {
+        if (input.command.toLowerCase() !== "btw") {
+          clearBtwTurnActive(input.sessionID)
+        }
 
-      if (partsContainAutoSlashCommandTags(output.parts)) {
-        return
-      }
+        if (!Array.isArray(output.parts)) {
+          log(`[auto-slash-command] command.execute.before - output.parts is not an array`, {
+            sessionID: input.sessionID,
+            command: input.command,
+            partsType: typeof output.parts,
+          })
+          return
+        }
 
-      const eventID = getCommandExecutionEventID(input)
-      const commandKey = eventID
-        ? `${input.sessionID}:event:${eventID}`
-        : `${input.sessionID}:fallback:${input.command.toLowerCase()}:${input.arguments || ""}`
-      if (sessionProcessedCommandExecutions.has(commandKey)) {
-        return
-      }
+        if (partsContainAutoSlashCommandTags(output.parts)) {
+          return
+        }
 
-      log(`[auto-slash-command] command.execute.before received`, {
-        sessionID: input.sessionID,
-        command: input.command,
-        arguments: input.command.toLowerCase() === "btw" ? "[redacted /btw side-question]" : input.arguments,
-      })
+        const eventID = getCommandExecutionEventID(input)
+        const commandKey = eventID
+          ? `${input.sessionID}:event:${eventID}`
+          : `${input.sessionID}:fallback:${input.command.toLowerCase()}:${input.arguments || ""}`
+        if (sessionProcessedCommandExecutions.has(commandKey)) {
+          return
+        }
 
-      const parsed = {
-        command: input.command,
-        args: input.arguments || "",
-        raw: `/${input.command}${input.arguments ? " " + input.arguments : ""}`,
-      }
-
-      const executionOptions: ExecutorOptions = {
-        ...executorOptions,
-        agent: input.agent,
-      }
-
-      const result = await executeSlashCommand(parsed, executionOptions)
-
-      if (!result.success || !result.replacementText) {
-        log(`[auto-slash-command] command.execute.before - command not found in our executor`, {
+        log(`[auto-slash-command] command.execute.before received`, {
           sessionID: input.sessionID,
           command: input.command,
-          error: result.error,
+          arguments: input.command.toLowerCase() === "btw" ? "[redacted /btw side-question]" : input.arguments,
         })
-        return
-      }
 
-      const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope)
-      if (isBuiltinBtw && !isPrimaryBtwSession(input.sessionID)) {
-        log(`[auto-slash-command] Skipping builtin /btw expansion outside the primary session`, {
+        const parsed = {
+          command: input.command,
+          args: input.arguments || "",
+          raw: `/${input.command}${input.arguments ? " " + input.arguments : ""}`,
+        }
+
+        const executionOptions: ExecutorOptions = {
+          ...executorOptions,
+          agent: input.agent,
+        }
+
+        const result = await executeSlashCommand(parsed, executionOptions).catch((err) => ({
+          success: false as const,
+          error: `executeSlashCommand failed: ${err instanceof Error ? err.message : String(err)}`,
+        }))
+
+        if (!result.success || !result.replacementText) {
+          log(`[auto-slash-command] command.execute.before - command not found in our executor`, {
+            sessionID: input.sessionID,
+            command: input.command,
+            error: result.error,
+          })
+          return
+        }
+
+        const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope)
+        if (isBuiltinBtw && !isPrimaryBtwSession(input.sessionID)) {
+          log(`[auto-slash-command] Skipping builtin /btw expansion outside the primary session`, {
+            sessionID: input.sessionID,
+          })
+          return
+        }
+
+        sessionProcessedCommandExecutions.add(
+          commandKey,
+          eventID ? undefined : COMMAND_EXECUTE_FALLBACK_DEDUP_TTL_MS
+        )
+
+        const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
+
+        const idx = findSlashCommandPartIndex(output.parts)
+        if (idx >= 0) {
+          output.parts[idx].text = taggedContent
+          if (isBuiltinBtw) {
+            markBtwCommandPart(parsed.command, output.parts[idx])
+          }
+        } else {
+          const injectedPart = { type: "text", text: taggedContent }
+          if (isBuiltinBtw) {
+            markBtwCommandPart(parsed.command, injectedPart)
+          }
+          output.parts.unshift(injectedPart)
+        }
+        if (isBuiltinBtw) {
+          markBtwCommandMessage(parsed.command, output)
+          markBtwTurnActive(input.sessionID)
+        }
+
+        log(`[auto-slash-command] command.execute.before - injected template`, {
           sessionID: input.sessionID,
+          command: input.command,
         })
-        return
+      } catch (err) {
+        log(`[auto-slash-command] command.execute.before threw`, {
+          sessionID: input.sessionID,
+          command: input.command,
+          error: err instanceof Error ? err.message : String(err),
+        })
       }
-
-      sessionProcessedCommandExecutions.add(
-        commandKey,
-        eventID ? undefined : COMMAND_EXECUTE_FALLBACK_DEDUP_TTL_MS
-      )
-
-      const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
-
-      const idx = findSlashCommandPartIndex(output.parts)
-      if (idx >= 0) {
-        output.parts[idx].text = taggedContent
-        if (isBuiltinBtw) {
-          markBtwCommandPart(parsed.command, output.parts[idx])
-        }
-      } else {
-        const injectedPart = { type: "text", text: taggedContent }
-        if (isBuiltinBtw) {
-          markBtwCommandPart(parsed.command, injectedPart)
-        }
-        output.parts.unshift(injectedPart)
-      }
-      if (isBuiltinBtw) {
-        markBtwCommandMessage(parsed.command, output)
-        markBtwTurnActive(input.sessionID)
-      }
-
-      log(`[auto-slash-command] command.execute.before - injected template`, {
-        sessionID: input.sessionID,
-        command: input.command,
-      })
     },
     event: async ({
       event,
