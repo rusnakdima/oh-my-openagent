@@ -1,18 +1,8 @@
-import {
-  resolveModelForDelegateTask,
-  type DelegateFallbackEntry,
-} from "@oh-my-opencode/delegate-core"
-import type { CompiledOpenAiOnlyModelRecommendations } from "@oh-my-opencode/omo-config-core"
-
 import type { SenpiModelPort, SenpiModelRegistryPort } from "../category"
-import { buildRuntimeModelChain, chainRungCandidates } from "../model-chain"
+import { buildRuntimeModelChain } from "../model-chain"
 import {
-  compileSenpiOpenAiOnlyModelRecommendations,
   filterAutomaticRuntimeModelIdentities,
-  projectVerifiedUpstreamAliases,
-  recommendationToFallbackEntry,
   resolveRuntimeModelIdentities,
-  type ResolvedRuntimeModelIdentity,
 } from "../openai-only-runtime-recommendations"
 import type { ResolvedModelRecord } from "../state"
 import { agentModelCandidates, type AgentModelCandidate } from "./agent-model-entry"
@@ -132,18 +122,6 @@ export function resolveAgent<TModel extends SenpiModelPort>(
     ?.map((model) => `${model.provider}/${model.modelId}`)
   const completeIdentityInventory = Array.isArray(rawAvailableModels)
     && availableRegistryModels?.length === rawAvailableModels.length
-  const automaticRoutingModels = completeIdentityInventory
-    ? filterAutomaticRuntimeModelIdentities(runtimeModels ?? [])
-    : []
-  const recommendations = !completeIdentityInventory || options.hasExplicitUserConfig === true
-    ? undefined
-    : compileSenpiOpenAiOnlyModelRecommendations(registry, availableRegistryModels)
-  const fallbackChain = effectiveAgentFallbackChain(
-    name,
-    builtinFallbackChain,
-    recommendations,
-    automaticRoutingModels,
-  )
   let attemptedModel: string | undefined
   const configuredTuning = {
     ...(definition.variant === undefined ? {} : { variant: definition.variant }),
@@ -169,70 +147,7 @@ export function resolveAgent<TModel extends SenpiModelPort>(
     )
   }
 
-  if (availableModels !== undefined && fallbackChain !== undefined) {
-    const resolution = resolveModelForDelegateTask(
-      { fallbackChain, availableModels: new Set(availableModels) },
-      {
-        connectedProviders: null,
-        hasProviderModelsCache: true,
-        hasConnectedProvidersCache: true,
-      },
-    )
-    if (resolution !== undefined && !("skipped" in resolution)) {
-      attemptedModel = resolution.model
-      const found = findExactAgentModel(resolution.model, registry)
-      if (found !== undefined) {
-        // A builtin chain rung carries its own variant, but an agent that configured tuning without
-        // naming a model still resolves here, so the configured values must win over the rung's.
-        const availableModelSet = new Set(availableModels)
-        return resolvedAgent(
-          context,
-          found,
-          configuredTuning.variant ?? resolution.variant,
-          configuredTuning.reasoningEffort,
-          buildRuntimeModelChain({
-            candidates: chainRungCandidates({
-              chain: fallbackChain,
-              selectedModel: resolution.model,
-              ...(resolution.fallbackEntry !== undefined
-                ? { selectedRungEntry: resolution.fallbackEntry }
-                : {}),
-              availableModels: availableModelSet,
-            }),
-            selectedModel: resolution.model,
-            availableModels: availableModelSet,
-            source: "agent",
-          }),
-        )
-      }
-    }
-  }
-
   return { kind: "model_unavailable", agent: name, attemptedModel, availableAgents }
-}
-
-function effectiveAgentFallbackChain(
-  name: string,
-  builtinChain: readonly DelegateFallbackEntry[] | undefined,
-  recommendations: CompiledOpenAiOnlyModelRecommendations | undefined,
-  runtimeModels: readonly ResolvedRuntimeModelIdentity<SenpiModelPort>[],
-): readonly DelegateFallbackEntry[] | undefined {
-  const recommendation = recommendations !== undefined && Object.hasOwn(recommendations.agents, name)
-    ? recommendations.agents[name]
-    : undefined
-  const recommendedRung = recommendationToFallbackEntry(recommendation)
-  if (recommendedRung === undefined) return projectVerifiedUpstreamAliases(builtinChain, runtimeModels)
-  const alreadyFirst = builtinChain?.[0]
-  if (
-    alreadyFirst !== undefined
-    && alreadyFirst.providers.length === 1
-    && alreadyFirst.providers[0] === recommendedRung.providers[0]
-    && alreadyFirst.model === recommendedRung.model
-    && alreadyFirst.variant === recommendedRung.variant
-  ) {
-    return projectVerifiedUpstreamAliases(builtinChain, runtimeModels)
-  }
-  return projectVerifiedUpstreamAliases([recommendedRung, ...(builtinChain ?? [])], runtimeModels)
 }
 
 function agentPersona(name: string, definition: AgentDefinition): AgentPersona {

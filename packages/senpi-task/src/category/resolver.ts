@@ -484,18 +484,10 @@ export function resolveCategory<TModel extends SenpiModelPort>(
   const resolution = resolveModelForDelegateTask(
     {
       userModel,
-      userFallbackModels,
-      categoryDefaultModel: builtinConfig?.model,
-      isUserConfiguredCategoryModel: false,
-      fallbackChain,
       availableModels: new Set(availableModels),
       systemDefaultModel: options.systemDefaultModel,
     },
-    {
-      connectedProviders: null,
-      hasProviderModelsCache: true,
-      hasConnectedProvidersCache: true,
-    },
+    {},
   )
 
   if (!resolution || "skipped" in resolution) {
@@ -508,14 +500,10 @@ export function resolveCategory<TModel extends SenpiModelPort>(
     }
   }
 
-  const selection = modelSelection(
-    {
-      selectedModel: resolution.model,
-      variant: resolution.variant,
-      fallbackEntry: resolution.fallbackEntry,
-      matchedFallback: resolution.matchedFallback,
-    },
-  )
+  const selection = modelSelection({
+    selectedModel: resolution.model,
+    variant: resolution.variant,
+  })
   const parsedModel = parseModel(selection.selectedModel)
   const foundModel = parsedModel ? parseRegistryModel<TModel>(senpiModelRegistry.find(parsedModel.provider, parsedModel.modelId), parsedModel) : undefined
   if (!parsedModel || !foundModel) {
