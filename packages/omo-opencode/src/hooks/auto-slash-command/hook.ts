@@ -65,14 +65,22 @@ function getCommandExecutionEventID(input: CommandExecuteBeforeInput): string | 
 
 function markBtwCommandMessage(
   command: string,
-  output: { message?: Record<string, unknown> },
+  output: { message?: Record<string, unknown>; parts: Array<Record<string, unknown>> },
 ): void {
   if (command.toLowerCase() !== "btw") {
     return
   }
 
-  output.message ??= {}
-  output.message[BTW_AUTO_SLASH_COMMAND_MARKER] = true
+  if (output.message !== undefined) {
+    output.message[BTW_AUTO_SLASH_COMMAND_MARKER] = true
+  } else {
+    // command.execute.before output only has parts; inject marker as a synthetic part
+    output.parts.push({
+      type: "text",
+      text: "",
+      [BTW_AUTO_SLASH_COMMAND_MARKER]: true,
+    })
+  }
 }
 
 function markBtwCommandPart(command: string, part: Record<string, unknown>): void {

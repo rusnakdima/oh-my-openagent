@@ -26,7 +26,7 @@ export type TransformHooks = {
   teamMailboxInjector: ReturnType<typeof createTeamMailboxInjector> | null
   toolPairValidator: ReturnType<typeof createToolPairValidatorHook> | null
   monitorStatusInjector: ReturnType<typeof createMonitorStatusInjectorHook> | null
-  btwContextStrip: ReturnType<typeof createBtwContextStripHook>
+  btwContextStrip: { "experimental.chat.messages.transform": ReturnType<typeof createBtwContextStripHook> }
 }
 
 export function createTransformHooks(args: {
@@ -109,7 +109,9 @@ export function createTransformHooks(args: {
     : null
 
   // btwContextStrip is always enabled (context-shielded /btw command; no config gate)
-  const btwContextStrip = createBtwContextStripHook(isBtwMarked)
+  const btwContextStrip: { "experimental.chat.messages.transform": ReturnType<typeof createBtwContextStripHook> } = {
+    "experimental.chat.messages.transform": createBtwContextStripHook(isBtwMarked),
+  }
 
   return {
     claudeCodeHooks,

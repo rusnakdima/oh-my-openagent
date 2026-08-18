@@ -3,6 +3,7 @@ import { context7 } from "./context7"
 import { grep_app } from "./grep-app"
 import { createCodegraphMcpConfig, type CodegraphMcpConfigOptions } from "./codegraph"
 import { createLspMcpConfig, type LocalMcpConfig } from "./lsp"
+import { createOpenSpecMcpConfig } from "./openspec-mcp"
 import type { RuntimeExecutableResolver } from "./runtime-executable"
 import type { CodegraphConfig } from "../config/schema/codegraph"
 
@@ -27,10 +28,13 @@ type BuiltinMcpOptions = {
   readonly resolveExecutable?: RuntimeExecutableResolver
 }
 
+import type { OpenSpecConfig } from "../config/schema/openspec"
+
 type BuiltinMcpSourceConfig = {
   readonly codegraph?: Partial<CodegraphConfig>
   readonly disabled_tools?: readonly string[]
   readonly websearch?: Parameters<typeof createWebsearchConfig>[0]
+  readonly openspec?: Partial<OpenSpecConfig>
 }
 
 export function createBuiltinMcps(disabledMcps: string[] = [], config?: BuiltinMcpSourceConfig, options: BuiltinMcpOptions = {}) {
@@ -64,6 +68,13 @@ export function createBuiltinMcps(disabledMcps: string[] = [], config?: BuiltinM
       cwd: options.cwd,
       ...options.codegraph,
       resolveExecutable: options.resolveExecutable,
+    })
+  }
+
+  if (!disabledMcps.includes("openspec") && config?.openspec?.enabled !== false) {
+    mcps.openspec = createOpenSpecMcpConfig({
+      specDir: config?.openspec?.spec_dir,
+      cwd: options.cwd,
     })
   }
 

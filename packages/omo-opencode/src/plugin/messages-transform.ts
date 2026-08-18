@@ -4,6 +4,7 @@ import type { Message, Part } from "@opencode-ai/sdk"
 import { log } from "../shared/logger"
 import { normalizeModelID } from "../shared/model-normalization"
 import type { CreatedHooks } from "../create-hooks"
+import type { TransformHooks } from "./hooks/create-transform-hooks"
 
 const ASSISTANT_PREFILL_RECOVERY_TEXT = "[internal] Continue from the previous assistant state."
 const ASSISTANT_PREFILL_UNSUPPORTED_PROVIDERS = new Set([
@@ -36,7 +37,7 @@ type MessagesTransformHooks = {
   toolPairValidator?: CreatedHooks["toolPairValidator"]
   monitorStatusInjector?: CreatedHooks["monitorStatusInjector"]
   categorySkillReminder?: CreatedHooks["categorySkillReminder"]
-  btwContextStrip?: CreatedHooks["btwContextStrip"]
+  btwContextStrip?: TransformHooks["btwContextStrip"]
 }
 type MessagesTransformHookKey = keyof MessagesTransformHooks
 type MessagesTransformHookEntry = {
@@ -243,12 +244,9 @@ export function createMessagesTransformHandler(args: {
 }): (input: Record<string, never>, output: MessagesTransformOutput) => Promise<void> {
   return async (input, output): Promise<void> => {
     for (const hook of MESSAGES_TRANSFORM_HOOKS) {
-      await runMessagesTransformHookSafely(
-        hook.name,
-        args.hooks[hook.key]?.["experimental.chat.messages.transform"],
-        input,
-        output,
-      )
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const hookFn = (args.hooks as any)[hook.key]?.["experimental.chat.messages.transform"] ?? null
+      await runMessagesTransformHookSafely(hook.name, hookFn, input, output)
     }
 
     ensureUserTurnAfterAssistantTail(output)
