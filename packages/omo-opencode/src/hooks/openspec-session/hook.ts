@@ -5,9 +5,13 @@
  * - `chat.message`: auto-inject spec context when openspec.auto_inject is true
  * - `tool.execute.after`: write task completion markers back to tasks.md
  *   when openspec.task_write_back is true
+ * - `event`: session.idle → idle continuation; session.deleted → cleanup
+ * - Command methods: propose, verify, apply, archive, status, list (via controller)
  */
 
+import { join } from "node:path"
 import type { PluginInput } from "@opencode-ai/plugin"
+import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "../../shared/prompt-async-gate"
 import { log } from "../../shared"
 import {
   resolveSpecRoot,
@@ -18,6 +22,12 @@ import {
   markInProgressAsCompleted,
   writeSpecFile,
 } from "../../tools/openspec/store"
+import type { OpenSpecController } from "./controller"
+import {
+  deleteSessionRecord,
+  loadAllSessionRecords,
+  writeSessionRecord,
+} from "./persistence"
 
 const HOOK_NAME = "openspec-session"
 
@@ -27,16 +37,15 @@ export type OpenSpecHookOptions = {
   readonly autoInject?: boolean
   readonly shortenInterview?: boolean
   readonly taskWriteBack?: boolean
+  readonly controller: OpenSpecController
 }
 
 // Tracks sessions where auto-inject has already fired (prevent double injection)
-const injectedSessions = new Set<string>()
+// Map: sessionID -> specName
+// Note: declared inside createOpenSpecSessionHook to avoid cross-session pollution
 
 /**
  * Injects a concise OpenSpec context block into the user message parts.
- *
- * Reads the root spec.md (or spec.md in the named spec subdirectory) and
- * injects its content as a text part into the output message.
  */
 async function injectSpecContext(
   output: {
@@ -61,7 +70,6 @@ async function injectSpecContext(
 
   if (specContent) {
     if (shortenInterview) {
-      // Short form: just the title line and first heading
       const firstLine = specContent.split("\n")[0] ?? ""
       const firstHeading = specContent.match(/^## .+/m)?.[0] ?? ""
       parts.push(`**OpenSpec: ${firstLine.replace(/^#\s*/, "")}** — ${firstHeading.replace(/^##\s*/, "")}`)
@@ -77,7 +85,6 @@ async function injectSpecContext(
   if (tasksContent) {
     const stats = parseTaskStats(tasksContent)
     const taskLines = [`| Status | Description |`, `| ------ | ----------- |`]
-    // Parse task rows from the tasks.md
     for (const line of tasksContent.split("\n")) {
       if (line.match(/^\|\s*\[[ x~!]\]\s\|/)) {
         taskLines.push(line)
@@ -87,14 +94,15 @@ async function injectSpecContext(
       stats.open === 0 && stats.in_progress === 0 && stats.blocked === 0
         ? `All tasks completed (${stats.completed} done).`
         : `${stats.open} pending, ${stats.in_progress} in-progress, ${stats.blocked} blocked, ${stats.completed} done.`
-    parts.push(`\n**Tasks (${taskBlock})**\n${taskLines.slice(0, 6).join("\n")}${stats.open + stats.in_progress + stats.completed + stats.blocked > 5 ? "\n..." : ""}`)
+    parts.push(
+      `\n**Tasks (${taskBlock})**\n${taskLines.slice(0, 6).join("\n")}${stats.open + stats.in_progress + stats.completed + stats.blocked > 5 ? "\n..." : ""}`,
+    )
   }
 
   if (parts.length === 0) return
 
   const injectedText = parts.join("\n")
 
-  // Find the first real user text part and append the spec context
   const textPartIdx = output.parts.findIndex(
     (p) => p.type === "text" && typeof p.text === "string" && p.text.trim().length > 0,
   )
@@ -102,13 +110,85 @@ async function injectSpecContext(
     const existing = output.parts[textPartIdx].text ?? ""
     output.parts[textPartIdx].text = `${existing}\n\n---\n\n${injectedText}`
   } else {
-    // Fallback: prepend a text part
     output.parts.unshift({ type: "text", text: injectedText })
   }
 }
 
+function getSessionIDFromEvent(properties: unknown): string | undefined {
+  if (typeof properties === "object" && properties !== null) {
+    const maybe = (properties as { sessionID?: string }).sessionID
+    if (typeof maybe === "string") return maybe
+    const maybeId = (properties as { id?: string }).id
+    if (typeof maybeId === "string") return maybeId
+  }
+  return undefined
+}
+
+function sessionDeletedEvent(
+  event: { type: string; properties?: unknown },
+  injected: Map<string, string>,
+  baseDir: string,
+): void {
+  if (event.type !== "session.deleted") return
+  const sessionID = getSessionIDFromEvent(event.properties)
+  if (sessionID === undefined) return
+  if (!injected.has(sessionID)) return
+  injected.delete(sessionID)
+  deleteSessionRecord(baseDir, sessionID)
+}
+
+async function buildIdleContinuationPrompt(
+  specName: string,
+  projectDir: string,
+  specDir: string,
+): Promise<string | null> {
+  const tasksFile = resolveSpecFile(projectDir, specDir, specName, "tasks.md")
+  const content = await readSpecFile(tasksFile)
+  if (!content) return null
+
+  const stats = parseTaskStats(content)
+  if (stats.open === 0 && stats.in_progress === 0 && stats.blocked === 0) {
+    return null
+  }
+
+  const pendingLines: string[] = []
+  for (const line of content.split("\n")) {
+    if (line.match(/^\|\s*\[\s*\]\s\|/)) {
+      pendingLines.push(line)
+    }
+    if (line.match(/^\|\s*\[\s*!\]\s\|/)) {
+      pendingLines.push(line)
+    }
+  }
+
+  const pendingCount = stats.open + stats.blocked
+  const lines: string[] = [
+    "The active OpenSpec has pending tasks. Continue working toward completing them.",
+    "",
+    `Spec: **${specName}** (${specDir}/${specName}/)`,
+    "",
+    `${pendingCount} task(s) remaining: open ${stats.open}, blocked ${stats.blocked}`,
+    "",
+  ]
+
+  if (pendingLines.length > 0) {
+    lines.push("Pending tasks:")
+    for (const t of pendingLines.slice(0, 10)) {
+      lines.push(t)
+    }
+    if (pendingLines.length > 10) {
+      lines.push(`... and ${pendingLines.length - 10} more`)
+    }
+  }
+
+  lines.push("")
+  lines.push("Choose the next concrete action to advance the spec. Avoid repeating work already done.")
+
+  return lines.join("\n")
+}
+
 export function createOpenSpecSessionHook(
-  _ctx: PluginInput,
+  ctx: PluginInput,
   options: OpenSpecHookOptions,
 ) {
   const {
@@ -117,9 +197,29 @@ export function createOpenSpecSessionHook(
     autoInject = true,
     shortenInterview = false,
     taskWriteBack = true,
+    controller,
   } = options
 
+  // Per-instance session map (avoids cross-session pollution)
+  const injectedSessions = new Map<string, string>()
+
+  // Restore previously injected sessions from disk (survives plugin reload)
+  const sessionStoreDir = join(projectDir, ".omo", "openspec", "sessions")
+  const restored = loadAllSessionRecords(sessionStoreDir)
+  for (const [sessionID, specName] of restored) {
+    injectedSessions.set(sessionID, specName)
+  }
+
   return {
+    // ── Command methods (called by /openspec command handler) ──────────────
+    propose: controller.propose.bind(controller),
+    verify: controller.verify.bind(controller),
+    apply: controller.apply.bind(controller),
+    archive: controller.archive.bind(controller),
+    status: controller.status.bind(controller),
+    list: controller.list.bind(controller),
+
+    // ── Session hooks ────────────────────────────────────────────────────────
     "chat.message": async (
       input: { sessionID: string },
       output: {
@@ -133,9 +233,9 @@ export function createOpenSpecSessionHook(
       const specs = await listSpecs(specRoot)
       if (specs.length === 0) return
 
-      // Use the first spec found (or allow config to pick a default)
       const specName = specs[0]
-      injectedSessions.add(input.sessionID)
+      injectedSessions.set(input.sessionID, specName)
+      writeSessionRecord(sessionStoreDir, input.sessionID, { specName, injectedAt: Date.now() })
 
       try {
         await injectSpecContext(output, specName, specDir, projectDir, shortenInterview)
@@ -151,7 +251,6 @@ export function createOpenSpecSessionHook(
     ): Promise<void> => {
       if (!taskWriteBack) return
 
-      // Only react to task system completions or major task tool results
       const toolName = toolInput.tool.toLowerCase()
       const isRelevantTool = [
         "task",
@@ -164,7 +263,6 @@ export function createOpenSpecSessionHook(
       if (!isRelevantTool) return
       if (typeof toolOutput.output !== "string") return
 
-      // Check for completion signals in the output
       const output = toolOutput.output.toLowerCase()
       const indicatesCompletion = [
         "completed",
@@ -176,22 +274,70 @@ export function createOpenSpecSessionHook(
 
       if (!indicatesCompletion) return
 
-      // Find and update tasks.md
-      const specRoot = resolveSpecRoot(projectDir, specDir)
-      const specs = await listSpecs(specRoot)
-      if (specs.length === 0) return
-
-      for (const specName of specs) {
-        const tasksFile = resolveSpecFile(projectDir, specDir, specName, "tasks.md")
+      // Target the session's active spec if known, otherwise fall back to
+      // iterating all specs alphabetically
+      const activeSpec = injectedSessions.get(toolInput.sessionID)
+      if (activeSpec) {
+        const tasksFile = resolveSpecFile(projectDir, specDir, activeSpec, "tasks.md")
         const content = await readSpecFile(tasksFile)
-        if (!content) continue
-
-        const updated = markInProgressAsCompleted(content)
-        if (updated) {
-          await writeSpecFile(tasksFile, updated)
-          log(`[${HOOK_NAME}] Wrote task completion back to ${specName}/tasks.md`)
-          break // Only update one spec per hook fire
+        if (content) {
+          const updated = markInProgressAsCompleted(content)
+          if (updated) {
+            await writeSpecFile(tasksFile, updated)
+            log(`[${HOOK_NAME}] Wrote task completion back to ${activeSpec}/tasks.md`)
+          }
         }
+      } else {
+        const specRoot = resolveSpecRoot(projectDir, specDir)
+        const specs = await listSpecs(specRoot)
+        for (const specName of specs) {
+          const tasksFile = resolveSpecFile(projectDir, specDir, specName, "tasks.md")
+          const content = await readSpecFile(tasksFile)
+          if (!content) continue
+
+          const updated = markInProgressAsCompleted(content)
+          if (updated) {
+            await writeSpecFile(tasksFile, updated)
+            log(`[${HOOK_NAME}] Wrote task completion back to ${specName}/tasks.md`)
+            break
+          }
+        }
+      }
+    },
+
+    event: async (input: { event: { type: string; properties?: unknown } }): Promise<void> => {
+      const sessionID = getSessionIDFromEvent(input.event.properties)
+      if (sessionID === undefined) return
+
+      if (input.event.type === "session.idle") {
+        const specName = injectedSessions.get(sessionID)
+        if (!specName) return
+
+        const promptText = await buildIdleContinuationPrompt(specName, projectDir, specDir)
+        if (!promptText) return
+
+        const promptResult = await dispatchInternalPrompt({
+          mode: "async",
+          client: ctx.client,
+          sessionID,
+          source: `${HOOK_NAME}:idle-continuation`,
+          settleMs: 150,
+          queueBehavior: "defer",
+          input: {
+            path: { id: sessionID },
+            body: {
+              parts: [{ type: "text", text: promptText }],
+            },
+          },
+        })
+        if (promptResult.status === "failed" && !isInternalPromptDispatchAccepted(promptResult)) {
+          // eslint-disable-next-line no-console
+          console.warn(`[${HOOK_NAME}] Idle continuation dispatch failed`, promptResult.error)
+        }
+      }
+
+      if (input.event.type === "session.deleted") {
+        sessionDeletedEvent(input.event, injectedSessions, sessionStoreDir)
       }
     },
   }

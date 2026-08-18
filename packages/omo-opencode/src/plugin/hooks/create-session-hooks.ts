@@ -29,6 +29,7 @@ import {
   createRuntimeFallbackHook,
   createLegacyPluginToastHook,
   createOpenSpecSessionHook,
+  createOpenSpecController,
 } from "../../hooks"
 import { createGoalHook } from "../../hooks/goal"
 import {
@@ -239,14 +240,20 @@ export function createSessionHooks(args: {
 
   const openspecSession =
     isHookEnabled("openspec-session") && pluginConfig.openspec?.enabled
-      ? safeHook("openspec-session", () =>
-          createOpenSpecSessionHook(ctx, {
+      ? safeHook("openspec-session", () => {
+          const controller = createOpenSpecController({
+            projectDir: ctx.directory,
+            specDir: pluginConfig.openspec?.spec_dir,
+          })
+          return createOpenSpecSessionHook(ctx, {
             projectDir: ctx.directory,
             specDir: pluginConfig.openspec?.spec_dir,
             autoInject: pluginConfig.openspec?.auto_inject ?? true,
             shortenInterview: pluginConfig.openspec?.shorten_interview ?? false,
             taskWriteBack: pluginConfig.openspec?.task_write_back ?? true,
-          }))
+            controller,
+          })
+        })
       : null
 
   return {

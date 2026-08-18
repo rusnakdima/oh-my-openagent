@@ -69,5 +69,6 @@ export type ChatMessageHooks = {
   hephaestusAgentsMdInjector?: ChatMessageHook | null
   startWork?: ChatMessageHook | null
   goal?: GoalHook | null
+  openspecSession?: ChatMessageHook | null
   todoContinuationEnforcer?: TodoContinuationEnforcerHook | null
 }

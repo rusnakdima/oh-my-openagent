@@ -17,6 +17,24 @@ import { log } from "../../shared/logger"
 
 const SUMMARIZE_RETRY_TOTAL_TIMEOUT_MS = 120_000
 
+async function withTimeout<TValue>(
+  promise: Promise<TValue>,
+  timeoutMs: number,
+  errorMessage: string,
+): Promise<TValue> {
+  let timeoutID: ReturnType<typeof setTimeout>
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutID = setTimeout(() => {
+      reject(new Error(errorMessage))
+    }, timeoutMs)
+  })
+
+  return await Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutID)
+  })
+}
+
 
 async function showToastSafely(
   client: Client,
@@ -148,11 +166,15 @@ export async function runSummarizeRetryStrategy(params: {
         )
 
         const summarizeBody = { providerID: targetProviderID, modelID: targetModelID, auto: true }
-        await params.client.session.summarize({
-          path: { id: params.sessionID },
-          body: summarizeBody as never,
-          query: { directory: params.directory },
-        })
+        await withTimeout(
+          params.client.session.summarize({
+            path: { id: params.sessionID },
+            body: summarizeBody as never,
+            query: { directory: params.directory },
+          }),
+          SUMMARIZE_RETRY_TOTAL_TIMEOUT_MS,
+          `Summarize timed out after ${SUMMARIZE_RETRY_TOTAL_TIMEOUT_MS}ms`,
+        )
         clearSessionState(params.autoCompactState, params.sessionID)
         return
       } catch (error) {

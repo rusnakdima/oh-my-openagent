@@ -3,6 +3,7 @@ description = "Strategic planning consultant for work with unresolved design unc
 nickname_candidates = ["Planner"]
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
+mode = "subagent"
 
 developer_instructions = """
 Role: strategic planning consultant. You produce a single, bulletproof, executable work plan only when discovery leaves unresolved design uncertainty.

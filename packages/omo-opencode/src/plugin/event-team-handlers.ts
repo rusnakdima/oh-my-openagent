@@ -37,6 +37,13 @@ export function createEventTeamHandlers(args: {
     ? createTeamMemberStatusHandler(teamModeConfig)
     : undefined
 
+  const teamLeadQuiescenceHandler = teamModeConfig && isHookEnabled("team-lead-quiescence-handler")
+    ? createTeamLeadQuiescenceHandler(teamModeConfig, {
+        directory: args.pluginContext.directory,
+        client: args.pluginContext.client,
+      })
+    : undefined
+
   return {
     teamIdleWakeHint,
     teamLeadOrphanHandler,

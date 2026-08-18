@@ -135,6 +135,24 @@ function showStartupToast(
   })
 }
 
+async function withTimeout<TValue>(
+  promise: Promise<TValue>,
+  timeoutMs: number,
+  errorMessage: string,
+): Promise<TValue> {
+  let timeoutID: ReturnType<typeof setTimeout>
+
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutID = setTimeout(() => {
+      reject(new Error(errorMessage))
+    }, timeoutMs)
+  })
+
+  return await Promise.race([promise, timeoutPromise]).finally(() => {
+    clearTimeout(timeoutID)
+  })
+}
+
 function startupToastBody(input: {
   readonly diagnostics: readonly string[]
   readonly error?: string
@@ -241,7 +259,11 @@ export function createPluginModule(overrides: Partial<PluginModuleDeps> = {}): P
     let runtimeSkillSource: Awaited<ReturnType<PluginModuleDeps["createRuntimeSkillSourceServer"]>> | undefined
     if (runtimeSecuritySkills.length > 0) {
       try {
-        runtimeSkillSource = await deps.createRuntimeSkillSourceServer({ skills: runtimeSecuritySkills })
+        runtimeSkillSource = await withTimeout(
+          deps.createRuntimeSkillSourceServer({ skills: runtimeSecuritySkills }),
+          30_000,
+          "createRuntimeSkillSourceServer timed out after 30s",
+        )
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error)
         console.warn(`[runtime-skills] bundled security skill source unavailable; continuing without config.skills.urls: ${detail}`)

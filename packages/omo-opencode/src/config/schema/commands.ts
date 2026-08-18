@@ -12,6 +12,7 @@ export const BuiltinCommandNameSchema = z.enum([
  "wiki-query",
  "wiki-lint",
  "wiki-update",
+ "openspec",
 ])
 
 export type BuiltinCommandName = z.infer<typeof BuiltinCommandNameSchema>

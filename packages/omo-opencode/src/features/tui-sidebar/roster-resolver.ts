@@ -80,12 +80,13 @@ export function resolveRoster(directory: string): RosterRow[] {
     const config = validatePluginConfig(directory).config
     const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config))
     const showSubagentAgents = config.tui?.sidebar?.showSubagentAgents ?? false
+    const disabledAgents = new Set(config.disabled_agents ?? [])
 
     const entries = [...resolution.agents, ...resolution.categories]
 
-    const filteredEntries = showSubagentAgents
-      ? entries
-      : entries.filter((entry) => !SUBAGENT_CATEGORIES.has(entry.name.toLowerCase()))
+    const filteredEntries = entries
+      .filter((entry) => !disabledAgents.has(entry.name))
+      .filter((entry) => showSubagentAgents || !SUBAGENT_CATEGORIES.has(entry.name.toLowerCase()))
 
     return filteredEntries.map(toRosterRow).sort((left, right) => left.label.localeCompare(right.label))
   } catch (error) {

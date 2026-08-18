@@ -2,9 +2,22 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { mkdir, writeFile, rm, readFile } from "node:fs/promises"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
+import { applySpec } from "../../tools/openspec/apply"
 
 let tmp: string
 let specRoot: string
+
+// Mock controller for tests — uses real applySpec for file operations
+function createMockController(projectDir: string, specDir = "openspec") {
+  return {
+    propose: async (_specName: string, _description?: string) => ({ success: true, message: "mocked" }),
+    verify: async (_specName?: string) => [{ specName: "mock", valid: true, files: [], taskStats: undefined }],
+    apply: async (specName: string, _sessionID?: string) => applySpec(projectDir, specDir, specName, _sessionID),
+    archive: async (_specName: string) => ({ success: true, message: "mocked" }),
+    status: async () => [{ specName: "mock", valid: true, taskStats: undefined }],
+    list: async () => ["mock-spec"],
+  }
+}
 
 beforeEach(async () => {
   tmp = join(tmpdir(), `openspec-hook-test-${Date.now()}-${Math.random().toString(36).slice(2)}`)
@@ -36,7 +49,7 @@ describe("createOpenSpecSessionHook", () => {
   it("returns an object with chat.message and tool.execute.after handlers", async () => {
     const { createOpenSpecSessionHook } = await import("./hook")
     const ctx = mockCtx()
-    const hook = createOpenSpecSessionHook(ctx, { projectDir: tmp })
+    const hook = createOpenSpecSessionHook(ctx, { projectDir: tmp, controller: createMockController(tmp) })
     expect(typeof hook["chat.message"]).toBe("function")
     expect(typeof hook["tool.execute.after"]).toBe("function")
   })
@@ -49,6 +62,8 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         autoInject: false,
+        controller: createMockController(tmp),
+        controller: createMockController(tmp),
       })
 
       const output = {
@@ -66,6 +81,8 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         autoInject: true,
+        controller: createMockController(tmp),
+        controller: createMockController(tmp),
       })
 
       const output1 = {
@@ -94,6 +111,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         autoInject: true,
+        controller: createMockController(tmp),
       })
 
       const output1 = {
@@ -123,6 +141,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         taskWriteBack: false,
+        controller: createMockController(tmp),
       })
 
       // @ts-ignore
@@ -140,6 +159,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         taskWriteBack: true,
+        controller: createMockController(tmp),
       })
 
       // @ts-ignore
@@ -157,6 +177,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         taskWriteBack: true,
+        controller: createMockController(tmp),
       })
 
       // @ts-ignore
@@ -173,6 +194,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         taskWriteBack: true,
+        controller: createMockController(tmp),
       })
 
       // @ts-ignore
@@ -190,6 +212,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         taskWriteBack: true,
+        controller: createMockController(tmp),
       })
 
       // @ts-ignore
@@ -210,6 +233,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         taskWriteBack: true,
+        controller: createMockController(tmp),
       })
 
       // @ts-ignore
@@ -238,6 +262,7 @@ describe("createOpenSpecSessionHook", () => {
         projectDir: tmp,
         specDir: "openspec",
         taskWriteBack: true,
+        controller: createMockController(tmp),
       })
 
       // @ts-ignore
