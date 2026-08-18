@@ -7,7 +7,9 @@ import { doctor, resolveDoctorTarget } from "./doctor"
 import { createMcpOAuthCommand } from "./mcp-oauth"
 import { configureRuntimeCommands } from "./runtime-commands"
 import { runConfigMigrate } from "./config-migrate"
+import { printConfigLayers, printExplainResult } from "./config-manager/config-layers"
 import { configShow } from "./config-show"
+import { runLog } from "./log"
 import { configureAgentsCommand } from "./agents"
 import { availableInstallPlatforms, isSenpiPlatformEnabled, SENPI_PLATFORM_ENV_FLAG } from "./senpi-platform-flag"
 import type { InstallArgs } from "./types"
@@ -50,6 +52,12 @@ type ConfigMigrateCommandOptions = {
 
 type ConfigShowCommandOptions = {
   readonly json?: boolean
+}
+
+type LogCommandOptions = {
+  readonly tail?: number
+  readonly grep?: string
+  readonly path?: boolean
 }
 
 type DoctorCommandOptions = {
@@ -298,11 +306,40 @@ configCommand
       }),
   )
 
+configCommand
+  .command("layers")
+  .description("Show the config layer chain from nearest to farthest")
+  .action(() => {
+    printConfigLayers()
+  })
+
+configCommand
+  .command("explain <key>")
+  .description("Show provenance for a specific config key")
+  .action((key: string) => {
+    printExplainResult(key)
+  })
+
 configureAgentsCommand(program)
 
 configureRuntimeCommands(program)
 
 program.addCommand(createMcpOAuthCommand())
+
+program
+  .command("log")
+  .description("View the oh-my-opencode plugin log")
+  .option("--tail <n>", "Show the last N lines", (n) => parseInt(n, 10), undefined)
+  .option("--grep <pattern>", "Filter lines containing pattern")
+  .option("--path", "Print the log file path and exit")
+  .action(async (options: LogCommandOptions) => {
+    const exitCode = await runLog({
+      tail: options.tail,
+      grep: options.grep,
+      path: options.path ?? false,
+    })
+    process.exit(exitCode)
+  })
 
 export function runCli(): void {
   program.parse()
