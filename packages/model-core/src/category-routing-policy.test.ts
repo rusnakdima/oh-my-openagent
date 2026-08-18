@@ -23,8 +23,8 @@ describe("category routing policy", () => {
         variant: "max",
       },
       {
-        providers: ["zai-coding-plan", "opencode-go", "vercel"],
-        model: "glm-5.2",
+        providers: ["zai-coding-plan", "zhipuai-coding-plan", "opencode-go"],
+        model: "glm-5.3",
         variant: "max",
       },
       {

@@ -60,7 +60,7 @@ describe("AGENT_MODEL_REQUIREMENTS", () => {
       variant: "medium",
     })
     expect(fourth?.providers[0]).toBe("zai-coding-plan")
-    expect(fourth?.model).toBe("glm-5.2")
+    expect(fourth?.model).toBe("glm-5.3")
     expect(last?.providers[0]).toBe("opencode")
     expect(last?.model).toBe("big-pickle")
   })
