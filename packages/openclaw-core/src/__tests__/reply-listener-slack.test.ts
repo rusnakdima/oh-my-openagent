@@ -51,7 +51,6 @@ function createState(): ReplyListenerDaemonState {
     discordLastMessageId: null,
     lastDiscordMessageId: null,
     slackLastMessageTs: null,
-    lastSlackMessageTs: null,
     messagesSeen: 0,
     messagesInjected: 0,
     errors: 0,
@@ -154,7 +153,7 @@ describe("pollSlackReplies", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(state.messagesSeen).toBe(1)
     expect(state.messagesInjected).toBe(1)
-    expect(state.lastSlackMessageTs).toBe("1234567890.123456")
+    expect(state.slackLastMessageTs).toBe("1234567890.123456")
   })
 
   test("skips non-threaded messages", async () => {
