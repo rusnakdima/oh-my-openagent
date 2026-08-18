@@ -9215,6 +9215,12 @@
                 "type": "number"
               }
             },
+            "retry_on_message_patterns": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "max_fallback_attempts": {
               "type": "number",
               "minimum": 1,
@@ -9874,23 +9880,38 @@
       "additionalProperties": false
     },
     "tui": {
+      "default": {
+        "sidebar": {
+          "enabled": true
+        }
+      },
       "type": "object",
       "properties": {
         "sidebar": {
+          "default": {
+            "enabled": true
+          },
           "type": "object",
           "properties": {
             "enabled": {
               "default": true,
               "type": "boolean"
             },
-            "showSubagentAgents": {
-              "default": false,
-              "type": "boolean"
+            "visibleAgents": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "visibleCategories": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "required": [
-            "enabled",
-            "showSubagentAgents"
+            "enabled"
           ],
           "additionalProperties": false
         }
