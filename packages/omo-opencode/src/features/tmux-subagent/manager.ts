@@ -760,9 +760,12 @@ export class TmuxSessionManager {
     if (isolatedPaneId) {
       this.sessions.set(
         sessionId,
-        // TODO(#5809): isolated-window/session paths do not support eager cmux attach yet.
-        // cmux attach for isolated paths requires native cmux window management — out of scope.
-        createTrackedSession({ sessionId, paneId: isolatedPaneId, description: title }),
+        createTrackedSession({
+          sessionId,
+          paneId: isolatedPaneId,
+          description: title,
+          attachActivated: isCmuxCompatEnvironment(),
+        }),
       )
       this.pollingManager.startPolling()
       this.deps.log("[tmux-session-manager] first subagent spawned in isolated window", {
@@ -1002,12 +1005,11 @@ export class TmuxSessionManager {
         if (isolatedPaneId) {
           this.sessions.set(
             sessionId,
-            // TODO(#5809): isolated-window/session paths do not support eager cmux attach yet.
-            // cmux attach for isolated paths requires native cmux window management — out of scope.
             createTrackedSession({
               sessionId,
               paneId: isolatedPaneId,
               description: deferred.title,
+              attachActivated: isCmuxCompatEnvironment(),
             }),
           )
           this.removeDeferredSession(sessionId)
