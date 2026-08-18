@@ -261,7 +261,7 @@ describe("omo-senpi start-work-continuation", () => {
     expect(content).toContain("delivery mode")
   })
 
-  it("#given paused work #when agent_end fires #then injects continuation directive", async () => {
+  it("#given paused work #when agent_end fires #then does NOT inject continuation (explicit resume required)", async () => {
     const root = createTempWorkspace()
     writePlan(root, "t", "## TODOs\n- [ ] 1. Task one\n")
     writeBoulderJson(root, {
@@ -289,8 +289,8 @@ describe("omo-senpi start-work-continuation", () => {
 
     await pi.dispatch("agent_end", { type: "agent_end" }, eventCtx(root, "qa-s1"))
 
-    expect(delivered).toHaveLength(1)
-    expect(delivered[0]).toContain("[Status: 0/1")
+    // Paused work requires explicit /resume-continuation; agent_end must not inject.
+    expect(delivered).toHaveLength(0)
   })
 
   it("#given identical boulder signature twice #when agent_end repeats #then second is suppressed", async () => {
