@@ -13,6 +13,7 @@ export type BuiltinCommandName =
   | "wiki-query"
   | "wiki-lint"
   | "wiki-update"
+  | "openspec"
 
 export interface BuiltinCommandConfig {
   disabled_commands?: BuiltinCommandName[]

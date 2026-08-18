@@ -163,6 +163,38 @@ $ARGUMENTS
 </update-details>`,
       argumentHint: "<what-changed>",
     },
+    openspec: {
+      description:
+        "(builtin) OpenSpec session management: propose, verify, apply, archive, status, or list specs",
+      template: `<command-instruction>
+ You have access to the OpenSpec system for structured task specification.
+
+ Available subcommands:
+   propose <name> [description] — Create a new spec proposal
+   verify <name>               — Verify a spec's integrity
+   apply <name>                — Mark pending tasks in-progress
+   archive <name>              — Archive a completed spec
+   status                     — Show all spec statuses
+   list                        — List all known specs
+   help                        — Show this help
+
+ When a spec is active, its context (spec.md, plan.md, tasks) is automatically
+ injected into your context via the openspec-session hook.
+
+ You can also use OpenSpec tools directly:
+   openspec_propose   — Create a new spec
+   openspec_verify    — Verify spec integrity
+   openspec_apply     — Mark pending tasks in-progress
+   openspec_archive   — Archive a spec
+   openspec_status    — Show spec status
+   openspec_list      — List all specs
+ </command-instruction>
+
+ <user-request>
+ $ARGUMENTS
+ </user-request>`,
+      argumentHint: "propose <name> | verify <name> | apply <name> | archive <name> | status | list | help",
+    },
   }
 }
 

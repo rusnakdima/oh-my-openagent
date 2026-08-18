@@ -4,6 +4,7 @@ nickname_candidates = ["Librarian"]
 model = "gpt-5.6-luna"
 model_reasoning_effort = "low"
 service_tier = "fast"
+mode = "subagent"
 
 developer_instructions = """
 # THE LIBRARIAN

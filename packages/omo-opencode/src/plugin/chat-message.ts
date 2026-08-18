@@ -70,6 +70,7 @@ async function runChatMessageHooks(args: {
   await hooks.noSisyphusGpt?.["chat.message"]?.(input, output)
   await hooks.noHephaestusNonGpt?.["chat.message"]?.(input, output)
   await hooks.hephaestusAgentsMdInjector?.["chat.message"]?.(input, output)
+  await hooks.openspecSession?.["chat.message"]?.(input, output)
 }
 
 export function createChatMessageHandler(args: {
