@@ -10956,6 +10956,10 @@
               "default": true,
               "type": "boolean"
             },
+            "auto_create": {
+              "default": false,
+              "type": "boolean"
+            },
             "shorten_interview": {
               "default": false,
               "type": "boolean"
@@ -10969,6 +10973,7 @@
             "enabled",
             "spec_dir",
             "auto_inject",
+            "auto_create",
             "shorten_interview",
             "task_write_back"
           ],
@@ -11107,6 +11112,9 @@
                 }
               },
               "additionalProperties": false
+            },
+            "wakeOnEachCompletion": {
+              "type": "boolean"
             }
           },
           "additionalProperties": false
@@ -11574,13 +11582,14 @@
           "type": "object",
           "properties": {
             "provider": {
-              "default": "playwright",
+              "default": "openchrome-aside",
               "type": "string",
               "enum": [
                 "playwright",
                 "agent-browser",
                 "dev-browser",
-                "playwright-cli"
+                "playwright-cli",
+                "openchrome-aside"
               ]
             },
             "playwright_mcp_args": {
@@ -25623,6 +25632,10 @@
                     "default": true,
                     "type": "boolean"
                   },
+                  "auto_create": {
+                    "default": false,
+                    "type": "boolean"
+                  },
                   "shorten_interview": {
                     "default": false,
                     "type": "boolean"
@@ -25636,6 +25649,7 @@
                   "enabled",
                   "spec_dir",
                   "auto_inject",
+                  "auto_create",
                   "shorten_interview",
                   "task_write_back"
                 ],
@@ -25774,6 +25788,9 @@
                       }
                     },
                     "additionalProperties": false
+                  },
+                  "wakeOnEachCompletion": {
+                    "type": "boolean"
                   }
                 },
                 "additionalProperties": false
@@ -26241,13 +26258,14 @@
                 "type": "object",
                 "properties": {
                   "provider": {
-                    "default": "playwright",
+                    "default": "openchrome-aside",
                     "type": "string",
                     "enum": [
                       "playwright",
                       "agent-browser",
                       "dev-browser",
-                      "playwright-cli"
+                      "playwright-cli",
+                      "openchrome-aside"
                     ]
                   },
                   "playwright_mcp_args": {

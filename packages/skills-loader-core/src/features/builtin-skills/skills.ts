@@ -6,6 +6,7 @@ import {
   createPlaywrightSkill,
   playwrightSkill,
   playwrightCliSkill,
+  openchromeAsideSkill,
   frontendSkill,
   gitMasterSkill,
   devBrowserSkill,
@@ -51,6 +52,8 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
 		browserSkill = devBrowserSkill
 	} else if (browserProvider === "playwright-cli") {
 		browserSkill = playwrightCliSkill
+	} else if (browserProvider === "openchrome-aside") {
+		browserSkill = openchromeAsideSkill
 	} else {
 		browserSkill = playwrightMcpArgs?.length
 			? createPlaywrightSkill({ mcp_args: playwrightMcpArgs })

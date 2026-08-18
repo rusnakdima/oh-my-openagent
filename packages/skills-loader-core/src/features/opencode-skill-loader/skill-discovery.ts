@@ -25,7 +25,7 @@ export function clearSkillCache(): void {
 }
 
 export async function getAllSkills(options?: SkillResolutionOptions): Promise<LoadedSkill[]> {
-	const browserProvider = options?.browserProvider ?? "playwright"
+	const browserProvider = options?.browserProvider ?? "openchrome-aside"
 	const teamModeEnabled = options?.teamModeEnabled ?? false
 	const directory = options?.directory ?? ""
 	const cacheKey = `${directory}:${browserProvider}:${teamModeEnabled ? "team-on" : "team-off"}`
@@ -36,6 +36,9 @@ export async function getAllSkills(options?: SkillResolutionOptions): Promise<Lo
 		const cached = cachedSkillsByProvider.get(cacheKey)
 		if (cached) return cached
 	}
+
+	// Map provider to the skill name it activates
+	const browserSkillName = browserProvider === "openchrome-aside" ? "playwright" : browserProvider
 
 	const [discoveredSkills, builtinSkillDefinitions] = await Promise.all([
 		discoverSkills({ includeClaudeCodePaths: true, directory: options?.directory }),
@@ -73,7 +76,7 @@ export async function getAllSkills(options?: SkillResolutionOptions): Promise<Lo
 			return true
 		}
 		// For provider-gated skills, only include if it matches the selected provider
-		return skill.name === browserProvider
+		return skill.name === browserSkillName
 	})
 
 	const discoveredNames = new Set(filteredDiscoveredSkills.map((skill) => skill.name))

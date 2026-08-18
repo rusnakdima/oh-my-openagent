@@ -42,6 +42,15 @@ function mapScopeToLocation(scope: SkillScope): AvailableSkill["location"] {
   return "plugin"
 }
 
+/**
+ * Maps a browser provider name to the skill name that implements it.
+ * The `openchrome-aside` provider uses the `playwright` skill internally.
+ */
+function activeBrowserSkillName(provider: BrowserAutomationProvider): string {
+  if (provider === "openchrome-aside") return "playwright"
+  return provider
+}
+
 function filterProviderGatedSkills(
   skills: LoadedSkill[],
   browserProvider: BrowserAutomationProvider,
@@ -51,7 +60,7 @@ function filterProviderGatedSkills(
       return true
     }
 
-    return skill.name === browserProvider
+    return skill.name === activeBrowserSkillName(browserProvider)
   })
 }
 
@@ -84,7 +93,7 @@ export async function createSkillContext(args: {
   const { directory, pluginConfig, hostSkills } = args
 
   const browserProvider: BrowserAutomationProvider =
-    pluginConfig.browser_automation_engine?.provider ?? "playwright"
+    pluginConfig.browser_automation_engine?.provider ?? "openchrome-aside"
   const playwrightMcpArgs = pluginConfig.browser_automation_engine?.playwright_mcp_args
 
   const disabledSkills = collectDisabledSkillAliases(pluginConfig)

@@ -5,8 +5,11 @@ import { createBuiltinSkills } from "./skills"
 import { agentBrowserSkill, playwrightSkill } from "./skills/playwright"
 
 describe("createBuiltinSkills", () => {
-	test("returns playwright skill by default", () => {
+	test("returns the playwright skill by default (openchrome-aside is set at the skill-context level)", () => {
 		// given - no options (default)
+		// Note: createBuiltinSkills() still defaults to "playwright" internally.
+		// The "openchrome-aside" default is applied in skill-context.ts
+		// where createBuiltinSkills is called with the resolved provider.
 
 		// when
 		const skills = createBuiltinSkills()
@@ -46,6 +49,27 @@ describe("createBuiltinSkills", () => {
 		expect(playwrightSkill).toBeDefined()
 		expect(agentBrowserSkill).toBeUndefined()
 		expect(devBrowserSkill).toBeUndefined()
+	})
+
+	test("returns tiered openchrome-aside skill when browserProvider is 'openchrome-aside'", () => {
+		// given
+		const options = { browserProvider: "openchrome-aside" as const }
+
+		// when
+		const skills = createBuiltinSkills(options)
+
+		// then
+		const browserSkill = skills.find((s) => s.name === "playwright")
+		const agentBrowserSkill = skills.find((s) => s.name === "agent-browser")
+		const devBrowserSkill = skills.find((s) => s.name === "dev-browser")
+		expect(browserSkill).toBeDefined()
+		expect(browserSkill?.description).toContain("browser")
+		expect(browserSkill?.template).toContain("Tier 1: Aside LLM Reasoning")
+		expect(browserSkill?.template).toContain("Tier 2: Openchrome")
+		expect(browserSkill?.allowedTools).toBeUndefined()
+		expect(agentBrowserSkill).toBeUndefined()
+		expect(devBrowserSkill).toBeUndefined()
+		expect(skills).toHaveLength(10)
 	})
 
 	test("returns dev-browser skill when browserProvider is 'dev-browser'", () => {

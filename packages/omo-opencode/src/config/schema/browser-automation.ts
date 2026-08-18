@@ -5,17 +5,19 @@ export const BrowserAutomationProviderSchema = z.enum([
   "agent-browser",
   "dev-browser",
   "playwright-cli",
+  "openchrome-aside",
 ])
 
 export const BrowserAutomationConfigSchema = z.object({
   /**
    * Browser automation provider to use for the "playwright" skill.
-   * - "playwright": Uses Playwright MCP server (@playwright/mcp) - default
+   * - "openchrome-aside": Tiered cascade: Aside LLM reasoning → Openchrome deterministic Chrome → Playwright MCP (recommended default)
+   * - "playwright": Uses Playwright MCP server (@playwright/mcp) - direct Playwright only
    * - "agent-browser": Uses Vercel's agent-browser CLI (requires: bun add -g agent-browser)
    * - "dev-browser": Uses dev-browser skill with persistent browser state
    * - "playwright-cli": Uses Playwright CLI (@playwright/cli) - token-efficient CLI alternative
    */
-  provider: BrowserAutomationProviderSchema.default("playwright"),
+  provider: BrowserAutomationProviderSchema.default("openchrome-aside"),
   /**
    * Extra CLI arguments appended to the default `@playwright/mcp@latest`
    * invocation. Only applied when `provider` is `"playwright"`.
