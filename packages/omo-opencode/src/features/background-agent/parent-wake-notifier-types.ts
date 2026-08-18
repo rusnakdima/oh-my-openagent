@@ -1,5 +1,6 @@
 import type { PromptDispatchClient, PromptMessagesQuery } from "../../shared/prompt-async-gate/types"
 import type { ParentWakePromptContext } from "./parent-wake-dedupe"
+import type { ParentWakeLedger } from "./parent-wake-ledger"
 
 type ParentWakePromptBody = ParentWakePromptContext & {
   readonly noReply?: boolean
@@ -25,6 +26,7 @@ export type ParentWakeNotifierClient = PromptDispatchClient & {
 export type ParentWakeNotifierDeps = {
   readonly client: ParentWakeNotifierClient
   readonly directory: string
+  readonly ledger: ParentWakeLedger
   readonly enqueueNotificationForParent: (
     parentSessionID: string | undefined,
     operation: () => Promise<void>,

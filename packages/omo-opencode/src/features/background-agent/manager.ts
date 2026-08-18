@@ -79,6 +79,7 @@ import {
   recordToolCall,
   resolveCircuitBreakerSettings,
 } from "./loop-detector"
+import { ParentWakeLedger } from "./parent-wake-ledger"
 import { ParentWakeNotifier, type ParentWakePromptContext } from "./parent-wake-notifier"
 import type { PendingParentWake } from "./parent-wake-dedupe"
 import { registerManagerForCleanup, unregisterManagerForCleanup } from "./process-cleanup"
@@ -308,6 +309,7 @@ export class BackgroundManager {
       {
         client: this.client,
         directory: this.directory,
+        ledger: new ParentWakeLedger(this.directory),
         enqueueNotificationForParent: this.enqueueNotificationForParent.bind(this),
         onPendingWakeRequeued: (sessionID) => this.updateBackgroundTaskMarker(sessionID),
         onScheduledFlushSettled: (sessionID) => this.recordScheduledFlushSettled(sessionID),

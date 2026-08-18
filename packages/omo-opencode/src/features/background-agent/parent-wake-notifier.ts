@@ -3,6 +3,7 @@ import { settleAfterSessionIdle } from "../../hooks/shared/session-idle-settle"
 import type { ParentWakePromptContext, PendingParentWake } from "./parent-wake-dedupe"
 import { ParentWakeDispatchedTracker } from "./parent-wake-dispatched-tracker"
 import { ParentWakeFlushRunner } from "./parent-wake-flush-runner"
+import { ParentWakeLedger } from "./parent-wake-ledger"
 import { ParentWakePendingQueue } from "./parent-wake-pending-queue"
 import type { ToolWaitDeferralDecision } from "./parent-wake-session-history"
 import { ParentWakeSessionInspector } from "./parent-wake-session-inspector"
@@ -20,12 +21,14 @@ export class ParentWakeNotifier {
   private readonly dispatchedTracker: ParentWakeDispatchedTracker
   private readonly sessionInspector: ParentWakeSessionInspector
   private readonly flushRunner: ParentWakeFlushRunner
+  private readonly ledger: ParentWakeLedger
   private readonly onPendingWakeRequeued?: (sessionID: string) => void
 
   constructor(
     deps: ParentWakeNotifierDeps,
     options: ParentWakeNotifierOptions,
   ) {
+    this.ledger = deps.ledger
     this.onPendingWakeRequeued = deps.onPendingWakeRequeued
     this.pendingQueue = new ParentWakePendingQueue({
       pendingRetryMs: options.pendingRetryMs,
@@ -114,14 +117,23 @@ export class ParentWakeNotifier {
   ): void {
     this.pendingQueue.queueWake(sessionID, notification, promptContext, shouldReply)
     this.schedulePendingParentWakeFlush(sessionID, delayMs)
+    this.ledger.logPending(
+      sessionID,
+      undefined, // taskID
+      promptContext.agent,
+      promptContext.model ? `${promptContext.model.providerID}/${promptContext.model.modelID}` : undefined,
+      shouldReply,
+    )
   }
 
   async flushPendingParentWake(sessionID: string): Promise<void> {
     await this.flushRunner.flushPendingParentWake(sessionID)
+    this.ledger.logFlushed(sessionID)
   }
 
   clearDispatchedParentWake(sessionID: string): void {
     this.dispatchedTracker.clearWake(sessionID)
+    this.ledger.logCleared(sessionID)
   }
 
   async requeueDispatchedParentWake(sessionID: string, reason: string): Promise<boolean> {
@@ -144,6 +156,7 @@ export class ParentWakeNotifier {
     this.dispatchedTracker.clearWake(sessionID)
     this.requeueWake(sessionID, wake)
     this.schedulePendingParentWakeFlush(sessionID)
+    this.ledger.logRequeued(sessionID, reason)
     log("[background-agent] Requeued dispatched parent wake after prompt failure:", {
       sessionID,
       reason,
@@ -161,6 +174,7 @@ export class ParentWakeNotifier {
     wake.allowEmptyAssistantTurnRetry = true
     this.requeueWake(sessionID, wake)
     this.schedulePendingParentWakeFlush(sessionID, 0)
+    this.ledger.logRequeuedEmptyTurn(sessionID)
     log("[background-agent] Requeued dispatched parent wake after empty assistant turn:", { sessionID })
     return true
   }
@@ -171,6 +185,7 @@ export class ParentWakeNotifier {
 
   clearPendingParentWakeTimer(sessionID: string): void {
     this.flushRunner.clearPendingParentWakeTimer(sessionID)
+    this.ledger.logTimerCancelled(sessionID)
   }
 
   shutdown(): void {

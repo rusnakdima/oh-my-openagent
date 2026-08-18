@@ -7,6 +7,7 @@ import { sendParentWakePrompt } from "./parent-wake-prompt-dispatch"
 import type { ToolWaitDeferralDecision } from "./parent-wake-session-history"
 import type { ParentWakeSessionInspector } from "./parent-wake-session-inspector"
 import type { ParentWakeNotifierDeps } from "./parent-wake-notifier-types"
+import type { ParentWakeLedger } from "./parent-wake-ledger"
 
 type ParentWakeFlushRunnerDeps = {
   readonly notifierDeps: ParentWakeNotifierDeps
@@ -244,6 +245,7 @@ export class ParentWakeFlushRunner {
         requeueWake: (wake) => this.requeueWake(sessionID, wake),
         scheduleFlush: (delayMs) => this.schedulePendingParentWakeFlush(sessionID, delayMs),
       })
+      this.deps.notifierDeps.ledger.logDispatched(sessionID)
     } finally {
       this.deps.dispatchedTracker.clearInFlight(sessionID)
     }
