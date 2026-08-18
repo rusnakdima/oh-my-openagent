@@ -231,6 +231,12 @@ export class TaskToastManager {
       },
     }).catch(() => {})
   }
+
+  showToast(opts: { title: string; message: string; variant: string; duration: number }): void {
+    const tuiClient = this.client as ClientWithTui
+    if (!tuiClient.tui?.showToast) return
+    tuiClient.tui.showToast({ body: opts }).catch(() => {})
+  }
 }
 
 let instance: TaskToastManager | null = null
