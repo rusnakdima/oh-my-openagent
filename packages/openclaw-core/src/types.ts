@@ -20,6 +20,9 @@ export type OpenClawReplyListenerConfig = {
   readonly authorizedDiscordUserIds?: readonly string[]
   readonly telegramBotToken?: string
   readonly telegramChatId?: string
+  readonly slackBotToken?: string
+  readonly slackChannelId?: string
+  readonly authorizedSlackUserIds?: readonly string[]
   readonly pollIntervalMs?: number
   readonly rateLimitPerMinute?: number
   readonly maxMessageLength?: number

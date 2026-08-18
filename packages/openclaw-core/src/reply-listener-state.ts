@@ -19,6 +19,7 @@ export interface ReplyListenerDaemonState {
   telegramLastUpdateId: number | null
   discordLastMessageId: string | null
   lastDiscordMessageId: string | null
+  slackLastMessageTs: string | null
   messagesSeen: number
   messagesInjected: number
   errors: number
@@ -41,6 +42,7 @@ function createDefaultReplyListenerState(): ReplyListenerDaemonState {
     telegramLastUpdateId: null,
     discordLastMessageId: null,
     lastDiscordMessageId: null,
+    slackLastMessageTs: null,
     messagesSeen: 0,
     messagesInjected: 0,
     errors: 0,
@@ -69,6 +71,7 @@ function normalizeReplyListenerState(raw: unknown): ReplyListenerDaemonState {
     telegramLastUpdateId: isNumber(state.telegramLastUpdateId) ? state.telegramLastUpdateId : null,
     discordLastMessageId: getDiscordMessageId(state),
     lastDiscordMessageId: getDiscordMessageId(state),
+    slackLastMessageTs: typeof state.slackLastMessageTs === "string" ? state.slackLastMessageTs : null,
     messagesSeen: isNumber(state.messagesSeen) ? state.messagesSeen : 0,
     messagesInjected: isNumber(state.messagesInjected) ? state.messagesInjected : 0,
     errors: isNumber(state.errors) ? state.errors : 0,
@@ -177,6 +180,14 @@ export function recordSeenDiscordMessage(
 ): void {
   state.discordLastMessageId = messageId
   state.lastDiscordMessageId = messageId
+  state.messagesSeen += 1
+}
+
+export function recordSeenSlackMessage(
+  state: ReplyListenerDaemonState,
+  messageTs: string,
+): void {
+  state.slackLastMessageTs = messageTs
   state.messagesSeen += 1
 }
 
