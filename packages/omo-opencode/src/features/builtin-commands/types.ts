@@ -14,6 +14,7 @@ export type BuiltinCommandName =
   | "wiki-lint"
   | "wiki-update"
   | "openspec"
+  | "voice"
 
 export interface BuiltinCommandConfig {
   disabled_commands?: BuiltinCommandName[]

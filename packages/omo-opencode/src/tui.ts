@@ -1,4 +1,4 @@
-import type { TuiPluginModule } from "@opencode-ai/plugin/tui"
+import type { KeyEvent, Renderable, TuiPluginModule } from "@opencode-ai/plugin/tui"
 
 import { computeView, viewKey } from "./features/tui-sidebar/compute-view"
 import { POLL_INTERVAL_MS } from "./features/tui-sidebar/constants"
@@ -173,6 +173,35 @@ const module: TuiPluginModule = {
     api.lifecycle.onDispose(() => {
       disposed = true
       if (timer) clearTimeout(timer)
+    })
+
+    // Register Ctrl+Shift+V to inject /voice into the active session
+    api.keymap.registerLayer({
+      bindings: [
+        {
+          key: "ctrl+shift+v",
+          cmd: "voice.record",
+        },
+      ],
+      commands: [
+        {
+          name: "voice.record",
+          run: (ctx) => {
+            const route = api.route.current
+            if (route.name !== "session") return
+            const params = route.params as { sessionID?: string } | undefined
+            if (!params?.sessionID) return
+            const sessionID = params.sessionID
+            if (!sessionID) return
+            void api.client.session.promptAsync({
+              sessionID,
+              parts: [{ type: "text", text: "/voice" }],
+            }).catch(() => {
+              // best-effort
+            })
+          },
+        },
+      ],
     })
   },
 }

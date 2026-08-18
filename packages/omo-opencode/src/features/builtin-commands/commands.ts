@@ -13,6 +13,7 @@ import { WIKI_INGEST_TEMPLATE } from "./templates/wiki-ingest"
 import { WIKI_QUERY_TEMPLATE } from "./templates/wiki-query"
 import { WIKI_LINT_TEMPLATE } from "./templates/wiki-lint"
 import { WIKI_UPDATE_TEMPLATE } from "./templates/wiki-update"
+import { VOICE_TEMPLATE } from "./templates/voice"
 
 interface LoadBuiltinCommandsOptions {
   useRegisteredAgents?: boolean
@@ -194,6 +195,12 @@ $ARGUMENTS
  $ARGUMENTS
  </user-request>`,
       argumentHint: "propose <name> | verify <name> | apply <name> | archive <name> | status | list | help",
+    },
+    voice: {
+      description: "(builtin) Capture microphone audio and transcribe it to text via the voice tool",
+      template: `<command-instruction>
+${VOICE_TEMPLATE}
+</command-instruction>`,
     },
   }
 }
