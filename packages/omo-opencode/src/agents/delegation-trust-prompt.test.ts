@@ -74,8 +74,8 @@ describe("delegation trust prompt rules", () => {
     const prompt = buildSisyphusJuniorPrompt("openai/gpt-5.5", false)
 
     // when / then
-    expect(prompt).toContain("continue only with non-overlapping work")
-    expect(prompt).toContain("DO NOT perform the same search yourself")
+    expect(prompt).toContain("Continue only with non-overlapping")
+    expect(prompt).toContain("do not manually perform the same search yourself")
   })
 
   test("Sisyphus-Junior Gemini prompt forbids duplicate delegated exploration", () => {
