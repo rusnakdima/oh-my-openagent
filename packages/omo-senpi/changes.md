@@ -1,3 +1,74 @@
+## 2026-08-18 — Follow the Senpi 2026.8.18-2 host contract
+
+The adapter peer and development dependency now require Senpi `2026.8.18-2`,
+and the task engine's peer and development pins move with it. The 2026.8.18-2
+host fixes Cursor exec-bridge recovery: symbol-keyed exec markers survive
+model-recovery snapshot cloning, so side-effecting tool calls are not executed
+twice; late bridge events stay bound to their originating run; and active
+goals re-engage after a settings hot-reload. Cursor CLI OAuth bootstraps
+native credentials by default, and GPT-5.6 Sol/Sol Fast models default to a
+400k-token context window.
+
+This bump does not add or alter adapter behavior beyond the inherited host
+fixes. The provider registry contract was re-verified: builtin provider IDs
+are unchanged between 2026.8.18 and 2026.8.18-2 (senpi-pin and package-shape
+suites green). Conflict zones are the adapter and task manifests, the
+workspace lockfile, package-shape and senpi-pin expectations, and the
+provider-map provenance comment.
+
+## 2026-08-18 — Keep shipped skills on the Senpi task roster
+
+Shared skill copies now translate Oracle review lanes to `unspecified-high`,
+Oracle debugging and plan lanes to `deep`, and omit raw team leads that the
+Senpi harness supplies itself. Native DAG examples use a real category, and
+the compatibility banner no longer advertises the nonexistent `git` category.
+
+The generated skill guard derives valid named agents and categories from the
+runtime registries, so future shared-skill or native-skill drift fails before
+shipping. Shared OpenCode skill sources remain unchanged.
+
+## 2026-08-18 — Follow the Senpi 2026.8.18 host contract
+
+The adapter peer and development dependency now require Senpi `2026.8.18`,
+and the task engine's peer and development pins move with it. The 2026.8.18
+host fixes extension widget stacking order: `setWidget` now replaces the
+component in place, so the adapter's `omo-task` and `omo-dag` belowEditor
+status widgets keep a constant vertical order while both live-refresh.
+
+This bump does not add or alter adapter behavior beyond the inherited host
+fix. The provider registry contract was re-verified: builtin provider IDs
+are unchanged between 2026.8.17 and 2026.8.18. Conflict zones are the
+adapter and task manifests, workspace lockfile, package-shape and senpi-pin
+expectations, and committed extension bundles.
+
+## 2026-08-17 — Follow the Senpi 2026.8.17 host contract
+
+The adapter peer and development dependency now require Senpi `2026.8.17`,
+and the task engine's peer and development pins move with it. Senpi's package
+aliases resolve the matching 2026.8.17 AI, agent-core, TUI, PTY, telemetry,
+and codemode companions; the separate Pi `0.84.2` compatibility line does
+not change.
+
+This bump does not add or alter adapter behavior. The generated plugin is
+rebuilt only to prove the existing extension remains compatible with the new
+host, and the provider registry contract confirms that builtin provider IDs
+are unchanged. Conflict zones are the adapter and task manifests, workspace
+lockfile, package-shape expectations, and committed extension bundles.
+
+## 2026-08-17 — Count eval-internal tools without inventing savings
+
+OmO Native now consumes Senpi 2026.8.16's in-process
+`senpi.eval.execution` event and folds fixed scalar rollups into the existing
+once-per-session `parallelism_summary`. `parallelism_v2` reports event-bus
+coverage, accepted/rejected eval executions, nested tool status and duration
+totals, top-level eval wrappers, and direct non-eval calls from mixed waves.
+
+The existing pure non-eval wave, modeled saving, upper-bound, and saved
+round-trip formulas are unchanged. Eval aggregate keys, arguments, paths, and
+previews never cross the privacy boundary. Nested duration sums do not contain
+enough interval information to infer concurrency or savings, and future
+changes must preserve that distinction.
+
 ## 2026-08-16 — Follow the Senpi 2026.8.16 host contract
 
 The adapter peer and development dependency now require Senpi `2026.8.16`,

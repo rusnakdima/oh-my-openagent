@@ -1,3 +1,81 @@
+## 2026-08-18 — Rebuild the Sisyphus runtime prompt on same-family model switches
+
+The Sisyphus runtime prompt reconciler skipped every rebuild whose runtime
+model shared the configured model's broad prompt family. The `fallback`
+family is not prompt-uniform: `buildFallbackSisyphusPrompt` applies
+Gemini-specific override blocks, and other families bake model-dependent
+sections (GPT identity text, claude/non-claude planner sections). Switching
+between same-family models in the TUI (e.g. Gemini -> MiniMax-M3 or
+DeepSeek -> MiniMax-M3) therefore kept the previous model's baked prompt in
+place, and the active model reported a stale identity (issue #6966).
+
+The reconciler now skips only when the runtime model is exactly the model the
+baked prompt was built for, and the existing rebuilt-versus-baked equality
+check suppresses genuine no-op switches (DeepSeek and MiniMax bake
+byte-identical fallback bodies, verified against the real prompt builder).
+The system-transform handler canonicalizes the opencode hook model record to
+`<providerID>/<id>` so bare builtin-provider ids compare exactly. Rebuild work
+per request is unchanged for cross-family switches; same-family switches now
+rebuild like cross-family ones already did.
+
+## 2026-08-18 — Respect user permission.task on OMO main agents
+
+`applyToolConfig` built the permission object for sisyphus, atlas, hephaestus,
+and prometheus by spreading the agent's existing permission first and then
+hardcoding `task: "allow"` on top, so any user-configured `permission.task`
+was silently discarded while the config looked applied. The default is now
+injected before the spread, which keeps `task: "allow"` when the user
+configured nothing and lets an explicit user value win otherwise.
+
+The plugin-injected rules that fence delegation (`call_omo_agent: "deny"`,
+`task_*`, `teammate`, todo denials, prometheus bash denials) still apply after
+the user permission, so only the `task` default changed precedence. Verified
+against a real isolated `opencode serve` boot with a user-layer
+`[opencode].agents.<agent>.permission.task` override for all four agents, plus
+a negative-control boot without user config. Object mappings for
+`permission.task` and a configurable deny list remain follow-ups tracked in
+the issue.
+
+## 2026-08-17 — Track Senpi 2026.8.17 for the omo-ai beta line
+
+All active native Senpi pins now use `2026.8.17` across the root workspace,
+the `omo-ai` launcher package, the OMO Senpi adapter, and the Senpi task
+engine. The lockfile resolves the complete 2026.8.17 companion family while
+the existing Pi `0.84.2` compatibility overrides remain unchanged because
+the upstream manifest changed only its Senpi package aliases.
+
+The hand-derived provider registry was checked against the new engine. Its
+provider IDs are unchanged, while the upstream Cerebras catalog no longer
+advertises `zai-glm-4.7`; only the derivation version changes locally. This is
+a host dependency update, not an OMO extension behavior change, so extension
+source stays untouched and committed bundles are refreshed only from the
+normal build. Conflict zones are the exact manifest pins, `bun.lock`, the
+provider-map derivation comment, and generated Senpi extension artifacts.
+
+## 2026-08-18 — Ship @babel/parser with omo-ai for bundled Senpi codemode
+
+`@code-yeongyu/senpi@2026.8.16` bundles the source-only
+`@code-yeongyu/senpi-codemode` extension but its bundled-dependency closure
+omits the Babel parser that `senpi-codemode/src/kernels/js/rewrite-imports.ts`
+imports at runtime. Clean `omo-ai` installs therefore logged a non-fatal
+`Failed to load extension ... Cannot find module '@babel/parser'` warning at
+boot and silently lost codemode/eval surfaces (verified on a real isolated
+`omo-ai@5.0.0-0.beta.8` install: 43 extensions loaded, `senpi-codemode`
+absent).
+
+`omo-ai` now declares `@babel/parser@8.0.4` as a direct exact-pinned runtime
+dependency. npm installs the full transitive Babel closure next to Senpi, so
+the bundled codemode extension resolves its import and loads enabled. This is
+a deliberately duplicative downstream compatibility dependency until Senpi
+publishes a complete bundle; remove it at the next Senpi pin bump only after
+isolated packed-install and RPC boot QA prove the upstream fix.
+
+## 2026-08-17 — Make explicit beta publication ownership-safe
+
+The synchronized `/publish` command and skill now accept an exact semantic version in addition to `patch`, `minor`, and `major`. Exact versions are dispatched through the workflow's `version` input, and the returned workflow run ID is the sole owner followed through release completion; latest-run inference is no longer part of the command.
+
+Prerelease changelogs now compare against the preceding release in the same channel, and GitHub releases explicitly carry prerelease metadata. Stable bump behavior remains unchanged. Senpi RPC model admission diagnostics also report the probed catalog size and child stderr tail while the launch-parity test keeps its process environment fixed at module load.
+
 ## 2026-08-16 — Track Senpi 2026.8.16 for the omo-ai beta line
 
 All active native Senpi pins now use `2026.8.16` across the root workspace,

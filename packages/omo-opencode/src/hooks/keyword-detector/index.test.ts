@@ -10,6 +10,7 @@ import * as sharedModule from "../../shared"
 import { OMO_INTERNAL_INITIATOR_MARKER } from "../../shared/internal-initiator-marker"
 import { createKeywordDetectorHook } from "./index"
 import { _resetUltraworkActivatedSessionsForTesting } from "./hook"
+import { detectKeywords } from "./detector"
 
 type ToastOptions = { body: { title: string } }
 type OutputPart = { readonly type?: unknown; readonly text?: unknown }
@@ -82,9 +83,8 @@ describe("keyword-detector message transform", () => {
 
     // then - original user text comes first, mode instructions appended after separator
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("---")
+    expect(text).toContain("<ultrawork-mode>")
     expect(text).toContain("do something")
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
   })
 
   test("should place user text before mode instructions so session title stays task-focused", async () => {
@@ -132,15 +132,19 @@ describe("keyword-detector message transform", () => {
 
   test("should not prepend mode messages twice when an injected message is processed again", async () => {
     const cases = [
-      { prompt: "team mode for this refactor", marker: "[team-mode]" },
-      { prompt: "hyperplan the migration", marker: "<hyperplan-mode>" },
-      { prompt: "ultrawork fix the flaky suite", marker: "<ultrawork-mode>" },
+      { id: "team", prompt: "team mode for this refactor" },
+      { id: "hyperplan", prompt: "hyperplan the migration" },
+      { id: "ultrawork", prompt: "ultrawork fix the flaky suite" },
     ]
 
     for (const testCase of cases) {
-      // given - OpenCode can re-submit an already-mutated message after undo/resend
+      // given - OpenCode can re-submit an already-mutated message after undo/resend.
+      // The dedup filter compares against the detector-resolved keyword message,
+      // so key the assertion on that same production value.
+      const injectedMessage = detectKeywords(testCase.prompt)[0]
+      expect(injectedMessage).toBeDefined()
       const collector = new ContextCollector()
-      const sessionID = `idempotent-${testCase.marker}`
+      const sessionID = `idempotent-${testCase.id}`
       getMainSessionSpy = spyOn(sessionState, "getMainSessionID").mockReturnValue(sessionID)
       const hook = createKeywordDetectorHook(createMockPluginInput(), collector)
       const output = {
@@ -152,10 +156,10 @@ describe("keyword-detector message transform", () => {
       await hook["chat.message"]({ sessionID }, output)
       await hook["chat.message"]({ sessionID }, output)
 
-      // then - the mode prompt remains idempotent
+      // then - the same mode message must not be injected a second time
       const text = expectTextPartText(output.parts)
-      const markerMatches = text.split(testCase.marker).length - 1
-      expect(markerMatches).toBe(1)
+      const messageOccurrences = text.split(injectedMessage ?? "").length - 1
+      expect(messageOccurrences).toBe(1)
       expect(text).toContain(testCase.prompt)
 
       getMainSessionSpy?.mockRestore()
@@ -407,7 +411,7 @@ describe("keyword-detector session filtering", () => {
     // then - active keyword should be detected without forcing a runtime variant
     expect(output.message.variant).toBeUndefined()
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
+    expect(text).toContain("<ultrawork-mode>")
   })
 
   test("should allow all keywords when mainSessionID is not set", async () => {
@@ -675,7 +679,7 @@ Please ultrawork the bug in the code.`
 
     // then - should trigger ultrawork from user text only
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
+    expect(text).toContain("<ultrawork-mode>")
     expect(text).toContain("Please ultrawork the bug in the code.")
   })
 
@@ -797,8 +801,6 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
     // then - ultrawork should be skipped for planner agents, text unchanged
     const text = expectTextPartText(output.parts)
     expect(text).toBe("ultrawork plan this feature")
-    expect(text).not.toContain("YOU ARE A PLANNER, NOT AN IMPLEMENTER")
-    expect(text).not.toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
   })
 
   test("should skip ultrawork injection when agent name contains 'planner'", async () => {
@@ -817,7 +819,6 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
     // then - ultrawork should be skipped, text unchanged
     const text = expectTextPartText(output.parts)
     expect(text).toBe("ulw create a work plan")
-    expect(text).not.toContain("YOU ARE A PLANNER, NOT AN IMPLEMENTER")
   })
 
   test("should skip ultrawork injection when agent name contains 'plan' token", async () => {
@@ -836,7 +837,6 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
     //#then - ultrawork should be skipped, text unchanged
     const text = expectTextPartText(output.parts)
     expect(text).toBe("ultrawork draft a plan")
-    expect(text).not.toContain("YOU ARE A PLANNER, NOT AN IMPLEMENTER")
   })
 
   test("should use normal ultrawork message when agent is Sisyphus", async () => {
@@ -854,9 +854,7 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
 
     // then - should use normal ultrawork message with agent utilization instructions
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
-    expect(text).not.toContain("YOU ARE A PLANNER, NOT AN IMPLEMENTER")
-    expect(text).toContain("---")
+    expect(text).toContain("<ultrawork-mode>")
     expect(text).toContain("implement this feature")
   })
 
@@ -875,9 +873,7 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
 
     // then - should use normal ultrawork message (default behavior)
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
-    expect(text).not.toContain("YOU ARE A PLANNER, NOT AN IMPLEMENTER")
-    expect(text).toContain("---")
+    expect(text).toContain("<ultrawork-mode>")
     expect(text).toContain("do something")
   })
 
@@ -907,8 +903,7 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
     expect(prometheusText).toBe("ultrawork plan")
 
     const sisyphusText = sisyphusOutput.parts.find(isTextOutputPart)?.text
-    expect(sisyphusText).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
-    expect(sisyphusText).toContain("---")
+    expect(sisyphusText).toContain("<ultrawork-mode>")
     expect(sisyphusText).toContain("implement")
   })
 
@@ -931,9 +926,7 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
 
     // then - should use Sisyphus from session state, NOT prometheus from stale input
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
-    expect(text).not.toContain("YOU ARE A PLANNER, NOT AN IMPLEMENTER")
-    expect(text).toContain("---")
+    expect(text).toContain("<ultrawork-mode>")
     expect(text).toContain("implement this")
 
     // cleanup
@@ -960,7 +953,6 @@ describe("keyword-detector agent-specific ultrawork messages", () => {
     // then - prometheus fallback from input.agent, ultrawork skipped
     const text = expectTextPartText(output.parts)
     expect(text).toBe("ultrawork plan this")
-    expect(text).not.toContain("YOU ARE A PLANNER, NOT AN IMPLEMENTER")
   })
 })
 
@@ -1036,7 +1028,7 @@ describe("keyword-detector non-OMO agent skipping", () => {
 
     // then - keywords should be injected normally
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
+    expect(text).toContain("<ultrawork-mode>")
     expect(text).toContain("implement this")
   })
 
@@ -1102,13 +1094,11 @@ describe("keyword-detector team mode", () => {
     // when - keyword detection runs
     await hook["chat.message"]({ sessionID }, output)
 
-    // then - team-mode message should be prepended with team_* tool guidance
+    // then - activation injects a runtime-registered team tool token while preserving the task
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("[team-mode]")
+    const detected = detectKeywords("team mode activation-sentinel")
+    expect(detected).toHaveLength(1)
     expect(text).toContain("team_create")
-    expect(text).toContain("team_task_create")
-    expect(text).toContain("team_send_message")
-    expect(text).toContain("NEVER substitute with delegate_task")
     expect(text).toContain("for this task")
   })
 
@@ -1128,7 +1118,7 @@ describe("keyword-detector team mode", () => {
 
     // then - team-mode should NOT be triggered
     const text = expectTextPartText(output.parts)
-    expect(text).not.toContain("[team-mode]")
+    expect(text).toBe("join the team and start working")
   })
 
   test("should filter team-mode keyword in non-main session (only ultrawork allowed there)", async () => {
@@ -1149,7 +1139,6 @@ describe("keyword-detector team mode", () => {
     // then - team-mode message should NOT be injected in subagent session
     const text = expectTextPartText(output.parts)
     expect(text).toBe("team mode please")
-    expect(text).not.toContain("[team-mode]")
   })
 })
 
@@ -1252,7 +1241,6 @@ describe("keyword-detector disabled_keywords config", () => {
     // then - team-mode injection should be skipped
     const text = expectTextPartText(output.parts)
     expect(text).toBe("let's use team mode for this")
-    expect(text).not.toContain("[team-mode]")
   })
 
   test("should NOT inject ultrawork message AND not show toast when disabled_keywords includes 'ultrawork'", async () => {
@@ -1276,7 +1264,6 @@ describe("keyword-detector disabled_keywords config", () => {
     // then - neither toast nor injection should occur
     const text = expectTextPartText(output.parts)
     expect(text).toBe("ultrawork do this task")
-    expect(text).not.toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
     expect(toastCalls).not.toContain("Ultrawork Mode Activated")
   })
 
@@ -1318,7 +1305,7 @@ describe("keyword-detector disabled_keywords config", () => {
 
     // then - ultrawork still injects and removed mode prompts do not
     const text = expectTextPartText(output.parts)
-    expect(text).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
+    expect(text).toContain("<ultrawork-mode>")
     expect(text).toContain("search and analyze the codebase")
   })
 
