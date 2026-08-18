@@ -22,6 +22,7 @@ export function collectPendingBuiltinAgents(input: {
   browserProvider?: BrowserAutomationProvider
   uiSelectedModel?: string
   availableModels: Set<string>
+  isFirstRunNoCache?: boolean
   disabledSkills?: Set<string>
   teamModeEnabled?: boolean
   disableOmoEnv?: boolean
