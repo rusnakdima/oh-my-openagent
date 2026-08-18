@@ -58,7 +58,7 @@ function formatTaskLine(
         ? "~"
         : status === "completed"
           ? "x"
-          : "!"
+          : "!!"
   const safe = description.replace(/\|/g, "\\|").replace(/\n/g, " ")
   return `| [${marker}] | ${safe} |`
 }
@@ -109,9 +109,9 @@ function createOpenSpecVerifyTool(
         .optional()
         .describe("Specific spec to verify. If omitted, verifies all specs."),
     },
-    execute: async (args, execCtx) => {
-      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory
-      const specDir = (execCtx as unknown as OpenSpecToolContext).openspecSpecDir
+    execute: async (args, _execCtx) => {
+      const projectDir = (_ctx as unknown as OpenSpecToolContext).directory
+      const specDir = (_ctx as unknown as OpenSpecToolContext).openspecSpecDir
       const results = await verifySpec(projectDir, specDir, args.spec_name)
 
       if (results.length === 0) {
