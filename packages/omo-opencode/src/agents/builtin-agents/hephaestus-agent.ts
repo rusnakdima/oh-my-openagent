@@ -23,6 +23,7 @@ export function maybeCreateHephaestusConfig(input: {
   directory?: string
   useTaskSystem: boolean
   disableOmoEnv?: boolean
+  uiSelectedModel?: string
 }): AgentConfig | undefined {
   const {
     disabledAgents,
@@ -37,6 +38,7 @@ export function maybeCreateHephaestusConfig(input: {
     directory,
     useTaskSystem,
     disableOmoEnv = false,
+    uiSelectedModel,
   } = input
 
   if (disabledAgents.includes("hephaestus")) return undefined
@@ -60,6 +62,7 @@ export function maybeCreateHephaestusConfig(input: {
   }
 
   let hephaestusResolution = applyModelResolution({
+    uiSelectedModel: hephaestusOverride?.model !== undefined ? undefined : uiSelectedModel,
     userModel: hephaestusOverride?.model,
     requirement: hephaestusRequirement,
     availableModels,
