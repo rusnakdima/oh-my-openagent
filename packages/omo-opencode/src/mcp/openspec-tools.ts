@@ -1,14 +1,28 @@
 /**
  * openspec-tools.ts — MCP tool descriptors and request dispatcher for OpenSpec MCP.
  *
+ * Thin stdio adapter wrapping the native OpenSpec tools (tools/openspec/).
+ * Delegates file I/O to tools/openspec/store.ts to avoid duplication.
+ *
  * Exports:
  *   - createOpenSpecMcpTools(options): returns MCP tool definitions
  *   - handleOpenSpecMcpRequest(name, args, cwd, specDir): executes a tool and returns MCP result
  */
 
-import { readFile, writeFile, readdir, stat, mkdir, rename } from "node:fs/promises"
-import { join, dirname } from "node:path"
-import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { mkdir, rename } from "node:fs/promises"
+
+import {
+  resolveSpecRoot,
+  resolveSpecFile,
+  readSpecFile,
+  writeSpecFile,
+  specExists,
+  listSpecs,
+  markPendingAsInProgress,
+} from "../tools/openspec/store"
+import { verifySpec } from "../tools/openspec/verify"
+import { applySpec } from "../tools/openspec/apply"
 
 export type OpenSpecMcpToolsOptions = {
   readonly specDir?: string
@@ -144,53 +158,54 @@ export async function handleOpenSpecMcpRequest(
   cwd: string,
   specDir: string,
 ): Promise<OpenSpecMcpResult> {
-  const specRoot = join(cwd, specDir)
+  const specRoot = resolveSpecRoot(cwd, specDir)
 
   switch (toolName) {
     case "openspec_read": {
       const file = args["file"] as string
       const specName = args["spec_name"] as string | undefined
+      // Determine if specName is present: when provided it selects a subdirectory
       const filePath = specName
-        ? join(specRoot, specName, file)
+        ? resolveSpecFile(cwd, specDir, specName, file as "spec.md" | "plan.md" | "tasks.md")
         : join(specRoot, file)
-      const content = await readFileSafe(filePath)
+      const content = await readSpecFile(filePath)
       return { content: [{ type: "text", text: content ?? `No ${file} found.` }] }
     }
 
     case "openspec_verify": {
       const specName = args["spec_name"] as string | undefined
-      const specs = specName ? [specName] : await listSpecs(specRoot)
+      const results = await verifySpec(cwd, specDir, specName)
+      if (results.length === 0) {
+        return { content: [{ type: "text", text: "No specs found." }] }
+      }
       const lines: string[] = ["## OpenSpec Verification Results\n"]
-      for (const spec of specs) {
-        const specPath = join(specRoot, spec)
-        const hasSpec = await fileExists(join(specPath, "spec.md"))
-        const hasPlan = await fileExists(join(specPath, "plan.md"))
-        const hasTasks = await fileExists(join(specPath, "tasks.md"))
-        const valid = hasSpec && hasPlan && hasTasks
-        lines.push(`### ${spec}: ${valid ? "✅ Valid" : "❌ Invalid"}`)
-        if (!hasSpec) lines.push(`  - Missing spec.md`)
-        if (!hasPlan) lines.push(`  - Missing plan.md`)
-        if (!hasTasks) lines.push(`  - Missing tasks.md`)
+      for (const r of results) {
+        const icon = r.valid ? "✅" : "❌"
+        lines.push(`### ${icon} ${r.specName}`)
+        for (const f of r.files) {
+          const status = !f.exists ? "MISSING" : !f.nonEmpty ? "EMPTY" : "OK"
+          lines.push(`  - ${f.name}: ${status}`)
+        }
       }
       return { content: [{ type: "text", text: lines.join("\n") }] }
     }
 
     case "openspec_status": {
       const specName = args["spec_name"] as string | undefined
-      const specs = specName ? [specName] : await listSpecs(specRoot)
-      if (specs.length === 0) {
+      const toCheck = specName ? [specName] : await listSpecs(specRoot)
+      if (toCheck.length === 0) {
         return { content: [{ type: "text", text: "No specs found." }] }
       }
       const lines: string[] = ["## OpenSpec Status\n"]
-      for (const spec of specs) {
-        const tasksPath = join(specRoot, spec, "tasks.md")
-        const content = await readFileSafe(tasksPath) ?? ""
+      for (const spec of toCheck) {
+        const tasksPath = resolveSpecFile(cwd, specDir, spec, "tasks.md")
+        const content = await readSpecFile(tasksPath) ?? ""
         let open = 0, done = 0, blocked = 0, inProg = 0
         for (const l of content.split("\n")) {
           if (l.includes("[ ]")) open++
           else if (l.includes("[x]")) done++
           else if (l.includes("[~]")) inProg++
-          else if (l.includes("[!]")) blocked++
+          else if (l.includes("[!!]")) blocked++
         }
         lines.push(`### ${spec}`)
         lines.push(`- spec: \`${specDir}/${spec}/spec.md\``)
@@ -208,13 +223,24 @@ export async function handleOpenSpecMcpRequest(
         tasks: Array<{ description: string; status?: string }>
       }
       const specPath = join(specRoot, spec_name)
+
+      // Check spec doesn't already exist
+      if (await specExists(specPath)) {
+        return {
+          content: [{ type: "text", text: `Spec "${spec_name}" already exists at ${specDir}/${spec_name}/.` }],
+          isError: true,
+        }
+      }
+
       await mkdir(specPath, { recursive: true })
 
       const specContent = `# ${title}\n\n${requirements}\n`
       const planContent = `# ${title} — Technical Plan\n\n${plan_summary}\n`
-      const taskLines = ["# Tasks\n", "\n", "| Status | Description |\n", "| ------ | ------------- |\n"]
+
+      const taskLines: string[] = ["# Tasks\n", "\n", "| Status | Description |\n", "| ------ | ------------- |\n"]
       for (const t of tasks ?? []) {
-        const marker = t.status === "in_progress" ? "~" : t.status === "completed" ? "x" : t.status === "blocked" ? "!" : " "
+        const marker =
+          t.status === "in_progress" ? "~" : t.status === "completed" ? "x" : t.status === "blocked" ? "!!" : " "
         const safeDesc = (t.description ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ")
         taskLines.push(`| [${marker}] | ${safeDesc} |\n`)
       }
@@ -235,24 +261,26 @@ export async function handleOpenSpecMcpRequest(
 
     case "openspec_apply": {
       const { spec_name } = args as { spec_name: string }
-      const tasksPath = join(specRoot, spec_name, "tasks.md")
-      const content = await readFileSafe(tasksPath)
-      if (!content) {
-        return { content: [{ type: "text", text: `Spec "${spec_name}" not found or has no tasks.md.` }] }
-      }
-      const updated = content.replace(/^(\| \[ \] \|)/gm, "| [~] |")
-      await writeSpecFile(tasksPath, updated)
-      return {
-        content: [{ type: "text", text: `Spec "${spec_name}" applied. All pending tasks marked in-progress.` }],
-      }
+      const result = await applySpec(cwd, specDir, spec_name)
+      return { content: [{ type: "text", text: result.message }] }
     }
 
     case "openspec_archive": {
       const { spec_name } = args as { spec_name: string }
-      const archivePath = join(specRoot, "ARCHIVE")
       const srcPath = join(specRoot, spec_name)
-      const destPath = join(archivePath, spec_name)
-      await mkdir(archivePath, { recursive: true })
+      const destPath = join(specRoot, "ARCHIVE", spec_name)
+
+      if (!(await specExists(srcPath))) {
+        return { content: [{ type: "text", text: `Spec "${spec_name}" not found.` }], isError: true }
+      }
+      if (await specExists(destPath)) {
+        return {
+          content: [{ type: "text", text: `Archived spec "${spec_name}" already exists in ARCHIVE/.` }],
+          isError: true,
+        }
+      }
+
+      await mkdir(join(specRoot, "ARCHIVE"), { recursive: true })
       await rename(srcPath, destPath)
       return { content: [{ type: "text", text: `Spec "${spec_name}" archived.` }] }
     }
@@ -260,49 +288,4 @@ export async function handleOpenSpecMcpRequest(
     default:
       return { content: [{ type: "text", text: `Unknown tool: ${toolName}` }], isError: true }
   }
-}
-
-// ─── File helpers ────────────────────────────────────────────────────────────
-
-async function readFileSafe(path: string): Promise<string | null> {
-  try {
-    return await readFile(path, "utf-8")
-  } catch {
-    return null
-  }
-}
-
-async function fileExists(path: string): Promise<boolean> {
-  try {
-    await stat(path)
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function listSpecs(specRoot: string): Promise<string[]> {
-  let entries: string[]
-  try {
-    entries = await readdir(specRoot)
-  } catch {
-    return []
-  }
-  const specs: string[] = []
-  for (const entry of entries) {
-    if (entry === "ARCHIVE" || entry === ".tmp") continue
-    try {
-      const st = await stat(join(specRoot, entry))
-      if (st.isDirectory() && await fileExists(join(specRoot, entry, "spec.md"))) {
-        specs.push(entry)
-      }
-    } catch {}
-  }
-  return specs.sort()
-}
-
-async function writeSpecFile(path: string, content: string): Promise<void> {
-  const tmp = join(tmpdir(), `openspec-${Date.now()}-${Math.random().toString(36).slice(2)}.tmp`)
-  await writeFile(tmp, content, "utf-8")
-  await rename(tmp, path)
 }
