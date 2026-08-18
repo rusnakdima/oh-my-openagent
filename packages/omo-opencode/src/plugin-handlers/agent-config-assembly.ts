@@ -214,6 +214,11 @@ async function assembleSisyphusEnabledConfig(params: AssembleAgentConfigParams):
             Object.entries(configAgent).filter(([key]) => {
               if (key === "build") return false;
               if (key === "plan" && shouldDemotePlan) return false;
+              // Exclude builtin agent names so they don't overwrite correct modes from builtinAgents
+              if ((BUILTIN_AGENT_NAMES as readonly string[]).includes(key)) return false;
+              // Exclude OpenCode native agents
+              const nativeAgents = ["compaction", "general"];
+              if (nativeAgents.includes(key)) return false;
               return true;
             }),
           ),

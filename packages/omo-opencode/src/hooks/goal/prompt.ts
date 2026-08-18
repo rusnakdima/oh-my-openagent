@@ -28,6 +28,9 @@ export function buildContinuationPrompt(goal: Goal): string {
     'Do not rely on intent, partial progress, elapsed effort, memory of earlier work, or a plausible final answer as proof of completion. Only mark the goal achieved when the audit shows that the objective has actually been achieved and no required work remains. If any requirement is missing, incomplete, or unverified, keep working instead of marking the goal complete. If the objective is achieved, call update_goal with status "complete" so usage accounting is preserved. Report the final elapsed time to the user after update_goal succeeds.',
     "",
     "Do not call update_goal unless the goal is complete. Do not mark a goal complete merely because you are stopping work.",
+    "",
+    // #5120: Trivial-objective shortcut — tell the model to exit if the goal needs no work.
+    'Trivial-objective shortcut: if the objective above is a single, direct response that requires no file edits, no tool calls, and no further work (e.g. "output X", "say Y", "explain Z", a factual answer, or a one-line computation), then the work is already done. Call update_goal with status "complete" and respond to the user with the answer directly. Do not produce a status block, a todo list, or further planning for objectives that needed no planning or tools.',
   ].join("\n")
 }
 

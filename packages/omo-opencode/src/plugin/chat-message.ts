@@ -1,8 +1,9 @@
 import type { OhMyOpenCodeConfig } from "../config"
 
-import { updateSessionAgent } from "../features/claude-code-session-state"
+import { getSessionAgent, updateSessionAgent } from "../features/claude-code-session-state"
 import { detectSlashCommand, extractPromptText } from "../hooks/auto-slash-command/detector"
 import { isSyntheticOrInternalOnlyTextParts, log } from "../shared"
+import type { ChatMessagePart } from "./chat-message/types"
 import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override"
 import type { PluginContext } from "./types"
 import { handleGoalMessage } from "./chat-message/loop-commands"
@@ -129,6 +130,28 @@ export function createChatMessageHandler(args: {
       hooks,
       runtimeFallbackEnabled,
     })
+
+    // #4710: Detect @plan reference that resolved to a plan file — suggest switching to Prometheus
+    {
+      const currentAgent = getSessionAgent(input.sessionID)
+      if (!currentAgent || currentAgent === "sisyphus") {
+        const promptText = extractPromptText(output.parts)
+        if (/\.omo\/plans\/[\w-]+\.md/i.test(promptText)) {
+          const tui = pluginContext.client.tui
+          if (typeof (tui as { showToast?: unknown }).showToast === "function") {
+            ;(tui as { showToast: (input: { body: { title: string; message: string; variant: string; duration: number } }) => Promise<unknown> }).showToast({
+              body: {
+                title: "Plan detected",
+                message: "For plan work, consider switching to Prometheus first: Tab agent selector → Prometheus, then ask for the plan.",
+                variant: "warning",
+                duration: 5000,
+              },
+            }).catch(() => {})
+          }
+        }
+      }
+    }
+
     await runStartWorkHookIfApplicable(hooks, input, output)
     notifyWhenModelCacheIsMissing(pluginContext.client.tui)
     handleGoalMessage({

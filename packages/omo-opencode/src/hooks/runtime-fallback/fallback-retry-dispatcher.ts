@@ -58,6 +58,18 @@ export async function dispatchFallbackRetry(
         status: dispatchOutcome.status,
         reason: dispatchOutcome.reason,
       })
+      if (deps.config.notify_on_fallback) {
+        await deps.ctx.client.tui
+          .showToast({
+            body: {
+              title: "Model Fallback",
+              message: `Fallback could not be applied: ${dispatchOutcome.reason ?? "dispatch not accepted"}`,
+              variant: "error",
+              duration: 8000,
+            },
+          })
+          .catch(() => {})
+      }
       return
     }
     if (deps.config.notify_on_fallback) {
@@ -67,7 +79,7 @@ export async function dispatchFallbackRetry(
             title: "Model Fallback",
             message: resolveDispatchMessage(dispatchOutcome, result.newModel),
             variant: "warning",
-            duration: 5000,
+            duration: 10000,
           },
         })
         .catch(() => {})
@@ -80,4 +92,16 @@ export async function dispatchFallbackRetry(
     source: options.source,
     error: result.error,
   })
+  if (deps.config.notify_on_fallback) {
+    await deps.ctx.client.tui
+      .showToast({
+        body: {
+          title: "Model Fallback Failed",
+          message: `No fallback model available: ${result.error ?? "all models exhausted or in cooldown"}`,
+          variant: "error",
+          duration: 10000,
+        },
+      })
+      .catch(() => {})
+  }
 }

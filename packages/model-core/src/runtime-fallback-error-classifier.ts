@@ -52,7 +52,12 @@ export function classifyRuntimeFallbackError(error: unknown): RuntimeFallbackErr
     return "abort"
   }
 
-  if (errorName === "contextoverflowerror") {
+  if (
+    errorName === "contextoverflowerror" ||
+    // Broader match: any provider error name containing "context" + "window/overflow"
+    (errorName?.includes("context") &&
+      (errorName?.includes("overflow") || errorName?.includes("window") || errorName?.includes("limit")))
+  ) {
     return "context_overflow"
   }
 
@@ -107,6 +112,12 @@ export function classifyRuntimeFallbackError(error: unknown): RuntimeFallbackErr
   return undefined
 }
 
+const SERVER_ERROR_PATTERN = /(?:^|\s)(?:5\d\d|internal\s+server\s+error|server\s+error)(?:\s|$)/i
+
+function isServerErrorMessage(message: string): boolean {
+  return SERVER_ERROR_PATTERN.test(message)
+}
+
 export function isRuntimeFallbackRetryableError(
   error: unknown,
   retryOnErrors: readonly number[],
@@ -114,7 +125,20 @@ export function isRuntimeFallbackRetryableError(
 ): boolean {
   const statusCode = getRuntimeFallbackStatusCode(error, retryOnErrors)
   const message = getRuntimeFallbackErrorMessage(error)
+  const errorName = getRuntimeFallbackErrorName(error)?.toLowerCase().replace(/[_-]/g, "")
   const errorType = classifyRuntimeFallbackError(error)
+
+  // Guard by name pattern first — catches providers that use non-standard error names
+  // for context overflow (e.g. ContextWindowExceededError, context_limit_error).
+  const isContextOverflowByName =
+    errorName?.includes("context") &&
+    (errorName?.includes("overflow") ||
+      errorName?.includes("window") ||
+      errorName?.includes("limit"))
+
+  if (isContextOverflowByName) {
+    return false
+  }
 
   // OpenCode starts native compaction for this error; fallback would abort that compaction on its timeout.
   if (errorType === "abort" || errorType === "context_overflow") return false
@@ -138,6 +162,12 @@ export function isRuntimeFallbackRetryableError(
     }
 
     options.onUnsafeRetryableSignalRejected?.({ statusCode, retryOnErrors })
+  }
+
+  // Server error message pattern: catch cases where statusCode was not extractable
+  // but the error message itself contains a 5xx indicator
+  if (isServerErrorMessage(message)) {
+    return true
   }
 
   return RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS.some((pattern) => pattern.test(message))

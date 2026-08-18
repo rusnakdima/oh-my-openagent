@@ -3,6 +3,7 @@ import type { AutoRetryHelpers } from "./auto-retry"
 import { HOOK_NAME } from "./constants"
 import { log } from "../../shared/logger"
 import { extractStatusCode, extractErrorName, classifyErrorType, isRetryableError } from "./error-classifier"
+import { getRuntimeFallbackErrorMessage } from "@oh-my-opencode/model-core"
 import { createFallbackState } from "./fallback-state"
 import { getFallbackModelsForSession } from "./fallback-models"
 import { SessionCategoryRegistry } from "../../shared/session-category-registry"
@@ -235,6 +236,21 @@ export function createEventHandler(deps: HookDeps, helpers: AutoRetryHelpers) {
         errorName: extractErrorName(error),
         errorType: classifyErrorType(error),
       })
+      if (config.notify_on_fallback) {
+        const errorMsg = getRuntimeFallbackErrorMessage(error)
+        const errorTypeLabel = classifyErrorType(error)
+        const displayError = errorMsg || errorTypeLabel || "Unknown error"
+        await deps.ctx.client.tui
+          .showToast({
+            body: {
+              title: "Error — Fallback Skipped",
+              message: `${displayError}. No automatic retry available.`,
+              variant: "error",
+              duration: 10000,
+            },
+          })
+          .catch(() => {})
+      }
       return
     }
 
@@ -243,6 +259,21 @@ export function createEventHandler(deps: HookDeps, helpers: AutoRetryHelpers) {
 
     if (fallbackModels.length === 0) {
       log(`[${HOOK_NAME}] No fallback models configured`, { sessionID, agent })
+      if (config.notify_on_fallback) {
+        const errorMsg = getRuntimeFallbackErrorMessage(error)
+        const errorTypeLabel = classifyErrorType(error)
+        const displayError = errorMsg || errorTypeLabel || "Unknown error"
+        await deps.ctx.client.tui
+          .showToast({
+            body: {
+              title: "Error — No Fallback Available",
+              message: `${displayError}. No fallback models configured for this agent.`,
+              variant: "error",
+              duration: 10000,
+            },
+          })
+          .catch(() => {})
+      }
       return
     }
 

@@ -292,9 +292,9 @@ describe("sisyphus-task", () => {
       expect(result).toBe(false)
     })
 
-    test("PLAN_AGENT_NAMES contains only plan", () => {
+    test("PLAN_AGENT_NAMES contains plan and omo-plan", () => {
       //#given / #when / #then
-      expect(PLAN_AGENT_NAMES).toEqual(["plan"])
+      expect(PLAN_AGENT_NAMES).toEqual(["plan", "omo-plan"])
     })
 
     test("returns false for non-plan agent display names (regression: isPlanAgent display-name false-positive)", () => {

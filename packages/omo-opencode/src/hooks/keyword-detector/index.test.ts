@@ -9,6 +9,7 @@ import { ContextCollector } from "../../features/context-injector"
 import * as sharedModule from "../../shared"
 import { OMO_INTERNAL_INITIATOR_MARKER } from "../../shared/internal-initiator-marker"
 import { createKeywordDetectorHook } from "./index"
+import { _resetUltraworkActivatedSessionsForTesting } from "./hook"
 
 type ToastOptions = { body: { title: string } }
 type OutputPart = { readonly type?: unknown; readonly text?: unknown }
@@ -451,6 +452,44 @@ describe("keyword-detector session filtering", () => {
     // then - ultrawork should preserve the already resolved runtime variant
     expect(output.message.variant).toBe("low")
     expect(toastCalls).toContain("Ultrawork Mode Activated")
+  })
+
+  test("#5806 should re-inject ultrawork on follow-up message that omits the keyword", async () => {
+    // given - main session
+    const mainSessionID = "main-123"
+    setMainSession(mainSessionID)
+    _resetUltraworkActivatedSessionsForTesting()
+
+    const toastCalls: string[] = []
+    const hook = createKeywordDetectorHook(createMockPluginInput({ toastCalls }))
+
+    // First message WITH keyword — activates ultrawork and tracks the session
+    const firstOutput = {
+      message: {} as Record<string, unknown>,
+      parts: [{ type: "text", text: "ulw build the dashboard" }],
+    }
+    await hook["chat.message"](
+      { sessionID: mainSessionID },
+      firstOutput
+    )
+    const firstText = expectTextPartText(firstOutput.parts)
+    expect(firstText).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
+    expect(toastCalls).toContain("Ultrawork Mode Activated")
+
+    // Second message WITHOUT keyword — ultrawork should be re-injected
+    const secondOutput = {
+      message: {} as Record<string, unknown>,
+      parts: [{ type: "text", text: "also add authentication" }],
+    }
+    await hook["chat.message"](
+      { sessionID: mainSessionID },
+      secondOutput
+    )
+    const secondText = expectTextPartText(secondOutput.parts)
+    // Ultrawork prompt must be re-injected on the follow-up
+    expect(secondText).toContain("YOU MUST LEVERAGE ALL AVAILABLE AGENTS")
+    // No duplicate toast on re-injection
+    expect(toastCalls.filter((t) => t === "Ultrawork Mode Activated").length).toBe(1)
   })
 })
 

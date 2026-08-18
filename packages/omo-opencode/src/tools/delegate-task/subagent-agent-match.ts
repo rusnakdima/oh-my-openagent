@@ -12,7 +12,7 @@ import { getAgentConfigKey, stripAgentListSortPrefix } from "../../shared/agent-
 import { normalizeSDKResponse } from "../../shared"
 import type { ResolveSubagentExecutionOptions, SubagentAgentMatch } from "./subagent-resolution-types"
 
-const DEFAULT_PLAN_FALLBACK_AGENT = "plan"
+const DEFAULT_PLAN_FALLBACK_AGENT = "omo-plan"
 const RESERVED_HIDDEN_NATIVE_AGENTS = new Set(["build"])
 
 function isReservedHiddenNativeAgent(agentName: string): boolean {

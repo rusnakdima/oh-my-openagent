@@ -59,8 +59,10 @@ export function collectPendingBuiltinAgents(input: {
     if (agentName === "sisyphus-junior") continue
     if (disabledAgents.some((name) => name.toLowerCase() === agentName.toLowerCase())) continue
 
-    const override = agentOverrides[agentName]
+    // Filter out mode from override to prevent user config from overriding correct builtin mode
+    const rawOverride = agentOverrides[agentName]
       ?? Object.entries(agentOverrides).find(([key]) => key.toLowerCase() === agentName.toLowerCase())?.[1]
+    const { mode: _overrideMode, ...override } = rawOverride ?? {}
     const requirement = AGENT_MODEL_REQUIREMENTS[agentName]
 
     // Check if agent requires a specific model

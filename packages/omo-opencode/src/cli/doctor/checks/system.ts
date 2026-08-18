@@ -138,6 +138,20 @@ export async function checkSystem(deps: SystemCheckDeps = defaultDeps): Promise<
       severity: "error",
       affects: ["all agents"],
     })
+  } else if (pluginInfo.registered && !loadedInfo.loadedVersion) {
+    // Plugin is registered in config but not actually loading - Issue #4863
+    issues.push({
+      title: `${PLUGIN_NAME} is registered but not loading`,
+      description:
+        "Plugin entry exists in OpenCode config but the plugin is not loading at runtime. " +
+        "This causes 'opencode agent list' to show only native OpenCode agents without omo agents.",
+      fix:
+        "Clear the OpenCode plugin cache and reinstall:\n" +
+        "  rm -rf ~/.cache/opencode/ ~/.cache/oh-my-openagent/ ~/.cache/oh-my-opencode/\n" +
+        `  bunx ${PUBLISHED_PACKAGE_NAME} install`,
+      severity: "error",
+      affects: ["all agents"],
+    })
   }
 
   if (pluginInfo.entry && !pluginInfo.isLocalDev) {

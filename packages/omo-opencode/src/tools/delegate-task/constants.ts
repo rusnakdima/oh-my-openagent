@@ -344,7 +344,7 @@ export function buildPlanAgentSystemPrepend(
  * List of agent names that should be treated as plan agents (receive plan system prompt).
  * Case-insensitive matching is used.
  */
-export const PLAN_AGENT_NAMES = ["plan"]
+export const PLAN_AGENT_NAMES = ["plan", "omo-plan"]
 
 /**
  * Check if the given agent name is a plan agent (receives plan system prompt).

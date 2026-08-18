@@ -83,7 +83,7 @@ describe("dispatchFallbackRetry", () => {
 
     // then
     expect(dispatchCalls).toEqual(["litellm/openai.eu.gpt-5.5"])
-    expect(toastMessages).toEqual([])
+    expect(toastMessages).toEqual(["Fallback could not be applied: test gate blocked dispatch"])
     expect(state.currentModel).toBe("openai/gpt-5.4")
     expect(state.fallbackIndex).toBe(-1)
     expect(state.attemptCount).toBe(0)

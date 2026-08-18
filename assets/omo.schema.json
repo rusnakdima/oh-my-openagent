@@ -11656,26 +11656,23 @@
           "additionalProperties": false
         },
         "tui": {
-          "default": {
-            "sidebar": {
-              "enabled": true
-            }
-          },
           "type": "object",
           "properties": {
             "sidebar": {
-              "default": {
-                "enabled": true
-              },
               "type": "object",
               "properties": {
                 "enabled": {
                   "default": true,
                   "type": "boolean"
+                },
+                "showSubagentAgents": {
+                  "default": false,
+                  "type": "boolean"
                 }
               },
               "required": [
-                "enabled"
+                "enabled",
+                "showSubagentAgents"
               ],
               "additionalProperties": false
             }
@@ -26309,26 +26306,23 @@
                 "additionalProperties": false
               },
               "tui": {
-                "default": {
-                  "sidebar": {
-                    "enabled": true
-                  }
-                },
                 "type": "object",
                 "properties": {
                   "sidebar": {
-                    "default": {
-                      "enabled": true
-                    },
                     "type": "object",
                     "properties": {
                       "enabled": {
                         "default": true,
                         "type": "boolean"
+                      },
+                      "showSubagentAgents": {
+                        "default": false,
+                        "type": "boolean"
                       }
                     },
                     "required": [
-                      "enabled"
+                      "enabled",
+                      "showSubagentAgents"
                     ],
                     "additionalProperties": false
                   }
