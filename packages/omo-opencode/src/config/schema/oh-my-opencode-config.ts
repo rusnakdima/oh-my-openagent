@@ -30,6 +30,7 @@ import { TmuxConfigSchema } from "./tmux"
 import { TuiConfigSchema } from "./tui"
 import { StartWorkConfigSchema } from "./start-work"
 import { WebsearchConfigSchema } from "./websearch"
+import { VoiceConfigSchema } from "./voice"
 
 export const OhMyOpenCodeConfigSchema = z.object({
   $schema: z.string().optional(),
@@ -105,6 +106,8 @@ export const OhMyOpenCodeConfigSchema = z.object({
   start_work: StartWorkConfigSchema.optional(),
   /** Default mode auto-activation settings (ultrawork, goal) */
   default_mode: DefaultModeConfigSchema.optional(),
+  /** Voice input settings (default: disabled) */
+  voice: VoiceConfigSchema.optional(),
   /** Migration history to prevent re-applying migrations (e.g., model version upgrades) */
   _migrations: z.array(z.string()).optional(),
 })

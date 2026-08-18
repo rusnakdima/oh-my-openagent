@@ -32,6 +32,18 @@ export function createHashlineToolsRecord(args: {
   return pluginConfig.hashline_edit ? { edit: factories.createHashlineEditTool(ctx) } : {}
 }
 
+export function createVoiceToolsRecord(args: {
+  readonly pluginConfig: OhMyOpenCodeConfig
+  readonly ctx: PluginContext
+  readonly factories: ToolRegistryFactories
+}): Record<string, ToolDefinition> {
+  const { pluginConfig, ctx, factories } = args
+  if (!pluginConfig.voice?.enabled) return {}
+  return {
+    voice: factories.createVoiceTool(ctx, pluginConfig.voice),
+  }
+}
+
 export function createMonitorToolsRecord(args: {
   readonly pluginConfig: OhMyOpenCodeConfig
   readonly ctx: PluginContext

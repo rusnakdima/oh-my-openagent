@@ -15,6 +15,7 @@ import {
   createHashlineToolsRecord,
   createMonitorToolsRecord,
   createTaskToolsRecord,
+  createVoiceToolsRecord,
   getTaskSystemEnabled,
 } from "./tool-registry-gated-tools"
 import { createTeamModeToolsRecord } from "./tool-registry-team-tools"
@@ -63,6 +64,7 @@ export function createToolRegistry(args: {
     ...createMonitorToolsRecord({ pluginConfig, ctx, managers, factories }),
     ...createTaskToolsRecord({ taskSystemEnabled, pluginConfig, ctx, factories }),
     ...createHashlineToolsRecord({ pluginConfig, ctx, factories }),
+    ...createVoiceToolsRecord({ pluginConfig, ctx, factories }),
   }
 
   const allToolNames = Object.keys(allTools)

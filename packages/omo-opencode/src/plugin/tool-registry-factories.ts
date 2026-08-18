@@ -29,6 +29,7 @@ import {
   createTaskGetTool,
   createTaskList,
   createTaskUpdateTool,
+  createVoiceTool,
   discoverCommandsSync,
   interactive_bash,
 } from "../tools"
@@ -51,6 +52,7 @@ export type ToolRegistryFactories = {
   createTaskList: typeof createTaskList
   createTaskUpdateTool: typeof createTaskUpdateTool
   createHashlineEditTool: typeof createHashlineEditTool
+  createVoiceTool: typeof createVoiceTool
   createTeamApproveShutdownTool: typeof createTeamApproveShutdownTool
   createTeamCreateTool: typeof createTeamCreateTool
   createTeamDeleteTool: typeof createTeamDeleteTool
@@ -83,6 +85,7 @@ export const defaultToolRegistryFactories: ToolRegistryFactories = {
   createTaskList,
   createTaskUpdateTool,
   createHashlineEditTool,
+  createVoiceTool,
   createTeamApproveShutdownTool,
   createTeamCreateTool,
   createTeamDeleteTool,
