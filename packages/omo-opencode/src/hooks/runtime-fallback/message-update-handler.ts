@@ -2,7 +2,7 @@ import type { HookDeps } from "./types"
 import type { AutoRetryHelpers } from "./auto-retry"
 import { HOOK_NAME } from "./constants"
 import { log } from "../../shared/logger"
-import { extractStatusCode, extractErrorName, classifyErrorType, isRetryableError, extractAutoRetrySignal, containsErrorContent } from "./error-classifier"
+import { extractStatusCode, extractErrorName, classifyErrorType, isRetryableError, containsErrorContent } from "./error-classifier"
 import { createFallbackState } from "./fallback-state"
 import { getFallbackModelsForSession } from "./fallback-models"
 import { resolveFallbackBootstrapModel } from "./fallback-bootstrap-model"
@@ -11,12 +11,14 @@ import { hasVisibleAssistantResponse } from "./visible-assistant-response"
 import { subagentSessions } from "../../features/claude-code-session-state"
 import { resolveMessageEventSessionID } from "../../shared/event-session-id"
 import { normalizeModelToCanonicalString } from "./normalize-model"
+import { extractAutoRetrySignal, extractAutoRetrySignalWithUserPatterns } from "./auto-retry-signal"
 
 export { hasVisibleAssistantResponse } from "./visible-assistant-response"
 
 export function createMessageUpdateHandler(deps: HookDeps, helpers: AutoRetryHelpers) {
   const { ctx, config, pluginConfig, sessionStates, sessionLastAccess, sessionRetryInFlight, sessionAwaitingFallbackResult, sessionStatusRetryKeys } = deps
   const checkVisibleResponse = hasVisibleAssistantResponse(extractAutoRetrySignal)
+  const userPatterns = config.retry_on_message_patterns ?? []
 
   return async (props: Record<string, unknown> | undefined) => {
     const info = props?.info as Record<string, unknown> | undefined
@@ -25,14 +27,14 @@ export function createMessageUpdateHandler(deps: HookDeps, helpers: AutoRetryHel
     const eventParts = props?.parts as Array<{ type?: string; text?: string }> | undefined
     const infoParts = info?.parts as Array<{ type?: string; text?: string }> | undefined
     const parts = eventParts && eventParts.length > 0 ? eventParts : infoParts
-    const retrySignalResult = extractAutoRetrySignal(info)
+    const retrySignalResult = extractAutoRetrySignalWithUserPatterns(info, userPatterns)
     const partsText = (parts ?? [])
       .filter((p) => typeof p?.text === "string")
       .map((p) => (p.text ?? "").trim())
       .filter((text) => text.length > 0)
       .join("\n")
     const retrySignalFromParts = partsText
-      ? extractAutoRetrySignal({ message: partsText, status: partsText, summary: partsText })?.signal
+      ? extractAutoRetrySignalWithUserPatterns({ message: partsText, status: partsText, summary: partsText }, userPatterns)?.signal
       : undefined
     const retrySignal = retrySignalResult?.signal ?? retrySignalFromParts
     const errorContentResult = containsErrorContent(parts)

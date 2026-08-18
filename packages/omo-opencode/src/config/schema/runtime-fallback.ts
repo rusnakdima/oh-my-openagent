@@ -5,6 +5,8 @@ export const RuntimeFallbackConfigSchema = z.object({
   enabled: z.boolean().optional(),
   /** HTTP status codes that trigger fallback (default: [429, 500, 502, 503, 504]) */
   retry_on_errors: z.array(z.number()).optional(),
+  /** Regex patterns matched against error messages to trigger fallback. Additive to built-in patterns. */
+  retry_on_message_patterns: z.array(z.string()).optional(),
   /** Maximum fallback attempts per session (default: 3) */
   max_fallback_attempts: z.number().min(1).max(20).optional(),
   /** Cooldown in seconds before retrying a failed model (default: 60) */
