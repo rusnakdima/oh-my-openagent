@@ -5,6 +5,7 @@ export interface DoctorOptions {
   mode: DoctorMode
   json?: boolean
   target?: DoctorTarget
+  fix?: boolean
 }
 
 export interface DoctorIssue {
@@ -28,10 +29,20 @@ export interface CheckResult {
 
 export type CheckFunction = () => Promise<CheckResult>
 
+export interface FixResult {
+  readonly checkId: string
+  readonly fixed: number
+  readonly failed: number
+  readonly errors: readonly string[]
+}
+
+export type CheckFunctionFix = () => Promise<FixResult>
+
 export interface CheckDefinition {
   id: string
   name: string
   check: CheckFunction
+  fix?: CheckFunctionFix
   critical?: boolean
 }
 

@@ -1,4 +1,4 @@
-import type { DoctorOptions, DoctorResult, CheckDefinition, CheckResult, DoctorSummary } from "./framework/types"
+import type { DoctorOptions, DoctorResult, CheckDefinition, CheckResult, DoctorSummary, FixResult } from "./framework/types"
 import { getAllCheckDefinitions, getCodexCheckDefinitions, gatherSystemInfo, gatherToolsSummary, gatherCodexSummary } from "./checks"
 import { EXIT_CODES } from "./framework/constants"
 import { formatDoctorOutput, formatJsonOutput } from "./framework/formatter"
@@ -97,6 +97,35 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorResult> {
   }
 
   clearTimeout(timer)
+
+  // Run fixes for applicable checks when --fix is passed
+  if (options.fix) {
+    const fixableChecks = allChecks.filter(
+      (check) =>
+        check.fix !== undefined &&
+        results.find((r) => r.name === check.name)?.status !== "pass",
+    )
+    if (fixableChecks.length > 0) {
+      console.log("\nRunning fixes...\n")
+    }
+    for (const check of fixableChecks) {
+      const resultBeforeFix = results.find((r) => r.name === check.name)
+      process.stdout.write(`  ${check.name}... `)
+      try {
+        const fixResult: FixResult = await check.fix!()
+        if (fixResult.errors.length > 0) {
+          console.error(`FAILED`)
+          for (const error of fixResult.errors) {
+            console.error(`    ${error}`)
+          }
+        } else {
+          console.log(`done (${fixResult.fixed} applied)`)
+        }
+      } catch (err) {
+        console.error(`ERROR: ${err instanceof Error ? err.message : String(err)}`)
+      }
+    }
+  }
 
   const duration = performance.now() - start
   const summary = calculateSummary(results, duration)

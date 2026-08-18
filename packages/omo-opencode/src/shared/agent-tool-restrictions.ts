@@ -28,7 +28,10 @@ const EXPLORATION_AGENT_DENYLIST: Record<string, boolean> = {
   call_omo_agent: false,
 }
 
-const AGENT_RESTRICTIONS: Record<string, Record<string, boolean>> = {
+type AgentRestrictionsRecord = Record<string, boolean>
+type AgentRestrictionsDenyList = { deny: readonly string[] }
+
+const AGENT_RESTRICTIONS: Record<string, AgentRestrictionsRecord | AgentRestrictionsDenyList> = {
   explore: EXPLORATION_AGENT_DENYLIST,
 
   librarian: EXPLORATION_AGENT_DENYLIST,
@@ -50,8 +53,23 @@ const AGENT_RESTRICTIONS: Record<string, Record<string, boolean>> = {
     edit: false,
   },
 
+  // Multimodal-Looker: denies all write/execute tools explicitly. The explicit deny
+  // list (not an inverted allow-list) ensures a new OpenCode tool is NOT
+  // automatically blocked — it must be added to this deny list to be restricted.
+  // Team tools are denied by TEAM_TOOL_DENYLIST (merged below) for all agents.
   "multimodal-looker": {
-    read: true,
+    deny: [
+      "bash",
+      "write",
+      "edit",
+      "notepad",
+      "webfetch",
+      "browser_automation",
+      "execute",
+      "submit",
+      "approve",
+      "reject",
+    ],
   },
 
   "sisyphus-junior": {
@@ -65,10 +83,20 @@ type AgentToolRestrictionsOptions = {
 
 export function getAgentToolRestrictions(agentName: string, options: AgentToolRestrictionsOptions = {}): Record<string, boolean> {
   const stripped = stripInvisibleAgentCharacters(agentName)
-  const agentRestrictions = AGENT_RESTRICTIONS[stripped]
+  const rawRestrictions = AGENT_RESTRICTIONS[stripped]
     ?? Object.entries(AGENT_RESTRICTIONS).find(([key]) => key.toLowerCase() === stripped.toLowerCase())?.[1]
-    ?? {}
 
+  // Handle deny-list format (multimodal-looker uses this for explicit denies)
+  if (rawRestrictions && "deny" in rawRestrictions) {
+    const denyList = rawRestrictions.deny as readonly string[]
+    const agentDenyRecord = Object.fromEntries(denyList.map((t) => [t, false] as [string, boolean]))
+    return {
+      ...(options.includeTeamToolDenylist === false ? {} : TEAM_TOOL_DENYLIST),
+      ...agentDenyRecord,
+    }
+  }
+
+  const agentRestrictions = (rawRestrictions ?? {}) as AgentRestrictionsRecord
   return {
     ...(options.includeTeamToolDenylist === false ? {} : TEAM_TOOL_DENYLIST),
     ...agentRestrictions,

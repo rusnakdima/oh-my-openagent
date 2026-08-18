@@ -7,6 +7,8 @@ import { doctor, resolveDoctorTarget } from "./doctor"
 import { createMcpOAuthCommand } from "./mcp-oauth"
 import { configureRuntimeCommands } from "./runtime-commands"
 import { runConfigMigrate } from "./config-migrate"
+import { configShow } from "./config-show"
+import { configureAgentsCommand } from "./agents"
 import { availableInstallPlatforms, isSenpiPlatformEnabled, SENPI_PLATFORM_ENV_FLAG } from "./senpi-platform-flag"
 import type { InstallArgs } from "./types"
 import type { RunOptions } from "./run"
@@ -46,10 +48,15 @@ type ConfigMigrateCommandOptions = {
   readonly json?: boolean
 }
 
+type ConfigShowCommandOptions = {
+  readonly json?: boolean
+}
+
 type DoctorCommandOptions = {
   readonly status?: boolean
   readonly verbose?: boolean
   readonly json?: boolean
+  readonly fix?: boolean
   readonly platform?: DoctorOptions["target"]
 }
 
@@ -241,6 +248,7 @@ program
   .option("--status", "Show compact system dashboard")
   .option("--verbose", "Show detailed diagnostic information")
   .option("--json", "Output results in JSON format")
+  .option("--fix", "Automatically apply fixes where possible")
   .addOption(new Option("--platform <platform>", "Doctor target platform: opencode, codex").choices(["opencode", "codex"]))
   .addHelpText("after", `
 Examples:
@@ -248,6 +256,7 @@ Examples:
   $ bunx oh-my-opencode doctor --status   # Compact dashboard
   $ bunx oh-my-opencode doctor --verbose  # Deep diagnostics
   $ bunx oh-my-opencode doctor --json     # JSON output
+  $ bunx oh-my-opencode doctor --fix      # Auto-fix applicable issues
   $ omo-agent-toolkit doctor --platform=codex   # Codex/LazyCodex diagnostics only
 `)
   .action(async (options: DoctorCommandOptions) => {
@@ -256,15 +265,19 @@ Examples:
     const mode = options.status ? "status" : options.verbose ? "verbose" : "default"
     const doctorOptions: DoctorOptions = {
       mode,
-      json: options.json ?? false, target: resolveDoctorTarget(process.env.OMO_INVOCATION_NAME, options.platform ?? rootDoctorPlatform),
+      json: options.json ?? false,
+      fix: options.fix ?? false,
+      target: resolveDoctorTarget(process.env.OMO_INVOCATION_NAME, options.platform ?? rootDoctorPlatform),
     }
     const exitCode = await doctor(doctorOptions)
     process.exit(exitCode)
   })
 
-program
+const configCommand = program
   .command("config")
   .description("Manage unified OMO configuration")
+
+configCommand
   .command("migrate")
   .description("Migrate legacy OMO configuration into ~/.omo/omo.jsonc")
   .option("--dry-run", "Print the transform, backup move plan, and conflicts without new migration writes")
@@ -273,6 +286,19 @@ program
     const exitCode = runConfigMigrate({ dryRun: options.dryRun ?? false, json: options.json ?? false })
     process.exit(exitCode)
   })
+
+configCommand
+  .addCommand(
+    new Command("show")
+      .description("Print the merged effective OMO configuration (including defaults)")
+      .option("--json", "Print raw JSON instead of formatted output")
+      .action(async (options: ConfigShowCommandOptions) => {
+        const exitCode = await configShow({ json: options.json ?? false })
+        process.exit(exitCode)
+      }),
+  )
+
+configureAgentsCommand(program)
 
 configureRuntimeCommands(program)
 

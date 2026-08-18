@@ -1,9 +1,10 @@
 import { parse } from "jsonc-parser/lib/esm/main.js"
 import { existsSync, readFileSync } from "node:fs"
-import { join } from "node:path"
+import { posix, join } from "node:path"
 
 import { CHECK_IDS, CHECK_NAMES } from "../framework/constants"
-import type { CheckResult, DoctorIssue } from "../framework/types"
+import type { CheckResult, DoctorIssue, FixResult } from "../framework/types"
+import { runOpenCodeStartupMigration } from "../../../startup-migration"
 
 const CANONICAL_REPLACEMENT = new Map([
   ["variant", "reasoning"],
@@ -87,4 +88,30 @@ export async function checkDeprecatedReasoningKeys(): Promise<CheckResult> {
     ...(scanned.length > 0 ? { details: scanned.map((path) => `Scanned: ${path}`) } : {}),
     issues,
   }
+}
+
+export async function fixDeprecatedReasoningKeys(): Promise<FixResult> {
+  const homeDir = process.env.HOME ?? process.env.USERPROFILE
+  const errors: string[] = []
+
+  if (homeDir === undefined || homeDir.length === 0) {
+    return { checkId: "deprecated-reasoning-keys", fixed: 0, failed: 1, errors: ["Cannot migrate: no home directory available"] }
+  }
+
+  const result = runOpenCodeStartupMigration({
+    cwd: process.cwd(),
+    dryRun: false,
+    environment: process.env,
+    pathOperations: posix,
+    env: { HOME: homeDir },
+    homeDir,
+  })
+
+  if (result.error !== undefined) {
+    return { checkId: "deprecated-reasoning-keys", fixed: 0, failed: 1, errors: [result.error] }
+  }
+
+  const fixed = result.results.filter((r) => r.status === "migrated").length
+  const skipped = result.results.filter((r) => r.status === "skipped" || r.status === "planned").length
+  return { checkId: "deprecated-reasoning-keys", fixed, failed: 0, errors: [] }
 }
