@@ -78,6 +78,12 @@ export function createRecoveryLogic(
     const model = expectedPromptConfig.model
     const tools = expectedPromptConfig.tools
 
+    if (reason === "session.compacted") {
+      // Reset tail state so the immediate session.idle that follows compaction
+      // does not re-trigger recovery through the tail monitor.
+      tailState.consecutiveNoTextMessages = 0
+    }
+
     if (reason === "compaction.autocontinue" || reason === "session.compacted") {
       const latestPromptConfig = await resolveLatestSessionPromptConfig(ctx, sessionID)
       if (isPromptConfigRecovered(latestPromptConfig, expectedPromptConfig)) {
