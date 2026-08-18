@@ -1,12 +1,24 @@
-import { resolveModelForDelegateTask } from "@oh-my-opencode/delegate-core"
+import {
+  resolveModelForDelegateTask,
+  type DelegateFallbackEntry,
+} from "@oh-my-opencode/delegate-core"
+import type { CompiledOpenAiOnlyModelRecommendations } from "@oh-my-opencode/omo-config-core"
 
 import type { SenpiModelPort, SenpiModelRegistryPort } from "../category"
 import { buildRuntimeModelChain, chainRungCandidates } from "../model-chain"
+import {
+  compileSenpiOpenAiOnlyModelRecommendations,
+  filterAutomaticRuntimeModelIdentities,
+  projectVerifiedUpstreamAliases,
+  recommendationToFallbackEntry,
+  resolveRuntimeModelIdentities,
+  type ResolvedRuntimeModelIdentity,
+} from "../openai-only-runtime-recommendations"
 import type { ResolvedModelRecord } from "../state"
 import { agentModelCandidates, type AgentModelCandidate } from "./agent-model-entry"
 import {
   findExactAgentModel,
-  parseAvailableAgentModels,
+  parseAvailableAgentRegistryModels,
   type ParsedAgentModel,
 } from "./agent-model-registry"
 import { AGENT_FALLBACK_CHAINS } from "./builtin/fallback-chains"
@@ -14,6 +26,7 @@ import type { AgentDefinition } from "./types"
 
 export type ResolveAgentOptions = {
   readonly modelOverride?: string
+  readonly hasExplicitUserConfig?: boolean
 }
 
 type AgentPersona = {
@@ -86,11 +99,11 @@ export function resolveAgent<TModel extends SenpiModelPort>(
     }
   }
 
-  const fallbackChain = Object.hasOwn(AGENT_FALLBACK_CHAINS, name)
+  const builtinFallbackChain = Object.hasOwn(AGENT_FALLBACK_CHAINS, name)
     ? AGENT_FALLBACK_CHAINS[name]
     : undefined
   if (registry === undefined) {
-    const fallbackHead = fallbackChain?.[0]
+    const fallbackHead = builtinFallbackChain?.[0]
     const fallbackProvider = fallbackHead?.providers[0]
     const attemptedModel = definition.model
       ?? firstConfiguredModel(definition)
@@ -104,7 +117,33 @@ export function resolveAgent<TModel extends SenpiModelPort>(
   // still resolves and the child dies on the first provider call. Gate every candidate on the
   // auth-filtered available set so `models[]` and the builtin chain can actually take over. An
   // unparseable available set keeps the find-only behavior rather than failing every resolution.
-  const availableModels = parseAvailableAgentModels(registry.getAvailable())
+  const rawAvailableModels = registry.getAvailable()
+  const availableRegistryModels = parseAvailableAgentRegistryModels<TModel>(rawAvailableModels)
+  const runtimeModels = availableRegistryModels === undefined
+    ? undefined
+    : resolveRuntimeModelIdentities(registry, availableRegistryModels)
+  const resolvableRuntimeModels = runtimeModels === undefined
+    ? undefined
+    : filterAutomaticRuntimeModelIdentities(runtimeModels)
+  const availableModels = resolvableRuntimeModels
+    ?.map((model) => `${model.provider}/${model.modelId}`)
+    .sort()
+  const directAvailableModels = availableRegistryModels
+    ?.map((model) => `${model.provider}/${model.modelId}`)
+  const completeIdentityInventory = Array.isArray(rawAvailableModels)
+    && availableRegistryModels?.length === rawAvailableModels.length
+  const automaticRoutingModels = completeIdentityInventory
+    ? filterAutomaticRuntimeModelIdentities(runtimeModels ?? [])
+    : []
+  const recommendations = !completeIdentityInventory || options.hasExplicitUserConfig === true
+    ? undefined
+    : compileSenpiOpenAiOnlyModelRecommendations(registry, availableRegistryModels)
+  const fallbackChain = effectiveAgentFallbackChain(
+    name,
+    builtinFallbackChain,
+    recommendations,
+    automaticRoutingModels,
+  )
   let attemptedModel: string | undefined
   const configuredTuning = {
     ...(definition.variant === undefined ? {} : { variant: definition.variant }),
@@ -115,7 +154,7 @@ export function resolveAgent<TModel extends SenpiModelPort>(
     attemptedModel = candidate.model
     const found = findExactAgentModel(candidate.model, registry)
     if (found === undefined) continue
-    if (availableModels !== undefined && !availableModels.includes(`${found.provider}/${found.modelId}`)) continue
+    if (directAvailableModels !== undefined && !directAvailableModels.includes(`${found.provider}/${found.modelId}`)) continue
     return resolvedAgent(
       context,
       found,
@@ -124,7 +163,7 @@ export function resolveAgent<TModel extends SenpiModelPort>(
       buildRuntimeModelChain({
         candidates: directModels,
         selectedModel: candidate.model,
-        ...(availableModels !== undefined ? { availableModels: new Set(availableModels) } : {}),
+        ...(directAvailableModels !== undefined ? { availableModels: new Set(directAvailableModels) } : {}),
         source: "agent",
       }),
     )
@@ -170,6 +209,30 @@ export function resolveAgent<TModel extends SenpiModelPort>(
   }
 
   return { kind: "model_unavailable", agent: name, attemptedModel, availableAgents }
+}
+
+function effectiveAgentFallbackChain(
+  name: string,
+  builtinChain: readonly DelegateFallbackEntry[] | undefined,
+  recommendations: CompiledOpenAiOnlyModelRecommendations | undefined,
+  runtimeModels: readonly ResolvedRuntimeModelIdentity<SenpiModelPort>[],
+): readonly DelegateFallbackEntry[] | undefined {
+  const recommendation = recommendations !== undefined && Object.hasOwn(recommendations.agents, name)
+    ? recommendations.agents[name]
+    : undefined
+  const recommendedRung = recommendationToFallbackEntry(recommendation)
+  if (recommendedRung === undefined) return projectVerifiedUpstreamAliases(builtinChain, runtimeModels)
+  const alreadyFirst = builtinChain?.[0]
+  if (
+    alreadyFirst !== undefined
+    && alreadyFirst.providers.length === 1
+    && alreadyFirst.providers[0] === recommendedRung.providers[0]
+    && alreadyFirst.model === recommendedRung.model
+    && alreadyFirst.variant === recommendedRung.variant
+  ) {
+    return projectVerifiedUpstreamAliases(builtinChain, runtimeModels)
+  }
+  return projectVerifiedUpstreamAliases([recommendedRung, ...(builtinChain ?? [])], runtimeModels)
 }
 
 function agentPersona(name: string, definition: AgentDefinition): AgentPersona {

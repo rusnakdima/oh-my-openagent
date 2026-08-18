@@ -1,0 +1,179 @@
+import { describe, expect, test } from "bun:test"
+
+import {
+  OPENAI_ONLY_AGENT_MODEL_RECOMMENDATIONS,
+  OPENAI_ONLY_CATEGORY_MODEL_RECOMMENDATIONS,
+  compileOpenAiOnlyModelRecommendations,
+  isOpenAiOnlyRuntimeInventory,
+} from "./openai-only-model-recommendations"
+
+describe("OpenAI-only model recommendations", () => {
+  test("#given the maintained policy #when inspected #then agent and category tuning stays pinned", () => {
+    expect(OPENAI_ONLY_AGENT_MODEL_RECOMMENDATIONS).toEqual({
+      explore: { model: "openai/gpt-5.6-luna-fast", variant: "low" },
+      librarian: { model: "openai/gpt-5.6-luna-fast", variant: "low" },
+    })
+    expect(OPENAI_ONLY_CATEGORY_MODEL_RECOMMENDATIONS).toEqual({
+      artistry: { model: "openai/gpt-5.6-sol", variant: "xhigh" },
+      quick: { model: "openai/gpt-5.6-luna-fast" },
+      "visual-engineering": { model: "openai/gpt-5.6-sol", variant: "high" },
+      writing: { model: "openai/gpt-5.6-sol", variant: "medium" },
+    })
+  })
+
+  test("#given a canonical OpenAI live inventory #when compiled #then exact available models receive maintained tuning", () => {
+    const inventory = [
+      { provider: "openai", modelId: "gpt-5.6-sol" },
+      { provider: "openai", modelId: "gpt-5.6-terra" },
+      { provider: "openai", modelId: "gpt-5.6-luna-fast" },
+    ]
+
+    const result = compileOpenAiOnlyModelRecommendations(inventory)
+
+    expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(true)
+    expect(result).toEqual({
+      agents: {
+        explore: { model: "openai/gpt-5.6-luna-fast", variant: "low" },
+        librarian: { model: "openai/gpt-5.6-luna-fast", variant: "low" },
+      },
+      categories: {
+        artistry: { model: "openai/gpt-5.6-sol", variant: "xhigh" },
+        quick: { model: "openai/gpt-5.6-luna-fast" },
+        "visual-engineering": { model: "openai/gpt-5.6-sol", variant: "high" },
+        writing: { model: "openai/gpt-5.6-sol", variant: "medium" },
+      },
+    })
+  })
+
+  test("#given only a subset of recommended models #when compiled #then unavailable recommendations are omitted", () => {
+    expect(compileOpenAiOnlyModelRecommendations([
+      { provider: "openai", modelId: "gpt-5.6-sol" },
+    ])).toEqual({
+      agents: {},
+      categories: {
+        artistry: { model: "openai/gpt-5.6-sol", variant: "xhigh" },
+        "visual-engineering": { model: "openai/gpt-5.6-sol", variant: "high" },
+        writing: { model: "openai/gpt-5.6-sol", variant: "medium" },
+      },
+    })
+  })
+
+  test("#given a mixed provider inventory #when compiled #then no OpenAI-only overlay is produced", () => {
+    const inventory = [
+      { provider: "openai", modelId: "gpt-5.6-sol" },
+      { provider: "anthropic", modelId: "claude-opus-5" },
+    ]
+
+    expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(false)
+    expect(compileOpenAiOnlyModelRecommendations(inventory)).toBeUndefined()
+  })
+
+  test("#given an arbitrary compatible provider with copied model ids #when compiled #then protocol compatibility does not establish identity", () => {
+    const inventory = [
+      { provider: "codexlb", modelId: "gpt-5.6-sol" },
+      { provider: "codexlb", modelId: "gpt-5.6-luna-fast" },
+    ]
+
+    expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(false)
+    expect(compileOpenAiOnlyModelRecommendations(inventory)).toBeUndefined()
+  })
+
+  test("#given an unrelated provider with a nested OpenAI-looking path #when compiled #then the path does not establish identity", () => {
+    const inventory = [
+      { provider: "unrelated", modelId: "openai/gpt-5.6-sol" },
+      { provider: "unrelated", modelId: "openai/gpt-5.6-luna-fast" },
+    ]
+
+    expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(false)
+    expect(compileOpenAiOnlyModelRecommendations(inventory)).toBeUndefined()
+  })
+
+  test("#given known OpenAI gateway identities #when compiled #then nested registry ids stay transport-correct", () => {
+    const result = compileOpenAiOnlyModelRecommendations([
+      { provider: "vercel", modelId: "openai/gpt-5.6-sol" },
+      { provider: "vercel", modelId: "openai/gpt-5.6-luna-fast" },
+    ])
+
+    expect(result?.agents.explore).toEqual({
+      model: "vercel/openai/gpt-5.6-luna-fast",
+      variant: "low",
+    })
+    expect(result?.categories.artistry).toEqual({
+      model: "vercel/openai/gpt-5.6-sol",
+      variant: "xhigh",
+    })
+  })
+
+  test("#given explicit upstream identities on a provider alias #when compiled #then recommendations target the actual registry ids", () => {
+    const inventory = [
+      { provider: "codexlb", modelId: "sol-balanced", upstreamModelId: "gpt-5.6-sol" },
+      { provider: "codexlb", modelId: "luna-priority", upstreamModelId: "gpt-5.6-luna-fast" },
+    ]
+
+    expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(true)
+    expect(compileOpenAiOnlyModelRecommendations(inventory)).toEqual({
+      agents: {
+        explore: { model: "codexlb/luna-priority", variant: "low" },
+        librarian: { model: "codexlb/luna-priority", variant: "low" },
+      },
+      categories: {
+        artistry: { model: "codexlb/sol-balanced", variant: "xhigh" },
+        quick: { model: "codexlb/luna-priority" },
+        "visual-engineering": { model: "codexlb/sol-balanced", variant: "high" },
+        writing: { model: "codexlb/sol-balanced", variant: "medium" },
+      },
+    })
+  })
+
+  test("#given explicit upstream identities on canonical OpenAI aliases #when compiled #then upstream identity remains authoritative", () => {
+    const inventory = [
+      { provider: "openai", modelId: "sol-balanced", upstreamModelId: "gpt-5.6-sol" },
+      { provider: "openai", modelId: "luna-priority", upstreamModelId: "gpt-5.6-luna-fast" },
+    ]
+
+    expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(true)
+    expect(compileOpenAiOnlyModelRecommendations(inventory)).toEqual({
+      agents: {
+        explore: { model: "openai/luna-priority", variant: "low" },
+        librarian: { model: "openai/luna-priority", variant: "low" },
+      },
+      categories: {
+        artistry: { model: "openai/sol-balanced", variant: "xhigh" },
+        quick: { model: "openai/luna-priority" },
+        "visual-engineering": { model: "openai/sol-balanced", variant: "high" },
+        writing: { model: "openai/sol-balanced", variant: "medium" },
+      },
+    })
+  })
+
+  test("#given a canonical OpenAI display id mapped to a non-OpenAI upstream #when compiled #then the display id cannot enable the overlay", () => {
+    const inventory = [
+      { provider: "openai", modelId: "gpt-5.6-sol", upstreamModelId: "claude-fable-5" },
+    ]
+
+    expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(false)
+    expect(compileOpenAiOnlyModelRecommendations(inventory)).toBeUndefined()
+  })
+
+  test("#given an invalid upstream identity signal on a first-party display shape #when compiled #then provider shape cannot recover trust", () => {
+    for (const inventory of [
+      [{ provider: "openai", modelId: "gpt-5.6-sol", upstreamIdentityInvalid: true }],
+      [{ provider: "vercel", modelId: "openai/gpt-5.6-sol", upstreamIdentityInvalid: true }],
+    ]) {
+      expect(isOpenAiOnlyRuntimeInventory(inventory)).toBe(false)
+      expect(compileOpenAiOnlyModelRecommendations(inventory)).toBeUndefined()
+    }
+  })
+
+  test("#given canonical and aliased copies of a recommended model #when compiled #then canonical OpenAI wins regardless of inventory order", () => {
+    const result = compileOpenAiOnlyModelRecommendations([
+      { provider: "codexlb", modelId: "sol-balanced", upstreamModelId: "gpt-5.6-sol" },
+      { provider: "openai", modelId: "gpt-5.6-sol" },
+    ])
+
+    expect(result?.categories.artistry).toEqual({
+      model: "openai/gpt-5.6-sol",
+      variant: "xhigh",
+    })
+  })
+})

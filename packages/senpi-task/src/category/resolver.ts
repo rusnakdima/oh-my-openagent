@@ -2,6 +2,9 @@ import {
   resolveModelForDelegateTask,
   type DelegateFallbackEntry,
 } from "@oh-my-opencode/delegate-core"
+import {
+  type CompiledOpenAiOnlyModelRecommendations,
+} from "@oh-my-opencode/omo-config-core"
 import type {
   OmoCategoryConfig,
   OmoConfig,
@@ -16,10 +19,18 @@ import {
   DEFAULT_CATEGORIES,
   categoryGateModel,
   isCategoryChainRungResolvable,
-  isCategoryChainViable,
   isCategoryGateSatisfied,
 } from "./builtins"
 import { buildRuntimeModelChain, chainRungCandidates, type ModelChainCandidate } from "../model-chain"
+import {
+  compileSenpiOpenAiOnlyModelRecommendations,
+  filterAutomaticRuntimeModelIdentities,
+  projectVerifiedUpstreamAliases,
+  recommendationToFallbackEntry,
+  resolveRuntimeModelIdentities,
+  runtimeModelIds,
+  type ResolvedRuntimeModelIdentity,
+} from "../openai-only-runtime-recommendations"
 import { CATEGORY_FALLBACK_CHAINS } from "./fallback-chains"
 import type {
   CategoryModelSelection,
@@ -47,8 +58,10 @@ type ModelSelectionInput = {
   readonly matchedFallback?: boolean
 }
 
-type AvailableModelsParseResult = {
+type AvailableModelsParseResult<TModel extends SenpiModelPort> = {
   readonly models: readonly string[]
+  readonly parsedModels: readonly ParsedRegistryModel<TModel>[]
+  readonly completeIdentityInventory: boolean
   readonly validContainer: boolean
 }
 
@@ -123,6 +136,36 @@ function flattenFallbackModels(fallbackModels: OmoFallbackModels | undefined): r
   return fallbackModels.map((fallback) => typeof fallback === "string" ? fallback : fallbackObjectToString(fallback))
 }
 
+function explicitlyNamedCategoryModels(config: OmoCategoryConfig | undefined): ReadonlySet<string> {
+  if (config === undefined) return new Set()
+  const entries = [
+    ...(config.model === undefined ? [] : [config.model]),
+    ...(config.models ?? []).map((entry) => typeof entry === "string" ? entry : entry.model),
+    ...(config.fallback_models === undefined
+      ? []
+      : (typeof config.fallback_models === "string" ? [config.fallback_models] : config.fallback_models)
+        .map((entry) => typeof entry === "string" ? entry : entry.model)),
+  ]
+  return new Set(entries.map((entry) => normalizeConfiguredModel(entry)))
+}
+
+function normalizeConfiguredModel(entry: string): string {
+  const trimmed = entry.trim()
+  const parenthesizedVariant = trimmed.match(/^(.*)\(([^()]+)\)\s*$/)
+  if (parenthesizedVariant?.[1] !== undefined) return parenthesizedVariant[1].trim()
+
+  const reasoningSeparator = trimmed.lastIndexOf(":")
+  if (reasoningSeparator > 0) {
+    const reasoning = trimmed.slice(reasoningSeparator + 1)
+    if (/^(?:off|minimal|low|medium|high|xhigh|max|auto)$/i.test(reasoning)) {
+      return trimmed.slice(0, reasoningSeparator).trim()
+    }
+  }
+
+  const spacedVariant = trimmed.match(/^(.*\S)\s+([a-z][a-z0-9_-]*)$/i)
+  return spacedVariant?.[1]?.trim() ?? trimmed
+}
+
 function categoryModelCandidates(config: OmoCategoryConfig): readonly ModelChainCandidate[] {
   // Canonical models[] wins over the legacy model + fallback_models branch: entry zero is the
   // primary model and the rest become the ordered runtime fallback chain.
@@ -174,14 +217,20 @@ function categoryModelCandidates(config: OmoCategoryConfig): readonly ModelChain
   return [...primary, ...fallbacks]
 }
 
-function availableCategoryNames(config: OmoConfig, availableModelIds?: ReadonlySet<string>): readonly string[] {
+function availableCategoryNames(
+  config: OmoConfig,
+  availableModelIds?: ReadonlySet<string>,
+  recommendations?: CompiledOpenAiOnlyModelRecommendations,
+  runtimeModels: readonly ResolvedRuntimeModelIdentity<SenpiModelPort>[] = [],
+): readonly string[] {
   const names = Array.from(new Set([...Object.keys(DEFAULT_CATEGORIES), ...Object.keys(config.categories ?? {})])).sort()
   if (availableModelIds === undefined) return names
   const userCategories = config.categories ?? {}
   return names.filter((name) => {
     const hasExplicitUserConfig = getOwnRecordValue(userCategories, name) !== undefined
+    const fallbackChain = effectiveCategoryFallbackChain(name, hasExplicitUserConfig, recommendations, runtimeModels)
     return isCategoryGateSatisfied(name, hasExplicitUserConfig, availableModelIds)
-      && isCategoryChainViable(name, hasExplicitUserConfig, availableModelIds)
+      && isCategoryFallbackChainViable(fallbackChain, hasExplicitUserConfig, availableModelIds)
   })
 }
 
@@ -193,9 +242,20 @@ function gatedAvailableCategories<TModel extends SenpiModelPort>(
   senpiModelRegistry: SenpiModelRegistryPort<TModel>,
 ): readonly string[] {
   try {
-    const parsed = parseAvailableModels(senpiModelRegistry.getAvailable())
+    const parsed = parseAvailableModels<TModel>(senpiModelRegistry.getAvailable())
     if (!parsed.validContainer) return availableCategoryNames(config)
-    return availableCategoryNames(config, modelIdsOf(parsed.models))
+    const runtimeModels = resolveRuntimeModelIdentities(senpiModelRegistry, parsed.parsedModels)
+    const automaticModels = filterAutomaticRuntimeModelIdentities(runtimeModels)
+    const recommendations = parsed.completeIdentityInventory
+      ? compileRegistryRecommendations(senpiModelRegistry, parsed.parsedModels)
+      : undefined
+    const projectedModels = parsed.completeIdentityInventory ? automaticModels : []
+    return availableCategoryNames(
+      config,
+      runtimeModelIds(automaticModels, { includeUpstreamModelIds: parsed.completeIdentityInventory }),
+      recommendations,
+      projectedModels,
+    )
   } catch {
     return availableCategoryNames(config)
   }
@@ -223,27 +283,6 @@ function missingChainProviders(
   return missing
 }
 
-// A gateway provider re-publishes an upstream model under `<gateway>/<upstream-vendor>/<model-id>`
-// (e.g. `vercel/openai/gpt-5.6-sol`). Only these known upstream vendor prefixes are unwrapped, so an
-// unrelated model that merely ends in a gate model's name cannot open that gate.
-const GATEWAY_UPSTREAM_VENDOR_PREFIXES = ["openai", "anthropic", "google"] as const
-
-function modelIdsOf(models: readonly string[]): ReadonlySet<string> {
-  const ids = new Set<string>()
-  for (const entry of models) {
-    const modelId = entry.slice(entry.indexOf("/") + 1)
-    ids.add(modelId)
-    const separatorIndex = modelId.indexOf("/")
-    if (separatorIndex <= 0) continue
-    const vendor = modelId.slice(0, separatorIndex)
-    const upstreamId = modelId.slice(separatorIndex + 1)
-    if (!upstreamId.includes("/") && GATEWAY_UPSTREAM_VENDOR_PREFIXES.some((prefix) => prefix === vendor)) {
-      ids.add(upstreamId)
-    }
-  }
-  return ids
-}
-
 function getOwnRecordValue<TValue>(
   record: Readonly<Record<string, TValue>>,
   key: string,
@@ -251,11 +290,52 @@ function getOwnRecordValue<TValue>(
   return Object.hasOwn(record, key) ? record[key] : undefined
 }
 
-function parseAvailableModels(models: unknown): AvailableModelsParseResult {
+function parseAvailableModels<TModel extends SenpiModelPort>(models: unknown): AvailableModelsParseResult<TModel> {
   if (!Array.isArray(models)) {
-    return { models: [], validContainer: false }
+    return { models: [], parsedModels: [], completeIdentityInventory: false, validContainer: false }
   }
-  return { models: models.map((model) => parseRegistryModel(model)).filter((model) => model !== undefined).map(formatModel).sort(), validContainer: true }
+  const parsedModels = models
+    .map((model) => parseRegistryModel<TModel>(model))
+    .filter((model) => model !== undefined)
+  return {
+    models: parsedModels.map(formatModel).sort(),
+    parsedModels,
+    completeIdentityInventory: parsedModels.length === models.length,
+    validContainer: true,
+  }
+}
+
+function compileRegistryRecommendations<TModel extends SenpiModelPort>(
+  registry: SenpiModelRegistryPort<TModel>,
+  models: readonly ParsedRegistryModel<TModel>[],
+): CompiledOpenAiOnlyModelRecommendations | undefined {
+  return compileSenpiOpenAiOnlyModelRecommendations(registry, models)
+}
+
+function effectiveCategoryFallbackChain(
+  categoryName: string,
+  hasExplicitUserConfig: boolean,
+  recommendations: CompiledOpenAiOnlyModelRecommendations | undefined,
+  runtimeModels: readonly ResolvedRuntimeModelIdentity<SenpiModelPort>[],
+): readonly DelegateFallbackEntry[] | undefined {
+  const builtinChain = getOwnRecordValue(CATEGORY_FALLBACK_CHAINS, categoryName)
+  const recommendation = hasExplicitUserConfig || recommendations === undefined
+    ? undefined
+    : getOwnRecordValue(recommendations.categories, categoryName)
+  const recommendedRung = recommendationToFallbackEntry(recommendation)
+  const recommendedChain = recommendedRung === undefined
+    ? builtinChain
+    : [recommendedRung, ...(builtinChain ?? [])]
+  return projectVerifiedUpstreamAliases(recommendedChain, runtimeModels)
+}
+
+function isCategoryFallbackChainViable(
+  chain: readonly DelegateFallbackEntry[] | undefined,
+  hasExplicitUserConfig: boolean,
+  availableModelIds: ReadonlySet<string>,
+): boolean {
+  if (hasExplicitUserConfig || chain === undefined || chain.length === 0) return true
+  return chain.some((rung) => isCategoryChainRungResolvable(rung, availableModelIds))
 }
 
 function promptAppendForCategory(categoryName: string, model: string | undefined, userPromptAppend: string | undefined): string | undefined {
@@ -308,21 +388,54 @@ export function resolveCategory<TModel extends SenpiModelPort>(
   }
 
   const config = { ...builtinConfig, ...userConfig }
-  const availableModelsResult = parseAvailableModels(senpiModelRegistry.getAvailable())
-  const availableModels = availableModelsResult.models
+  const availableModelsResult = parseAvailableModels<TModel>(senpiModelRegistry.getAvailable())
   if (!availableModelsResult.validContainer) {
     return {
       kind: "model_unavailable",
       category: categoryName,
       attemptedModel: config.model,
-      availableModels,
+      availableModels: availableModelsResult.models,
       availableCategories,
     }
   }
 
-  const availableModelIds = modelIdsOf(availableModels)
-  const gatedCategories = availableCategoryNames(omoConfig, availableModelIds)
-  const fallbackChain = getOwnRecordValue(CATEGORY_FALLBACK_CHAINS, categoryName)
+  const runtimeModels = resolveRuntimeModelIdentities(senpiModelRegistry, availableModelsResult.parsedModels)
+  const automaticRuntimeModels = filterAutomaticRuntimeModelIdentities(runtimeModels)
+  const explicitlyNamedModels = explicitlyNamedCategoryModels(userConfig)
+  const explicitlyNamedRuntimeModels = runtimeModels.filter((model) =>
+    explicitlyNamedModels.has(formatModel(model))
+  )
+  // User-named primary models resolve through the exact registry.find boundary below. Fallback
+  // matching always receives the protected inventory so prompt-only config cannot authorize an
+  // unrelated nested gateway-looking route.
+  const resolutionRuntimeModels = [
+    ...automaticRuntimeModels,
+    ...explicitlyNamedRuntimeModels.filter((model) => !automaticRuntimeModels.includes(model)),
+  ]
+  const availableModels = resolutionRuntimeModels.map(formatModel).sort()
+  const availableModelIds = runtimeModelIds(resolutionRuntimeModels, {
+    includeUpstreamModelIds: availableModelsResult.completeIdentityInventory,
+  })
+  const recommendations = availableModelsResult.completeIdentityInventory
+    ? compileRegistryRecommendations(senpiModelRegistry, availableModelsResult.parsedModels)
+    : undefined
+  const automaticRoutingModels = availableModelsResult.completeIdentityInventory
+    ? automaticRuntimeModels
+    : []
+  const gatedCategories = availableCategoryNames(
+    omoConfig,
+    runtimeModelIds(automaticRuntimeModels, {
+      includeUpstreamModelIds: availableModelsResult.completeIdentityInventory,
+    }),
+    recommendations,
+    availableModelsResult.completeIdentityInventory ? automaticRuntimeModels : [],
+  )
+  const fallbackChain = effectiveCategoryFallbackChain(
+    categoryName,
+    userConfig !== undefined,
+    recommendations,
+    automaticRoutingModels,
+  )
   const chainDead = fallbackChain !== undefined
     && fallbackChain.length > 0
     && !fallbackChain.some((rung) => isCategoryChainRungResolvable(rung, availableModelIds))
