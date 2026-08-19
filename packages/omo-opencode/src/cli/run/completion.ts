@@ -49,11 +49,6 @@ function areContinuationHooksIdle(
     return false
   }
 
-  if (continuationState.hasActiveRalphLoop) {
-    logWaiting(ctx, "ralph-loop continuation is active")
-    return false
-  }
-
   return true
 }
 

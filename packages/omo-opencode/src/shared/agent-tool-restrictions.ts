@@ -53,10 +53,10 @@ const AGENT_RESTRICTIONS: Record<string, AgentRestrictionsRecord | AgentRestrict
     edit: false,
   },
 
-  // Multimodal-Looker: denies all write/execute tools explicitly. The explicit deny
-  // list (not an inverted allow-list) ensures a new OpenCode tool is NOT
-  // automatically blocked — it must be added to this deny list to be restricted.
-  // Team tools are denied by TEAM_TOOL_DENYLIST (merged below) for all agents.
+  // Multimodal-Looker: denies specific write/execute tools via an explicit deny list.
+  // A new OpenCode tool is NOT automatically blocked — it must be added to this deny
+  // list to be restricted. Team tools are additionally denied by TEAM_TOOL_DENYLIST
+  // (merged below) for all agents.
   "multimodal-looker": {
     deny: [
       "bash",

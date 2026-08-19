@@ -157,43 +157,43 @@ describe("sisyphus-task", () => {
   })
 
   describe("DEFAULT_CATEGORIES", () => {
-    test("visual-engineering category has model and variant config", () => {
+    test("visual-engineering category has only variant config (no hardcoded model)", () => {
       // given
       const category = DEFAULT_CATEGORIES["visual-engineering"]
 
       // when / #then
       expect(category).toBeDefined()
-      expect(category.model).toBe("anthropic/claude-opus-5")
+      expect(category.model).toBeUndefined()
       expect(category.variant).toBe("max")
     })
 
-    test("ultrabrain category has model and variant config", () => {
+    test("ultrabrain category has only variant config (no hardcoded model)", () => {
       // given
       const category = DEFAULT_CATEGORIES["ultrabrain"]
 
       // when / #then
       expect(category).toBeDefined()
-      expect(category.model).toBe("openai/gpt-5.6-sol")
+      expect(category.model).toBeUndefined()
       expect(category.variant).toBe("xhigh")
     })
 
-    test("deep category has model and variant config", () => {
+    test("deep category has only variant config (no hardcoded model)", () => {
       // given
       const category = DEFAULT_CATEGORIES["deep"]
 
       // when / #then
       expect(category).toBeDefined()
-      expect(category.model).toBe("openai/gpt-5.6-sol")
+      expect(category.model).toBeUndefined()
       expect(category.variant).toBe("medium")
     })
 
-    test("unspecified-high category uses Kimi K3 max as primary", () => {
+    test("unspecified-high category has only variant config (no hardcoded model)", () => {
       // given
       const category = DEFAULT_CATEGORIES["unspecified-high"]
 
       // when / #then
       expect(category).toBeDefined()
-      expect(category.model).toBe("kimi-for-coding/k3")
+      expect(category.model).toBeUndefined()
       expect(category.variant).toBe("max")
     })
   })
@@ -848,9 +848,9 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // then
+      // then - builtin artistry has no hardcoded model anymore
       expect(result).not.toBeNull()
-      expect(result?.model).toBe("anthropic/claude-fable-5")
+      expect(result?.model).toBeUndefined()
     })
 
     test("allows artistry when availability is empty", () => {
@@ -864,12 +864,12 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // then
+      // then - builtin artistry has no hardcoded model anymore
       expect(result).not.toBeNull()
-      expect(result?.model).toBe("anthropic/claude-fable-5")
+      expect(result?.model).toBeUndefined()
     })
 
-    test("returns null for deep when gpt-5.6-sol is unavailable and no user config overrides it", () => {
+    test("returns builtin config for deep even when gpt-5.6-sol is unavailable (requiresModel removed)", () => {
       // #given
       const categoryName = "deep"
       const availableModels = new Set<string>(["anthropic/claude-opus-4-7"])
@@ -880,11 +880,13 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // #then
-      expect(result).toBeNull()
+      // #then - requiresModel is gone; deep returns its builtin config with no hardcoded model
+      expect(result).not.toBeNull()
+      expect(result?.model).toBeUndefined()
+      expect(result?.config.variant).toBe("medium")
     })
 
-    test("resolves deep at gpt-5.6-sol medium when the gate model is available", () => {
+    test("resolves deep with only variant from builtin (no hardcoded model)", () => {
       // #given
       const categoryName = "deep"
       const availableModels = new Set<string>(["openai/gpt-5.6-sol"])
@@ -895,9 +897,9 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // #then
+      // #then - builtin deep no longer has a hardcoded model
       const resolved = expectResolvedCategoryConfig(result)
-      expect(resolved.config.model).toBe("openai/gpt-5.6-sol")
+      expect(resolved.config.model).toBeUndefined()
       expect(resolved.config.variant).toBe("medium")
     })
 
@@ -941,16 +943,17 @@ describe("sisyphus-task", () => {
       expect(resolved.config.model).toBe("anthropic/claude-opus-4-7")
     })
 
-    test("returns default model from DEFAULT_CATEGORIES for builtin category", () => {
+    test("returns builtin config for visual-engineering (no hardcoded model)", () => {
       // given
       const categoryName = "visual-engineering"
 
       // when
       const result = resolveCategoryConfig(categoryName, { systemDefaultModel: SYSTEM_DEFAULT_MODEL })
 
-      // then
+      // then - builtin visual-engineering has only variant config, no hardcoded model
       const resolved = expectResolvedCategoryConfig(result)
-      expect(resolved.config.model).toBe("anthropic/claude-opus-5")
+      expect(resolved.config.model).toBeUndefined()
+      expect(resolved.config.variant).toBe("max")
       expect(resolved.promptAppend).toContain("VISUAL/UI")
     })
 
@@ -1026,17 +1029,17 @@ describe("sisyphus-task", () => {
       expect(resolved.config.temperature).toBe(0.3)
     })
 
-    test("category built-in model takes precedence over inheritedModel", () => {
-      // given - builtin category with its own model, parent model also provided
+    test("builtin without model defers to inheritedModel", () => {
+      // given - builtin category with no hardcoded model, parent model also provided
       const categoryName = "visual-engineering"
       const inheritedModel = "cliproxy/claude-opus-4-7"
 
       // when
       const result = resolveCategoryConfig(categoryName, { inheritedModel, systemDefaultModel: SYSTEM_DEFAULT_MODEL })
 
-      // then - category's built-in model wins over inheritedModel
+      // then - builtin has no model, so inheritedModel is used as system default
       const resolved = expectResolvedCategoryConfig(result)
-      expect(resolved.config.model).toBe("anthropic/claude-opus-5")
+      expect(resolved.config.model).toBeUndefined()
     })
 
     test("systemDefaultModel is used as fallback when custom category has no model", () => {
@@ -3824,18 +3827,18 @@ describe("sisyphus-task", () => {
       expect(category.config.variant).toBe("xhigh")
     })
 
-    test("category built-in model takes precedence over inheritedModel for builtin category", () => {
-      // given - builtin ultrabrain category with its own model, inherited model also provided
+    test("builtin without model defers to inheritedModel for builtin category", () => {
+      // given - builtin ultrabrain category with no hardcoded model, inherited model also provided
       const categoryName = "ultrabrain"
       const inheritedModel = "cliproxy/claude-opus-4-7"
-      
+
       // when
       const resolved = resolveCategoryConfig(categoryName, { inheritedModel, systemDefaultModel: SYSTEM_DEFAULT_MODEL })
-      
-      // then - category's built-in model wins (ultrabrain uses gpt-5.6-sol)
+
+      // then - builtin has no hardcoded model, so inheritedModel is used
       const category = expectResolvedCategoryConfig(resolved)
       const actualModel = category.config.model
-      expect(actualModel).toBe("openai/gpt-5.6-sol")
+      expect(actualModel).toBeUndefined()
     })
 
     test("when user defines model - modelInfo should report user-defined regardless of inheritedModel", () => {

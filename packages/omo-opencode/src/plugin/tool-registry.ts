@@ -59,7 +59,7 @@ export function createToolRegistry(args: {
       availableCategories,
       factories,
     }),
-    ...(interactiveBashEnabled ? { interactive_bash: factories.interactive_bash } : {}),
+    ...(interactiveBashEnabled ? { interactive_bash: factories.interactive_bash, interactive_menu: factories.interactive_menu } : {}),
     ...createTeamModeToolsRecord({ pluginConfig, ctx, managers, factories }),
     ...createMonitorToolsRecord({ pluginConfig, ctx, managers, factories }),
     ...createTaskToolsRecord({ taskSystemEnabled, pluginConfig, ctx, factories }),

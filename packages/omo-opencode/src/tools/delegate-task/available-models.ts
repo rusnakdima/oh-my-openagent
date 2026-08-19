@@ -33,7 +33,14 @@ function addFromProviderModels(
   }
 }
 
-export async function getAvailableModelsForDelegateTask(client: OpencodeClient): Promise<Set<string>> {
+export async function getAvailableModelsForDelegateTask(
+  client: OpencodeClient,
+  availableModelsOverride?: Set<string>
+): Promise<Set<string>> {
+  if (availableModelsOverride !== undefined) {
+    return availableModelsOverride
+  }
+
   const providerModelsCache = connectedProvidersCache.readProviderModelsCache()
 
   if (providerModelsCache?.models) {

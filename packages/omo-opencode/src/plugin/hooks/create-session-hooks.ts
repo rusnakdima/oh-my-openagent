@@ -142,7 +142,7 @@ export function createSessionHooks(args: {
   const interactiveMenuSession =
     isHookEnabled("interactive-menu-session") &&
     isTmuxIntegrationEnabled(pluginConfig)
-    ? safeHook("interactive-menu-session", () => createInteractiveMenuSessionHook(ctx))
+    ? safeHook("interactive-menu-session", () => createInteractiveMenuSessionHook())
     : null
 
   const goal = isHookEnabled("goal") && pluginConfig.goal?.enabled

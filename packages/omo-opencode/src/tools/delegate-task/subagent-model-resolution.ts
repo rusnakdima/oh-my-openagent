@@ -1,4 +1,5 @@
 import type { AgentOverrides } from "../../config/schema"
+import { detectHeuristicModelFamily } from "@oh-my-opencode/model-core"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
 import { fuzzyMatchModel } from "../../shared/model-availability"
 import { normalizeModelFormat } from "../../shared/model-format-normalizer"
@@ -30,7 +31,7 @@ export async function resolveSubagentModel(
     : undefined
   const agentCategoryModel = agentCategoryConfig?.model
 
-  const availableModels = await getAvailableModelsForDelegateTask(executorCtx.client)
+  const availableModels = await getAvailableModelsForDelegateTask(executorCtx.client, executorCtx.availableModelsOverride)
   const normalizedMatchedModel = matchedAgent.model
     ? normalizeModelFormat(matchedAgent.model)
     : undefined
@@ -61,7 +62,18 @@ export async function resolveSubagentModel(
       }
     } else if (resolutionSkipped) {
       // Cold cache: TUI model explicitly selected — apply it directly.
-      const normalized = normalizeModelFormat(systemDefaultModel)
+      let normalized = normalizeModelFormat(systemDefaultModel)
+      if (!normalized && systemDefaultModel) {
+        // Bare model string (no /): use heuristic family detection to determine provider.
+        const bareModel = systemDefaultModel
+        const detected = detectHeuristicModelFamily(bareModel)
+        if (detected) {
+          normalized = {
+            providerID: detected.provider ?? detected.family,
+            modelID: bareModel,
+          }
+        }
+      }
       if (normalized) {
         const variantToUse = agentOverride?.variant ?? agentCategoryConfig?.variant
         const resolvedModel = variantToUse ? { ...normalized, variant: variantToUse } : normalized

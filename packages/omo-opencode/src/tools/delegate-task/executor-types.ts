@@ -16,6 +16,11 @@ export interface ExecutorContext {
   modelFallbackControllerAccessor?: ModelFallbackControllerAccessor
   onSyncSessionCreated?: (event: { sessionID: string; parentID: string; title: string }) => Promise<void>
   syncPollTimeoutMs?: number
+  /**
+   * Test hook: bypass getAvailableModelsForDelegateTask by providing an explicit available model set.
+   * Must be typed as Set<string> (not string[]) for direct O(1) membership tests.
+   */
+  availableModelsOverride?: Set<string>
 }
 
 export interface ParentContext {

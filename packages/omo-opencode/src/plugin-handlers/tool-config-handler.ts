@@ -139,6 +139,8 @@ export function applyToolConfig(params: {
       "task_*": "allow",
       teammate: "allow",
       ...denyTodoTools,
+      // prometheus-md-only: prometheus must ONLY edit .md files via the prometheus-md-only hook.
+      // Shell access is never needed for a strategic planner that only creates/edits markdown plans.
       bash: "deny",
       interactive_bash: "deny",
     };

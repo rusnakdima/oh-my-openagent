@@ -32,6 +32,7 @@ import {
   createVoiceTool,
   discoverCommandsSync,
   interactive_bash,
+  interactive_menu,
 } from "../tools"
 
 export type ToolRegistryFactories = {
@@ -46,7 +47,8 @@ export type ToolRegistryFactories = {
   createSessionManagerTools: typeof createSessionManagerTools
   createDelegateTask: typeof createDelegateTask
   discoverCommandsSync: typeof discoverCommandsSync
-  interactive_bash: typeof interactive_bash
+  interactive_bash: typeof interactive_bash,
+  interactive_menu: typeof interactive_menu,
   createTaskCreateTool: typeof createTaskCreateTool
   createTaskGetTool: typeof createTaskGetTool
   createTaskList: typeof createTaskList
@@ -80,6 +82,7 @@ export const defaultToolRegistryFactories: ToolRegistryFactories = {
   createDelegateTask,
   discoverCommandsSync,
   interactive_bash,
+  interactive_menu,
   createTaskCreateTool,
   createTaskGetTool,
   createTaskList,

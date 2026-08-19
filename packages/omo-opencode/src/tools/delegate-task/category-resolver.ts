@@ -1,4 +1,5 @@
 import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
+import { detectHeuristicModelFamily } from "@oh-my-opencode/model-core"
 import type { DelegateTaskArgs } from "./types"
 import type { ExecutorContext } from "./executor-types"
 import { mergeCategories } from "../../shared/merge-categories"
@@ -63,7 +64,7 @@ export async function resolveCategoryExecution(
   inheritedModel: string | undefined,
   systemDefaultModel: string | undefined
 ): Promise<CategoryResolutionResult> {
-  const { client, userCategories, sisyphusJuniorModel } = executorCtx
+  const { client, userCategories, sisyphusJuniorModel, availableModelsOverride } = executorCtx
 
   const categoryName = args.category!
   const enabledCategories = mergeCategories(userCategories)
@@ -74,7 +75,7 @@ export async function resolveCategoryExecution(
     return categoryResolutionError(`Unknown category: "${categoryName}". Available: ${allCategoryNames}`)
   }
 
-  const availableModels = await getAvailableModelsForDelegateTask(client)
+  const availableModels = await getAvailableModelsForDelegateTask(client, availableModelsOverride)
 
   const resolved = resolveCategoryConfig(categoryName, {
     userCategories,
@@ -146,7 +147,17 @@ Available categories: ${allCategoryNames}`)
       const userModelOverride = systemDefaultModel ?? explicitCategoryModel ?? overrideModel
       if (userModelOverride) {
         actualModel = userModelOverride
-        const parsedModel = parseModelString(userModelOverride)
+        let parsedModel = parseModelString(userModelOverride)
+        if (!parsedModel && userModelOverride) {
+          // Bare model string (no /): use heuristic family detection to determine provider.
+          const detected = detectHeuristicModelFamily(userModelOverride)
+          if (detected) {
+            parsedModel = {
+              providerID: detected.provider ?? detected.family,
+              modelID: userModelOverride,
+            }
+          }
+        }
         const variantToUse = userCategories?.[args.category!]?.variant ?? resolved.config.variant
         categoryModel = parsedModel
           ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
@@ -156,7 +167,17 @@ Available categories: ${allCategoryNames}`)
         // Cold cache + no explicit override: use the category's built-in model from DEFAULT_CATEGORIES.
         const builtinModel = resolved.model
         actualModel = builtinModel
-        const parsedModel = parseModelString(builtinModel)
+        let parsedModel = parseModelString(builtinModel)
+        if (!parsedModel && builtinModel) {
+          // Bare model string (no /): use heuristic family detection.
+          const detected = detectHeuristicModelFamily(builtinModel)
+          if (detected) {
+            parsedModel = {
+              providerID: detected.provider ?? detected.family,
+              modelID: builtinModel,
+            }
+          }
+        }
         const variantToUse = userCategories?.[args.category!]?.variant ?? resolved.config.variant
         categoryModel = parsedModel
           ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)

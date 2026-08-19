@@ -9174,10 +9174,6 @@
           "default": true,
           "type": "boolean"
         },
-        "auto_create": {
-          "default": false,
-          "type": "boolean"
-        },
         "shorten_interview": {
           "default": false,
           "type": "boolean"
@@ -9185,15 +9181,19 @@
         "task_write_back": {
           "default": true,
           "type": "boolean"
+        },
+        "auto_create": {
+          "default": false,
+          "type": "boolean"
         }
       },
       "required": [
         "enabled",
         "spec_dir",
         "auto_inject",
-        "auto_create",
         "shorten_interview",
-        "task_write_back"
+        "task_write_back",
+        "auto_create"
       ],
       "additionalProperties": false
     },
@@ -9342,8 +9342,17 @@
       "properties": {
         "force_enable": {
           "type": "boolean"
+        },
+        "long_running_tool_seconds": {
+          "default": 300,
+          "type": "number",
+          "minimum": 0,
+          "maximum": 86400
         }
       },
+      "required": [
+        "long_running_tool_seconds"
+      ],
       "additionalProperties": false
     },
     "model_capabilities": {

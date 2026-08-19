@@ -26,7 +26,7 @@ export type StartWorkHookOutput = {
 
 export type SessionModelOverride = { readonly providerID: string; readonly modelID: string }
 
-export type WorkStartingCommand = "start-work" | "ralph-loop" | "ulw-loop"
+export type WorkStartingCommand = "start-work" | "ulw-loop"
 
 type ChatMessageHook = {
   "chat.message"?: (

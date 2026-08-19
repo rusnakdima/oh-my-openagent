@@ -10956,10 +10956,6 @@
               "default": true,
               "type": "boolean"
             },
-            "auto_create": {
-              "default": false,
-              "type": "boolean"
-            },
             "shorten_interview": {
               "default": false,
               "type": "boolean"
@@ -10967,15 +10963,19 @@
             "task_write_back": {
               "default": true,
               "type": "boolean"
+            },
+            "auto_create": {
+              "default": false,
+              "type": "boolean"
             }
           },
           "required": [
             "enabled",
             "spec_dir",
             "auto_inject",
-            "auto_create",
             "shorten_interview",
-            "task_write_back"
+            "task_write_back",
+            "auto_create"
           ],
           "additionalProperties": false
         },
@@ -11124,8 +11124,17 @@
           "properties": {
             "force_enable": {
               "type": "boolean"
+            },
+            "long_running_tool_seconds": {
+              "default": 300,
+              "type": "number",
+              "minimum": 0,
+              "maximum": 86400
             }
           },
+          "required": [
+            "long_running_tool_seconds"
+          ],
           "additionalProperties": false
         },
         "model_capabilities": {
@@ -11761,6 +11770,160 @@
           "required": [
             "ultrawork",
             "goal"
+          ],
+          "additionalProperties": false
+        },
+        "voice": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": false,
+              "type": "boolean"
+            },
+            "default_backend": {
+              "default": "openai",
+              "type": "string",
+              "enum": [
+                "openai",
+                "cloudflare",
+                "local"
+              ]
+            },
+            "openai": {
+              "type": "object",
+              "properties": {
+                "model": {
+                  "default": "whisper-large-v3",
+                  "type": "string",
+                  "enum": [
+                    "whisper-large-v3",
+                    "whisper-large-v3-turbo"
+                  ]
+                },
+                "language": {
+                  "default": null,
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "temperature": {
+                  "default": 0,
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              },
+              "required": [
+                "model",
+                "language",
+                "temperature"
+              ],
+              "additionalProperties": false
+            },
+            "cloudflare": {
+              "type": "object",
+              "properties": {
+                "model": {
+                  "default": "@cf/deepgram/nova-3",
+                  "type": "string",
+                  "enum": [
+                    "@cf/deepgram/nova-3",
+                    "@cf/deepgram/aura-2-en"
+                  ]
+                },
+                "language": {
+                  "default": "en",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "model",
+                "language"
+              ],
+              "additionalProperties": false
+            },
+            "local": {
+              "type": "object",
+              "properties": {
+                "executable": {
+                  "default": "auto",
+                  "type": "string"
+                },
+                "model": {
+                  "default": "base",
+                  "type": "string",
+                  "enum": [
+                    "tiny",
+                    "base",
+                    "small",
+                    "medium",
+                    "large-v3"
+                  ]
+                },
+                "device": {
+                  "default": "cpu",
+                  "type": "string",
+                  "enum": [
+                    "cpu",
+                    "cuda"
+                  ]
+                }
+              },
+              "required": [
+                "executable",
+                "model",
+                "device"
+              ],
+              "additionalProperties": false
+            },
+            "capture": {
+              "default": {
+                "silence_threshold_db": -40,
+                "max_duration_seconds": 60,
+                "min_duration_seconds": 1,
+                "sample_rate": 16000
+              },
+              "type": "object",
+              "properties": {
+                "silence_threshold_db": {
+                  "default": -40,
+                  "type": "number"
+                },
+                "max_duration_seconds": {
+                  "default": 60,
+                  "type": "number",
+                  "minimum": 1,
+                  "maximum": 300
+                },
+                "min_duration_seconds": {
+                  "default": 1,
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 10
+                },
+                "sample_rate": {
+                  "default": 16000,
+                  "type": "number"
+                }
+              },
+              "required": [
+                "silence_threshold_db",
+                "max_duration_seconds",
+                "min_duration_seconds",
+                "sample_rate"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "enabled",
+            "default_backend",
+            "capture"
           ],
           "additionalProperties": false
         },
@@ -25632,10 +25795,6 @@
                     "default": true,
                     "type": "boolean"
                   },
-                  "auto_create": {
-                    "default": false,
-                    "type": "boolean"
-                  },
                   "shorten_interview": {
                     "default": false,
                     "type": "boolean"
@@ -25643,15 +25802,19 @@
                   "task_write_back": {
                     "default": true,
                     "type": "boolean"
+                  },
+                  "auto_create": {
+                    "default": false,
+                    "type": "boolean"
                   }
                 },
                 "required": [
                   "enabled",
                   "spec_dir",
                   "auto_inject",
-                  "auto_create",
                   "shorten_interview",
-                  "task_write_back"
+                  "task_write_back",
+                  "auto_create"
                 ],
                 "additionalProperties": false
               },
@@ -25800,8 +25963,17 @@
                 "properties": {
                   "force_enable": {
                     "type": "boolean"
+                  },
+                  "long_running_tool_seconds": {
+                    "default": 300,
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 86400
                   }
                 },
+                "required": [
+                  "long_running_tool_seconds"
+                ],
                 "additionalProperties": false
               },
               "model_capabilities": {
@@ -26437,6 +26609,160 @@
                 "required": [
                   "ultrawork",
                   "goal"
+                ],
+                "additionalProperties": false
+              },
+              "voice": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "default": false,
+                    "type": "boolean"
+                  },
+                  "default_backend": {
+                    "default": "openai",
+                    "type": "string",
+                    "enum": [
+                      "openai",
+                      "cloudflare",
+                      "local"
+                    ]
+                  },
+                  "openai": {
+                    "type": "object",
+                    "properties": {
+                      "model": {
+                        "default": "whisper-large-v3",
+                        "type": "string",
+                        "enum": [
+                          "whisper-large-v3",
+                          "whisper-large-v3-turbo"
+                        ]
+                      },
+                      "language": {
+                        "default": null,
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "temperature": {
+                        "default": 0,
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    },
+                    "required": [
+                      "model",
+                      "language",
+                      "temperature"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "cloudflare": {
+                    "type": "object",
+                    "properties": {
+                      "model": {
+                        "default": "@cf/deepgram/nova-3",
+                        "type": "string",
+                        "enum": [
+                          "@cf/deepgram/nova-3",
+                          "@cf/deepgram/aura-2-en"
+                        ]
+                      },
+                      "language": {
+                        "default": "en",
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "model",
+                      "language"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "local": {
+                    "type": "object",
+                    "properties": {
+                      "executable": {
+                        "default": "auto",
+                        "type": "string"
+                      },
+                      "model": {
+                        "default": "base",
+                        "type": "string",
+                        "enum": [
+                          "tiny",
+                          "base",
+                          "small",
+                          "medium",
+                          "large-v3"
+                        ]
+                      },
+                      "device": {
+                        "default": "cpu",
+                        "type": "string",
+                        "enum": [
+                          "cpu",
+                          "cuda"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "executable",
+                      "model",
+                      "device"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "capture": {
+                    "default": {
+                      "silence_threshold_db": -40,
+                      "max_duration_seconds": 60,
+                      "min_duration_seconds": 1,
+                      "sample_rate": 16000
+                    },
+                    "type": "object",
+                    "properties": {
+                      "silence_threshold_db": {
+                        "default": -40,
+                        "type": "number"
+                      },
+                      "max_duration_seconds": {
+                        "default": 60,
+                        "type": "number",
+                        "minimum": 1,
+                        "maximum": 300
+                      },
+                      "min_duration_seconds": {
+                        "default": 1,
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 10
+                      },
+                      "sample_rate": {
+                        "default": 16000,
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "silence_threshold_db",
+                      "max_duration_seconds",
+                      "min_duration_seconds",
+                      "sample_rate"
+                    ],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [
+                  "enabled",
+                  "default_backend",
+                  "capture"
                 ],
                 "additionalProperties": false
               },

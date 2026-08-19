@@ -4,7 +4,6 @@ import { join } from "node:path"
 import { tmpdir } from "node:os"
 import type { RunContext } from "./types"
 import { _resetForTesting, setSessionAgent } from "../../features/claude-code-session-state"
-import { writeState as writeRalphLoopState } from "../../hooks/ralph-loop/storage"
 import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 
 const testDirs: string[] = []
@@ -530,49 +529,4 @@ describe("checkCompletionConditions continuation coverage", () => {
     expect(result).toBe(false)
   })
 
-  it("returns false when active ralph-loop continuation exists for this session", async () => {
-    // given
-    spyOn(console, "log").mockImplementation(() => {})
-    const directory = createTempDir()
-    writeRalphLoopState(directory, {
-      active: true,
-      iteration: 2,
-      max_iterations: 10,
-      completion_promise: "DONE",
-      started_at: new Date().toISOString(),
-      prompt: "keep going",
-      session_id: "test-session",
-    })
-    const ctx = createMockContext(directory)
-    const { checkCompletionConditions } = await import("./completion")
-
-    // when
-    const result = await checkCompletionConditions(ctx)
-
-    // then
-    expect(result).toBe(false)
-  })
-
-  it("returns true when active ralph-loop is bound to another session", async () => {
-    // given
-    spyOn(console, "log").mockImplementation(() => {})
-    const directory = createTempDir()
-    writeRalphLoopState(directory, {
-      active: true,
-      iteration: 2,
-      max_iterations: 10,
-      completion_promise: "DONE",
-      started_at: new Date().toISOString(),
-      prompt: "keep going",
-      session_id: "other-session",
-    })
-    const ctx = createMockContext(directory)
-    const { checkCompletionConditions } = await import("./completion")
-
-    // when
-    const result = await checkCompletionConditions(ctx)
-
-    // then
-    expect(result).toBe(true)
-  })
 })

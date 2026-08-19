@@ -26,6 +26,7 @@ export const HookNameSchema = z.enum([
   "agent-usage-reminder",
   "non-interactive-env",
   "interactive-bash-session",
+  "interactive-menu-session",
 
   "tool-pair-validator",
   "monitor-status-injector",

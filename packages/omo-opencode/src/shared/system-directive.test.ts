@@ -145,17 +145,6 @@ const x = 1;
       expect(isSystemDirective(directive)).toBe(true)
     })
 
-    test("#given a ralph-loop ULW continuation prefixed with 'ultrawork ' #when checking system directive #then returns true", () => {
-      // given
-      const directive = `ultrawork ${createSystemDirective("RALPH LOOP 2/500")}\n\nYour previous attempt did not output the completion promise.`
-
-      // when
-      const result = isSystemDirective(directive)
-
-      // then
-      expect(result).toBe(true)
-    })
-
     test("#given a continuation prefixed with 'ulw ' shorthand #when checking system directive #then returns true", () => {
       // given
       const directive = `ulw ${createSystemDirective("ULTRAWORK LOOP VERIFICATION 1/500")}\n\nYou already emitted <promise>DONE</promise>.`

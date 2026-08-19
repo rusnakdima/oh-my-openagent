@@ -39,7 +39,6 @@ export { createTeamMailboxInjector } from "./team-mailbox-injector";
 export { createTeamModeStatusInjector } from "./team-mode-status-injector";
 export { createToolPairValidatorHook } from "./tool-pair-validator";
 export { createCategorySkillReminderHook } from "./category-skill-reminder";
-export { createRalphLoopHook, type RalphLoopHook } from "./ralph-loop";
 export { createGoalHook, type GoalHook } from "./goal";
 export { createNoSisyphusGptHook } from "./no-sisyphus-gpt";
 export { createNoHephaestusNonGptHook } from "./no-hephaestus-non-gpt";

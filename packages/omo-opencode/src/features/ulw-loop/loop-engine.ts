@@ -5,6 +5,7 @@
  * While a goal is `active`, each session.idle re-injects a continuation prompt.
  * This module is the shared engine consumed by the `goal` session hook.
  */
+import type { PluginInput } from "@opencode-ai/plugin"
 import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "../../shared/prompt-async-gate"
 import type { Goal } from "../../hooks/goal/types"
 import { buildContinuationPrompt } from "../../hooks/goal/prompt"
@@ -13,7 +14,7 @@ const HOOK_NAME = "goal"
 const SETTLE_MS = 150
 
 export type UlwLoopEngineOptions = {
-  readonly client: unknown
+  readonly client: PluginInput["client"]
   readonly sessionID: string
 }
 
@@ -24,7 +25,7 @@ export function createUlwLoopEngine() {
     dispatchIdleContinuation(
       sessionID: string,
       goal: Goal,
-      client: unknown,
+      client: PluginInput["client"],
     ): void {
       if (goal === null || goal.status !== "active") return
       if (inFlightContinuations.has(sessionID)) return
@@ -41,12 +42,11 @@ export function createUlwLoopEngine() {
   }
 }
 
-async function dispatchPrompt(sessionID: string, goal: Goal, client: unknown): Promise<void> {
+async function dispatchPrompt(sessionID: string, goal: Goal, client: PluginInput["client"]): Promise<void> {
   const promptText = buildContinuationPrompt(goal)
   const result = await dispatchInternalPrompt({
     mode: "async",
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    client: client as any,
+    client,
     sessionID,
     source: `${HOOK_NAME}:idle-continuation`,
     settleMs: SETTLE_MS,
