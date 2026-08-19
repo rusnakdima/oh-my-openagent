@@ -70,7 +70,8 @@
           "wiki-query",
           "wiki-lint",
           "wiki-update",
-          "openspec"
+          "openspec",
+          "btw"
         ]
       }
     },
@@ -10157,12 +10158,118 @@
             "sample_rate"
           ],
           "additionalProperties": false
+        },
+        "tts": {
+          "default": {
+            "enabled": false,
+            "default_backend": "openai"
+          },
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": false,
+              "type": "boolean"
+            },
+            "default_backend": {
+              "default": "openai",
+              "type": "string",
+              "enum": [
+                "openai",
+                "local"
+              ]
+            },
+            "openai": {
+              "type": "object",
+              "properties": {
+                "model": {
+                  "default": "gpt-4o-mini-tts",
+                  "type": "string",
+                  "enum": [
+                    "gpt-4o-mini-tts",
+                    "tts-1",
+                    "tts-1-hd"
+                  ]
+                },
+                "voice": {
+                  "default": "alloy",
+                  "type": "string",
+                  "enum": [
+                    "alloy",
+                    "echo",
+                    "fable",
+                    "onyx",
+                    "nova",
+                    "shimmer"
+                  ]
+                },
+                "format": {
+                  "default": "mp3",
+                  "type": "string",
+                  "enum": [
+                    "mp3",
+                    "opus",
+                    "aac",
+                    "flac"
+                  ]
+                },
+                "speed": {
+                  "default": 1,
+                  "type": "number",
+                  "minimum": 0.25,
+                  "maximum": 4
+                }
+              },
+              "required": [
+                "model",
+                "voice",
+                "format",
+                "speed"
+              ],
+              "additionalProperties": false
+            },
+            "local": {
+              "type": "object",
+              "properties": {
+                "backend": {
+                  "default": "espeak",
+                  "type": "string",
+                  "enum": [
+                    "espeak",
+                    "say",
+                    "edge-tts"
+                  ]
+                },
+                "voice": {
+                  "default": "en",
+                  "type": "string"
+                },
+                "speed": {
+                  "default": 160,
+                  "type": "number",
+                  "minimum": 80,
+                  "maximum": 220
+                }
+              },
+              "required": [
+                "backend",
+                "voice",
+                "speed"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "enabled",
+            "default_backend"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
         "enabled",
         "default_backend",
-        "capture"
+        "capture",
+        "tts"
       ],
       "additionalProperties": false
     },
