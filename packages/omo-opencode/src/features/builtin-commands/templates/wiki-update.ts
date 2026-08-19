@@ -1,14 +1,14 @@
 export const WIKI_UPDATE_TEMPLATE = `# /wiki-update -- Revise Wiki Pages
 
-Update existing wiki pages at \`.sisyphus/wiki/\` with new information.
+Update existing wiki pages at \`.omo/wiki/\` with new information.
 
 ## Pipeline
 
 ### Step 1: Verify wiki exists
-Check \`.sisyphus/wiki/index.md\`. If missing, stop.
+Check \`.omo/wiki/index.md\`. If missing, stop.
 
 ### Step 2: Read SCHEMA.md
-Read conventions from \`.sisyphus/wiki/SCHEMA.md\`.
+Read conventions from \`.omo/wiki/SCHEMA.md\`.
 
 ### Step 3: Identify affected pages
 Based on the update, read index and find all pages containing old/stale information.

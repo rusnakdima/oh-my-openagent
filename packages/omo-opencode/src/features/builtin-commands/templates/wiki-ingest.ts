@@ -1,16 +1,16 @@
 export const WIKI_INGEST_TEMPLATE = `# /wiki-ingest -- Add Source to Wiki
 
-Add a source (paper, URL, file, transcript) to the wiki at \`.sisyphus/wiki/\`.
+Add a source (paper, URL, file, transcript) to the wiki at \`.omo/wiki/\`.
 
 **CRITICAL: Never write from memory. Write only what the source supports.**
 
 ## Pipeline
 
 ### Step 1: Verify wiki exists
-Check \`.sisyphus/wiki/index.md\`. If missing, tell user to run \`/wiki-init\` first.
+Check \`.omo/wiki/index.md\`. If missing, tell user to run \`/wiki-init\` first.
 
 ### Step 2: Read SCHEMA.md
-Read \`.sisyphus/wiki/SCHEMA.md\` for naming conventions.
+Read \`.omo/wiki/SCHEMA.md\` for naming conventions.
 
 ### Step 3: Read the source
 - File path: use Read tool
@@ -29,7 +29,7 @@ Show extracted takeaways and ask:
 Wait for confirmation before writing.
 
 ### Step 6: Create wiki page(s)
-Create in \`.sisyphus/wiki/pages/{slug}.md\`:
+Create in \`.omo/wiki/pages/{slug}.md\`:
 \`\`\`markdown
 # {Title}
 

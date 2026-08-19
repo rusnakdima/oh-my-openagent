@@ -2,7 +2,7 @@ export const STOP_CONTINUATION_TEMPLATE = `Stop all continuation mechanisms for 
 
 This command will:
 1. Stop the todo-continuation-enforcer from automatically continuing incomplete tasks
-2. Cancel any active Ralph Loop
+2. Cancel any active goal loop
 3. Clear the active Goal for this session
 4. Clear the boulder state for the current project
 

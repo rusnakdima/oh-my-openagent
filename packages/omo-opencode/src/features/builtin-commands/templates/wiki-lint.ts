@@ -1,13 +1,13 @@
 export const WIKI_LINT_TEMPLATE = `# /wiki-lint -- Wiki Health Audit
 
-Comprehensive read-only health audit of the wiki at \`.sisyphus/wiki/\`.
+Comprehensive read-only health audit of the wiki at \`.omo/wiki/\`.
 
 This audit is read-only -- it reports issues but does not modify any page except writing the report.
 
 ## Pipeline
 
 ### Step 1: Verify wiki exists
-Check \`.sisyphus/wiki/index.md\`. If missing, stop.
+Check \`.omo/wiki/index.md\`. If missing, stop.
 
 ### Step 2: Read everything
 Read: SCHEMA.md, index.md, overview.md, and ALL files in pages/.
@@ -36,7 +36,7 @@ Topics in overview.md with no dedicated page. Report each coverage gap found.
 Pages with zero outgoing [[links]].
 
 ### Step 4: Write report
-Create \`.sisyphus/wiki/pages/lint-report.md\` with severity tiers.
+Create \`.omo/wiki/pages/lint-report.md\` with severity tiers.
 
 ### Step 5: Offer fixes
 For each ERROR/WARNING, offer to fix:

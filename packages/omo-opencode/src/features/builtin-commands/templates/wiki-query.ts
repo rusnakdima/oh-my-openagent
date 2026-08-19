@@ -1,6 +1,6 @@
 export const WIKI_QUERY_TEMPLATE = `# /wiki-query -- Query the Wiki
 
-Answer a question using ONLY the structured wiki at \`.sisyphus/wiki/\`.
+Answer a question using ONLY the structured wiki at \`.omo/wiki/\`.
 
 ## CRITICAL RULE
 **You must never answer from your own knowledge or memory.** Only cite information found in wiki pages. If the wiki doesn't have the answer, say "not in the wiki" explicitly.
@@ -8,10 +8,10 @@ Answer a question using ONLY the structured wiki at \`.sisyphus/wiki/\`.
 ## Pipeline
 
 ### Step 1: Verify wiki exists
-Check \`.sisyphus/wiki/index.md\`. If missing, tell user to run \`/wiki-init\`.
+Check \`.omo/wiki/index.md\`. If missing, tell user to run \`/wiki-init\`.
 
 ### Step 2: Read the index
-Read \`.sisyphus/wiki/index.md\` to see all available pages.
+Read \`.omo/wiki/index.md\` to see all available pages.
 
 ### Step 3: Identify relevant pages
 Based on the question, determine which pages are relevant. Read those pages.

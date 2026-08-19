@@ -1,22 +1,22 @@
 export const WIKI_INIT_TEMPLATE = `# /wiki-init -- Bootstrap LLM Wiki
 
-Bootstrap a new structured wiki based on Karpathy's LLM Wiki pattern at \`.sisyphus/wiki/\`.
+Bootstrap a new structured wiki based on Karpathy's LLM Wiki pattern at \`.omo/wiki/\`.
 
-**Important:** If \`.sisyphus/wiki/\` already exists, warn the user and ask for confirmation before overwriting.
+**Important:** If \`.omo/wiki/\` already exists, warn the user and ask for confirmation before overwriting.
 
 ## Task
 
 Create the wiki directory structure:
 
-- .sisyphus/wiki/SCHEMA.md
-- .sisyphus/wiki/index.md
-- .sisyphus/wiki/log.md
-- .sisyphus/wiki/overview.md
-- .sisyphus/wiki/pages/.gitkeep
+- .omo/wiki/SCHEMA.md
+- .omo/wiki/index.md
+- .omo/wiki/log.md
+- .omo/wiki/overview.md
+- .omo/wiki/pages/.gitkeep
 
 ### SCHEMA.md
 Document conventions:
-- Wiki root path: \`.sisyphus/wiki/\`
+- Wiki root path: \`.omo/wiki/\`
 - Page naming: lowercase slugs with hyphens (e.g., \`api-authentication.md\`)
 - Link format: \`[[page-slug]]\` for internal wiki links
 - Source citation: \`[source: filename or URL]\`

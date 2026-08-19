@@ -413,11 +413,11 @@ describe("loadBuiltinCommands - wiki commands", () => {
 })
 
 describe("WIKI_INIT_TEMPLATE", () => {
-  test("should reference the canonical wiki root .sisyphus/wiki/", () => {
+  test("should reference the canonical wiki root .omo/wiki/", () => {
     //#given - the template string
 
     //#when / #then
-    expect(WIKI_INIT_TEMPLATE).toContain(".sisyphus/wiki/")
+    expect(WIKI_INIT_TEMPLATE).toContain(".omo/wiki/")
   })
 
   test("should create the four canonical top-level files and pages directory", () => {
@@ -495,11 +495,11 @@ describe("WIKI_INGEST_TEMPLATE", () => {
     expect(WIKI_INGEST_TEMPLATE).toContain("backlink")
   })
 
-  test("should write pages under .sisyphus/wiki/pages/", () => {
+  test("should write pages under .omo/wiki/pages/", () => {
     //#given - the template string
 
     //#when / #then
-    expect(WIKI_INGEST_TEMPLATE).toContain(".sisyphus/wiki/pages/")
+    expect(WIKI_INGEST_TEMPLATE).toContain(".omo/wiki/pages/")
   })
 
   test("should not contain emojis", () => {
