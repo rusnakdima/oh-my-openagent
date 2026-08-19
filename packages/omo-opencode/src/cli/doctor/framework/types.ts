@@ -8,6 +8,12 @@ export interface DoctorOptions {
   fix?: boolean
 }
 
+export interface FixResult {
+  success: boolean
+  message: string
+  fixed?: string[]
+}
+
 export interface DoctorIssue {
   title: string
   description: string
@@ -28,14 +34,6 @@ export interface CheckResult {
 }
 
 export type CheckFunction = () => Promise<CheckResult>
-
-export interface FixResult {
-  readonly checkId: string
-  readonly fixed: number
-  readonly failed: number
-  readonly errors: readonly string[]
-}
-
 export type CheckFunctionFix = () => Promise<FixResult>
 
 export interface CheckDefinition {

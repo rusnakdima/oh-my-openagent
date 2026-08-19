@@ -7,10 +7,6 @@ import { doctor, resolveDoctorTarget } from "./doctor"
 import { createMcpOAuthCommand } from "./mcp-oauth"
 import { configureRuntimeCommands } from "./runtime-commands"
 import { runConfigMigrate } from "./config-migrate"
-import { printConfigLayers, printExplainResult } from "./config-manager/config-layers"
-import { configShow } from "./config-show"
-import { runLog } from "./log"
-import { configureAgentsCommand } from "./agents"
 import { availableInstallPlatforms, isSenpiPlatformEnabled, SENPI_PLATFORM_ENV_FLAG } from "./senpi-platform-flag"
 import type { InstallArgs } from "./types"
 import type { RunOptions } from "./run"
@@ -48,16 +44,6 @@ type RootCommandOptions = {
 type ConfigMigrateCommandOptions = {
   readonly dryRun?: boolean
   readonly json?: boolean
-}
-
-type ConfigShowCommandOptions = {
-  readonly json?: boolean
-}
-
-type LogCommandOptions = {
-  readonly tail?: number
-  readonly grep?: string
-  readonly path?: boolean
 }
 
 type DoctorCommandOptions = {
@@ -256,7 +242,7 @@ program
   .option("--status", "Show compact system dashboard")
   .option("--verbose", "Show detailed diagnostic information")
   .option("--json", "Output results in JSON format")
-  .option("--fix", "Automatically apply fixes where possible")
+  .option("--fix", "Attempt to automatically fix detected issues")
   .addOption(new Option("--platform <platform>", "Doctor target platform: opencode, codex").choices(["opencode", "codex"]))
   .addHelpText("after", `
 Examples:
@@ -264,7 +250,6 @@ Examples:
   $ bunx oh-my-opencode doctor --status   # Compact dashboard
   $ bunx oh-my-opencode doctor --verbose  # Deep diagnostics
   $ bunx oh-my-opencode doctor --json     # JSON output
-  $ bunx oh-my-opencode doctor --fix      # Auto-fix applicable issues
   $ omo-agent-toolkit doctor --platform=codex   # Codex/LazyCodex diagnostics only
 `)
   .action(async (options: DoctorCommandOptions) => {
@@ -281,11 +266,9 @@ Examples:
     process.exit(exitCode)
   })
 
-const configCommand = program
+program
   .command("config")
   .description("Manage unified OMO configuration")
-
-configCommand
   .command("migrate")
   .description("Migrate legacy OMO configuration into ~/.omo/omo.jsonc")
   .option("--dry-run", "Print the transform, backup move plan, and conflicts without new migration writes")
@@ -295,51 +278,9 @@ configCommand
     process.exit(exitCode)
   })
 
-configCommand
-  .addCommand(
-    new Command("show")
-      .description("Print the merged effective OMO configuration (including defaults)")
-      .option("--json", "Print raw JSON instead of formatted output")
-      .action(async (options: ConfigShowCommandOptions) => {
-        const exitCode = await configShow({ json: options.json ?? false })
-        process.exit(exitCode)
-      }),
-  )
-
-configCommand
-  .command("layers")
-  .description("Show the config layer chain from nearest to farthest")
-  .action(() => {
-    printConfigLayers()
-  })
-
-configCommand
-  .command("explain <key>")
-  .description("Show provenance for a specific config key")
-  .action((key: string) => {
-    printExplainResult(key)
-  })
-
-configureAgentsCommand(program)
-
 configureRuntimeCommands(program)
 
 program.addCommand(createMcpOAuthCommand())
-
-program
-  .command("log")
-  .description("View the oh-my-opencode plugin log")
-  .option("--tail <n>", "Show the last N lines", (n) => parseInt(n, 10), undefined)
-  .option("--grep <pattern>", "Filter lines containing pattern")
-  .option("--path", "Print the log file path and exit")
-  .action(async (options: LogCommandOptions) => {
-    const exitCode = await runLog({
-      tail: options.tail,
-      grep: options.grep,
-      path: options.path ?? false,
-    })
-    process.exit(exitCode)
-  })
 
 export function runCli(): void {
   program.parse()

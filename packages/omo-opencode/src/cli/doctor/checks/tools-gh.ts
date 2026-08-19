@@ -1,5 +1,6 @@
 import { spawnWithTimeout } from "../framework/spawn-with-timeout"
 import { bunWhich } from "../../../shared/bun-which-shim"
+import type { FixResult } from "../framework/types"
 
 export interface GhCliInfo {
   installed: boolean
@@ -128,5 +129,12 @@ export async function getGhCliInfo(dependencies: GhCliDependencies = {}): Promis
     username: authStatus.username,
     scopes: authStatus.scopes,
     error: authStatus.error,
+  }
+}
+
+export async function fixGhAuth(): Promise<FixResult> {
+  return {
+    success: false,
+    message: "gh auth login is interactive — run 'gh auth login' manually to authenticate",
   }
 }

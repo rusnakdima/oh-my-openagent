@@ -1,12 +1,16 @@
 import { AGENT_MODEL_REQUIREMENTS, CATEGORY_MODEL_REQUIREMENTS } from "../../../shared/model-requirements"
 import { getModelCapabilities } from "../../../shared/model-capabilities"
 import { CHECK_IDS, CHECK_NAMES } from "../framework/constants"
-import type { CheckResult, DoctorIssue } from "../framework/types"
+import type { CheckResult, DoctorIssue, FixResult } from "../framework/types"
 import { loadAvailableModelsFromCache } from "./model-resolution-cache"
 import { loadOmoConfig } from "./model-resolution-config"
 import { buildModelResolutionDetails } from "./model-resolution-details"
 import { buildEffectiveResolution, getEffectiveModel } from "./model-resolution-effective-model"
 import type { AgentResolutionInfo, CategoryResolutionInfo, ModelResolutionInfo, OmoConfig } from "./model-resolution-types"
+import { existsSync, unlinkSync } from "node:fs"
+import { join } from "node:path"
+import { getOpenCodeCacheDir } from "../../../shared"
+import { spawnWithTimeout } from "../framework/spawn-with-timeout"
 
 export function parseProviderModel(value: string): { providerID: string; modelID: string } | null {
   const slashIndex = value.indexOf("/")
@@ -148,3 +152,43 @@ export async function checkModels(): Promise<CheckResult> {
 }
 
 export const checkModelResolution = checkModels
+
+export async function fixModelCache(): Promise<FixResult> {
+  const cacheDir = getOpenCodeCacheDir()
+  const cacheFile = join(cacheDir, "models.json")
+  const fixed: string[] = []
+
+  if (existsSync(cacheFile)) {
+    try {
+      unlinkSync(cacheFile)
+      fixed.push("Deleted stale models.json")
+    } catch (err) {
+      return { success: false, message: `Failed to delete cache: ${err instanceof Error ? err.message : String(err)}` }
+    }
+  }
+
+  // Try opencode models --refresh (try opencode directly first, then npx)
+  try {
+    const result = await spawnWithTimeout(["opencode", "models", "--refresh"], { timeoutMs: 30_000 })
+    if (result.exitCode === 0) {
+      return { success: true, message: "Model cache refreshed", fixed }
+    }
+  } catch {
+    // opencode not in PATH — try npx as fallback
+  }
+
+  try {
+    const whichResult = await spawnWithTimeout(["npx", "opencode", "models", "--refresh"], { timeoutMs: 30_000 })
+    if (whichResult.exitCode === 0) {
+      return { success: true, message: "Model cache refreshed (via npx)", fixed }
+    }
+  } catch {
+    // npx also failed
+    if (result.exitCode === 0) {
+      return { success: true, message: "Model cache refreshed", fixed }
+    }
+    return { success: true, message: `Cache deleted but refresh failed: ${fixed.join(", ")}`, fixed }
+  } catch (err) {
+    return { success: false, message: `Cache deleted but refresh failed: ${err instanceof Error ? err.message : String(err)}` }
+  }
+}

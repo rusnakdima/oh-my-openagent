@@ -2,6 +2,7 @@ import type { DoctorOptions, DoctorResult, CheckDefinition, CheckResult, DoctorS
 import { getAllCheckDefinitions, getCodexCheckDefinitions, gatherSystemInfo, gatherToolsSummary, gatherCodexSummary } from "./checks"
 import { EXIT_CODES } from "./framework/constants"
 import { formatDoctorOutput, formatJsonOutput } from "./framework/formatter"
+import color from "picocolors"
 
 const DOCTOR_TIMEOUT_MS = 30_000
 
@@ -98,32 +99,32 @@ export async function runDoctor(options: DoctorOptions): Promise<DoctorResult> {
 
   clearTimeout(timer)
 
-  // Run fixes for applicable checks when --fix is passed
   if (options.fix) {
-    const fixableChecks = allChecks.filter(
-      (check) =>
-        check.fix !== undefined &&
-        results.find((r) => r.name === check.name)?.status !== "pass",
-    )
+    const fixableChecks = allChecks.filter((check) => {
+      const result = results.find((r) => r.name === check.name)
+      return check.fix && result && result.status !== "pass"
+    })
+
     if (fixableChecks.length > 0) {
-      console.log("\nRunning fixes...\n")
-    }
-    for (const check of fixableChecks) {
-      const resultBeforeFix = results.find((r) => r.name === check.name)
-      process.stdout.write(`  ${check.name}... `)
-      try {
-        const fixResult: FixResult = await check.fix!()
-        if (fixResult.errors.length > 0) {
-          console.error(`FAILED`)
-          for (const error of fixResult.errors) {
-            console.error(`    ${error}`)
+      console.log(color.cyan("\nApplying fixes..."))
+      for (const check of fixableChecks) {
+        try {
+          const fixResult = await check.fix!()
+          if (fixResult.success) {
+            console.log(color.green(`  ✓ ${check.name}: ${fixResult.message}`))
+            if (fixResult.fixed && fixResult.fixed.length > 0) {
+              for (const f of fixResult.fixed) {
+                console.log(color.dim(`    → ${f}`))
+              }
+            }
+          } else {
+            console.log(color.red(`  ✗ ${check.name}: ${fixResult.message}`))
           }
-        } else {
-          console.log(`done (${fixResult.fixed} applied)`)
+        } catch (err) {
+          console.log(color.red(`  ✗ ${check.name}: ${err instanceof Error ? err.message : "Unknown error"}`))
         }
-      } catch (err) {
-        console.error(`ERROR: ${err instanceof Error ? err.message : String(err)}`)
       }
+      console.log("")
     }
   }
 

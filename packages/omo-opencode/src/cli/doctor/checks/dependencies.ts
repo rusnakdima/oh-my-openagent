@@ -5,11 +5,12 @@ import { dirname, join } from "node:path"
 
 import { astGrepRuntimeDir, findSgBinarySync } from "@oh-my-opencode/utils"
 
-import type { DependencyInfo } from "../framework/types"
+import type { DependencyInfo, FixResult } from "../framework/types"
 import { spawnWithTimeout } from "../framework/spawn-with-timeout"
 import { getCachedBinaryPath } from "../../../hooks/comment-checker/downloader"
 import { bunWhich } from "../../../shared/bun-which-shim"
 import { isModuleResolutionFailure } from "../../../shared/module-resolution-failure"
+import { getOpenCodeCacheDir } from "../../../shared"
 
 type BinaryCheck =
   | { exists: true; path: string }
@@ -122,5 +123,42 @@ export async function checkCommentChecker(): Promise<DependencyInfo> {
     installed: true,
     version,
     path: resolvedPath,
+  }
+}
+
+export async function fixAstGrep(): Promise<FixResult> {
+  const skillRoot = join(homedir(), ".omo", "skills", "ast-grep")
+  const installScript = join(skillRoot, "install.sh")
+  if (existsSync(installScript)) {
+    try {
+      const result = await spawnWithTimeout(["bash", installScript, "--quiet"], { timeoutMs: 60_000 })
+      if (result.exitCode === 0) {
+        return { success: true, message: "AST-Grep installed", fixed: ["ast-grep CLI"] }
+      }
+    } catch {
+      // fall through to npm
+    }
+  }
+  // Fallback: npm install
+  try {
+    const result = await spawnWithTimeout(["npm", "install", "-g", "@ast-grep/cli"], { timeoutMs: 60_000 })
+    if (result.exitCode === 0) {
+      return { success: true, message: "AST-Grep installed via npm", fixed: ["ast-grep CLI"] }
+    }
+    return { success: false, message: `npm install failed: ${result.stderr || result.stdout}` }
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Failed to install ast-grep" }
+  }
+}
+
+export async function fixCommentChecker(): Promise<FixResult> {
+  try {
+    const result = await spawnWithTimeout(["bun", "add", "-g", "@code-yeongyu/comment-checker"], { timeoutMs: 60_000 })
+    if (result.exitCode === 0) {
+      return { success: true, message: "Comment checker installed", fixed: ["comment-checker binary"] }
+    }
+    return { success: false, message: `bun add failed: ${result.stderr || result.stdout}` }
+  } catch (err) {
+    return { success: false, message: err instanceof Error ? err.message : "Failed to install comment-checker" }
   }
 }
