@@ -4,6 +4,7 @@ import type { DelegatedModelConfig } from "./types"
 export interface ResolveSubagentExecutionOptions {
   allowSisyphusJuniorDirect?: boolean
   allowPrimaryAgentDelegation?: boolean
+  systemDefaultModel?: string
 }
 
 export interface ResolveSubagentExecutionResult {

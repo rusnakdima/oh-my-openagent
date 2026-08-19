@@ -27,20 +27,6 @@ type PrometheusOverride = Record<string, unknown> & {
   prompt_append?: string;
 };
 
-function isModelInFallbackChain(
-  model: string | undefined,
-  fallbackChain: FallbackEntry[] | undefined,
-): boolean {
-  if (!model || !fallbackChain || fallbackChain.length === 0) {
-    return false;
-  }
-
-  const modelParts = model.split("/");
-  const modelName = modelParts.length >= 2 ? modelParts.slice(1).join("/") : model;
-
-  return fallbackChain.some((entry) => entry.model === modelName);
-}
-
 export async function buildPrometheusAgentConfig(params: {
   configAgentPlan: Record<string, unknown> | undefined;
   pluginPrometheusOverride: PrometheusOverride | undefined;
@@ -61,18 +47,10 @@ export async function buildPrometheusAgentConfig(params: {
   const configuredPrometheusModel =
     params.pluginPrometheusOverride?.model ?? categoryConfig?.model;
 
-  const shouldUseCurrentModel = isModelInFallbackChain(
-    params.currentModel,
-    requirement?.fallbackChain,
-  );
-
   const modelResolution = resolveModelPipeline({
     intent: {
-      uiSelectedModel: configuredPrometheusModel
-        ? undefined
-        : shouldUseCurrentModel
-          ? params.currentModel
-          : undefined,
+      // No model restriction — any TUI model is accepted for Prometheus
+      uiSelectedModel: configuredPrometheusModel ? undefined : params.currentModel,
       userModel: params.pluginPrometheusOverride?.model,
       categoryDefaultModel: categoryConfig?.model,
     },
@@ -85,11 +63,13 @@ export async function buildPrometheusAgentConfig(params: {
 
   const resolvedModel = modelResolution?.model;
   const resolvedVariant = modelResolution?.variant;
-  const currentModelVariant = shouldUseCurrentModel
-    ? requirement?.fallbackChain.find((entry) =>
-        isModelInFallbackChain(params.currentModel, [entry]),
-      )?.variant
-    : undefined;
+  const currentModelVariant = (() => {
+    const current = params.currentModel;
+    if (!current) return undefined;
+    const modelParts = current.split("/");
+    const modelName = modelParts.length >= 2 ? modelParts.slice(1).join("/") : modelParts[0];
+    return requirement?.fallbackChain.find((entry) => entry.model === modelName)?.variant;
+  })();
 
   const variantToUse =
     params.pluginPrometheusOverride?.variant ?? resolvedVariant ?? currentModelVariant;

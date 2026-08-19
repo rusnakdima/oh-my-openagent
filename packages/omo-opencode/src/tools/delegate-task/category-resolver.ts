@@ -132,15 +132,18 @@ Available categories: ${allCategoryNames}`)
         : undefined
     }
   } else {
+    // TUI model (systemDefaultModel) wins at step 1 if set; otherwise use explicit category override.
+    const userModelForResolution = systemDefaultModel ?? explicitCategoryModel ?? overrideModel
     const resolution = resolveModelForDelegateTask({
-      userModel: explicitCategoryModel ?? overrideModel,
+      userModel: userModelForResolution,
       availableModels,
-      systemDefaultModel,
+      systemDefaultModel: systemDefaultModel ? undefined : systemDefaultModel,
     })
 
     if (resolution && "skipped" in resolution) {
       isModelResolutionSkipped = true
-      const userModelOverride = explicitCategoryModel ?? overrideModel
+      // Prefer TUI model in cold cache; fall back to explicit override.
+      const userModelOverride = systemDefaultModel ?? explicitCategoryModel ?? overrideModel
       if (userModelOverride) {
         actualModel = userModelOverride
         const parsedModel = parseModelString(userModelOverride)

@@ -42,7 +42,7 @@ export function createEventHandler(args: {
     (typeof pluginConfig.runtime_fallback === "boolean"
       ? pluginConfig.runtime_fallback
       : (pluginConfig.runtime_fallback?.enabled ?? false));
-  const isModelFallbackEnabled = hooks.modelFallback !== null && hooks.modelFallback !== undefined;
+  const isModelFallbackEnabled = false;
   const runEventHookSafely = createEventHookRunner();
   const dispatchToHooks = createEventHookDispatcher(hooks, runEventHookSafely);
   const recentSyntheticIdles = new Map<string, number>();
@@ -61,7 +61,7 @@ export function createEventHandler(args: {
   const modelFallbackHandler = createModelFallbackEventHandler({
     pluginConfig,
     pluginContext,
-    modelFallback: hooks.modelFallback,
+    modelFallback: undefined,
     isModelFallbackEnabled,
     isRuntimeFallbackEnabled,
     shouldAutoRetrySession,

@@ -29,7 +29,12 @@ export async function resolveSubagentExecution(
     }
 
     agentToUse = agentMatch.agentToUse
-    const { categoryModel } = await resolveSubagentModel(agentToUse, agentMatch.matchedAgent, executorCtx)
+    const { categoryModel } = await resolveSubagentModel(
+      agentToUse,
+      agentMatch.matchedAgent,
+      executorCtx,
+      options.systemDefaultModel,
+    )
     return { agentToUse, categoryModel }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)

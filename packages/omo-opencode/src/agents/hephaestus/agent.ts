@@ -61,7 +61,6 @@ function assertHephaestusSupportedModel(model: string | undefined): void {
 export function getHephaestusPromptSource(
   model?: string,
 ): HephaestusPromptSource {
-  assertHephaestusSupportedModel(model);
   if (model && isGpt5_6Model(model)) {
     return "gpt-5-6";
   }
@@ -71,6 +70,8 @@ export function getHephaestusPromptSource(
   if (model && GPT_5_4_RE.test(extractModelName(model))) {
     return "gpt-5-4";
   }
+  // Unknown/non-GPT model → use generic GPT fallback prompt
+  // (no throw; the agent still registers and runs, just with non-optimal prompts)
   return "gpt";
 }
 

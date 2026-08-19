@@ -10,6 +10,8 @@ export type HeuristicModelFamilyDefinition = {
   reasoningEffortAliases?: Record<string, string>
   supportsTemperature?: boolean
   supportsThinking?: boolean
+  /** Actual provider prefix when family name differs from the provider ID (e.g. gpt-5 → "openai") */
+  provider?: string
 }
 
 export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<HeuristicModelFamilyDefinition> = [
@@ -44,6 +46,7 @@ export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<HeuristicModelFamily
     includes: ["gpt-5"],
     variants: ["low", "medium", "high", "xhigh"],
     reasoningEfforts: ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+    provider: "openai",
   },
   {
     family: "gpt-legacy",

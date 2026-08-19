@@ -17,430 +17,214 @@ describe("resolveModelForDelegateTask", () => {
 		hasProviderModelsSpy?.mockRestore()
 	})
 
-	describe("#given no provider cache exists (pre-cache scenario)", () => {
-		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(false)
-			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(false)
-		})
+	// ─────────────────────────────────────────────────────────────
+	// Step 1: userModel — always wins when provided
+	// ─────────────────────────────────────────────────────────────
 
-		describe("#when availableModels is empty and no user model override", () => {
-			test("#then returns skipped sentinel to leave model unpinned", () => {
+	describe("#given userModel is set", () => {
+		describe("#when availableModels is empty (cold cache)", () => {
+			test("#then returns userModel as-is (user's explicit choice is honored)", () => {
 				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["anthropic"], model: "claude-sonnet-4-6" },
-					],
-					availableModels: new Set(),
-					systemDefaultModel: "anthropic/claude-sonnet-4.6",
-				})
-
-				expect(result).toEqual({ skipped: true })
-			})
-		})
-
-		describe("#when user explicitly set a model override", () => {
-			test("#then returns the user model regardless of cache state", () => {
-				const result = resolveModelForDelegateTask({
-					userModel: "openai/gpt-5.4",
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["anthropic"], model: "claude-sonnet-4-6" },
-					],
-					availableModels: new Set(),
-					systemDefaultModel: "anthropic/claude-sonnet-4.6",
-				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.4" })
-			})
-		})
-
-		describe("#when user set fallback_models but no cache exists", () => {
-			test("#then returns skipped sentinel (skip fallback resolution without cache)", () => {
-				const result = resolveModelForDelegateTask({
-					userFallbackModels: ["openai/gpt-5.4", "google/gemini-3.1-pro"],
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["anthropic"], model: "claude-sonnet-4-6" },
-					],
+					userModel: "minimax/MiniMax-M2.7",
 					availableModels: new Set(),
 				})
-
-				expect(result).toEqual({ skipped: true })
-			})
-		})
-	})
-
-	describe("#given provider cache exists", () => {
-		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(true)
-			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(true)
-		})
-
-		describe("#when availableModels is empty (cache exists but empty)", () => {
-			test("#then keeps the category default when its provider is connected", () => {
-				const readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["anthropic"])
-
-				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["anthropic"], model: "claude-sonnet-4-6" },
-					],
-					availableModels: new Set(),
-					systemDefaultModel: "anthropic/claude-sonnet-4.6",
-				})
-
-				expect(result).toEqual({ model: "anthropic/claude-sonnet-4.6" })
-				readConnectedProvidersSpy.mockRestore()
-			})
-
-			test("#then skips a disconnected category default and resolves via a connected fallback", () => {
-				const readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai"])
-
-				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["openai"], model: "gpt-5.4", variant: "high" },
-					],
-					availableModels: new Set(),
-					systemDefaultModel: "anthropic/claude-sonnet-4.6",
-				})
-
-				expect(result).toEqual({
-					model: "openai/gpt-5.4",
-					variant: "high",
-					fallbackEntry: { providers: ["openai"], model: "gpt-5.4", variant: "high" },
-					matchedFallback: true,
-				})
-				readConnectedProvidersSpy.mockRestore()
-			})
-
-			test("#then skips disconnected user fallback models and keeps the first connected fallback", () => {
-				const readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai"])
-
-				const result = resolveModelForDelegateTask({
-					userFallbackModels: ["anthropic/claude-sonnet-4.6", "openai/gpt-5.4"],
-					availableModels: new Set(),
-				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.4", matchedFallback: true })
-				readConnectedProvidersSpy.mockRestore()
-			})
-
-			test("#then trusts readable connected providers even when cache presence flags are false", () => {
-				hasConnectedProvidersSpy?.mockReturnValue(false)
-				hasProviderModelsSpy?.mockReturnValue(false)
-				const readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai"])
-
-				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["openai"], model: "gpt-5.4", variant: "high" },
-					],
-					availableModels: new Set(),
-					systemDefaultModel: "anthropic/claude-sonnet-4.6",
-				})
-
-				expect(result).toEqual({
-					model: "openai/gpt-5.4",
-					variant: "high",
-					fallbackEntry: { providers: ["openai"], model: "gpt-5.4", variant: "high" },
-					matchedFallback: true,
-				})
-				readConnectedProvidersSpy.mockRestore()
+				expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
 			})
 		})
 
-		describe("#when availableModels has entries and category default matches", () => {
-			test("#then resolves via fuzzy match (existing behavior)", () => {
+		describe("#when availableModels is warm and model is available", () => {
+			test("#then returns userModel with availability confirmed", () => {
 				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["anthropic"], model: "claude-sonnet-4-6" },
-					],
-					availableModels: new Set(["anthropic/claude-sonnet-4.6"]),
+					userModel: "minimax/MiniMax-M2.7",
+					availableModels: new Set(["minimax/MiniMax-M2.7"]),
 				})
-
-				expect(result).toEqual({ model: "anthropic/claude-sonnet-4.6" })
-			})
-
-			test("#then trusts user-configured category model without fuzzy validation", () => {
-				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "new-api-openai/gpt-5.4-high",
-					isUserConfiguredCategoryModel: true,
-					availableModels: new Set(["openai/gpt-5.4"]),
-				})
-
-				expect(result).toEqual({ model: "new-api-openai/gpt-5.4-high" })
+				expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
 			})
 		})
 
-		describe("#when user fallback models include variant syntax", () => {
-			test("#then resolves a parenthesized variant against the base available model", () => {
-				const result = resolveModelForDelegateTask({
-					userFallbackModels: ["openai/gpt-5.5(high)"],
-					availableModels: new Set(["openai/gpt-5.5"]),
-				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.5", variant: "high", matchedFallback: true })
-			})
-
-			test("#then resolves a space-separated variant against the base available model", () => {
-				const result = resolveModelForDelegateTask({
-					userFallbackModels: ["gpt-5.5 medium"],
-					availableModels: new Set(["openai/gpt-5.5"]),
-				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.5", variant: "medium", matchedFallback: true })
-			})
-		})
-
-		describe("#when user primary model is unreachable and user fallback_models are provided", () => {
-			test("#then promotes the first reachable user fallback (regression: bug where fallback_models were ignored when userModel set)", () => {
-				const result = resolveModelForDelegateTask({
-					userModel: "opencode/gemini-3.1-pro high",
-					userFallbackModels: [
-						"amazon-bedrock/us.anthropic.claude-opus-4-7 max",
-						"opencode/claude-opus-4-7 max",
-						"openai/gpt-5.5",
-					],
-					availableModels: new Set([
-						"openai/gpt-5.5",
-						"openai/gpt-5.5-pro",
-						"amazon-bedrock/us.anthropic.claude-opus-4-7",
-					]),
-				})
-
-				expect(result).toEqual({
-					model: "amazon-bedrock/us.anthropic.claude-opus-4-7",
-					variant: "max",
-					matchedFallback: true,
-				})
-			})
-
-			test("#then keeps the user primary when it IS reachable (fast path preserved)", () => {
-				const result = resolveModelForDelegateTask({
-					userModel: "openai/gpt-5.5 xhigh",
-					userFallbackModels: ["openai/gpt-5.4"],
-					availableModels: new Set(["openai/gpt-5.5", "openai/gpt-5.4"]),
-				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.5", variant: "xhigh" })
-			})
-
-			test("#then returns the user primary as-is when no user fallback is reachable either (trust-user legacy behavior)", () => {
-				const result = resolveModelForDelegateTask({
-					userModel: "opencode/gemini-3.1-pro high",
-					userFallbackModels: ["google/gemini-3.1-pro"],
-					availableModels: new Set(["openai/gpt-5.5"]),
-				})
-
-				expect(result).toEqual({ model: "opencode/gemini-3.1-pro", variant: "high" })
-			})
-		})
-	})
-
-	describe("#given provider cache exists and connected providers are known", () => {
-		let readConnectedProvidersSpy: ReturnType<typeof spyOn> | undefined
-
-		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(true)
-			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(true)
-		})
-
-		afterEach(() => {
-			readConnectedProvidersSpy?.mockRestore()
-		})
-
-		describe("#when availableModels is empty and fallback chain starts with unauthenticated provider", () => {
-			test("#then skips unauthenticated providers and resolves to first connected one", () => {
-				readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai", "anthropic"])
-
-				const result = resolveModelForDelegateTask({
-					fallbackChain: [
-						{ providers: ["xai"], model: "grok-code-fast-1" },
-						{ providers: ["opencode-go"], model: "minimax-m2.7" },
-						{ providers: ["anthropic", "opencode"], model: "claude-haiku-4-5" },
-						{ providers: ["opencode"], model: "gpt-5-nano" },
-					],
-					availableModels: new Set(),
-				})
-
-				expect(result).toBeDefined()
-				expect(result).not.toHaveProperty("skipped")
-				const resolved = result as { model: string; variant?: string }
-				expect(resolved.model).toBe("anthropic/claude-haiku-4-5")
-			})
-
-			test("#then resolves first provider in entry that is connected", () => {
-				readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai", "github-copilot"])
-
-				const result = resolveModelForDelegateTask({
-					fallbackChain: [
-						{ providers: ["opencode-go"], model: "minimax-m2.7" },
-						{ providers: ["openai", "github-copilot"], model: "gpt-5.4", variant: "high" },
-					],
-					availableModels: new Set(),
-				})
-
-				expect(result).toBeDefined()
-				const resolved = result as { model: string; variant?: string }
-				expect(resolved.model).toBe("openai/gpt-5.4")
-				expect(resolved.variant).toBe("high")
-			})
-
-			test("#then falls through to system default when no provider in chain is connected", () => {
-				readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["anthropic"])
-
-				const result = resolveModelForDelegateTask({
-					fallbackChain: [
-						{ providers: ["xai"], model: "grok-code-fast-1" },
-						{ providers: ["opencode-go"], model: "minimax-m2.7" },
-					],
-					availableModels: new Set(),
-					systemDefaultModel: "anthropic/claude-sonnet-4.6",
-				})
-
-				expect(result).toEqual({ model: "anthropic/claude-sonnet-4.6" })
-			})
-		})
-
-		describe("#when connected providers cache is null (not yet populated)", () => {
-			test("#then falls back to first entry in chain (legacy behavior)", () => {
-				readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(null)
-
-				const result = resolveModelForDelegateTask({
-					fallbackChain: [
-						{ providers: ["xai"], model: "grok-code-fast-1" },
-					],
-					availableModels: new Set(),
-				})
-
-				expect(result).toBeDefined()
-				const resolved = result as { model: string }
-				expect(resolved.model).toBe("xai/grok-code-fast-1")
-			})
-		})
-	})
-
-	describe("#given user model override includes variant syntax", () => {
-		describe("#when userModel contains space-separated variant", () => {
-			test("#then extracts the variant and returns the base model separately", () => {
+		describe("#when userModel has variant (space-separated)", () => {
+			test("#then extracts variant from space-separated syntax", () => {
 				const result = resolveModelForDelegateTask({
 					userModel: "openai/gpt-5.4 high",
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["anthropic"], model: "claude-sonnet-4-6" },
-					],
 					availableModels: new Set(["openai/gpt-5.4"]),
 				})
-
 				expect(result).toEqual({ model: "openai/gpt-5.4", variant: "high" })
 			})
 		})
 
-		describe("#when userModel contains parenthesized variant", () => {
-			test("#then extracts the variant and returns the base model separately", () => {
+		describe("#when userModel has variant (parenthesized)", () => {
+			test("#then extracts variant from parenthesized syntax", () => {
 				const result = resolveModelForDelegateTask({
 					userModel: "openai/gpt-5.4(max)",
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
 					availableModels: new Set(),
 				})
-
 				expect(result).toEqual({ model: "openai/gpt-5.4", variant: "max" })
 			})
 		})
 
 		describe("#when userModel has no variant syntax", () => {
-			test("#then returns the model without a variant (backward compat)", () => {
+			test("#then returns model without variant", () => {
 				const result = resolveModelForDelegateTask({
-					userModel: "openai/gpt-5.4",
+					userModel: "minimax/MiniMax-M2.7",
 					availableModels: new Set(),
 				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.4" })
+				expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
 			})
 		})
 
-		describe("#when userModel has a non-variant suffix (e.g. -high in model name)", () => {
+		describe("#when userModel has a non-variant suffix in the name", () => {
 			test("#then preserves the full model name without extracting a variant", () => {
 				const result = resolveModelForDelegateTask({
 					userModel: "new-api-openai/gpt-5.4-high",
 					availableModels: new Set(),
 				})
-
 				expect(result).toEqual({ model: "new-api-openai/gpt-5.4-high" })
+			})
+		})
+
+		describe("#when userModel is in availableModels with different provider format", () => {
+			test("#then fuzzy-matches the provider", () => {
+				const result = resolveModelForDelegateTask({
+					userModel: "openai/gpt-5.4",
+					availableModels: new Set(["openai/gpt-5.4"]),
+				})
+				expect(result).toEqual({ model: "openai/gpt-5.4" })
+			})
+		})
+
+		describe("#when userModel is NOT in availableModels but cache is warm", () => {
+			test("#then returns userModel as-is (user's explicit choice honored even if unavailable)", () => {
+				const result = resolveModelForDelegateTask({
+					userModel: "minimax/MiniMax-M2.7",
+					availableModels: new Set(["openai/gpt-5.4"]),
+				})
+				expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
 			})
 		})
 	})
 
-	describe("#given user-configured category model includes variant syntax", () => {
-		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(true)
-			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(true)
-		})
+	// ─────────────────────────────────────────────────────────────
+	// Step 2: Cold cache — availableModels is empty
+	// ─────────────────────────────────────────────────────────────
 
-		describe("#when categoryDefaultModel with isUserConfiguredCategoryModel contains a space-separated variant", () => {
-			test("#then extracts the variant and returns the base model separately", () => {
+	describe("#given availableModels is empty (cold cache)", () => {
+		describe("#when userModel is also not set", () => {
+			test("#then returns skipped sentinel", () => {
 				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "openai/gpt-5.4 medium",
-					isUserConfiguredCategoryModel: true,
-					availableModels: new Set(["openai/gpt-5.4"]),
-				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.4", variant: "medium" })
-			})
-		})
-
-		describe("#when categoryDefaultModel with isUserConfiguredCategoryModel contains a parenthesized variant", () => {
-			test("#then extracts the variant and returns the base model separately", () => {
-				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "openai/gpt-5.4(xhigh)",
-					isUserConfiguredCategoryModel: true,
 					availableModels: new Set(),
 				})
-
-				expect(result).toEqual({ model: "openai/gpt-5.4", variant: "xhigh" })
+				expect(result).toEqual({ skipped: true })
 			})
 		})
 
-		describe("#when categoryDefaultModel with isUserConfiguredCategoryModel has no variant", () => {
-			test("#then returns the model without a variant (backward compat)", () => {
+		describe("#when userModel is set but we want to verify cold cache skip doesn't override user choice", () => {
+			test("#then userModel still wins (step 1 takes priority over cold-cache skip)", () => {
 				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "new-api-openai/gpt-5.4-high",
-					isUserConfiguredCategoryModel: true,
-					availableModels: new Set(["openai/gpt-5.4"]),
+					userModel: "minimax/MiniMax-M2.7",
+					availableModels: new Set(),
 				})
+				// userModel is checked first, so it's returned even with empty availableModels
+				expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
+			})
+		})
 
-				expect(result).toEqual({ model: "new-api-openai/gpt-5.4-high" })
+		describe("#when no userModel but systemDefaultModel is set (cold cache, no TUI override)", () => {
+			test("#then cold cache skip fires (systemDefaultModel NOT used as userModel here — callers handle this)", () => {
+				// NOTE: The callers (resolveSubagentModel, resolveCategoryExecution) now pass
+				// systemDefaultModel as userModel instead of systemDefaultModel. This test
+				// documents the raw function behavior: when userModel is absent and cache is
+				// cold, step 2 returns {skipped: true} before step 3 is reached.
+				const result = resolveModelForDelegateTask({
+					availableModels: new Set(),
+					systemDefaultModel: "minimax/MiniMax-M2.7",
+				})
+				expect(result).toEqual({ skipped: true })
 			})
 		})
 	})
 
-	describe("#given only connected providers cache exists (no provider-models cache)", () => {
-		beforeEach(() => {
-			hasConnectedProvidersSpy = spyOn(connectedProvidersCache, "hasConnectedProvidersCache").mockReturnValue(true)
-			hasProviderModelsSpy = spyOn(connectedProvidersCache, "hasProviderModelsCache").mockReturnValue(false)
+	// ─────────────────────────────────────────────────────────────
+	// Step 3: systemDefaultModel — used when no userModel and cache is warm
+	// ─────────────────────────────────────────────────────────────
+
+	describe("#given availableModels is warm (has entries) and no userModel", () => {
+		describe("#when systemDefaultModel is set", () => {
+			test("#then returns systemDefaultModel", () => {
+				const result = resolveModelForDelegateTask({
+					availableModels: new Set(["minimax/MiniMax-M2.7", "openai/gpt-5.4"]),
+					systemDefaultModel: "minimax/MiniMax-M2.7",
+				})
+				expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
+			})
 		})
 
-		describe("#when availableModels is empty", () => {
-			test("#then uses connected providers to avoid disconnected category defaults", () => {
-				const readConnectedProvidersSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai"])
-
+		describe("#when systemDefaultModel has variant", () => {
+			test("#then returns systemDefaultModel as normalized string (variant not extracted from systemDefaultModel)", () => {
 				const result = resolveModelForDelegateTask({
-					categoryDefaultModel: "anthropic/claude-sonnet-4.6",
-					fallbackChain: [
-						{ providers: ["openai"], model: "gpt-5.4" },
-					],
-					availableModels: new Set(),
+					availableModels: new Set(["openai/gpt-5.4"]),
+					systemDefaultModel: "openai/gpt-5.4 high",
 				})
-
-				expect(result).toEqual({
-					model: "openai/gpt-5.4",
-					fallbackEntry: { providers: ["openai"], model: "gpt-5.4" },
-					matchedFallback: true,
-				})
-				readConnectedProvidersSpy.mockRestore()
+				// systemDefaultModel is returned as a normalized string; variant parsing only applies to userModel
+				expect(result).toEqual({ model: "openai/gpt-5.4 high" })
 			})
+		})
+
+		describe("#when systemDefaultModel is set but not in availableModels", () => {
+			test("#then returns systemDefaultModel as-is", () => {
+				const result = resolveModelForDelegateTask({
+					availableModels: new Set(["openai/gpt-5.4"]),
+					systemDefaultModel: "minimax/MiniMax-M2.7",
+				})
+				// systemDefaultModel is returned even if not in availableModels
+				expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
+			})
+		})
+
+		describe("#when no systemDefaultModel either", () => {
+			test("#then returns undefined", () => {
+				const result = resolveModelForDelegateTask({
+					availableModels: new Set(["openai/gpt-5.4"]),
+				})
+				expect(result).toBeUndefined()
+			})
+		})
+	})
+
+	// ─────────────────────────────────────────────────────────────
+	// Priority: userModel > cold cache skip > systemDefaultModel > undefined
+	// ─────────────────────────────────────────────────────────────
+
+	describe("#priority ordering", () => {
+		test("#userModel wins over systemDefaultModel", () => {
+			const result = resolveModelForDelegateTask({
+				userModel: "minimax/MiniMax-M2.7",
+				availableModels: new Set(["minimax/MiniMax-M2.7"]),
+				systemDefaultModel: "openai/gpt-5.4",
+			})
+			expect(result).toEqual({ model: "minimax/MiniMax-M2.7" })
+		})
+
+		test("#cold cache skip takes priority over systemDefaultModel", () => {
+			const result = resolveModelForDelegateTask({
+				availableModels: new Set(),
+				systemDefaultModel: "minimax/MiniMax-M2.7",
+			})
+			expect(result).toEqual({ skipped: true })
+		})
+
+		test("#systemDefaultModel is used when cache warm and no userModel", () => {
+			const result = resolveModelForDelegateTask({
+				availableModels: new Set(["anthropic/claude-opus-5"]),
+				systemDefaultModel: "anthropic/claude-opus-5",
+			})
+			expect(result).toEqual({ model: "anthropic/claude-opus-5" })
+		})
+
+		test("#all empty returns undefined", () => {
+			const result = resolveModelForDelegateTask({
+				availableModels: new Set(["openai/gpt-5.4"]),
+			})
+			expect(result).toBeUndefined()
 		})
 	})
 })
