@@ -50,7 +50,7 @@ function writeJson(filePath: string, value: unknown): void {
 }
 
 describe("resolveRoster", () => {
-  it("#given no config #when resolving roster #then it returns default resolver rows", () => {
+  it("#given no config #when resolving roster #then it returns empty (no fallback models shown)", () => {
     withIsolatedConfig("defaults", (root) => {
       // given
       const project = join(root, "project")
@@ -59,10 +59,8 @@ describe("resolveRoster", () => {
       // when
       const rows = resolveRoster(project)
 
-      // then
-      expect(rows.length).toBeGreaterThan(0)
-      expect(rows.some((row) => row.label === "sisyphus")).toBe(true)
-      expect(rows.some((row) => row.label === "deep")).toBe(true)
+      // then - no user config means no entries shown (fallback chains not used since Aug 2026)
+      expect(rows.length).toBe(0)
     })
   })
 
@@ -91,7 +89,7 @@ describe("resolveRoster", () => {
     })
   })
 
-  it("#given malformed config #when resolving roster #then it still returns resolver rows", () => {
+  it("#given malformed config #when resolving roster #then it returns empty (malformed means no valid override)", () => {
     withIsolatedConfig("malformed", (root) => {
       // given
       const project = join(root, "project")
@@ -102,9 +100,8 @@ describe("resolveRoster", () => {
       // when
       const rows = resolveRoster(project)
 
-      // then
-      expect(rows.length).toBeGreaterThan(0)
-      expect(rows.some((row) => row.label === "sisyphus")).toBe(true)
+      // then - malformed config means no valid userOverride, so empty
+      expect(rows.length).toBe(0)
     })
   })
 })

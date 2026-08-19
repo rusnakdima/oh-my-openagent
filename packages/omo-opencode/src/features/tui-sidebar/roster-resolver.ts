@@ -85,7 +85,13 @@ export function resolveRoster(directory: string): RosterRow[] {
         ? resolution.categories.filter((c) => visibleCategories.includes(c.name))
         : resolution.categories
 
-    return [...agents, ...categories]
+    // Only show configured entries (userOverride is defined).
+    // Fallback chain models are not used at runtime since GLOBAL-ONLY MODEL refactor (Aug 2026),
+    // so showing them is misleading.
+    const configuredAgents = agents.filter((a) => a.userOverride !== undefined)
+    const configuredCategories = categories.filter((c) => c.userOverride !== undefined)
+
+    return [...configuredAgents, ...configuredCategories]
       .filter((entry) => !disabledAgents.has(entry.name))
       .map(toRosterRow)
       .sort((left, right) => left.label.localeCompare(right.label))
