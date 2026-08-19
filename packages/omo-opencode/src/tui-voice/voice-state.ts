@@ -5,7 +5,7 @@ import { createSTTProvider } from "../tools/voice/stt-provider-factory"
 import { injectTranscription } from "../tools/voice/session-injector"
 import { log } from "../shared"
 
-export type VoiceState = "idle" | "recording"
+export type VoiceState = "idle" | "recording" | "processing"
 
 export interface TuiVoiceModule {
   readonly state: VoiceState
@@ -26,6 +26,8 @@ export function createTuiVoiceModule(
   let sttProvider: STTProvider | null = null
   let recordingPromise: Promise<AudioBuffer> | null = null
   let disposed = false
+  /** Guard against concurrent toggle calls while stop/transcribe is in flight */
+  let transitioning = false
 
   const sampleRate = voiceConfig.capture?.sample_rate ?? 16000
 
@@ -97,7 +99,8 @@ export function createTuiVoiceModule(
       return
     }
 
-    setState("idle")
+    // Show "processing" indicator while awaiting recording data and transcribing
+    setState("processing")
 
     if (!recordingPromise) return
 
@@ -106,6 +109,7 @@ export function createTuiVoiceModule(
       audioBuffer = await recordingPromise
     } catch (err) {
       log(`[voice] Recording error: ${err}`)
+      setState("idle")
       void api.ui.toast({
         title: "Recording error",
         message: err instanceof Error ? err.message : String(err),
@@ -119,6 +123,7 @@ export function createTuiVoiceModule(
     }
 
     if (!audioBuffer || audioBuffer.data.length === 0) {
+      setState("idle")
       void api.ui.toast({
         title: "No audio captured",
         message: "Try speaking louder or check your microphone",
@@ -128,13 +133,17 @@ export function createTuiVoiceModule(
       return
     }
 
-    if (!sttProvider) return
+    if (!sttProvider) {
+      setState("idle")
+      return
+    }
 
     let transcription: string
     try {
       transcription = await sttProvider.transcribe(audioBuffer)
     } catch (err) {
       log(`[voice] Transcription error: ${err}`)
+      setState("idle")
       void api.ui.toast({
         title: "Transcription failed",
         message: err instanceof Error ? err.message : String(err),
@@ -145,6 +154,7 @@ export function createTuiVoiceModule(
     }
 
     if (!transcription.trim()) {
+      setState("idle")
       void api.ui.toast({
         title: "No speech detected",
         message: "Try again with a clearer voice or longer recording",
@@ -175,14 +185,20 @@ export function createTuiVoiceModule(
         duration: 6000,
       })
     }
+
+    setState("idle")
   }
 
   function toggle() {
-    if (disposed) return
+    if (disposed || transitioning) return
     if (state === "idle") {
       void startRecording()
     } else {
-      void stopAndTranscribe()
+      // Mark transitioning to block additional toggle calls during async stop/transcribe
+      transitioning = true
+      void stopAndTranscribe().finally(() => {
+        transitioning = false
+      })
     }
   }
 

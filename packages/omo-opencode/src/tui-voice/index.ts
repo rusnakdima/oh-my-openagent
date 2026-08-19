@@ -1,6 +1,7 @@
 import type { TuiPluginApi } from "@opencode-ai/plugin/tui"
 import { createTuiVoiceModule, type TuiVoiceModule } from "./voice-state"
 import { createVoiceIndicator } from "./tui-voice-indicator"
+import { log } from "../shared"
 
 export { type TuiVoiceModule, type VoiceState } from "./voice-state"
 
@@ -15,6 +16,7 @@ export { type TuiVoiceModule, type VoiceState } from "./voice-state"
 export async function setupTuiVoice(api: TuiPluginApi): Promise<TuiVoiceModule> {
   const solid = await import("@opentui/solid").catch(() => null)
   if (!solid) {
+    log("[voice] TUI voice indicator unavailable: @opentui/solid not found")
     return {
       get state() {
         return "idle" as const
@@ -33,14 +35,17 @@ export async function setupTuiVoice(api: TuiPluginApi): Promise<TuiVoiceModule> 
 
   const voice = createTuiVoiceModule(api, voiceConfig)
 
-  // Register the voice indicator in the session prompt (top-right area)
+  // Register the voice indicator in the session prompt (top-right area).
+  // IMPORTANT: Pass the function REFERENCE (not an IIFE result) so the TUI calls
+  // it on each render cycle and re-evaluates voice.state dynamically.
+  // This matches the pattern used by sidebar_content in tui.ts:
+  //   sidebar_content: renderSidebar  (function reference, NOT renderSidebar())
   api.slots.register({
     order: 800,
     slots: {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      session_prompt_right: (() => {
-        return createVoiceIndicator(solid, voice.state === "recording")
-      }) as any,
+      session_prompt_right: () =>
+        createVoiceIndicator(solid, voice.state) as any,
     },
   })
 
