@@ -174,6 +174,169 @@ describe("runOpenSpecMcpServer", () => {
     expect(exists).toBe(true)
   })
 
+  it("#given tools/call openspec_verify #when spec is valid #then returns verification results", async () => {
+    // Create a valid spec
+    const specName = "verify-spec"
+    const specPath = join(tmp, specDir, specName)
+    await mkdir(specPath, { recursive: true })
+    await writeFile(join(specPath, "spec.md"), "# Verify Spec\n\nValid spec.\n")
+    await writeFile(join(specPath, "plan.md"), "# Plan\n\nValid plan.\n")
+    await writeFile(join(specPath, "tasks.md"), "| [ ] | Task 1 |\n")
+
+    const { runOpenSpecMcpServer } = await import("./openspec-mcp")
+
+    const chunks: string[] = []
+    const server = runOpenSpecMcpServer(
+      inputStream([
+        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", clientInfo: { name: "test", version: "1.0.0" } } },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "openspec_verify", arguments: { spec_name: "verify-spec" } } },
+      ]),
+      collectingWritable(chunks),
+      { specDir, cwd: tmp },
+    )
+
+    await server
+    const responses = parseResponses(chunks)
+    const verifyResp = responses.find((r) => r.id === 2)
+    expect(verifyResp?.result).toBeDefined()
+    const text = (verifyResp?.result as { content: Array<{ text: string }> }).content[0].text
+    expect(text).toContain("verify-spec")
+    expect(text).toContain("spec.md")
+    expect(text).toContain("plan.md")
+    expect(text).toContain("tasks.md")
+  })
+
+  it("#given tools/call openspec_verify #when no specs exist #then returns no specs message", async () => {
+    const { runOpenSpecMcpServer } = await import("./openspec-mcp")
+
+    const chunks: string[] = []
+    const server = runOpenSpecMcpServer(
+      inputStream([
+        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", clientInfo: { name: "test", version: "1.0.0" } } },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "openspec_verify", arguments: {} } },
+      ]),
+      collectingWritable(chunks),
+      { specDir, cwd: tmp },
+    )
+
+    await server
+    const responses = parseResponses(chunks)
+    const verifyResp = responses.find((r) => r.id === 2)
+    expect(verifyResp?.result).toBeDefined()
+    const text = (verifyResp?.result as { content: Array<{ text: string }> }).content[0].text
+    expect(text).toContain("No specs found")
+  })
+
+  it("#given tools/call openspec_read #when spec file exists #then returns file content", async () => {
+    const specName = "read-spec"
+    const specPath = join(tmp, specDir, specName)
+    await mkdir(specPath, { recursive: true })
+    await writeFile(join(specPath, "spec.md"), "# Read Spec\n\nDescription here.\n")
+    await writeFile(join(specPath, "plan.md"), "# Plan\n\nTask plan.\n")
+    await writeFile(join(specPath, "tasks.md"), "| [ ] | Task 1 |\n")
+
+    const { runOpenSpecMcpServer } = await import("./openspec-mcp")
+
+    const chunks: string[] = []
+    const server = runOpenSpecMcpServer(
+      inputStream([
+        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", clientInfo: { name: "test", version: "1.0.0" } } },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "openspec_read", arguments: { file: "spec.md", spec_name: "read-spec" } } },
+      ]),
+      collectingWritable(chunks),
+      { specDir, cwd: tmp },
+    )
+
+    await server
+    const responses = parseResponses(chunks)
+    const readResp = responses.find((r) => r.id === 2)
+    expect(readResp?.result).toBeDefined()
+    const text = (readResp?.result as { content: Array<{ text: string }> }).content[0].text
+    expect(text).toContain("Read Spec")
+    expect(text).toContain("Description here")
+  })
+
+  it("#given tools/call openspec_read #when file missing #then returns no file message", async () => {
+    const specName = "empty-spec"
+    const specPath = join(tmp, specDir, specName)
+    await mkdir(specPath, { recursive: true })
+    await writeFile(join(specPath, "spec.md"), "# Empty Spec\n\nOnly spec.md exists.\n")
+
+    const { runOpenSpecMcpServer } = await import("./openspec-mcp")
+
+    const chunks: string[] = []
+    const server = runOpenSpecMcpServer(
+      inputStream([
+        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", clientInfo: { name: "test", version: "1.0.0" } } },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "openspec_read", arguments: { file: "tasks.md", spec_name: "empty-spec" } } },
+      ]),
+      collectingWritable(chunks),
+      { specDir, cwd: tmp },
+    )
+
+    await server
+    const responses = parseResponses(chunks)
+    const readResp = responses.find((r) => r.id === 2)
+    expect(readResp?.result).toBeDefined()
+    const text = (readResp?.result as { content: Array<{ text: string }> }).content[0].text
+    expect(text).toContain("No tasks.md found")
+  })
+
+  it("#given tools/call openspec_archive #when spec exists #then moves spec to ARCHIVE", async () => {
+    const specName = "archive-spec"
+    const specPath = join(tmp, specDir, specName)
+    await mkdir(specPath, { recursive: true })
+    await writeFile(join(specPath, "spec.md"), "# Archive Spec\n\nTo be archived.\n")
+    await writeFile(join(specPath, "plan.md"), "# Plan\n\n")
+    await writeFile(join(specPath, "tasks.md"), "| [x] | Done |\n")
+
+    const { runOpenSpecMcpServer } = await import("./openspec-mcp")
+
+    const chunks: string[] = []
+    const server = runOpenSpecMcpServer(
+      inputStream([
+        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", clientInfo: { name: "test", version: "1.0.0" } } },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "openspec_archive", arguments: { spec_name: "archive-spec" } } },
+      ]),
+      collectingWritable(chunks),
+      { specDir, cwd: tmp },
+    )
+
+    await server
+    const responses = parseResponses(chunks)
+    const archiveResp = responses.find((r) => r.id === 2)
+    expect(archiveResp?.result).toBeDefined()
+    const text = (archiveResp?.result as { content: Array<{ text: string }> }).content[0].text
+    expect(text).toContain("archived")
+
+    // Verify spec moved to ARCHIVE/
+    const originalPath = join(tmp, specDir, "archive-spec", "spec.md")
+    const archivedPath = join(tmp, specDir, "ARCHIVE", "archive-spec", "spec.md")
+    expect(await Bun.file(originalPath).exists()).toBe(false)
+    expect(await Bun.file(archivedPath).exists()).toBe(true)
+  })
+
+  it("#given tools/call openspec_archive #when spec not found #then returns isError", async () => {
+    const { runOpenSpecMcpServer } = await import("./openspec-mcp")
+
+    const chunks: string[] = []
+    const server = runOpenSpecMcpServer(
+      inputStream([
+        { jsonrpc: "2.0", id: 1, method: "initialize", params: { protocolVersion: "2024-11-05", clientInfo: { name: "test", version: "1.0.0" } } },
+        { jsonrpc: "2.0", id: 2, method: "tools/call", params: { name: "openspec_archive", arguments: { spec_name: "nonexistent" } } },
+      ]),
+      collectingWritable(chunks),
+      { specDir, cwd: tmp },
+    )
+
+    await server
+    const responses = parseResponses(chunks)
+    const archiveResp = responses.find((r) => r.id === 2)
+    expect((archiveResp?.result as { isError?: boolean })?.isError).toBe(true)
+    const text = (archiveResp?.result as { content: Array<{ text: string }> }).content[0].text
+    expect(text).toContain("not found")
+  })
+
   it("#given tools/call with unknown method #then returns isError content", async () => {
     const { runOpenSpecMcpServer } = await import("./openspec-mcp")
 
