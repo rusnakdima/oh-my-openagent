@@ -1,8 +1,13 @@
 import { spawn } from "bun"
 import { tool } from "@opencode-ai/plugin/tool"
-import type { ToolDefinition } from "@opencode-ai/plugin"
+import type { ToolContext, ToolDefinition } from "@opencode-ai/plugin"
 import { DEFAULT_MENU_TIMEOUT_MS, INTERACTIVE_MENU_DESCRIPTION, POLL_INTERVAL_MS } from "./constants"
-import { getCachedTmuxPath } from "../interactive-bash/tmux-path-resolver"
+import {
+  getOrCreateMenuState,
+  updateMenuWindowStatus,
+  recreateMenuWindow,
+  checkWindowExists,
+} from "../../hooks/interactive-menu-session/state-manager"
 
 function extractInputFromPane(paneContent: string | null): string | null {
   if (!paneContent) return null
@@ -24,82 +29,6 @@ type MenuArgs = {
   timeout_ms?: number
 }
 
-async function executeInteractiveMenu(args: MenuArgs): Promise<string> {
-  const timeout = args.timeout_ms ?? DEFAULT_MENU_TIMEOUT_MS
-  const tmux = getCachedTmuxPath()
-  const escapedPrompt = args.prompt.replace(/'/g, "'\\''")
-
-  // Build the display text
-  let displayText = args.prompt
-  if (args.options && args.options.length > 0) {
-    displayText += "\n\n"
-    for (let i = 0; i < args.options.length; i++) {
-      displayText += `${i + 1}. ${args.options[i]}\n`
-    }
-  }
-  const escapedDisplay = displayText.replace(/'/g, "'\\''")
-
-  // Create a dedicated tmux session for this menu
-  const sessionName = `omo-menu-${Date.now()}`
-  const createCmd = `tmux new-session -d -s '${sessionName}' -x 80 -y 20 \\; set remain-on-exit on \\; send-keys 'echo ""; echo "${escapedDisplay}"; echo ""; echo "> " \\; display-message "MENU_ACTIVE" 2>/dev/null || true'`
-  const createResult = await runCommand(createCmd, 5000)
-
-  if (!createResult.success) {
-    return JSON.stringify({ error: "Failed to create tmux session", details: createResult.output })
-  }
-
-  const killSession = async () => {
-    try {
-      await runCommand(`tmux kill-session -t '${sessionName}' 2>/dev/null || true`, 2000)
-    } catch { /* best effort */ }
-  }
-
-  try {
-    // Wait for the session to be ready
-    await new Promise((r) => setTimeout(r, 300))
-
-    // Poll for the MENU_ACTIVE marker
-    let sessionReady = false
-    for (let i = 0; i < 10; i++) {
-      const checkResult = await runCommand(`tmux capture-pane -t '${sessionName}:0' -p 2>/dev/null || true`, 2000)
-      if (checkResult.output.includes("MENU_ACTIVE") || checkResult.output.includes(args.prompt.slice(0, 20))) {
-        sessionReady = true
-        break
-      }
-      await new Promise((r) => setTimeout(r, 200))
-    }
-
-    if (!sessionReady) {
-      return JSON.stringify({ error: "Menu session failed to initialize" })
-    }
-
-    // Poll for user input with timeout
-    const deadline = Date.now() + timeout
-    let attempts = 0
-    const maxAttempts = Math.floor(timeout / POLL_INTERVAL_MS)
-
-    while (Date.now() < deadline && attempts < maxAttempts) {
-      const captureResult = await runCommand(
-        `tmux capture-pane -t '${sessionName}:0' -p 2>/dev/null || true`,
-        2000,
-      )
-      if (captureResult.success && captureResult.output) {
-        const input = extractInputFromPane(captureResult.output)
-        if (input !== null) {
-          return JSON.stringify({ value: input })
-        }
-      }
-      attempts++
-      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
-    }
-
-    // Timeout
-    return JSON.stringify({ cancelled: true, reason: "timeout" })
-  } finally {
-    await killSession()
-  }
-}
-
 async function runCommand(cmd: string, timeoutMs: number): Promise<{ success: boolean; output: string }> {
   const timeoutPromise = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error("timeout")), timeoutMs)
@@ -114,6 +43,147 @@ async function runCommand(cmd: string, timeoutMs: number): Promise<{ success: bo
   }
 }
 
+function buildMenuDisplay(prompt: string, options?: string[]): string {
+  let displayText = prompt
+  if (options && options.length > 0) {
+    displayText += "\n\n"
+    for (let i = 0; i < options.length; i++) {
+      displayText += `${i + 1}. ${options[i]}\n`
+    }
+  }
+  return displayText
+}
+
+async function ensureMenuWindow(
+  sessionId: string,
+  prompt: string,
+  options?: string[],
+): Promise<string> {
+  // Get or create persistent state
+  const state = getOrCreateMenuState(sessionId)
+  let windowName = state.windowName
+
+  // If window name exists, check if window is still alive
+  if (windowName) {
+    const exists = await checkWindowExists(windowName)
+    if (exists) {
+      // Window still there — just update activity timestamp
+      state.lastActivity = Date.now()
+      state.prompt = prompt
+      state.options = options
+      return windowName
+    }
+    // Window was closed by user — fall through to recreate
+    state.status = "closed"
+  }
+
+  // Create a new window
+  windowName = `omo-menu-${Date.now()}`
+  const escapedDisplay = buildMenuDisplay(prompt, options).replace(/'/g, "'\\''")
+
+  const createResult = await runCommand(
+    `tmux new-window -d -n '${windowName}' -P -F '#{window_id}' 2>&1`,
+    5000,
+  )
+  if (!createResult.success || createResult.output.includes("no server")) {
+    return JSON.stringify({ error: "Failed to create tmux window — is tmux running?", details: createResult.output }) as string
+  }
+
+  // Send the menu content
+  const shellCmd = `echo ''; echo '${escapedDisplay}'; echo ''; echo '> '`
+  await runCommand(`tmux send-keys -t '${windowName}' '${shellCmd}' C-m`, 2000)
+
+  // Wait for window to render
+  await new Promise((r) => setTimeout(r, 300))
+
+  // Verify window is live
+  const paneInfo = await runCommand(
+    `tmux list-windows -F '#{window_name}' 2>/dev/null | grep '^${windowName}$' || echo 'NOT_FOUND'`,
+    2000,
+  )
+  if (!paneInfo.output.includes(windowName)) {
+    return JSON.stringify({ error: "Menu window failed to initialize" }) as string
+  }
+
+  // Persist state so the hook can manage it
+  state.windowName = windowName
+  state.prompt = prompt
+  state.options = options
+  state.status = "open"
+  state.lastActivity = Date.now()
+
+  return windowName
+}
+
+async function executeInteractiveMenu(args: MenuArgs, sessionId?: string): Promise<string> {
+  const timeout = args.timeout_ms ?? DEFAULT_MENU_TIMEOUT_MS
+  const sid = sessionId ?? "unknown"
+
+  // Ensure the window exists (recreates if user closed it)
+  const windowResult = await ensureMenuWindow(sid, args.prompt, args.options)
+  if (typeof windowResult === "string" && windowResult.startsWith("{")) {
+    // Error object returned
+    return windowResult
+  }
+  const windowName = windowResult
+
+  const killWindow = async () => {
+    try {
+      await runCommand(`tmux kill-window -t '${windowName}' 2>/dev/null || true`, 2000)
+    } catch { /* best effort */ }
+  }
+
+  try {
+    // Poll for user input with timeout
+    const deadline = Date.now() + timeout
+    let attempts = 0
+    const maxAttempts = Math.floor(timeout / POLL_INTERVAL_MS)
+
+    while (Date.now() < deadline && attempts < maxAttempts) {
+      // Check if window still exists — user may have closed it mid-poll
+      const exists = await checkWindowExists(windowName)
+      if (!exists) {
+        // Window was closed — try to recreate it and keep polling
+        const recreated = await recreateMenuWindow(sid)
+        if (!recreated) {
+          // Can't recreate — window is gone
+          updateMenuWindowStatus(sid, "closed")
+          return JSON.stringify({ cancelled: true, reason: "window_closed" })
+        }
+        // Window recreated — give user time to switch to it
+        await new Promise((r) => setTimeout(r, 500))
+        attempts++
+        continue
+      }
+
+      const captureResult = await runCommand(
+        `tmux capture-pane -t '${windowName}.0' -p 2>/dev/null || true`,
+        2000,
+      )
+      if (captureResult.success && captureResult.output) {
+        const input = extractInputFromPane(captureResult.output)
+        if (input !== null) {
+          // User typed something
+          updateMenuWindowStatus(sid, "answered", input)
+          await killWindow()
+          return JSON.stringify({ value: input })
+        }
+      }
+      attempts++
+      await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS))
+    }
+
+    // Timeout
+    updateMenuWindowStatus(sid, "closed")
+    await killWindow()
+    return JSON.stringify({ cancelled: true, reason: "timeout" })
+  } catch (err) {
+    updateMenuWindowStatus(sid, "closed")
+    await killWindow()
+    return JSON.stringify({ error: "Menu execution failed", details: String(err) })
+  }
+}
+
 export const interactive_menu: ToolDefinition = tool({
   description: INTERACTIVE_MENU_DESCRIPTION,
   args: {
@@ -121,5 +191,7 @@ export const interactive_menu: ToolDefinition = tool({
     options: tool.schema.array(tool.schema.string()).optional().describe("Optional list of choices to display"),
     timeout_ms: tool.schema.number().optional().describe(`Timeout in milliseconds (default: ${DEFAULT_MENU_TIMEOUT_MS})`),
   },
-  execute: executeInteractiveMenu,
+  execute: async (args, context: ToolContext) => {
+    return executeInteractiveMenu(args, context.sessionID)
+  },
 })

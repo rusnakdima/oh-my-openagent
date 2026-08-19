@@ -1,10 +1,18 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs"
 import { INTERACTIVE_MENU_STORAGE_DIR } from "./constants"
 
+export type MenuWindowStatus = "open" | "closed" | "answered"
+
 export interface InteractiveMenuSessionState {
   sessionId: string
   trackedPanes: string[]
   lastActivity: number
+  // Persistent menu window state (survives tool call end)
+  windowName?: string
+  status?: MenuWindowStatus
+  prompt?: string
+  options?: string[]
+  answer?: string | null
 }
 
 function ensureDir(): void {
