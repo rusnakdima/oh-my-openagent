@@ -62,7 +62,7 @@ describe("voice tool", () => {
       const result = await tool.execute({ record: true }, ctx)
 
       expect(result.title).toBe("STT configuration error")
-      expect(result.output.toLowerCase()).toContain("error")
+      expect(result.output.toLowerCase()).toContain("api key")
     })
 
     test("tool description mentions voice and microphone", () => {

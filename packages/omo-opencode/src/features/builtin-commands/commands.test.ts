@@ -2,6 +2,7 @@
 
 import { afterEach, beforeEach, describe, test, expect } from "bun:test"
 import { loadBuiltinCommands } from "./commands"
+import { VOICE_TEMPLATE } from "./templates/voice"
 import { HANDOFF_TEMPLATE } from "./templates/handoff"
 import { REFACTOR_TEMPLATE } from "./templates/refactor"
 import { REMOVE_AI_SLOPS_TEMPLATE } from "./templates/remove-ai-slops"
@@ -653,5 +654,57 @@ describe("WIKI_UPDATE_TEMPLATE", () => {
     //#when / #then
     const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2702}-\u{27B0}\u{24C2}-\u{1F251}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u
     expect(emojiRegex.test(WIKI_UPDATE_TEMPLATE)).toBe(false)
+  })
+})
+
+describe("voice command", () => {
+  test("should register voice command by default", () => {
+    const commands = loadBuiltinCommands()
+    expect(commands.voice).toBeDefined()
+    expect(commands.voice.name).toBe("voice")
+  })
+
+  test("should have correct description", () => {
+    const commands = loadBuiltinCommands()
+    expect(commands.voice.description).toBe(
+      "(builtin) Capture microphone audio and transcribe it to text via the voice tool",
+    )
+  })
+
+  test("should include VOICE_TEMPLATE in template", () => {
+    const commands = loadBuiltinCommands()
+    expect(commands.voice.template).toContain(VOICE_TEMPLATE)
+  })
+
+  test("should mention voice tool and microphone in template", () => {
+    const commands = loadBuiltinCommands()
+    expect(commands.voice.template).toContain("voice")
+    expect(commands.voice.template).toContain("microphone")
+  })
+
+  test("should exclude voice when disabled", () => {
+    const commands = loadBuiltinCommands(["voice"])
+    expect(commands.voice).toBeUndefined()
+  })
+})
+
+describe("VOICE_TEMPLATE", () => {
+  test("should be a non-empty string", () => {
+    expect(VOICE_TEMPLATE).toBeTruthy()
+    expect(typeof VOICE_TEMPLATE).toBe("string")
+  })
+
+  test("should reference the voice tool", () => {
+    expect(VOICE_TEMPLATE).toContain("`voice` tool")
+  })
+
+  test("should mention microphone and transcription", () => {
+    expect(VOICE_TEMPLATE).toContain("microphone")
+    expect(VOICE_TEMPLATE).toContain("transcribe")
+  })
+
+  test("should not contain emojis", () => {
+    const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2702}-\u{27B0}\u{24C2}-\u{1F251}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/u
+    expect(emojiRegex.test(VOICE_TEMPLATE)).toBe(false)
   })
 })

@@ -1,7 +1,5 @@
-import { describe, expect, test, mock } from "bun:test"
+import { describe, expect, test, mock, vi } from "bun:test"
 import type { ToolContext } from "@opencode-ai/plugin/tool"
-import { injectTranscription } from "./session-injector"
-import { SessionInjectionError } from "./errors"
 
 function createToolContext(): ToolContext {
   return {
@@ -18,60 +16,61 @@ function createToolContext(): ToolContext {
 
 describe("session-injector", () => {
   describe("injectTranscription", () => {
-    test("calls dispatchInternalPrompt with correct session id and text parts", async () => {
-      const calls: Array<{ mode: string; prompt: unknown }> = []
-      const dispatch = mock(async (opts: { mode: string; prompt: unknown }) => {
-        calls.push(opts)
-        return { result: "ok" }
-      })
+    test("dispatches /voice via session.promptAsync with correct parts", async () => {
+      const calls: Array<{ mode: string; input: { body: { parts: Array<{ type: string; text: string }> } } }> = []
+      vi.mock("../../shared/prompt-async-gate", () => ({
+        dispatchInternalPrompt: mock(async (opts: { mode: string; input: { body: { parts: Array<{ type: string; text: string }> } } }) => {
+          calls.push(opts)
+          return { status: "dispatched" as const }
+        }),
+      }))
+
+      const { injectTranscription } = await import("./session-injector")
 
       const ctx = createToolContext()
       await injectTranscription({
-        text: "hello world",
-        dispatchInternalPrompt: dispatch as never,
+        text: "/voice",
         sessionID: ctx.sessionID,
       })
 
       expect(calls.length).toBe(1)
       expect(calls[0]!.mode).toBe("async")
-      const prompt = calls[0]!.prompt as { parts: Array<{ type: string; text: string }> }
-      expect(prompt.parts.length).toBe(1)
-      expect(prompt.parts[0]!.type).toBe("text")
-      expect(prompt.parts[0]!.text).toBe("hello world")
+      const body = calls[0]!.input!.body
+      expect(body.parts[0]!.text).toBe("/voice")
+      expect(body.parts[0]!.type).toBe("text")
     })
 
-    test("throws SessionInjectionError when dispatch fails", async () => {
-      const dispatch = mock(async () => {
-        throw new Error("Session gone")
-      })
-
-      const ctx = createToolContext()
-      await expect(
-        injectTranscription({
-          text: "test",
-          dispatchInternalPrompt: dispatch as never,
-          sessionID: ctx.sessionID,
+    test("dispatches transcription text via session.promptAsync", async () => {
+      const calls: Array<{ mode: string; input: { body: { parts: Array<{ type: string; text: string }> } } }> = []
+      vi.mock("../../shared/prompt-async-gate", () => ({
+        dispatchInternalPrompt: mock(async (opts: { mode: string; input: { body: { parts: Array<{ type: string; text: string }> } } }) => {
+          calls.push(opts)
+          return { status: "dispatched" as const }
         }),
-      ).rejects.toThrow(SessionInjectionError)
-    })
+      }))
 
-    test("SessionInjectionError has descriptive message", async () => {
-      const dispatch = mock(async () => {
-        throw new Error("connection refused")
-      })
+      const { injectTranscription } = await import("./session-injector")
 
       const ctx = createToolContext()
-      try {
-        await injectTranscription({
-          text: "test",
-          dispatchInternalPrompt: dispatch as never,
-          sessionID: ctx.sessionID,
-        })
-        expect.fail("should have thrown")
-      } catch (e) {
-        expect(e).toBeInstanceOf(SessionInjectionError)
-        expect((e as SessionInjectionError).message).toContain("connection refused")
-      }
+      await injectTranscription({
+        text: "hello world transcribed",
+        sessionID: ctx.sessionID,
+      })
+
+      const body = calls[0]!.input!.body
+      expect(body.parts[0]!.text).toBe("hello world transcribed")
+    })
+  })
+
+  describe("SessionInjectionError", () => {
+    test("is exported from errors module", async () => {
+      const { SessionInjectionError } = await import("./errors")
+      expect(new SessionInjectionError("test").message).toContain("test")
+    })
+
+    test("extends VoiceInputError", async () => {
+      const { SessionInjectionError, VoiceInputError } = await import("./errors")
+      expect(new SessionInjectionError("test")).toBeInstanceOf(VoiceInputError)
     })
   })
 })
