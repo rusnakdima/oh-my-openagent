@@ -1,4 +1,4 @@
-import type { KeyEvent, Renderable, TuiPluginModule } from "@opencode-ai/plugin/tui"
+import type { Renderable, TuiPluginModule } from "@opencode-ai/plugin/tui"
 
 import { computeView, viewKey } from "./features/tui-sidebar/compute-view"
 import { POLL_INTERVAL_MS } from "./features/tui-sidebar/constants"
@@ -9,6 +9,7 @@ import { buildViewNodes } from "./features/tui-sidebar/render-view"
 import type { RosterRow } from "./features/tui-sidebar/state-types"
 import type { SidebarView } from "./features/tui-sidebar/state-types"
 import { log } from "./shared/logger"
+import { setupTuiVoice } from "./tui-voice/index"
 
 type SolidRuntime<Node> = {
   readonly createElement: (tag: string) => Node
@@ -178,40 +179,8 @@ const module: TuiPluginModule = {
       if (timer) clearTimeout(timer)
     })
 
-    // Register platform-specific shortcut to inject /voice into the active session
-    // - macOS: meta+v (Ctrl+Shift+V = Terminal paste conflict)
-    // - Windows/Linux: ctrl+shift+v (cross-platform, no conflict in standard terminals)
-    const platform = api.keymap.getHostMetadata().platform
-    const voiceShortcut = platform === "macos" ? "meta+v" : "ctrl+shift+v"
-
-    const unregister = api.keymap.registerLayer({
-      bindings: [
-        {
-          key: voiceShortcut,
-          cmd: "voice.record",
-        },
-      ],
-      commands: [
-        {
-          name: "voice.record",
-          run: () => {
-            const route = api.route.current
-            if (route.name !== "session") return
-            const params = route.params as { sessionID?: string } | undefined
-            if (!params?.sessionID) return
-            const sessionID = params.sessionID
-            if (!sessionID) return
-            void api.client.session.promptAsync({
-              sessionID,
-              parts: [{ type: "text", text: "/voice" }],
-            }).catch(() => {
-              // best-effort
-            })
-          },
-        },
-      ],
-    })
-    api.lifecycle.onDispose(unregister)
+    // Set up push-to-talk voice mode (shortcut + indicator)
+    void setupTuiVoice(api)
   },
 }
 

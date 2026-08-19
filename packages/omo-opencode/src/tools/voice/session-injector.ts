@@ -8,6 +8,8 @@ interface InjectTranscriptionOptions {
   sessionID: string
   directory: string
   text: string
+  /** "enqueue" = wait in queue if busy, "defer" = skip if busy (default) */
+  queueBehavior?: "enqueue" | "defer"
 }
 
 export async function injectTranscription(opts: InjectTranscriptionOptions): Promise<void> {
@@ -20,7 +22,7 @@ export async function injectTranscription(opts: InjectTranscriptionOptions): Pro
     source: "voice-input",
     dedupeKey: `voice:${opts.sessionID}`,
     postDispatchHoldMs: 2000,
-    queueBehavior: "defer",
+    queueBehavior: opts.queueBehavior ?? "defer",
     queueRetryMs: 5000,
     input: {
       path: { id: opts.sessionID },
