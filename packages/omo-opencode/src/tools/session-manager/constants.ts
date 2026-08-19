@@ -117,3 +117,32 @@ session_branch(session_id="ses_abc123", title="Feature branch", tags=["feature-x
 Created branch session: ses_newbranch123`
 
 export const TOOL_NAME_PREFIX = "session_"
+
+export const SESSION_MODEL_INFO_DESCRIPTION = `Show the current session model state and per-agent/category effective models.
+
+Use this diagnostic tool to verify:
+- Whether a TUI-selected model is stored in the current session
+- What model each agent will use at runtime (with and without TUI override)
+- What model each delegation category will use
+- What systemDefaultModel is passed to the task tool for subagents
+
+This is the primary diagnostic for model propagation issues. Run it before and after
+selecting a model in the TUI to confirm the model is being stored and applied.
+
+No arguments required.
+
+Example:
+session_model_info()
+=== SESSION MODEL STATE ===
+  mainSessionID : abc123
+  storedModel   : anthropic/claude-sonnet-5
+
+=== WITH TUI MODEL OVERRIDE ===
+  TUI model: anthropic/claude-sonnet-5
+  Agents:
+    sisyphus           → anthropic/claude-sonnet-5  ← OVERRIDE APPLIED
+    ...
+  Categories:
+    ultrabrain         → anthropic/claude-sonnet-5  ← OVERRIDE APPLIED
+    deep               → anthropic/claude-sonnet-5  ← OVERRIDE APPLIED
+    ...`
