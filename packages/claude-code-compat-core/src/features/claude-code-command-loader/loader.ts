@@ -107,6 +107,7 @@ $ARGUMENTS
         model: sanitizeModelField(data.model, isOpencodeSource ? "opencode" : "claude-code"),
         subtask: data.subtask,
         argumentHint: data["argument-hint"],
+        completionSuggestions: data["completion-suggestions"],
         handoffs: data.handoffs,
       }
 

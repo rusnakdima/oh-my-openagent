@@ -24,6 +24,8 @@ export interface CommandDefinition {
   model?: string
   subtask?: boolean
   argumentHint?: string
+  /** Tab-completion suggestions for arguments */
+  completionSuggestions?: string[]
   /** Handoff definitions for workflow transitions */
   handoffs?: HandoffDefinition[]
 }
@@ -34,6 +36,8 @@ export interface CommandFrontmatter {
   agent?: string
   model?: string
   subtask?: boolean
+  /** Tab-completion suggestions for arguments */
+  "completion-suggestions"?: string[]
   /** Handoff definitions for workflow transitions */
   handoffs?: HandoffDefinition[]
 }
