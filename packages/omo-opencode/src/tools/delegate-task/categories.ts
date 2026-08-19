@@ -52,11 +52,12 @@ export function resolveCategoryConfig(
     return null
   }
 
-  // Model priority for categories: user override > category default > system default
-  // Categories have explicit models - no inheritance from parent session
+  // GLOBAL-ONLY MODEL (Aug 2026): TUI model (systemDefaultModel) is the ONLY source.
+  // When set, it wins over everything — no builtin fallback.
+  // When NOT set: falls back to defaultConfig?.model for the error case.
   const model = resolveModel({
     userModel: userConfig?.model,
-    inheritedModel: defaultConfig?.model, // Category's built-in model takes precedence over system default
+    inheritedModel: systemDefaultModel ? undefined : defaultConfig?.model,
     systemDefault: systemDefaultModel,
   })
   const isUserConfiguredModel = normalizeModel(userConfig?.model) !== undefined
