@@ -56,6 +56,7 @@ export interface SessionMetadata {
   directory: string
   title?: string
   parentID?: string
+  tags?: string[]
   time: {
     created: number
     updated: number
@@ -97,4 +98,16 @@ export interface SessionInfoArgs {
 export interface SessionDeleteArgs {
   session_id: string
   confirm: boolean
+}
+
+export interface SessionTagArgs {
+  session_id: string
+  tags: string[]
+  action: "add" | "remove" | "replace"
+}
+
+export interface SessionBranchArgs {
+  session_id: string
+  title?: string
+  tags?: string[]
 }

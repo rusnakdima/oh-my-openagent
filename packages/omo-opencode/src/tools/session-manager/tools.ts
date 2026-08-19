@@ -5,8 +5,10 @@ import {
   SESSION_READ_DESCRIPTION,
   SESSION_SEARCH_DESCRIPTION,
   SESSION_INFO_DESCRIPTION,
+  SESSION_TAG_DESCRIPTION,
+  SESSION_BRANCH_DESCRIPTION,
 } from "./constants"
-import { getAllSessions, getMainSessions, getSessionInfo, readSessionMessages, readSessionTodos, sessionExists, setStorageClient } from "./storage"
+import { getAllSessions, getMainSessions, getSessionInfo, readSessionMessages, readSessionTodos, sessionExists, setStorageClient, getSessionTags, setSessionTags, getSessionMetadata } from "./storage"
 import {
   filterSessionsByDate,
   formatSessionInfo,
@@ -15,7 +17,7 @@ import {
   formatSearchResults,
   searchInSession,
 } from "./session-formatter"
-import type { SessionListArgs, SessionReadArgs, SessionSearchArgs, SessionInfoArgs, SearchResult } from "./types"
+import type { SessionListArgs, SessionReadArgs, SessionSearchArgs, SessionInfoArgs, SessionTagArgs, SessionBranchArgs, SearchResult } from "./types"
 
 const SEARCH_TIMEOUT_MS = 60_000
 const MAX_SESSIONS_TO_SCAN = 50
@@ -35,6 +37,9 @@ type SessionManagerToolDeps = {
   readSessionTodos: typeof readSessionTodos
   sessionExists: typeof sessionExists
   setStorageClient: typeof setStorageClient
+  getSessionTags: typeof getSessionTags
+  setSessionTags: typeof setSessionTags
+  getSessionMetadata: typeof getSessionMetadata
   filterSessionsByDate: typeof filterSessionsByDate
   formatSessionInfo: typeof formatSessionInfo
   formatSessionList: typeof formatSessionList
@@ -51,6 +56,9 @@ const defaultSessionManagerToolDeps: SessionManagerToolDeps = {
   readSessionTodos,
   sessionExists,
   setStorageClient,
+  getSessionTags,
+  setSessionTags,
+  getSessionMetadata,
   filterSessionsByDate,
   formatSessionInfo,
   formatSessionList,
@@ -196,5 +204,66 @@ export function createSessionManagerTools(
     },
   })
 
-  return { session_list, session_read, session_search, session_info }
+  const session_tag: ToolDefinition = tool({
+    description: SESSION_TAG_DESCRIPTION,
+    args: {
+      session_id: tool.schema.string().describe("Session ID to tag"),
+      tags: tool.schema.array(tool.schema.string()).describe("Tags to add, remove, or replace"),
+      action: tool.schema.enum(["add", "remove", "replace"]).describe("Tag operation: add (append), remove (delete), or replace (overwrite)"),
+    },
+    execute: async (args: SessionTagArgs, _context) => {
+      try {
+        if (!(await resolvedDeps.sessionExists(args.session_id))) {
+          return `Session not found: ${args.session_id}`
+        }
+
+        const result = await resolvedDeps.setSessionTags(args.session_id, args.tags, args.action)
+
+        if (!result.success) {
+          return `Failed to update tags for session ${args.session_id}. SDK-based sessions may not support tag operations.`
+        }
+
+        const actionPast = args.action === "add" ? "Added" : args.action === "remove" ? "Removed" : "Replaced"
+        return `${actionPast} tags on session ${args.session_id}: ${result.tags.join(", ") || "(none)"}`
+      } catch (e) {
+        return `Error: ${e instanceof Error ? e.message : String(e)}`
+      }
+    },
+  })
+
+  const session_branch: ToolDefinition = tool({
+    description: SESSION_BRANCH_DESCRIPTION,
+    args: {
+      session_id: tool.schema.string().describe("Parent session ID to branch from"),
+      title: tool.schema.string().optional().describe("Title for the new branch session"),
+      tags: tool.schema.array(tool.schema.string()).optional().describe("Initial tags for the new branch"),
+    },
+    execute: async (args: SessionBranchArgs, _context) => {
+      try {
+        const parentMeta = await resolvedDeps.getSessionMetadata(args.session_id)
+
+        if (!parentMeta) {
+          return `Parent session not found: ${args.session_id}`
+        }
+
+        const result = await ctx.client.session.create({
+          body: {
+            parentID: args.session_id,
+            title: args.title ?? `Branch of ${parentMeta.title ?? args.session_id}`,
+            tags: args.tags,
+          } as Record<string, unknown>,
+          query: { directory: parentMeta.directory },
+        })
+
+        if (result.error) {
+          return `Error creating branch: ${result.error}`
+        }
+        return `Created branch session: ${result.data.id}`
+      } catch (e) {
+        return `Error: ${e instanceof Error ? e.message : String(e)}`
+      }
+    },
+  })
+
+  return { session_list, session_read, session_search, session_info, session_tag, session_branch }
 }

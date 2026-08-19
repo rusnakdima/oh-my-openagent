@@ -151,3 +151,21 @@ export async function getSdkSessionTodos(client: PluginInput["client"], sessionI
 export function shouldFallbackFromSdkError(error: unknown): boolean {
   return isSessionSdkUnavailableError(error)
 }
+
+export async function getSdkSessionTags(
+  client: PluginInput["client"],
+  sessionID: string,
+): Promise<string[]> {
+  // SDK does not expose direct tag read; return empty and let file storage handle it
+  return []
+}
+
+export async function setSdkSessionTags(
+  client: PluginInput["client"],
+  sessionID: string,
+  tags: string[],
+  action: "add" | "remove" | "replace",
+): Promise<{ success: boolean; tags: string[] }> {
+  // SDK updateMetadata may not support tags; return not-supported
+  return { success: false, tags: [] }
+}

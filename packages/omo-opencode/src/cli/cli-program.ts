@@ -7,6 +7,7 @@ import { doctor, resolveDoctorTarget } from "./doctor"
 import { createMcpOAuthCommand } from "./mcp-oauth"
 import { configureRuntimeCommands } from "./runtime-commands"
 import { runConfigMigrate } from "./config-migrate"
+import { runSessionList, runSessionTag } from "./session-cli"
 import { availableInstallPlatforms, isSenpiPlatformEnabled, SENPI_PLATFORM_ENV_FLAG } from "./senpi-platform-flag"
 import type { InstallArgs } from "./types"
 import type { RunOptions } from "./run"
@@ -281,6 +282,42 @@ program
 configureRuntimeCommands(program)
 
 program.addCommand(createMcpOAuthCommand())
+
+const sessionCommand = program
+  .command("session")
+  .description("Manage OpenCode sessions")
+
+sessionCommand
+  .command("list")
+  .description("List sessions with optional tag filtering")
+  .option("--tag <tag>", "Filter sessions by tag")
+  .option("--limit <number>", "Maximum number of sessions to return", (val) => parseInt(val, 10), 20)
+  .action(async (options) => {
+    const exitCode = await runSessionList({ tag: options.tag, limit: options.limit })
+    process.exit(exitCode)
+  })
+
+sessionCommand
+  .command("tag <session-id> <action> <tags...>")
+  .description("Add, remove, or replace tags on a session")
+  .addHelpText("after", `
+Examples:
+  $ bunx oh-my-opencode session tag ses_abc123 add feature-x urgent
+  $ bunx oh-my-opencode session tag ses_abc123 remove feature-x
+  $ bunx oh-my-opencode session tag ses_abc123 replace new-tag
+`)
+  .action(async (sessionId: string, action: string, tags: string[]) => {
+    if (!["add", "remove", "replace"].includes(action)) {
+      console.error("Action must be: add, remove, or replace")
+      process.exit(1)
+    }
+    const exitCode = await runSessionTag({
+      sessionId,
+      action: action as "add" | "remove" | "replace",
+      tags,
+    })
+    process.exit(exitCode)
+  })
 
 export function runCli(): void {
   program.parse()

@@ -90,4 +90,30 @@ Example:
 session_delete(session_id="ses_abc123", confirm=true)
 Successfully deleted session ses_abc123`
 
+export const SESSION_TAG_DESCRIPTION = `Add, remove, or replace tags on an OpenCode session.
+
+Modifies the tags array in session metadata. For FILE-based sessions, reads and writes the session JSON file. For SDK-based sessions, calls the updateMetadata API.
+
+Arguments:
+- session_id (required): Session ID to tag
+- tags (required): Array of tag strings to add, remove, or replace
+- action (required): "add" (append tags), "remove" (delete tags), or "replace" (replace all tags)
+
+Example:
+session_tag(session_id="ses_abc123", tags=["feature-x", "urgent"], action="add")
+Added tags to session ses_abc123: feature-x, urgent`
+
+export const SESSION_BRANCH_DESCRIPTION = `Create a new branch session from an existing session.
+
+Creates a child session with the specified parent, inheriting context. The new session starts empty but links to its parent for context retrieval.
+
+Arguments:
+- session_id (required): Parent session ID to branch from
+- title (optional): Title for the new branch session (default: "Branch of <parent_title>")
+- tags (optional): Initial tags for the new branch session
+
+Example:
+session_branch(session_id="ses_abc123", title="Feature branch", tags=["feature-x"])
+Created branch session: ses_newbranch123`
+
 export const TOOL_NAME_PREFIX = "session_"

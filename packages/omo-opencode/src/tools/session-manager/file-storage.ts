@@ -1,5 +1,5 @@
-import { existsSync } from "node:fs"
-import { readdir, readFile } from "node:fs/promises"
+import { existsSync, readdirSync } from "node:fs"
+import { readdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { MESSAGE_STORAGE, PART_STORAGE, SESSION_STORAGE, TODO_DIR, TRANSCRIPT_DIR } from "./constants"
 import { getMessageDir } from "../../shared/opencode-message-dir"
@@ -214,5 +214,88 @@ export async function getFileSessionInfo(sessionID: string): Promise<SessionInfo
     has_transcript: transcriptEntries > 0,
     todos,
     transcript_entries: transcriptEntries,
+  }
+}
+
+export function getSessionMetadataPath(sessionID: string): string | null {
+  if (!existsSync(SESSION_STORAGE)) return null
+
+  try {
+    const projectDirs = readdirSync(SESSION_STORAGE, { withFileTypes: true })
+    for (const projectDir of projectDirs) {
+      if (!projectDir.isDirectory()) continue
+      const sessionPath = join(SESSION_STORAGE, projectDir.name, `${sessionID}.json`)
+      if (existsSync(sessionPath)) {
+        return sessionPath
+      }
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
+
+export async function getFileSessionTags(sessionID: string): Promise<string[]> {
+  const metaPath = getSessionMetadataPath(sessionID)
+  if (!metaPath) return []
+
+  try {
+    const content = await readFile(metaPath, "utf-8")
+    const meta = JSON.parse(content) as SessionMetadata
+    return meta.tags ?? []
+  } catch {
+    return []
+  }
+}
+
+export async function setFileSessionTags(
+  sessionID: string,
+  tags: string[],
+  action: "add" | "remove" | "replace"
+): Promise<{ success: boolean; tags: string[] }> {
+  const metaPath = getSessionMetadataPath(sessionID)
+  if (!metaPath) {
+    return { success: false, tags: [] }
+  }
+
+  try {
+    const content = await readFile(metaPath, "utf-8")
+    const meta = JSON.parse(content) as SessionMetadata
+
+    let newTags: string[]
+    switch (action) {
+      case "replace":
+        newTags = [...tags]
+        break
+      case "add":
+        newTags = Array.from(new Set([...(meta.tags ?? []), ...tags]))
+        break
+      case "remove":
+        const removeSet = new Set(tags)
+        newTags = (meta.tags ?? []).filter((t) => !removeSet.has(t))
+        break
+    }
+
+    meta.tags = newTags
+    meta.time.updated = Date.now()
+
+    await writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8")
+
+    return { success: true, tags: newTags }
+  } catch (error) {
+    return { success: false, tags: [] }
+  }
+}
+
+export async function getFileSessionMetadata(sessionID: string): Promise<SessionMetadata | null> {
+  const metaPath = getSessionMetadataPath(sessionID)
+  if (!metaPath) return null
+
+  try {
+    const content = await readFile(metaPath, "utf-8")
+    return JSON.parse(content) as SessionMetadata
+  } catch {
+    return null
   }
 }
