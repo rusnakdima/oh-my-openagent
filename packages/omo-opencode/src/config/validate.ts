@@ -46,7 +46,10 @@ function parseConfig(rawConfig: Record<string, unknown>): Partial<OhMyOpenCodeCo
   let config: Partial<OhMyOpenCodeConfig> = {}
   for (const [key, value] of Object.entries(rawConfig)) {
     const result = OhMyOpenCodeConfigSchema.safeParse({ [key]: value })
-    if (!result.success) continue
+    if (!result.success) {
+      log(`[config] Skipping invalid config section "${key}": ${result.error.issues.map((i) => i.message).join(", ")}`)
+      continue
+    }
     const section = Object.entries(result.data).find(([parsedKey]) => parsedKey === key)
     if (section !== undefined) config = Object.assign(config, Object.fromEntries([section]))
   }

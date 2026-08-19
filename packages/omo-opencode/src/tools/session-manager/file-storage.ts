@@ -3,10 +3,14 @@ import { readdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { MESSAGE_STORAGE, PART_STORAGE, SESSION_STORAGE, TODO_DIR, TRANSCRIPT_DIR } from "./constants"
 import { getMessageDir } from "../../shared/opencode-message-dir"
+import { log } from "../../shared/logger"
 import type { SessionInfo, SessionMessage, SessionMetadata, TodoItem } from "./types"
 
 function ignoreFileStorageError(error: unknown): void {
-  if (error instanceof Error) return
+  if (error instanceof Error) {
+    log(`[session-file-storage] Ignoring error: ${error.message}`)
+    return
+  }
   throw error
 }
 

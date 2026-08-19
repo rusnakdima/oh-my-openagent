@@ -68,7 +68,7 @@ export async function dispatchFallbackRetry(
               duration: 8000,
             },
           })
-          .catch(() => {})
+          .catch((err) => log(`[${HOOK_NAME}] Toast failed:`, { error: String(err) }))
       }
       return
     }
