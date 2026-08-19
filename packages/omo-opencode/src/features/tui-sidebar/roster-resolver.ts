@@ -92,14 +92,15 @@ export function resolveRoster(directory: string): RosterRow[] {
     const sessionModel = mainSessionID ? getSessionModel(mainSessionID) : undefined
     const globalModel = sessionModel ? `${sessionModel.providerID}/${sessionModel.modelID}` : undefined
 
-    // Use global model if set, otherwise fall back to configured effectiveModel
-    const effectiveModel = globalModel ?? "no model selected"
+    // Use global model if set; otherwise "—" means no global TUI model selected.
+    // "—" is shown uniformly instead of per-entry fallback chain models from resolution.
+    const effectiveModel = globalModel ?? "—"
 
     return [...agents, ...categories]
       .filter((entry) => !disabledAgents.has(entry.name))
       .map((entry) => ({
         label: entry.name,
-        model: formatModelLabel(effectiveModel),
+        model: effectiveModel === "—" ? "—" : formatModelLabel(effectiveModel),
       }))
       .sort((left, right) => left.label.localeCompare(right.label))
   } catch (error) {

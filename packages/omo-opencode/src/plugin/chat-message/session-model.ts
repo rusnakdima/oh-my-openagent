@@ -48,6 +48,7 @@ export function getStoredMainSessionModel(
 }
 
 export function recordSessionModel(input: ChatMessageInput, output: ChatMessageHandlerOutput): void {
+  // First priority: output.message.model set by our plugin (highest priority)
   const modelOverride = output.message.model
   if (
     modelOverride &&
@@ -60,7 +61,28 @@ export function recordSessionModel(input: ChatMessageInput, output: ChatMessageH
     if (typeof providerID === "string" && typeof modelID === "string") {
       setSessionModel(input.sessionID, { providerID, modelID })
     }
-  } else if (input.model) {
-    setSessionModel(input.sessionID, input.model)
+    return
+  }
+
+  // Second priority: input.model from TUI picker (SessionModel object or bare string)
+  if (input.model) {
+    if (
+      typeof input.model === "object" &&
+      "providerID" in input.model &&
+      "modelID" in input.model
+    ) {
+      // input.model is a SessionModel object — use it directly
+      setSessionModel(input.sessionID, {
+        providerID: (input.model as { providerID: string }).providerID,
+        modelID: (input.model as { modelID: string }).modelID,
+      })
+    } else if (typeof input.model === "string" && input.model.includes("/")) {
+      // input.model is a "provider/model" string — parse it
+      const parts = input.model.split("/")
+      const modelID = parts.pop()!
+      const providerID = parts.join("/")
+      setSessionModel(input.sessionID, { providerID, modelID })
+    }
+    // Bare string without "/" is not a valid model identifier — ignore
   }
 }
