@@ -244,8 +244,11 @@ export function createMessagesTransformHandler(args: {
 }): (input: Record<string, never>, output: MessagesTransformOutput) => Promise<void> {
   return async (input, output): Promise<void> => {
     for (const hook of MESSAGES_TRANSFORM_HOOKS) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const hookFn = (args.hooks as any)[hook.key]?.["experimental.chat.messages.transform"] ?? null
+      const hookEntry = args.hooks[hook.key as keyof MessagesTransformHooks] as
+        | { "experimental.chat.messages.transform": (input: unknown, output: unknown) => Promise<void> | void }
+        | null
+        | undefined
+      const hookFn = hookEntry?.["experimental.chat.messages.transform"] ?? null
       await runMessagesTransformHookSafely(hook.name, hookFn, input, output)
     }
 
