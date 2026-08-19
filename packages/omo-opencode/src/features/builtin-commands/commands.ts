@@ -14,6 +14,7 @@ import { WIKI_QUERY_TEMPLATE } from "./templates/wiki-query"
 import { WIKI_LINT_TEMPLATE } from "./templates/wiki-lint"
 import { WIKI_UPDATE_TEMPLATE } from "./templates/wiki-update"
 import { VOICE_TEMPLATE } from "./templates/voice"
+import { BTW_TEMPLATE } from "./templates/btw"
 
 interface LoadBuiltinCommandsOptions {
   useRegisteredAgents?: boolean
@@ -201,6 +202,17 @@ $ARGUMENTS
       template: `<command-instruction>
 ${VOICE_TEMPLATE}
 </command-instruction>`,
+    },
+    btw: {
+      description: "(builtin) Ask a side question that is excluded from future context",
+      template: `<command-instruction>
+${BTW_TEMPLATE}
+</command-instruction>
+
+<user-request>
+$ARGUMENTS
+</user-request>`,
+      argumentHint: "<question>",
     },
   }
 }
