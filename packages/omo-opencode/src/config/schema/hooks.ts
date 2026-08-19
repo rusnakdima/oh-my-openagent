@@ -3,6 +3,9 @@ import { z } from "zod"
 export const HookNameSchema = z.enum([
   "todo-continuation-enforcer",
   "session-notification",
+  "long-running-notification",
+  "git-pre-commit",
+  "git-post-commit",
   "comment-checker",
   "tool-output-truncator",
   "question-label-truncator",

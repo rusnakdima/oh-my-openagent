@@ -1,5 +1,13 @@
 import type { ToolDefinition } from "@opencode-ai/plugin"
 
+function matchesPattern(toolName: string, pattern: string): boolean {
+  if (pattern.endsWith("*")) {
+    const prefix = pattern.slice(0, -1)
+    return toolName.startsWith(prefix)
+  }
+  return toolName === pattern
+}
+
 export function filterDisabledTools(
   tools: Record<string, ToolDefinition>,
   disabledTools: readonly string[] | undefined
@@ -8,10 +16,10 @@ export function filterDisabledTools(
     return tools
   }
 
-  const disabledToolSet = new Set(disabledTools)
   const filtered: Record<string, ToolDefinition> = {}
   for (const [toolName, toolDefinition] of Object.entries(tools)) {
-    if (!disabledToolSet.has(toolName)) {
+    const isDisabled = disabledTools.some((pattern) => matchesPattern(toolName, pattern))
+    if (!isDisabled) {
       filtered[toolName] = toolDefinition
     }
   }

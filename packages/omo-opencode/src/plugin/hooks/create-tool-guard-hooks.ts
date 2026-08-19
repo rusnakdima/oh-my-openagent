@@ -23,6 +23,9 @@ import {
   createPlanFormatValidatorHook,
   createBtwToolGuardHook,
   type BtwToolGuardDeps,
+  createLongRunningNotificationHooks,
+  createGitPreCommitHook,
+  createGitPostCommitHook,
 } from "../../hooks"
 import {
   getOpenCodeVersion,
@@ -52,6 +55,9 @@ export type ToolGuardHooks = {
   notepadWriteGuard: ReturnType<typeof createNotepadWriteGuardHook> | null
   planFormatValidator: ReturnType<typeof createPlanFormatValidatorHook> | null
   btwToolGuard: ReturnType<typeof createBtwToolGuardHook> | null
+  longRunningNotification: ReturnType<typeof createLongRunningNotificationHooks> | null
+  gitPreCommit: ReturnType<typeof createGitPreCommitHook> | null
+  gitPostCommit: ReturnType<typeof createGitPostCommitHook> | null
 }
 
 export function createToolGuardHooks(args: {
@@ -166,6 +172,16 @@ export function createToolGuardHooks(args: {
   }
   const btwToolGuard = createBtwToolGuardHook(btwToolGuardDeps)
 
+  const longRunningNotification = createLongRunningNotificationHooks(pluginConfig.notification)
+
+  const gitPreCommit = isHookEnabled("git-pre-commit")
+    ? safeHook("git-pre-commit", () => createGitPreCommitHook(pluginConfig.git_master))
+    : null
+
+  const gitPostCommit = isHookEnabled("git-post-commit")
+    ? safeHook("git-post-commit", () => createGitPostCommitHook())
+    : null
+
   return {
     commentChecker,
     toolOutputTruncator,
@@ -186,5 +202,8 @@ export function createToolGuardHooks(args: {
     notepadWriteGuard,
     planFormatValidator,
     btwToolGuard,
+    longRunningNotification,
+    gitPreCommit,
+    gitPostCommit,
   }
 }
