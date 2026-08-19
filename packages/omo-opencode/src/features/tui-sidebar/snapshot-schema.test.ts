@@ -33,6 +33,7 @@ describe("TuiRuntimeSnapshotSchema", () => {
         blocked: 1,
         activeGoal: "Render sidebar",
       },
+      tuiSelectedModel: null,
     }
 
     // when

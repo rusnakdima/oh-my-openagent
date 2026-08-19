@@ -3,6 +3,7 @@ import type { OmoConfig } from "../../cli/doctor/checks/model-resolution-types"
 import type { OhMyOpenCodeConfig } from "../../config"
 import { validatePluginConfig } from "../../config/validate"
 import type { RosterRow } from "./state-types"
+import type { SessionModel } from "../../shared/session-model-state"
 
 type ResolutionEntry = {
   readonly name: string
@@ -65,13 +66,13 @@ function toModelResolutionConfig(config: OhMyOpenCodeConfig): OmoConfig {
   return { agents, categories }
 }
 
-export function resolveRoster(directory: string): RosterRow[] {
+export function resolveRoster(directory: string, liveSessionModel?: SessionModel): RosterRow[] {
   try {
     const config = validatePluginConfig(directory).config
     const sidebarConfig = config.tui?.sidebar
     const visibleAgents = sidebarConfig?.visibleAgents
     const visibleCategories = sidebarConfig?.visibleCategories
-    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config))
+    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config), liveSessionModel)
 
     const disabledAgents = new Set(config.disabled_agents ?? [])
 

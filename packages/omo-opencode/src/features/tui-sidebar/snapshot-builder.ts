@@ -1,5 +1,7 @@
 import { getLastAgentFromSession } from "../../hooks/atlas/session-last-agent"
 import { normalizeSDKResponse } from "../../shared/normalize-sdk-response"
+import { getMainSessionID } from "../claude-code-session-state"
+import { getSessionModel } from "../../shared/session-model-state"
 import { MIRROR_SCHEMA_VERSION } from "./constants"
 import { readActiveLoop } from "./loop-reader"
 import { canonicalProjectDir } from "./mirror-path"
@@ -49,6 +51,7 @@ export async function buildTuiRuntimeSnapshot(
     activeAgents: await activeAgentsFromStatuses(statuses, input.client, input.sessionAgentResolver ?? getLastAgentFromSession),
     jobBoard: input.backgroundManager.getTasksSnapshot().map(toJobRow),
     loop: loop.kind === "live" ? redactLoopText(loop) : null,
+    tuiSelectedModel: getTuiSelectedModel(),
   }
 }
 
@@ -103,4 +106,16 @@ function redactLoopText(loop: TuiRuntimeSnapshot["loop"]): TuiRuntimeSnapshot["l
     return null
   }
   return { ...loop, activeGoal: null }
+}
+
+function getTuiSelectedModel(): TuiRuntimeSnapshot["tuiSelectedModel"] {
+  try {
+    const mainSessionID = getMainSessionID()
+    if (!mainSessionID) return null
+    const model = getSessionModel(mainSessionID)
+    if (!model) return null
+    return { providerID: model.providerID, modelID: model.modelID }
+  } catch {
+    return null
+  }
 }

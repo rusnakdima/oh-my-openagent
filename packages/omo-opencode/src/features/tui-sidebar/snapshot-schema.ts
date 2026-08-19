@@ -44,6 +44,11 @@ const LoopLiveSchema = z.object({
   activeGoal: z.string().nullable(),
 }) satisfies z.ZodType<LoopLive>
 
+const TuiSelectedModelSchema = z.object({
+  providerID: z.string(),
+  modelID: z.string(),
+})
+
 export const TuiRuntimeSnapshotSchema = z.object({
   version: z.literal(MIRROR_SCHEMA_VERSION),
   projectDir: z.string(),
@@ -51,6 +56,7 @@ export const TuiRuntimeSnapshotSchema = z.object({
   activeAgents: z.array(AgentRowSchema),
   jobBoard: z.array(JobRowSchema),
   loop: LoopLiveSchema.nullable(),
+  tuiSelectedModel: TuiSelectedModelSchema.nullable(),
 })
 
 export type TuiRuntimeSnapshot = z.infer<typeof TuiRuntimeSnapshotSchema>

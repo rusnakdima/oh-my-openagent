@@ -975,7 +975,7 @@ describe("createChatMessageHandler - TUI variant passthrough", () => {
     expect(getSessionAgent("test-session")).toBe("Prometheus - Plan Builder")
   })
 
-  test("respects a mid-conversation model switch instead of reusing the previous stored model", async () => {
+  test("respects a mid-conversation model switch — stored model is applied, session is updated", async () => {
     //#given
     setMainSession("test-session")
     setSessionModel("test-session", { providerID: "anthropic", modelID: "claude-opus-4-7" })
@@ -989,7 +989,9 @@ describe("createChatMessageHandler - TUI variant passthrough", () => {
     await handler(input, output)
 
     //#then
-    expect(output.message["model"]).toBeUndefined()
+    // stored model is applied via output.message.model (fix: we now return stored model even when input.model is set)
+    expect(output.message["model"]).toEqual({ providerID: "anthropic", modelID: "claude-opus-4-7" })
+    // session is updated to the new TUI model
     expect(getSessionModel("test-session")).toEqual(nextModel)
   })
 

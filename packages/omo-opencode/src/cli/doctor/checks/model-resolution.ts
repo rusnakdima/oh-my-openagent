@@ -7,6 +7,7 @@ import { loadOmoConfig } from "./model-resolution-config"
 import { buildModelResolutionDetails } from "./model-resolution-details"
 import { buildEffectiveResolution, getEffectiveModel } from "./model-resolution-effective-model"
 import type { AgentResolutionInfo, CategoryResolutionInfo, ModelResolutionInfo, OmoConfig } from "./model-resolution-types"
+import type { SessionModel } from "../../../shared/session-model-state"
 import { existsSync, unlinkSync } from "node:fs"
 import { join } from "node:path"
 import { getOpenCodeCacheDir } from "../../../shared"
@@ -62,16 +63,25 @@ export function getModelResolutionInfo(): ModelResolutionInfo {
   return { agents, categories }
 }
 
-export function getModelResolutionInfoWithOverrides(config: OmoConfig): ModelResolutionInfo {
+export function getModelResolutionInfoWithOverrides(
+  config: OmoConfig,
+  liveSessionModel?: SessionModel,
+): ModelResolutionInfo {
+  const liveModelString = liveSessionModel
+    ? `${liveSessionModel.providerID}/${liveSessionModel.modelID}`
+    : undefined
+
   const agents: AgentResolutionInfo[] = Object.entries(AGENT_MODEL_REQUIREMENTS).map(([name, requirement]) => {
     const userOverride = config.agents?.[name]?.model
     const userVariant = config.agents?.[name]?.variant
+    // liveSessionModel overrides everything when set
+    const effectiveModel = liveModelString ?? getEffectiveModel(requirement, userOverride)
     return attachCapabilityDiagnostics({
       name,
       requirement,
       userOverride,
       userVariant,
-      effectiveModel: getEffectiveModel(requirement, userOverride),
+      effectiveModel,
       effectiveResolution: buildEffectiveResolution(requirement, userOverride),
     })
   })
@@ -80,12 +90,14 @@ export function getModelResolutionInfoWithOverrides(config: OmoConfig): ModelRes
     ([name, requirement]) => {
       const userOverride = config.categories?.[name]?.model
       const userVariant = config.categories?.[name]?.variant
+      // liveSessionModel overrides everything when set
+      const effectiveModel = liveModelString ?? getEffectiveModel(requirement, userOverride)
       return attachCapabilityDiagnostics({
         name,
         requirement,
         userOverride,
         userVariant,
-        effectiveModel: getEffectiveModel(requirement, userOverride),
+        effectiveModel,
         effectiveResolution: buildEffectiveResolution(requirement, userOverride),
       })
     }

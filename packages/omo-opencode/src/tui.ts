@@ -66,7 +66,7 @@ function materializeNode<Node>(node: ViewNode, solid: SolidRuntime<Node>): Node 
   return element
 }
 
-type RosterResolver = (directory: string) => RosterRow[]
+type RosterResolver = (directory: string, tuiSelectedModel?: { providerID: string; modelID: string }) => RosterRow[]
 type PluginValidation = {
   readonly valid: boolean
   readonly messages: readonly string[]
@@ -84,16 +84,19 @@ async function loadPluginValidation(directory: string): Promise<PluginValidation
   return validatePluginConfig(directory)
 }
 
-async function loadRosterRows(directory: string): Promise<readonly RosterRow[]> {
+async function loadRosterRows(
+  directory: string,
+  tuiSelectedModel?: { providerID: string; modelID: string },
+): Promise<readonly RosterRow[]> {
   const { resolveRoster } = await import("./features/tui-sidebar/roster-resolver")
   const resolver: RosterResolver = resolveRoster
-  return resolver(directory)
+  return resolver(directory, tuiSelectedModel)
 }
 
 async function readView(directory: string): Promise<SidebarView> {
   const validation = await loadPluginValidation(directory)
   const mirror = readMirror(directory)
-  const roster = await loadRosterRows(directory)
+  const roster = await loadRosterRows(directory, mirror?.tuiSelectedModel ?? undefined)
   return computeView({
     config: deriveConfig(validation),
     roster: deriveRoster(roster),
