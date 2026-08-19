@@ -64,9 +64,15 @@ export function createVoiceTool(ctx: PluginInput, config: VoiceConfig): ToolDefi
       const sttProvider = createSTTProvider(backend, config)
       const configValidation = sttProvider.validateConfig()
       if (!configValidation.valid) {
+        const hint =
+          backend === "openai"
+            ? " Set OPENAI_API_KEY in your shell environment or config file."
+            : backend === "cloudflare"
+              ? " Set CF_API_TOKEN in your shell environment or config file."
+              : " Install faster-whisper-cli (`pip install faster-whisper-cli`) or check the executable path in your config."
         return {
-          title: "STT configuration error",
-          output: configValidation.error ?? "Unknown configuration error",
+          title: "STT not configured",
+          output: `${configValidation.error ?? "Unknown configuration error"}.${hint}`,
         }
       }
 
@@ -102,18 +108,34 @@ export function createVoiceTool(ctx: PluginInput, config: VoiceConfig): ToolDefi
 
       log(`[voice] Recorded ${audioBuffer.data.length} bytes, ${audioBuffer.duration_ms}ms`)
 
-      // Transcribe
-      let transcription: string
-      try {
-        transcription = await sttProvider.transcribe(audioBuffer)
-      } catch (transcribeError) {
-        log(`[voice] Transcription error: ${transcribeError}`)
+      // Transcribe with retry on transient failures
+      const MAX_RETRIES = 2
+      let transcription = ""
+      let lastTranscribeError: Error | null = null
+      for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+        try {
+          transcription = await sttProvider.transcribe(audioBuffer)
+          lastTranscribeError = null
+          break
+        } catch (transcribeError) {
+          lastTranscribeError = transcribeError as Error
+          const isRetryable =
+            [429, 502, 503, 504].includes((transcribeError as { status?: number }).status ?? 0) ||
+            (transcribeError as Error).message?.includes("network")
+          if (!isRetryable || attempt === MAX_RETRIES) break
+          const delayMs = 2 ** attempt * 500
+          log(`[voice] Transient transcription error (attempt ${attempt + 1}/${MAX_RETRIES + 1}), retrying in ${delayMs}ms`)
+          await new Promise<void>((resolve) => setTimeout(resolve, delayMs))
+        }
+      }
+      if (lastTranscribeError !== null) {
+        log(`[voice] Transcription error: ${lastTranscribeError}`)
         return {
           title: "Transcription failed",
           output:
-            transcribeError instanceof Error
-              ? `Transcription failed: ${transcribeError.message}`
-              : `Transcription failed: ${String(transcribeError)}`,
+            lastTranscribeError instanceof Error
+              ? `Transcription failed: ${lastTranscribeError.message}`
+              : `Transcription failed: ${String(lastTranscribeError)}`,
         }
       }
 

@@ -20,7 +20,7 @@ export async function injectTranscription(opts: InjectTranscriptionOptions): Pro
     client: opts.client,
     sessionID: opts.sessionID,
     source: "voice-input",
-    dedupeKey: `voice:${opts.sessionID}`,
+    dedupeKey: `voice:${opts.sessionID}:${Date.now()}:${Math.random().toString(36).slice(2)}`,
     postDispatchHoldMs: 2000,
     queueBehavior: opts.queueBehavior ?? "defer",
     queueRetryMs: 5000,

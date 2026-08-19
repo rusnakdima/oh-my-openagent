@@ -61,7 +61,7 @@ describe("voice tool", () => {
       // No OPENAI_API_KEY → STT config validation fails
       const result = await tool.execute({ record: true }, ctx)
 
-      expect(result.title).toBe("STT configuration error")
+      expect(result.title).toBe("STT not configured")
       expect(result.output.toLowerCase()).toContain("api key")
     })
 

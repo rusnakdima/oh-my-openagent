@@ -6,78 +6,82 @@ export interface AudioToolStatus {
   version?: string
 }
 
-function execSync(command: string, args: string[]): { success: boolean; stdout: string; stderr: string } {
-  try {
-    const stdout = childProcess.execFileSync(command, args, {
-      timeout: 5000,
-      stdio: ["pipe", "pipe", "pipe"],
+function execFilePromise(
+  command: string,
+  args: string[],
+  timeoutMs = 5000,
+): Promise<{ success: boolean; stdout: string; stderr: string }> {
+  return new Promise((resolve) => {
+    const proc = childProcess.execFile(command, args, { timeout: timeoutMs }, (err, stdout, stderr) => {
+      resolve({ success: err == null, stdout: stdout ?? "", stderr: stderr ?? "" })
     })
-    return { success: true, stdout: stdout.toString(), stderr: "" }
-  } catch (err) {
-    const error = err as { stderr?: Buffer }
-    return {
-      success: false,
-      stdout: "",
-      stderr: error.stderr?.toString() ?? "",
-    }
-  }
+    // Enforce timeout from the JS side too
+    const timer = setTimeout(() => {
+      try {
+        proc.kill()
+      } catch {
+        // ignore if already exited
+      }
+      resolve({ success: false, stdout: "", stderr: "timeout" })
+    }, timeoutMs + 500)
+    proc.on("close", () => clearTimeout(timer))
+  })
 }
 
 export async function detectAvailableAudioTools(): Promise<AudioToolStatus[]> {
-  const results: AudioToolStatus[] = []
+  // Check all three tools in parallel for speed
+  const [soxCheck, arecordCheck, ffmpegCheck] = await Promise.all([
+    execFilePromise("which", ["sox"]).then(async (r) => {
+      if (!r.success) return { tool: "sox", available: false }
+      const versionResult = await execFilePromise("sox", ["--version"])
+      return {
+        tool: "sox",
+        available: true,
+        version: versionResult.stdout.trim().split("\n")[0] ?? undefined,
+      }
+    }),
+    execFilePromise("which", ["arecord"]).then((r) => ({
+      tool: "arecord",
+      available: r.success,
+    })),
+    execFilePromise("which", ["ffmpeg"]).then(async (r) => {
+      if (!r.success) return { tool: "ffmpeg", available: false }
+      const versionResult = await execFilePromise("ffmpeg", ["-version"])
+      return {
+        tool: "ffmpeg",
+        available: true,
+        version: versionResult.stdout.split("\n")[0] ?? undefined,
+      }
+    }),
+  ])
 
-  // Check sox (preferred - cross-platform, consistent format)
-  const soxResult = execSync("which", ["sox"])
-  if (soxResult.success) {
-    const versionResult = execSync("sox", ["--version"])
-    results.push({
-      tool: "sox",
-      available: true,
-      version: versionResult.stdout.trim().split("\n")[0] ?? undefined,
-    })
-  } else {
-    results.push({ tool: "sox", available: false })
-  }
-
-  // Check arecord (Linux alsa-utils)
-  const arecordResult = execSync("which", ["arecord"])
-  if (arecordResult.success) {
-    results.push({ tool: "arecord", available: true })
-  } else {
-    results.push({ tool: "arecord", available: false })
-  }
-
-  // Check ffmpeg (last resort)
-  const ffmpegResult = execSync("which", ["ffmpeg"])
-  if (ffmpegResult.success) {
-    const versionResult = execSync("ffmpeg", ["-version"])
-    results.push({
-      tool: "ffmpeg",
-      available: true,
-      version: versionResult.stdout.split("\n")[0] ?? undefined,
-    })
-  } else {
-    results.push({ tool: "ffmpeg", available: false })
-  }
-
-  return results
+  return [soxCheck, arecordCheck, ffmpegCheck]
 }
+
+/** Cached result — tool paths don't change at runtime. Cached on first call. */
+let _cachedTool: string | null | "unknown" = "unknown"
 
 export function getPreferredRecorderTool(): string | null {
+  if (_cachedTool !== "unknown") return _cachedTool
+
+  // Fallback sync check using which/where — still fast since it's a single lookup
   // Priority: sox > arecord > ffmpeg
-  if (process.platform === "win32") {
-    // On Windows prefer sox via Git Bash
-    const soxResult = execSync("where", ["sox.exe"])
-    if (soxResult.success) return "sox"
-  } else {
-    const soxResult = execSync("which", ["sox"])
-    if (soxResult.success) return "sox"
-    if (process.platform === "linux") {
-      const arecordResult = execSync("which", ["arecord"])
-      if (arecordResult.success) return "arecord"
+  const check = (cmd: string, args: string[]) => {
+    try {
+      const r = childProcess.execFileSync(cmd, args, { timeout: 3000, stdio: ["pipe", "pipe", "pipe"] })
+      return r.toString().trim().length > 0
+    } catch {
+      return false
     }
   }
-  const ffmpegResult = execSync("which", ["ffmpeg"])
-  if (ffmpegResult.success) return "ffmpeg"
-  return null
+
+  if (process.platform === "win32") {
+    if (check("where", ["sox.exe"])) return (_cachedTool = "sox")
+  } else {
+    if (check("which", ["sox"])) return (_cachedTool = "sox")
+    if (process.platform === "linux" && check("which", ["arecord"])) return (_cachedTool = "arecord")
+  }
+  if (check("which", ["ffmpeg"])) return (_cachedTool = "ffmpeg")
+  return (_cachedTool = null)
 }
+

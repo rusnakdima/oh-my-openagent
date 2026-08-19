@@ -8,8 +8,45 @@ import {
 } from "./types"
 import { MicrophoneNotFoundError, AudioRecorderError, NoAudioToolError } from "./errors"
 import { getPreferredRecorderTool } from "./platform-detect"
+import { createVADMonitor } from "./vad-monitor"
 
 export { type AudioBuffer, type AudioRecorder, type RecordOptions }
+
+/**
+ * Reads a WAV audio file asynchronously with guaranteed temp-file cleanup.
+ * Uses async I/O (not sync) to avoid race conditions when the file has not
+ * yet been fully flushed to disk by the recorder process.
+ */
+async function readAudioFile(
+  outputPath: string,
+  startTime: number,
+  sampleRate: number,
+): Promise<AudioBuffer> {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const fs = require("node:fs") as typeof import("node:fs")
+  try {
+    const stats = await fs.promises.stat(outputPath)
+    if (stats.size <= 44) {
+      throw new AudioRecorderError("Recording produced empty file")
+    }
+    const buffer = await fs.promises.readFile(outputPath)
+    const durationMs = Date.now() - startTime
+    return {
+      data: new Uint8Array(buffer),
+      format: "wav",
+      sampleRate,
+      channels: 1,
+      duration_ms: durationMs,
+    }
+  } finally {
+    // Always clean up the temp file, even if read fails
+    try {
+      await fs.promises.unlink(outputPath)
+    } catch {
+      // Ignore cleanup errors — file may already be gone
+    }
+  }
+}
 
 function createUnixRecorder(sampleRate: number = 16000): AudioRecorder {
   let activeProcess: childProcess.ChildProcess | null = null
@@ -112,67 +149,55 @@ function createUnixRecorder(sampleRate: number = 16000): AudioRecorder {
           activeProcess = null
           if (!stopped && !recordingDone) {
             stopped = true
-            // Check if file was created and has content
-            try {
-              const fs = require("node:fs") as typeof import("node:fs")
-              const stats = fs.statSync(outputPath)
-              if (stats.size > 44) {
-                // WAV header is 44 bytes
-                const data = Bun.file(outputPath).arrayBuffer()
-                void data.then((buffer) => {
-                  const durationMs = Date.now() - startTime
-                  resolve({
-                    data: new Uint8Array(buffer),
-                    format: "wav",
-                    sampleRate,
-                    channels: 1,
-                    duration_ms: durationMs,
-                  })
-                })
-                void fs.promises.unlink(outputPath)
-              } else {
-                reject(new AudioRecorderError("Recording produced empty file"))
-              }
-            } catch {
-              reject(new AudioRecorderError("Recording failed or produced no audio"))
-            }
+            // Use async I/O to avoid race: file may not be flushed to disk yet
+            void readAudioFile(outputPath, startTime, sampleRate)
+              .then(resolve)
+              .catch((err) => reject(new AudioRecorderError(err.message)))
           }
         })
 
-        // Safety timeout
+        // Safety timeout — stop recording if max duration exceeded
         setTimeout(() => {
           if (!stopped) {
             stopped = true
             if (activeProcess && !activeProcess.killed) {
               activeProcess.kill("SIGTERM")
             }
-            try {
-              const fs = require("node:fs") as typeof import("node:fs")
-              const stats = fs.statSync(outputPath)
-              if (stats.size > 44) {
-                void Bun.file(outputPath)
-                  .arrayBuffer()
-                  .then((buffer) => {
-                    const durationMs = Date.now() - startTime
-                    resolve({
-                      data: new Uint8Array(buffer),
-                      format: "wav",
-                      sampleRate,
-                      channels: 1,
-                      duration_ms: durationMs,
-                    })
-                  })
-                  .finally(() => {
-                    void fs.promises.unlink(outputPath)
-                  })
-              } else {
-                reject(new AudioRecorderError("Recording timed out with no audio captured"))
-              }
-            } catch {
-              reject(new AudioRecorderError("Recording timed out"))
-            }
+            // Use async I/O: file may not be flushed to disk immediately after SIGTERM
+            void readAudioFile(outputPath, startTime, sampleRate)
+              .then(resolve)
+              .catch(() => reject(new AudioRecorderError("Recording timed out with no audio captured")))
           }
         }, opts.duration_ms + 5000)
+
+        // Start VAD monitor for real-time silence detection (early stop)
+        // Only when min_duration has passed (avoid cutting off initial speech)
+        const minSilenceMs = opts.min_duration_ms
+        const silenceThresholdLinear = Math.round(
+          Math.pow(10, opts.silence_threshold_db / 20) * 32767,
+        )
+        const vad = createVADMonitor(sampleRate, {
+          silenceDurationMs: 1200,
+          threshold: Math.max(silenceThresholdLinear, 500),
+        })
+
+        // Race between VAD silence detection and max duration
+        void vad.promise
+          .then((reason) => {
+            if (!stopped && reason === "silence") {
+              log(`[voice] VAD triggered early stop (silence detected)`)
+              stopped = true
+              if (activeProcess && !activeProcess.killed) {
+                activeProcess.kill("SIGTERM")
+              }
+              void readAudioFile(outputPath, startTime, sampleRate)
+                .then(resolve)
+                .catch((err) => reject(new AudioRecorderError(err.message)))
+            }
+          })
+          .catch(() => {
+            // VAD error — ignore, let timeout handle it
+          })
       })
     },
 
