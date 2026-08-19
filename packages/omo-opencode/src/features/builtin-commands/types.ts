@@ -16,6 +16,7 @@ export type BuiltinCommandName =
   | "openspec"
   | "voice"
   | "btw"
+  | "model-select"
 
 export interface BuiltinCommandConfig {
   disabled_commands?: BuiltinCommandName[]

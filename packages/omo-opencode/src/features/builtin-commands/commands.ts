@@ -15,6 +15,7 @@ import { WIKI_LINT_TEMPLATE } from "./templates/wiki-lint"
 import { WIKI_UPDATE_TEMPLATE } from "./templates/wiki-update"
 import { VOICE_TEMPLATE } from "./templates/voice"
 import { BTW_TEMPLATE } from "./templates/btw"
+import { MODEL_TEMPLATE } from "./templates/model-select"
 
 interface LoadBuiltinCommandsOptions {
   useRegisteredAgents?: boolean
@@ -213,6 +214,13 @@ ${BTW_TEMPLATE}
 $ARGUMENTS
 </user-request>`,
       argumentHint: "<question>",
+    },
+    "model-select": {
+      description: "(builtin) Select a TUI model for all agents or a specific agent via interactive tmux menu",
+      template: `<command-instruction>
+${MODEL_TEMPLATE}
+</command-instruction>`,
+      argumentHint: "[agent-name]",
     },
   }
 }
