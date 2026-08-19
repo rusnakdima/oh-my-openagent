@@ -137,7 +137,7 @@ Available categories: ${allCategoryNames}`)
     const resolution = resolveModelForDelegateTask({
       userModel: userModelForResolution,
       availableModels,
-      systemDefaultModel: systemDefaultModel ? undefined : systemDefaultModel,
+      systemDefaultModel: systemDefaultModel ?? undefined,
     })
 
     if (resolution && "skipped" in resolution) {
