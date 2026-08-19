@@ -51,6 +51,41 @@ export const VoiceConfigSchema = z.object({
       sample_rate: z.number().default(16000),
     })
     .default({ silence_threshold_db: -40, max_duration_seconds: 60, min_duration_seconds: 1, sample_rate: 16000 }),
+  /** Text-to-speech / audio output settings */
+  tts: z
+    .object({
+      /** Enable TTS output (default: false) */
+      enabled: z.boolean().default(false),
+      /** Default TTS backend: "openai" | "local" */
+      default_backend: z.enum(["openai", "local"]).default("openai"),
+      /** OpenAI TTS settings */
+      openai: z
+        .object({
+          /** Model: "gpt-4o-mini-tts" | "tts-1" | "tts-1-hd" */
+          model: z.enum(["gpt-4o-mini-tts", "tts-1", "tts-1-hd"]).default("gpt-4o-mini-tts"),
+          /** Voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer" */
+          voice: z
+            .enum(["alloy", "echo", "fable", "onyx", "nova", "shimmer"])
+            .default("alloy"),
+          /** Output format: "mp3" | "opus" | "aac" | "flac" */
+          format: z.enum(["mp3", "opus", "aac", "flac"]).default("mp3"),
+          /** Speed 0.25-4.0 */
+          speed: z.number().min(0.25).max(4.0).default(1.0),
+        })
+        .optional(),
+      /** Local TTS settings */
+      local: z
+        .object({
+          /** Backend: "espeak" (Linux) | "say" (macOS) | "edge-tts" (Python) */
+          backend: z.enum(["espeak", "say", "edge-tts"]).default("espeak"),
+          /** espeak voice variant (e.g., "en" or "en-us") */
+          voice: z.string().default("en"),
+          /** espeak speed WPM (80-220) */
+          speed: z.number().min(80).max(220).default(160),
+        })
+        .optional(),
+    })
+    .default({ enabled: false, default_backend: "openai" }),
 })
 
 export type VoiceConfig = z.infer<typeof VoiceConfigSchema>

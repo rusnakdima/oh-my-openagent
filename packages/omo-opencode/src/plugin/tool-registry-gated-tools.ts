@@ -41,6 +41,9 @@ export function createVoiceToolsRecord(args: {
   if (!pluginConfig.voice?.enabled) return {}
   return {
     voice: factories.createVoiceTool(ctx, pluginConfig.voice),
+    ...(pluginConfig.voice.tts?.enabled
+      ? { speak: factories.createSpeakTool(ctx, pluginConfig.voice) }
+      : {}),
   }
 }
 

@@ -34,6 +34,7 @@ export {
 } from "./task"
 export { createHashlineEditTool } from "./hashline-edit"
 export { createVoiceTool } from "./voice"
+export { createSpeakTool } from "./voice/speak"
 export { createTeamSendMessageTool } from "../features/team-mode/tools/messaging"
 
 export function createBackgroundTools(manager: BackgroundManager, client: OpencodeClient): Record<string, ToolDefinition> {
