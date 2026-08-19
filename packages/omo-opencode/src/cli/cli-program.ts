@@ -8,6 +8,10 @@ import { createMcpOAuthCommand } from "./mcp-oauth"
 import { configureRuntimeCommands } from "./runtime-commands"
 import { runConfigMigrate } from "./config-migrate"
 import { runSessionList, runSessionTag } from "./session-cli"
+import { runSessionDiff } from "./session-diff"
+import { runHealthDashboard } from "./health-dashboard"
+import { runConfigDiff } from "./config-diff"
+import { runWorktreeList, runWorktreeCreate, runWorktreeDelete, runWorktreePrune } from "./worktree-cli"
 import { availableInstallPlatforms, isSenpiPlatformEnabled, SENPI_PLATFORM_ENV_FLAG } from "./senpi-platform-flag"
 import type { InstallArgs } from "./types"
 import type { RunOptions } from "./run"
@@ -238,6 +242,20 @@ This command shows:
   })
 
 program
+  .command("health")
+  .description("Show plugin health dashboard")
+  .option("--json", "Output in JSON format")
+  .addHelpText("after", `
+Examples:
+  $ bunx oh-my-opencode health
+  $ bunx oh-my-opencode health --json
+`)
+  .action(async (options) => {
+    const exitCode = await runHealthDashboard({ json: options.json ?? false })
+    process.exit(exitCode)
+  })
+
+program
   .command("doctor")
   .description("Check oh-my-opencode installation health and diagnose issues")
   .option("--status", "Show compact system dashboard")
@@ -278,6 +296,20 @@ program
     const exitCode = runConfigMigrate({ dryRun: options.dryRun ?? false, json: options.json ?? false })
     process.exit(exitCode)
   })
+  .command("diff")
+  .description("Show differences between user config and schema defaults")
+  .option("--json", "Output in JSON format")
+  .option("--path <key>", "Focus on a specific config path (e.g., agents.sisyphus)")
+  .addHelpText("after", `
+Examples:
+  $ bunx oh-my-opencode config diff
+  $ bunx oh-my-opencode config diff --path agents.sisyphus
+  $ bunx oh-my-opencode config diff --json
+`)
+  .action((options) => {
+    const exitCode = runConfigDiff({ json: options.json ?? false, path: options.path })
+    process.exit(exitCode)
+  })
 
 configureRuntimeCommands(program)
 
@@ -316,6 +348,57 @@ Examples:
       action: action as "add" | "remove" | "replace",
       tags,
     })
+    process.exit(exitCode)
+  })
+
+sessionCommand
+  .command("diff <session-id-a> <session-id-b>")
+  .description("Compare two sessions")
+  .option("--json", "Output in JSON format")
+  .addHelpText("after", `
+Examples:
+  $ bunx oh-my-opencode session diff ses_abc123 ses_def456
+  $ bunx oh-my-opencode session diff ses_abc123 ses_def456 --json
+`)
+  .action(async (sessionA: string, sessionB: string, options) => {
+    const exitCode = await runSessionDiff(sessionA, sessionB, { json: options.json ?? false })
+    process.exit(exitCode)
+  })
+
+const worktreeCommand = program
+  .command("worktree")
+  .description("Manage git worktrees")
+
+worktreeCommand
+  .command("list")
+  .description("List all git worktrees")
+  .action(async () => {
+    const exitCode = await runWorktreeList()
+    process.exit(exitCode)
+  })
+
+worktreeCommand
+  .command("create <name>")
+  .description("Create a new git worktree")
+  .option("--path <path>", "Worktree path (default: ~/.omo/worktrees/<name>)")
+  .action(async (name: string, options) => {
+    const exitCode = await runWorktreeCreate(name, { path: options.path })
+    process.exit(exitCode)
+  })
+
+worktreeCommand
+  .command("delete <name>")
+  .description("Delete a git worktree")
+  .action(async (name: string) => {
+    const exitCode = await runWorktreeDelete(name)
+    process.exit(exitCode)
+  })
+
+worktreeCommand
+  .command("prune")
+  .description("Remove orphaned worktrees")
+  .action(async () => {
+    const exitCode = await runWorktreePrune()
     process.exit(exitCode)
   })
 

@@ -112,6 +112,22 @@ export function classifyRuntimeFallbackError(error: unknown): RuntimeFallbackErr
   return undefined
 }
 
+export function getQuotaExceededRemediation(providerID?: string): string {
+  const remediation: Record<string, string> = {
+    openai: " Visit https://platform.openai.com/account/usage to add credits.",
+    anthropic: " Visit https://console.anthropic.com/settings/credits to add credits.",
+    google: " Visit https://aistudio.google.com/app/billing to enable billing.",
+    "google-vertex": " Visit https://console.cloud.google.com/apis/credentials to add a billing account.",
+    aws: " Visit https://console.aws.amazon.com/billing/ to add funds.",
+    "aws-bedrock": " Visit https://console.aws.amazon.com/bedrock/ to add funds.",
+    ollama: " Check your Ollama server's available memory and model capacity.",
+    "openrouter ": " Visit https://openrouter.ai/settings to add credits.",
+    groq: " Visit https://console.groq.com/settings to add credits.",
+    deepseek: " Visit https://platform.deepseek.com/account to add credits.",
+  }
+  return remediation[providerID ?? ""] ?? ""
+}
+
 const SERVER_ERROR_PATTERN = /(?:^|\s)(?:5\d\d|internal\s+server\s+error|server\s+error)(?:\s|$)/i
 
 function isServerErrorMessage(message: string): boolean {

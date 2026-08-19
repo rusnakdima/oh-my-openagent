@@ -228,7 +228,11 @@ export async function tryFallbackRetry(args: {
   }
 
   if (previousSessionID) {
-    await abortWithTimeout(client, previousSessionID).catch(() => {})
+    await abortWithTimeout(client, previousSessionID).catch((err) => {
+      log(`[background-agent] Failed to abort previous session ${previousSessionID}`, {
+        err: err instanceof Error ? err.message : String(err),
+      })
+    })
   }
 
   queue.push({ task, input: retryInput, attemptID: nextAttempt.attemptId, rawConcurrencyKey: rawKey })

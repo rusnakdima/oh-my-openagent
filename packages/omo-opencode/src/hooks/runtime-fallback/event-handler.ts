@@ -2,7 +2,7 @@ import type { HookDeps } from "./types"
 import type { AutoRetryHelpers } from "./auto-retry"
 import { HOOK_NAME } from "./constants"
 import { log } from "../../shared/logger"
-import { extractStatusCode, extractErrorName, classifyErrorType, isRetryableError } from "./error-classifier"
+import { extractStatusCode, extractErrorName, classifyErrorType, isRetryableError, getQuotaExceededRemediation } from "./error-classifier"
 import { getRuntimeFallbackErrorMessage } from "@oh-my-opencode/model-core"
 import { createFallbackState } from "./fallback-state"
 import { getFallbackModelsForSession } from "./fallback-models"
@@ -16,6 +16,19 @@ import { normalizeModelToCanonicalString } from "./normalize-model"
 
 function isRuntimeFallbackRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null
+}
+
+function extractProviderFromModel(model?: string): string | undefined {
+  if (!model) return undefined
+  const parts = model.split("/")
+  return parts.length >= 2 ? parts[0] : undefined
+}
+
+function buildErrorToastBody(errorType: string | undefined, errorMsg: string, eventModel?: string): string {
+  const provider = extractProviderFromModel(eventModel)
+  const remediation = errorType === "quota_exceeded" ? getQuotaExceededRemediation(provider) : ""
+  const errorTypeLabel = errorType ? ` (${errorType})` : ""
+  return `${errorMsg}${errorTypeLabel}.${remediation}`
 }
 
 function resolveEventModel(props: Record<string, unknown> | undefined): string | undefined {
@@ -239,12 +252,14 @@ export function createEventHandler(deps: HookDeps, helpers: AutoRetryHelpers) {
       if (config.notify_on_fallback) {
         const errorMsg = getRuntimeFallbackErrorMessage(error)
         const errorTypeLabel = classifyErrorType(error)
-        const displayError = errorMsg || errorTypeLabel || "Unknown error"
+        const eventModel = resolveEventModel(props)
+        const message = buildErrorToastBody(errorTypeLabel, errorMsg || "Unknown error", eventModel)
+        const title = errorTypeLabel ? `Error — ${errorTypeLabel}` : "Error — Fallback Skipped"
         await deps.ctx.client.tui
           .showToast({
             body: {
-              title: "Error — Fallback Skipped",
-              message: `${displayError}. No automatic retry available.`,
+              title,
+              message: `${message}. No automatic retry available.`,
               variant: "error",
               duration: 10000,
             },
@@ -262,12 +277,14 @@ export function createEventHandler(deps: HookDeps, helpers: AutoRetryHelpers) {
       if (config.notify_on_fallback) {
         const errorMsg = getRuntimeFallbackErrorMessage(error)
         const errorTypeLabel = classifyErrorType(error)
-        const displayError = errorMsg || errorTypeLabel || "Unknown error"
+        const eventModel = resolveEventModel(props)
+        const message = buildErrorToastBody(errorTypeLabel, errorMsg || "Unknown error", eventModel)
+        const title = errorTypeLabel ? `Error — ${errorTypeLabel}` : "Error — No Fallback Available"
         await deps.ctx.client.tui
           .showToast({
             body: {
-              title: "Error — No Fallback Available",
-              message: `${displayError}. No fallback models configured for this agent.`,
+              title,
+              message: `${message}. No fallback models configured for this agent.`,
               variant: "error",
               duration: 10000,
             },

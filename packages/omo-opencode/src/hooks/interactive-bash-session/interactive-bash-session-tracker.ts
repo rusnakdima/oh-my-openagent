@@ -4,6 +4,7 @@ import {
   clearInteractiveBashSessionState,
 } from "./storage";
 import { OMO_SESSION_PREFIX, buildSessionReminderMessage } from "./constants";
+import { log } from "../../shared/logger"
 import type { InteractiveBashSessionState } from "./types";
 import { subagentSessions } from "../../features/claude-code-session-state";
 import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide";
@@ -33,7 +34,11 @@ async function killAllTrackedSessions(
   }
 
   for (const sessionId of subagentSessions) {
-    abortSession({ path: { id: sessionId } }).catch(() => {})
+    abortSession({ path: { id: sessionId } }).catch((err) => {
+      log(`[interactive-bash-session] Failed to abort session ${sessionId}`, {
+        err: err instanceof Error ? err.message : String(err),
+      })
+    })
   }
 }
 

@@ -5,6 +5,7 @@ import {
   getRuntimeFallbackErrorName,
   getRuntimeFallbackRetryableSignal,
   getRuntimeFallbackStatusCode,
+  getQuotaExceededRemediation,
   isRuntimeFallbackRetryableError,
 } from "@oh-my-opencode/model-core"
 import { HOOK_NAME } from "./constants"
@@ -15,8 +16,8 @@ export const getErrorMessage = getRuntimeFallbackErrorMessage
 export const extractStatusCode = getRuntimeFallbackStatusCode
 export const extractErrorName = getRuntimeFallbackErrorName
 export const extractRetryableSignal = getRuntimeFallbackRetryableSignal
-
 export const classifyErrorType = classifyRuntimeFallbackError
+export { getQuotaExceededRemediation }
 
 export function containsErrorContent(
   parts: Array<{ type?: string; text?: string }> | undefined
