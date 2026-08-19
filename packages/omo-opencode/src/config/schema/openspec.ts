@@ -40,6 +40,13 @@ export const OpenSpecConfigSchema = z.object({
    * (default: true when enabled)
    */
   task_write_back: z.boolean().default(true),
+  /**
+   * Auto-create a new OpenSpec from the first session message when no specs exist.
+   * Extracts spec name (first sentence, slugified) and description (first paragraph)
+   * from the message, creates the spec directory, and proposes initial tasks.
+   * (default: false)
+   */
+  auto_create: z.boolean().default(false),
 })
 
 export type OpenSpecConfig = z.infer<typeof OpenSpecConfigSchema>

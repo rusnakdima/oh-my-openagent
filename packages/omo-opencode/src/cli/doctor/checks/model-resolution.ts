@@ -169,7 +169,7 @@ export async function fixModelCache(): Promise<FixResult> {
 
   // Try opencode models --refresh (try opencode directly first, then npx)
   try {
-    const result = await spawnWithTimeout(["opencode", "models", "--refresh"], { timeoutMs: 30_000 })
+    const result = await spawnWithTimeout(["opencode", "models", "--refresh"], {}, 30_000)
     if (result.exitCode === 0) {
       return { success: true, message: "Model cache refreshed", fixed }
     }
@@ -178,17 +178,13 @@ export async function fixModelCache(): Promise<FixResult> {
   }
 
   try {
-    const whichResult = await spawnWithTimeout(["npx", "opencode", "models", "--refresh"], { timeoutMs: 30_000 })
+    const whichResult = await spawnWithTimeout(["npx", "opencode", "models", "--refresh"], {}, 30_000)
     if (whichResult.exitCode === 0) {
       return { success: true, message: "Model cache refreshed (via npx)", fixed }
     }
   } catch {
-    // npx also failed
-    if (result.exitCode === 0) {
-      return { success: true, message: "Model cache refreshed", fixed }
-    }
-    return { success: true, message: `Cache deleted but refresh failed: ${fixed.join(", ")}`, fixed }
-  } catch (err) {
-    return { success: false, message: `Cache deleted but refresh failed: ${err instanceof Error ? err.message : String(err)}` }
+    // npx also failed — fall through to return failure below
   }
+
+  return { success: false, message: `Cache deleted but refresh failed: ${fixed.join(", ")}`, fixed }
 }

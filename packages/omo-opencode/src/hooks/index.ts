@@ -1,4 +1,6 @@
 export { createLongRunningNotificationHooks } from "./long-running-notification";
+export { createGitPreCommitHook } from "./git-pre-commit/hook";
+export { createGitPostCommitHook } from "./git-pre-commit/hook";
 export { createTodoContinuationEnforcer, type TodoContinuationEnforcer } from "./todo-continuation-enforcer";
 export { createSessionNotification } from "./session-notification";
 export { sendSessionNotification, playSessionNotificationSound, detectPlatform, getDefaultSoundPath } from "./session-notification-sender";
@@ -30,7 +32,8 @@ export { createAstGrepSgProvisionHook } from "./ast-grep-sg-provision";
 export { createAgentUsageReminderHook } from "./agent-usage-reminder";
 export { createKeywordDetectorHook } from "./keyword-detector";
 export { createNonInteractiveEnvHook } from "./non-interactive-env";
-export { createInteractiveBashSessionHook } from "./interactive-bash-session";
+export { createInteractiveBashSessionHook } from "./interactive-bash-session"
+export { createInteractiveMenuSessionHook } from "./interactive-menu-session";
 
 export { createTeamMailboxInjector } from "./team-mailbox-injector";
 export { createTeamModeStatusInjector } from "./team-mode-status-injector";

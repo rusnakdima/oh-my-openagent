@@ -14,6 +14,7 @@ import {
   createAgentUsageReminderHook,
   createNonInteractiveEnvHook,
   createInteractiveBashSessionHook,
+  createInteractiveMenuSessionHook,
   createEditErrorRecoveryHook,
   createDelegateTaskRetryHook,
   createTaskResumeInfoHook,
@@ -50,6 +51,7 @@ export type SessionHooks = {
   agentUsageReminder: ReturnType<typeof createAgentUsageReminderHook> | null
   nonInteractiveEnv: ReturnType<typeof createNonInteractiveEnvHook> | null
   interactiveBashSession: ReturnType<typeof createInteractiveBashSessionHook> | null
+  interactiveMenuSession: ReturnType<typeof createInteractiveMenuSessionHook> | null
   goal: ReturnType<typeof createGoalHook> | null
   editErrorRecovery: ReturnType<typeof createEditErrorRecoveryHook> | null
   delegateTaskRetry: ReturnType<typeof createDelegateTaskRetryHook> | null
@@ -135,6 +137,12 @@ export function createSessionHooks(args: {
     isHookEnabled("interactive-bash-session") &&
     isTmuxIntegrationEnabled(pluginConfig)
     ? safeHook("interactive-bash-session", () => createInteractiveBashSessionHook(ctx))
+    : null
+
+  const interactiveMenuSession =
+    isHookEnabled("interactive-menu-session") &&
+    isTmuxIntegrationEnabled(pluginConfig)
+    ? safeHook("interactive-menu-session", () => createInteractiveMenuSessionHook(ctx))
     : null
 
   const goal = isHookEnabled("goal") && pluginConfig.goal?.enabled
@@ -226,6 +234,7 @@ export function createSessionHooks(args: {
     agentUsageReminder,
     nonInteractiveEnv,
     interactiveBashSession,
+    interactiveMenuSession,
     goal,
     editErrorRecovery,
     delegateTaskRetry,

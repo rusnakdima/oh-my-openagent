@@ -81,6 +81,14 @@ export async function resolveSubagentModel(
       availableModels,
       systemDefaultModel: undefined,
     })
+    if (resolution && !("skipped" in resolution)) {
+      const normalized = normalizeModelFormat(resolution.model)
+      if (normalized) {
+        const variantToUse = agentOverride?.variant ?? resolution.variant ?? agentCategoryConfig?.variant
+        const resolvedModel = variantToUse ? { ...normalized, variant: variantToUse } : normalized
+        categoryModel = applyCategoryParams(resolvedModel, agentCategoryConfig)
+      }
+    }
   } else {
     // No TUI model and no explicit override: let the final fallback block use matchedAgent.model.
     // Pass userModel=undefined so resolveModelForDelegateTask returns {skipped: true}

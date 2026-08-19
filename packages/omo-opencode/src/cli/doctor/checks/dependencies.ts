@@ -131,7 +131,7 @@ export async function fixAstGrep(): Promise<FixResult> {
   const installScript = join(skillRoot, "install.sh")
   if (existsSync(installScript)) {
     try {
-      const result = await spawnWithTimeout(["bash", installScript, "--quiet"], { timeoutMs: 60_000 })
+      const result = await spawnWithTimeout(["bash", installScript, "--quiet"], {}, 60_000)
       if (result.exitCode === 0) {
         return { success: true, message: "AST-Grep installed", fixed: ["ast-grep CLI"] }
       }
@@ -141,7 +141,7 @@ export async function fixAstGrep(): Promise<FixResult> {
   }
   // Fallback: npm install
   try {
-    const result = await spawnWithTimeout(["npm", "install", "-g", "@ast-grep/cli"], { timeoutMs: 60_000 })
+    const result = await spawnWithTimeout(["npm", "install", "-g", "@ast-grep/cli"], {}, 60_000)
     if (result.exitCode === 0) {
       return { success: true, message: "AST-Grep installed via npm", fixed: ["ast-grep CLI"] }
     }
@@ -153,7 +153,7 @@ export async function fixAstGrep(): Promise<FixResult> {
 
 export async function fixCommentChecker(): Promise<FixResult> {
   try {
-    const result = await spawnWithTimeout(["bun", "add", "-g", "@code-yeongyu/comment-checker"], { timeoutMs: 60_000 })
+    const result = await spawnWithTimeout(["bun", "add", "-g", "@code-yeongyu/comment-checker"], {}, 60_000)
     if (result.exitCode === 0) {
       return { success: true, message: "Comment checker installed", fixed: ["comment-checker binary"] }
     }

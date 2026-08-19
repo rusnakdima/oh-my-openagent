@@ -104,8 +104,9 @@ export type OpenSpecMcpConfigOptions = {
 
 export function createOpenSpecMcpConfig(options: OpenSpecMcpConfigOptions = {}): LocalMcpConfig & { type: "local" } {
   const moduleDir = options.moduleUrl ? dirname(fileURLToPath(options.moduleUrl)) : dirname(fileURLToPath(import.meta.url))
-  const distCliPath = resolve(moduleDir, "openspec-mcp-cli.js")
-  const sourceCliPath = resolve(moduleDir, "openspec-mcp-cli.ts")
+  // Build script outputs to dist/mcp/ (not dist/ directly)
+  const distCliPath = resolve(moduleDir, "mcp", "openspec-mcp-cli.js")
+  const sourceCliPath = resolve(moduleDir, "mcp", "openspec-mcp-cli.ts")
 
   let command: string
   try {

@@ -71,7 +71,7 @@ export function createBuiltinMcps(disabledMcps: string[] = [], config?: BuiltinM
     })
   }
 
-  if (!disabledMcps.includes("openspec") && config?.openspec?.enabled !== false) {
+  if (!disabledMcps.includes("openspec") && config?.openspec?.enabled === true) {
     mcps.openspec = createOpenSpecMcpConfig({
       specDir: config?.openspec?.spec_dir,
       cwd: options.cwd,

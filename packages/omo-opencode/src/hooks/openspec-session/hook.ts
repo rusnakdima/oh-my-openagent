@@ -35,6 +35,7 @@ export type OpenSpecHookOptions = {
   readonly projectDir: string
   readonly specDir?: string
   readonly autoInject?: boolean
+  readonly autoCreate?: boolean
   readonly shortenInterview?: boolean
   readonly taskWriteBack?: boolean
   readonly controller: OpenSpecController

@@ -92,10 +92,9 @@ export async function checkDeprecatedReasoningKeys(): Promise<CheckResult> {
 
 export async function fixDeprecatedReasoningKeys(): Promise<FixResult> {
   const homeDir = process.env.HOME ?? process.env.USERPROFILE
-  const errors: string[] = []
 
   if (homeDir === undefined || homeDir.length === 0) {
-    return { checkId: "deprecated-reasoning-keys", fixed: 0, failed: 1, errors: ["Cannot migrate: no home directory available"] }
+    return { success: false, message: "Cannot migrate: no home directory available" }
   }
 
   const result = runOpenCodeStartupMigration({
@@ -108,10 +107,15 @@ export async function fixDeprecatedReasoningKeys(): Promise<FixResult> {
   })
 
   if (result.error !== undefined) {
-    return { checkId: "deprecated-reasoning-keys", fixed: 0, failed: 1, errors: [result.error] }
+    return { success: false, message: result.error }
   }
 
-  const fixed = result.results.filter((r) => r.status === "migrated").length
+  const fixedItems = result.results.filter((r) => r.status === "migrated")
   const skipped = result.results.filter((r) => r.status === "skipped" || r.status === "planned").length
-  return { checkId: "deprecated-reasoning-keys", fixed, failed: 0, errors: [] }
+
+  if (fixedItems.length === 0) {
+    return { success: true, message: `No deprecated keys to migrate (${skipped} skipped)`, fixed: [] }
+  }
+  const fixed = fixedItems.flatMap((r) => r.preview?.backupMoves.map((m) => m.from) ?? [])
+  return { success: true, message: `Migrated ${fixedItems.length} deprecated key(s)`, fixed }
 }

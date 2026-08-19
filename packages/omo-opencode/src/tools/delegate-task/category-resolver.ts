@@ -142,7 +142,7 @@ Available categories: ${allCategoryNames}`)
 
     if (resolution && "skipped" in resolution) {
       isModelResolutionSkipped = true
-      // Prefer TUI model in cold cache; fall back to explicit override.
+      // Prefer TUI model in cold cache; fall back to explicit override or category built-in model.
       const userModelOverride = systemDefaultModel ?? explicitCategoryModel ?? overrideModel
       if (userModelOverride) {
         actualModel = userModelOverride
@@ -152,6 +152,16 @@ Available categories: ${allCategoryNames}`)
           ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
           : undefined
         modelInfo = { model: userModelOverride, type: "user-defined", source: "override" }
+      } else if (resolved.model) {
+        // Cold cache + no explicit override: use the category's built-in model from DEFAULT_CATEGORIES.
+        const builtinModel = resolved.model
+        actualModel = builtinModel
+        const parsedModel = parseModelString(builtinModel)
+        const variantToUse = userCategories?.[args.category!]?.variant ?? resolved.config.variant
+        categoryModel = parsedModel
+          ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
+          : undefined
+        modelInfo = { model: builtinModel, type: "category-default", source: "category-default" }
       }
     } else if (resolution) {
       const { model: resolvedModel, variant: resolvedVariant } = resolution
