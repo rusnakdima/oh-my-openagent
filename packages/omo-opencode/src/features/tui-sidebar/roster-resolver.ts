@@ -29,10 +29,13 @@ function formatModelLabel(model: string): string {
   return model.slice(slashIndex + 1)
 }
 
-function toRosterRow(entry: ResolutionEntry): RosterRow {
+function toRosterRow(entry: ResolutionEntry, hasOverride: boolean, isGlobal: boolean): RosterRow {
   return {
     label: entry.name,
     model: formatModelLabel(entry.effectiveModel),
+    effectiveModel: entry.effectiveModel,
+    hasOverride,
+    isGlobal,
   }
 }
 
@@ -66,7 +69,11 @@ function toModelResolutionConfig(config: OhMyOpenCodeConfig): OmoConfig {
   return { agents, categories }
 }
 
-export function resolveRoster(directory: string, liveSessionModel?: SessionModel): RosterRow[] {
+export function resolveRoster(
+  directory: string,
+  liveSessionModel?: SessionModel,
+  perAgentModels?: Record<string, SessionModel>,
+): RosterRow[] {
   try {
     const config = validatePluginConfig(directory).config
     const sidebarConfig = config.tui?.sidebar
@@ -88,10 +95,29 @@ export function resolveRoster(directory: string, liveSessionModel?: SessionModel
 
     return [...agents, ...categories]
       .filter((entry) => !disabledAgents.has(entry.name))
-      .map((entry) => ({
-        label: entry.name,
-        model: entry.effectiveModel ? formatModelLabel(entry.effectiveModel) : "—",
-      }))
+      .map((entry) => {
+        // Model priority: per-agent override > global TUI model > config/fallback
+        const perAgentModel = perAgentModels?.[entry.name]
+        const hasOverride = !!perAgentModel
+        const isGlobal = !hasOverride && !!liveSessionModel
+
+        let effectiveModel: string
+        if (perAgentModel) {
+          effectiveModel = `${perAgentModel.providerID}/${perAgentModel.modelID}`
+        } else if (liveSessionModel) {
+          effectiveModel = `${liveSessionModel.providerID}/${liveSessionModel.modelID}`
+        } else {
+          effectiveModel = entry.effectiveModel || "—"
+        }
+
+        return {
+          label: entry.name,
+          model: effectiveModel ? formatModelLabel(effectiveModel) : "—",
+          effectiveModel,
+          hasOverride,
+          isGlobal,
+        }
+      })
       .sort((left, right) => left.label.localeCompare(right.label))
   } catch (error) {
     if (error instanceof Error) {

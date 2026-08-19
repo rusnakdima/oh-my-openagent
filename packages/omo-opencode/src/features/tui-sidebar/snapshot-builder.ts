@@ -1,7 +1,12 @@
 import { getLastAgentFromSession } from "../../hooks/atlas/session-last-agent"
 import { normalizeSDKResponse } from "../../shared/normalize-sdk-response"
 import { getMainSessionID } from "../claude-code-session-state"
-import { getSessionModel } from "../../shared/session-model-state"
+import {
+  getSessionModel,
+  getGlobalTuiModel,
+  getPerAgentModelsSnapshot,
+  type SessionModel,
+} from "../../shared/session-model-state"
 import { MIRROR_SCHEMA_VERSION } from "./constants"
 import { readActiveLoop } from "./loop-reader"
 import { canonicalProjectDir } from "./mirror-path"
@@ -52,6 +57,7 @@ export async function buildTuiRuntimeSnapshot(
     jobBoard: input.backgroundManager.getTasksSnapshot().map(toJobRow),
     loop: loop.kind === "live" ? redactLoopText(loop) : null,
     tuiSelectedModel: getTuiSelectedModel(),
+    perAgentModels: getPerAgentModelsSnapshot(),
   }
 }
 
@@ -110,11 +116,17 @@ function redactLoopText(loop: TuiRuntimeSnapshot["loop"]): TuiRuntimeSnapshot["l
 
 function getTuiSelectedModel(): TuiRuntimeSnapshot["tuiSelectedModel"] {
   try {
+    // First check: per-agent TUI model (new global TUI model state)
+    const globalModel = getGlobalTuiModel()
+    if (globalModel) {
+      return { providerID: globalModel.providerID, modelID: globalModel.modelID }
+    }
+    // Fallback: legacy per-session model from main session
     const mainSessionID = getMainSessionID()
     if (!mainSessionID) return null
-    const model = getSessionModel(mainSessionID)
-    if (!model) return null
-    return { providerID: model.providerID, modelID: model.modelID }
+    const sessionModel = getSessionModel(mainSessionID)
+    if (!sessionModel) return null
+    return { providerID: sessionModel.providerID, modelID: sessionModel.modelID }
   } catch {
     return null
   }

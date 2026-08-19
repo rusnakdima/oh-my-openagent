@@ -17,6 +17,9 @@ export type JobRow = {
 export type RosterRow = {
   readonly label: string
   readonly model: string
+  readonly effectiveModel: string
+  readonly hasOverride: boolean
+  readonly isGlobal: boolean
 }
 
 export type ConfigState =
@@ -52,6 +55,14 @@ export type ConfigBanner =
   | { readonly kind: "none" }
   | { readonly kind: "invalid" }
 
+export type ModelPickerModalState =
+  | { readonly kind: "closed" }
+  | {
+      readonly kind: "open"
+      readonly targetAgent: string
+      readonly selectedModel: string | null
+    }
+
 export type SidebarView =
   | {
       readonly kind: "active"
@@ -61,7 +72,11 @@ export type SidebarView =
       readonly configBanner: ConfigBanner
     }
   | { readonly kind: "broken"; readonly messages: readonly string[] }
-  | { readonly kind: "idle"; readonly roster: RosterState }
+  | {
+      readonly kind: "idle"
+      readonly roster: RosterState
+      readonly modal: ModelPickerModalState
+    }
 
 export function assertNever(value: never): never {
   throw new Error(`Unexpected variant: ${JSON.stringify(value)}`)

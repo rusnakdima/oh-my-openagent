@@ -9,7 +9,7 @@ import { createMonitorManager } from "./features/monitor"
 import { SkillMcpManager } from "./features/skill-mcp-manager"
 import { cleanupSessionTeamRuns } from "./features/team-mode/team-runtime/session-cleanup"
 import { lookupTeamSession } from "./features/team-mode/team-session-registry"
-import { TuiStateMirror } from "./features/tui-sidebar/mirror-manager"
+import { TuiStateMirror, setTuiStateMirrorSingleton } from "./features/tui-sidebar/mirror-manager"
 import { createModelFallbackControllerAccessor } from "./hooks/model-fallback"
 import { initTaskToastManager } from "./features/task-toast-manager"
 import {
@@ -203,6 +203,7 @@ export function createManagers(args: {
       backgroundManager,
     })
     tuiStateMirror.start()
+    setTuiStateMirrorSingleton(tuiStateMirror)
   }
 
   deps.initTaskToastManagerFn(ctx.client)

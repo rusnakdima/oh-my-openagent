@@ -20,6 +20,17 @@ export type TuiStateMirrorInput = {
   readonly reportFlushError?: (error: Error) => void
 }
 
+// Singleton — set by createManagers() in the plugin init path
+let _singletonMirror: TuiStateMirror | null = null
+
+export function setTuiStateMirrorSingleton(mirror: TuiStateMirror): void {
+  _singletonMirror = mirror
+}
+
+export function getTuiStateMirrorSingleton(): TuiStateMirror | null {
+  return _singletonMirror
+}
+
 export class TuiStateMirror {
   private readonly snapshotInput: BuildTuiRuntimeSnapshotInput
   private readonly reportFlushError: (error: Error) => void

@@ -93,7 +93,8 @@ describe("tui sidebar renderView", () => {
     // given
     const view: SidebarView = {
       kind: "idle",
-      roster: { kind: "rows", rows: [{ label: "sisyphus", model: "gpt-5.5" }] },
+      roster: { kind: "rows", rows: [{ label: "sisyphus", model: "gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }] },
+      modal: { kind: "closed" },
     }
 
     // when

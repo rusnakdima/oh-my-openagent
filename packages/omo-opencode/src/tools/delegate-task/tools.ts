@@ -1,7 +1,7 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin"
 import type { DelegatedModelConfig, ToolContextWithMetadata, DelegateTaskToolOptions } from "./types"
 import { log } from "../../shared/logger"
-import { getSessionModel } from "../../shared/session-model-state"
+import { getSessionModel, getEffectiveModelForAgent } from "../../shared/session-model-state"
 import { getMainSessionID } from "../../features/claude-code-session-state"
 import { buildSystemContent } from "./prompt-builder"
 import {
@@ -133,25 +133,23 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         return `Invalid arguments: Must provide either category or subagent_type.`
       }
 
-      // TUI model from session state (authoritative when parentContext.model is set)
+      // TUI model from per-agent state (per-agent override > global TUI model)
+      // Computed AFTER we know whether this is category or subagent_type delegation
       let systemDefaultModel: string | undefined
+      let inheritedModel: string | undefined
+
       try {
-        const mainSessionID = getMainSessionID()
-        const sessionModel = mainSessionID ? getSessionModel(mainSessionID) : undefined
-        systemDefaultModel = sessionModel ? `${sessionModel.providerID}/${sessionModel.modelID}` : undefined
+        inheritedModel = parentContext.model
+          ? `${parentContext.model.providerID}/${parentContext.model.modelID}`
+          : undefined
       } catch {
-        systemDefaultModel = undefined
+        inheritedModel = undefined
       }
+
       log("[task] model resolution", {
         parentContextModel: parentContext.model,
-        systemDefaultModel,
+        inheritedModel,
       })
-
-      // If parentContext.model is set, use it as inheritedModel for category resolution
-      // This preserves the original behavior where parent context model can override category defaults
-      const inheritedModel = parentContext.model
-        ? `${parentContext.model.providerID}/${parentContext.model.modelID}`
-        : undefined
 
       let agentToUse: string
       let categoryModel: DelegatedModelConfig | undefined
@@ -162,6 +160,13 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
       let maxPromptTokens: number | undefined
 
       if (delegateTaskArgs.category) {
+        // Per-agent effective model for this category
+        try {
+          const effective = getEffectiveModelForAgent(delegateTaskArgs.category)
+          systemDefaultModel = effective ? `${effective.providerID}/${effective.modelID}` : undefined
+        } catch {
+          systemDefaultModel = undefined
+        }
         const resolution = await resolveCategoryExecution(delegateTaskArgs, options, inheritedModel, systemDefaultModel)
         if (resolution.error) {
           return resolution.error
@@ -201,6 +206,13 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
           return executeUnstableAgentTask(delegateTaskArgs, ctx, options, parentContext, agentToUse, categoryModel, systemContent, actualModel)
         }
       } else {
+        // Per-agent effective model for this subagent_type
+        try {
+          const effective = getEffectiveModelForAgent(delegateTaskArgs.subagent_type ?? "sisyphus-junior")
+          systemDefaultModel = effective ? `${effective.providerID}/${effective.modelID}` : undefined
+        } catch {
+          systemDefaultModel = undefined
+        }
         const resolution = await resolveSubagentExecution(delegateTaskArgs, options, parentContext.agent, categoryExamples, { systemDefaultModel })
         if (resolution.error) {
           return resolution.error

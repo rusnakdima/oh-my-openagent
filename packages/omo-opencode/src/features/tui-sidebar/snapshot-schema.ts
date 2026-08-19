@@ -49,6 +49,8 @@ const TuiSelectedModelSchema = z.object({
   modelID: z.string(),
 })
 
+const PerAgentModelsSchema = z.record(z.string(), TuiSelectedModelSchema)
+
 export const TuiRuntimeSnapshotSchema = z.object({
   version: z.literal(MIRROR_SCHEMA_VERSION),
   projectDir: z.string(),
@@ -57,6 +59,7 @@ export const TuiRuntimeSnapshotSchema = z.object({
   jobBoard: z.array(JobRowSchema),
   loop: LoopLiveSchema.nullable(),
   tuiSelectedModel: TuiSelectedModelSchema.nullable(),
+  perAgentModels: PerAgentModelsSchema,
 })
 
 export type TuiRuntimeSnapshot = z.infer<typeof TuiRuntimeSnapshotSchema>
