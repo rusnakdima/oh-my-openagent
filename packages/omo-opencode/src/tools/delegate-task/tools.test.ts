@@ -848,9 +848,9 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // then - builtin artistry has no hardcoded model anymore
+      // then - builtin artistry has no hardcoded model; systemDefaultModel is used as fallback
       expect(result).not.toBeNull()
-      expect(result?.model).toBeUndefined()
+      expect(result?.model).toBe("anthropic/claude-sonnet-4-6")
     })
 
     test("allows artistry when availability is empty", () => {
@@ -864,9 +864,9 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // then - builtin artistry has no hardcoded model anymore
+      // then - builtin artistry has no hardcoded model; systemDefaultModel is used as fallback
       expect(result).not.toBeNull()
-      expect(result?.model).toBeUndefined()
+      expect(result?.model).toBe("anthropic/claude-sonnet-4-6")
     })
 
     test("returns builtin config for deep even when gpt-5.6-sol is unavailable (requiresModel removed)", () => {
@@ -880,9 +880,9 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // #then - requiresModel is gone; deep returns its builtin config with no hardcoded model
+      // #then - requiresModel is gone; deep returns its builtin config with systemDefaultModel as fallback
       expect(result).not.toBeNull()
-      expect(result?.model).toBeUndefined()
+      expect(result?.model).toBe("anthropic/claude-sonnet-4-6")
       expect(result?.config.variant).toBe("medium")
     })
 
@@ -897,9 +897,9 @@ describe("sisyphus-task", () => {
         availableModels,
       })
 
-      // #then - builtin deep no longer has a hardcoded model
+      // #then - builtin deep no longer has a hardcoded model; systemDefaultModel is used
       const resolved = expectResolvedCategoryConfig(result)
-      expect(resolved.config.model).toBeUndefined()
+      expect(resolved.config.model).toBe("anthropic/claude-sonnet-4-6")
       expect(resolved.config.variant).toBe("medium")
     })
 
@@ -943,16 +943,16 @@ describe("sisyphus-task", () => {
       expect(resolved.config.model).toBe("anthropic/claude-opus-4-7")
     })
 
-    test("returns builtin config for visual-engineering (no hardcoded model)", () => {
+    test("returns builtin config for visual-engineering (no hardcoded model, systemDefaultModel used)", () => {
       // given
       const categoryName = "visual-engineering"
 
       // when
       const result = resolveCategoryConfig(categoryName, { systemDefaultModel: SYSTEM_DEFAULT_MODEL })
 
-      // then - builtin visual-engineering has only variant config, no hardcoded model
+      // then - builtin visual-engineering has only variant config; systemDefaultModel is used as fallback
       const resolved = expectResolvedCategoryConfig(result)
-      expect(resolved.config.model).toBeUndefined()
+      expect(resolved.config.model).toBe("anthropic/claude-sonnet-4-6")
       expect(resolved.config.variant).toBe("max")
       expect(resolved.promptAppend).toContain("VISUAL/UI")
     })
@@ -1029,7 +1029,7 @@ describe("sisyphus-task", () => {
       expect(resolved.config.temperature).toBe(0.3)
     })
 
-    test("builtin without model defers to inheritedModel", () => {
+    test("builtin without model defers to systemDefaultModel", () => {
       // given - builtin category with no hardcoded model, parent model also provided
       const categoryName = "visual-engineering"
       const inheritedModel = "cliproxy/claude-opus-4-7"
@@ -1037,9 +1037,10 @@ describe("sisyphus-task", () => {
       // when
       const result = resolveCategoryConfig(categoryName, { inheritedModel, systemDefaultModel: SYSTEM_DEFAULT_MODEL })
 
-      // then - builtin has no model, so inheritedModel is used as system default
+      // then - builtin has no model; resolveModel uses systemDefaultModel as the effective model
+      // (inheritedModel = defaultConfig.model which is undefined, so systemDefaultModel wins)
       const resolved = expectResolvedCategoryConfig(result)
-      expect(resolved.config.model).toBeUndefined()
+      expect(resolved.config.model).toBe("anthropic/claude-sonnet-4-6")
     })
 
     test("systemDefaultModel is used as fallback when custom category has no model", () => {
@@ -1072,16 +1073,16 @@ describe("sisyphus-task", () => {
       expect(resolved.config.model).toBe("my-provider/my-model")
     })
 
-    test("default model from category config is used when no user model and no inheritedModel", () => {
-      // given
+    test("systemDefaultModel is used when builtin category has no hardcoded model", () => {
+      // given - builtin visual-engineering no longer has a hardcoded model
       const categoryName = "visual-engineering"
 
       // when
       const result = resolveCategoryConfig(categoryName, { systemDefaultModel: SYSTEM_DEFAULT_MODEL })
 
-      // then
+      // then - systemDefaultModel is the fallback since builtin has no model
       const resolved = expectResolvedCategoryConfig(result)
-      expect(resolved.config.model).toBe("anthropic/claude-opus-5")
+      expect(resolved.config.model).toBe("anthropic/claude-sonnet-4-6")
     })
   })
 
@@ -3827,18 +3828,18 @@ describe("sisyphus-task", () => {
       expect(category.config.variant).toBe("xhigh")
     })
 
-    test("builtin without model defers to inheritedModel for builtin category", () => {
-      // given - builtin ultrabrain category with no hardcoded model, inherited model also provided
+    test("builtin without model defers to systemDefaultModel for builtin category", () => {
+      // given - builtin ultrabrain category with no hardcoded model, systemDefaultModel also provided
       const categoryName = "ultrabrain"
       const inheritedModel = "cliproxy/claude-opus-4-7"
 
       // when
       const resolved = resolveCategoryConfig(categoryName, { inheritedModel, systemDefaultModel: SYSTEM_DEFAULT_MODEL })
 
-      // then - builtin has no hardcoded model, so inheritedModel is used
+      // then - builtin has no hardcoded model; resolveModel falls back to systemDefaultModel
       const category = expectResolvedCategoryConfig(resolved)
       const actualModel = category.config.model
-      expect(actualModel).toBeUndefined()
+      expect(actualModel).toBe("anthropic/claude-sonnet-4-6")
     })
 
     test("when user defines model - modelInfo should report user-defined regardless of inheritedModel", () => {
@@ -3886,18 +3887,18 @@ describe("sisyphus-task", () => {
 
     // These tests verify the NEW behavior where categories do NOT have default models
 
-    test("FIXED: category built-in model takes precedence over inheritedModel", () => {
-      // given a builtin category with its own model, and an inherited model from parent
-      // The CORRECT chain: userConfig?.model ?? categoryBuiltIn ?? systemDefaultModel
+    test("builtin without model defers to systemDefaultModel (replaces former builtin-precedence test)", () => {
+      // given a builtin category with NO model, and an inherited model from parent
+      // The CORRECT chain: userConfig?.model ?? systemDefaultModel (builtin model is now undefined)
       const categoryName = "ultrabrain"
       const inheritedModel = "anthropic/claude-opus-4-7"
-      
-      // when category has a built-in model (gpt-5.6-sol for ultrabrain)
+
+      // when category has NO built-in model (removed gpt-5.6-sol)
       const resolved = resolveCategoryConfig(categoryName, { inheritedModel, systemDefaultModel: SYSTEM_DEFAULT_MODEL })
-      
-      // then category's built-in model should be used, NOT inheritedModel
+
+      // then systemDefaultModel is used as fallback since builtin has no model
       const category = expectResolvedCategoryConfig(resolved)
-      expect(category.model).toBe("openai/gpt-5.6-sol")
+      expect(category.model).toBe("anthropic/claude-sonnet-4-6")
     })
 
     test("FIXED: systemDefaultModel is used when no userConfig.model and no inheritedModel", () => {
@@ -3950,18 +3951,18 @@ describe("sisyphus-task", () => {
       expect(category.model).toBe(SYSTEM_DEFAULT_MODEL)
     })
 
-    test("FIXED: undefined userConfig.model falls back to category built-in model", () => {
+    test("undefined userConfig.model falls back to systemDefaultModel (builtin has no model)", () => {
       // given user sets a builtin category but leaves model undefined
       const categoryName = "visual-engineering"
       const userCategories: Record<string, CategoryConfig> = { "visual-engineering": { temperature: 0.2 } }
       const inheritedModel = "anthropic/claude-opus-4-7"
-      
+
       // when resolveCategoryConfig is called
       const resolved = resolveCategoryConfig(categoryName, { userCategories, inheritedModel, systemDefaultModel: SYSTEM_DEFAULT_MODEL })
-      
-      // then should use category's built-in model (Opus 5 high for visual-engineering)
+
+      // then should fall back to systemDefaultModel since builtin has no model
       const category = expectResolvedCategoryConfig(resolved)
-      expect(category.model).toBe("anthropic/claude-opus-5")
+      expect(category.model).toBe("anthropic/claude-sonnet-4-6")
     })
 
     test("systemDefaultModel is used when no other model is available", () => {
