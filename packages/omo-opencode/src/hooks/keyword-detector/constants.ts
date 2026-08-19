@@ -5,10 +5,12 @@ import type { KeywordType } from "../../config/schema/keyword-detector"
 import { getUltraworkMessage, isPlannerAgent, isNonOmoAgent } from "./ultrawork"
 import { TEAM_PATTERN, TEAM_MESSAGE } from "./team"
 import { HYPERPLAN_PATTERN, HYPERPLAN_MESSAGE } from "./hyperplan"
+import { OPENSPEC_PATTERN, OPENSPEC_MESSAGE } from "./openspec"
 
 export { isPlannerAgent, isNonOmoAgent, getUltraworkMessage }
 export { TEAM_PATTERN, TEAM_MESSAGE }
 export { HYPERPLAN_PATTERN, HYPERPLAN_MESSAGE }
+export { OPENSPEC_PATTERN, OPENSPEC_MESSAGE }
 
 // Hyperplan-ultrawork combo: strict adjacency, both word orders
 export const HYPERPLAN_ULTRAWORK_PATTERN =
@@ -50,5 +52,10 @@ export const KEYWORD_DETECTORS: KeywordDetector[] = [
     type: "hyperplan-ultrawork",
     pattern: HYPERPLAN_ULTRAWORK_PATTERN,
     message: getHyperplanUltraworkMessage,
+  },
+  {
+    type: "openspec",
+    pattern: OPENSPEC_PATTERN,
+    message: OPENSPEC_MESSAGE,
   },
 ]

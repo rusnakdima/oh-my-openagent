@@ -131,6 +131,105 @@ describe("createOpenSpecSessionHook", () => {
       // before even reading files. Length should be unchanged.
       expect(output2.parts.length).toBeLessThanOrEqual(lenAfterFirst)
     })
+
+    it("auto-creates spec when no specs exist and autoCreate=true", async () => {
+      // Create a fresh empty spec dir (no specs)
+      const emptyTmp = join(tmpdir(), `openspec-auto-create-test-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+      const emptySpecRoot = join(emptyTmp, "openspec")
+      await mkdir(emptySpecRoot, { recursive: true })
+
+      const proposeCalls: Array<{ name: string; desc: string }> = []
+      const applyCalls: string[] = []
+
+      const autoCreateController = {
+        propose: async (name: string, desc?: string) => {
+          proposeCalls.push({ name, desc: desc ?? "" })
+          // Actually create the spec files so injectSpecContext works
+          await mkdir(join(emptySpecRoot, name), { recursive: true })
+          await writeFile(join(emptySpecRoot, name, "spec.md"), `# ${name}\n\n${desc ?? ""}\n`)
+          await writeFile(join(emptySpecRoot, name, "plan.md"), "# Plan\n\n")
+          await writeFile(join(emptySpecRoot, name, "tasks.md"), "| [ ] | Task 1 |\n")
+          return { success: true, message: "Created" }
+        },
+        apply: async (name: string) => {
+          applyCalls.push(name)
+          return { success: true }
+        },
+        verify: async () => [{ specName: "mock", valid: true, files: [], taskStats: undefined }],
+        archive: async () => ({ success: true, message: "mocked" }),
+        status: async () => [{ specName: "mock", valid: true, taskStats: undefined }],
+        list: async () => ["mock-spec"],
+      }
+
+      const { createOpenSpecSessionHook } = await import("./hook")
+      const ctx = { directory: emptyTmp, log: { info: () => {}, warn: () => {}, error: () => {} } }
+      const hook = createOpenSpecSessionHook(ctx, {
+        projectDir: emptyTmp,
+        specDir: "openspec",
+        autoInject: true,
+        autoCreate: true,
+        controller: autoCreateController,
+      })
+
+      const output = {
+        parts: [{ type: "text", text: "Build a login system with OAuth" }] as Array<{ type: string; text?: string; [key: string]: unknown }>,
+      }
+      // @ts-ignore
+      await hook["chat.message"]({ sessionId: "auto-create-s1" }, output)
+
+      // verify propose was called with slugified name (leading verb+article stripped)
+      expect(proposeCalls.length).toBe(1)
+      expect(proposeCalls[0].name).toBe("login-system-with-oauth")
+      // verify apply was called
+      expect(applyCalls.length).toBe(1)
+      expect(applyCalls[0]).toBe("login-system-with-oauth")
+      // verify context was injected (text appended to existing part)
+      const text = (output.parts[0] as { text?: string }).text ?? ""
+      expect(text).toContain("## OpenSpec:")
+      expect(text).toContain("login-system-with-oauth")
+
+      await rm(emptyTmp, { recursive: true, force: true })
+    })
+
+    it("does NOT auto-create when autoCreate=false (default)", async () => {
+      // Create a fresh empty spec dir (no specs)
+      const emptyTmp = join(tmpdir(), `openspec-no-auto-create-${Date.now()}-${Math.random().toString(36).slice(2)}`)
+      const emptySpecRoot = join(emptyTmp, "openspec")
+      await mkdir(emptySpecRoot, { recursive: true })
+
+      const proposeCalls: string[] = []
+      const noAutoCreateController = {
+        propose: async (name: string) => { proposeCalls.push(name); return { success: true } },
+        verify: async () => [{ specName: "mock", valid: true, files: [], taskStats: undefined }],
+        apply: async () => ({ success: true }),
+        archive: async () => ({ success: true, message: "mocked" }),
+        status: async () => [{ specName: "mock", valid: true, taskStats: undefined }],
+        list: async () => [],
+      }
+
+      const { createOpenSpecSessionHook } = await import("./hook")
+      const ctx = { directory: emptyTmp, log: { info: () => {}, warn: () => {}, error: () => {} } }
+      const hook = createOpenSpecSessionHook(ctx, {
+        projectDir: emptyTmp,
+        specDir: "openspec",
+        autoInject: true,
+        autoCreate: false,
+        controller: noAutoCreateController,
+      })
+
+      const output = {
+        parts: [{ type: "text", text: "Hello world" }] as Array<{ type: string; text?: string; [key: string]: unknown }>,
+      }
+      // @ts-ignore
+      await hook["chat.message"]({ sessionId: "no-auto-s1" }, output)
+
+      // propose should NOT have been called
+      expect(proposeCalls.length).toBe(0)
+      // output should be unchanged
+      expect(output.parts.length).toBe(1)
+
+      await rm(emptyTmp, { recursive: true, force: true })
+    })
   })
 
   describe("tool.execute.after handler — taskWriteBack", () => {

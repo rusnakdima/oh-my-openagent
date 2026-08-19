@@ -28,8 +28,32 @@ import {
   loadAllSessionRecords,
   writeSessionRecord,
 } from "./persistence"
+import { extractPromptText } from "../keyword-detector/detector"
 
 const HOOK_NAME = "openspec-session"
+
+// ── Helpers for auto-create ────────────────────────────────────────────────────
+
+function slugify(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+}
+
+function extractSpecName(messageText: string): string {
+  const firstSentence = messageText.split(/[.!?]\s/)[0]?.trim() ?? "untitled"
+  const cleaned = firstSentence.replace(/^(plan|build|create|implement|make|write|design|develop)\s+(a?\s*|the\s*)/i, "")
+  return slugify(cleaned).slice(0, 64) || "untitled"
+}
+
+function extractDescription(messageText: string): string {
+  const firstParagraph = messageText.split(/\n\n/)[0]?.trim() ?? ""
+  const cleaned = firstParagraph.replace(/^[^:]+?:\s*/, "").trim()
+  return cleaned.slice(0, 500) || messageText.slice(0, 200)
+}
 
 export type OpenSpecHookOptions = {
   readonly projectDir: string
@@ -196,6 +220,7 @@ export function createOpenSpecSessionHook(
     projectDir,
     specDir = "openspec",
     autoInject = true,
+    autoCreate = false,
     shortenInterview = false,
     taskWriteBack = true,
     controller,
@@ -232,6 +257,25 @@ export function createOpenSpecSessionHook(
 
       const specRoot = resolveSpecRoot(projectDir, specDir)
       const specs = await listSpecs(specRoot)
+
+      // auto-create path: no specs exist AND autoCreate is enabled
+      if (specs.length === 0 && autoCreate) {
+        const messageText = extractPromptText(output.parts)
+        const specName = extractSpecName(messageText)
+        const description = extractDescription(messageText)
+        await controller.propose(specName, description)
+        await controller.apply(specName)
+        injectedSessions.set(input.sessionID, specName)
+        writeSessionRecord(sessionStoreDir, input.sessionID, { specName, injectedAt: Date.now() })
+        try {
+          await injectSpecContext(output, specName, specDir, projectDir, shortenInterview)
+          log(`[${HOOK_NAME}] Auto-created spec "${specName}" for session ${input.sessionID}`)
+        } catch (err) {
+          log(`[${HOOK_NAME}] Failed to inject auto-created spec context:`, err)
+        }
+        return
+      }
+
       if (specs.length === 0) return
 
       const specName = specs[0]
