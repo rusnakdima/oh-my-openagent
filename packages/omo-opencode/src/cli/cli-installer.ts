@@ -24,7 +24,7 @@ import {
   validateNonTuiArgs,
 } from "./install-validators"
 import { getUnsupportedOpenCodeVersionMessage } from "./minimum-opencode-version"
-import { runCodexInstaller } from "./install-codex"
+import { runCodexInstaller } from "@oh-my-opencode/omo-codex/install/install-codex"
 import { runSenpiInstaller } from "./install-senpi"
 import { starGitHubRepositories } from "./star-request"
 import { getNoModelProvidersWarning, hasAnyConfiguredProvider } from "./provider-availability"

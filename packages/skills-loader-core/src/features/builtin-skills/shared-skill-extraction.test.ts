@@ -10,7 +10,7 @@ declare const Bun: {
   file(path: string): { text(): Promise<string> }
 }
 
-const TARGET_SKILLS = ["remove-ai-slops", "review-work", "frontend", "init-deep", "debugging", "visual-qa"] as const
+const TARGET_SKILLS = ["debugging"] as const
 const CODEX_SKILL_DESCRIPTION_MAX_LENGTH = 1024
 
 type TargetSkill = (typeof TARGET_SKILLS)[number]
@@ -37,25 +37,10 @@ function getRequiredMatch(source: string, pattern: RegExp, label: string): RegEx
 async function readSkillSource(name: TargetSkill): Promise<SkillSource> {
   let skill: BuiltinSkill
   switch (name) {
-    case "remove-ai-slops":
-      skill = (await import("./skills/remove-ai-slops")).removeAiSlopsSkill
+    case "debugging":
+      skill = (await import("./skills/debugging")).debuggingSkill
       break
-    case "review-work":
-      skill = (await import("./skills/review-work")).reviewWorkSkill
-      break
-		case "frontend":
-			skill = (await import("./skills/frontend")).frontendSkill
-			break
-		case "init-deep":
-			skill = (await import("./skills/init-deep")).initDeepSkill
-			break
-		case "debugging":
-			skill = (await import("./skills/debugging")).debuggingSkill
-			break
-		case "visual-qa":
-			skill = (await import("./skills/visual-qa")).visualQaSkill
-			break
-	}
+  }
   return { name, description: skill.description, template: skill.template }
 }
 

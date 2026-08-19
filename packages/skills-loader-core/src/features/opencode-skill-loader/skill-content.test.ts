@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, afterEach } from "bun:test"
 import { join } from "node:path"
 import { tmpdir } from "node:os"
 import { mkdirSync, writeFileSync } from "node:fs"
-import { frontendSkill, playwrightSkill } from "../builtin-skills/skills/index"
+import { playwrightSkill } from "../builtin-skills/skills/index"
 import { clearSkillCache, resolveSkillContent, resolveMultipleSkills } from "./skill-content"
 
 function createNestedSkill(baseDir: string, namespace: string, name: string, content: string): void {
@@ -44,10 +44,10 @@ describe("resolveSkillContent", () => {
 	it("should return template for existing skill", () => {
 		// given: builtin skills with 'frontend' skill
 		// when: resolving content for 'frontend'
-		const result = resolveSkillContent("frontend")
+		const result = resolveSkillContent("playwright")
 
-		// then: returns the frontend source template
-		expect(result === frontendSkill.template).toBe(true)
+		// then: returns the playwright source template
+		expect(result === playwrightSkill.template).toBe(true)
 	})
 
 	it("should return template for 'playwright' skill", () => {
@@ -69,8 +69,8 @@ describe("resolveSkillContent", () => {
 	})
 
 	it("should return null for disabled skill", () => {
-		// given: frontend skill disabled
-		const options = { disabledSkills: new Set(["frontend"]) }
+		// given: playwright skill disabled
+		const options = { disabledSkills: new Set(["playwright"]) }
 
 		// when: resolving content for disabled skill
 		const result = resolveSkillContent("frontend", options)
@@ -83,14 +83,14 @@ describe("resolveSkillContent", () => {
 describe("resolveMultipleSkills", () => {
 	it("should resolve all existing skills", () => {
 		// given: list of existing skill names
-		const skillNames = ["frontend", "playwright"]
+		const skillNames = ["playwright"]
 
 		// when: resolving multiple skills
 		const result = resolveMultipleSkills(skillNames)
 
 		// then: all skills resolve to their source templates in request order
 		expect([...result.resolved.entries()]).toEqual([
-			["frontend", frontendSkill.template],
+			["playwright", playwrightSkill.template],
 			["playwright", playwrightSkill.template],
 		])
 		expect(result.notFound).toEqual([])
@@ -98,14 +98,14 @@ describe("resolveMultipleSkills", () => {
 
 	it("should handle partial success - some skills not found", () => {
 		// given: list with existing and non-existing skills
-		const skillNames = ["frontend", "nonexistent", "playwright", "another-missing"]
+		const skillNames = ["playwright", "nonexistent", "another-missing"]
 
 		// when: resolving multiple skills
 		const result = resolveMultipleSkills(skillNames)
 
 		// then: resolves the correct source templates and preserves missing-name order
 		expect([...result.resolved.entries()]).toEqual([
-			["frontend", frontendSkill.template],
+			["playwright", playwrightSkill.template],
 			["playwright", playwrightSkill.template],
 		])
 		expect(result.notFound).toEqual(["nonexistent", "another-missing"])
@@ -137,8 +137,8 @@ describe("resolveMultipleSkills", () => {
 
 	it("should treat disabled skills as not found", () => {
 		// #given: frontend disabled, playwright not disabled
-		const skillNames = ["frontend", "playwright"]
-		const options = { disabledSkills: new Set(["frontend"]) }
+		const skillNames = ["playwright"]
+		const options = { disabledSkills: new Set(["playwright"]) }
 
 		// #when: resolving multiple skills with disabled one
 		const result = resolveMultipleSkills(skillNames, options)
@@ -158,7 +158,7 @@ describe("resolveMultipleSkills", () => {
 		// then: map preserves request order and routes each key to the correct source template
 		expect([...result.resolved.entries()]).toEqual([
 			["playwright", playwrightSkill.template],
-			["frontend", frontendSkill.template],
+			["playwright", playwrightSkill.template],
 		])
 	})
 })

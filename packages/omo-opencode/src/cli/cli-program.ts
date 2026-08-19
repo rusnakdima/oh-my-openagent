@@ -9,7 +9,6 @@ import { configureRuntimeCommands } from "./runtime-commands"
 import { runConfigMigrate } from "./config-migrate"
 import { runSessionList, runSessionTag } from "./session-cli"
 import { runSessionDiff } from "./session-diff"
-import { runHealthDashboard } from "./health-dashboard"
 import { runConfigDiff } from "./config-diff"
 import { runWorktreeList, runWorktreeCreate, runWorktreeDelete, runWorktreePrune } from "./worktree-cli"
 import { availableInstallPlatforms, isSenpiPlatformEnabled, SENPI_PLATFORM_ENV_FLAG } from "./senpi-platform-flag"
@@ -242,20 +241,6 @@ This command shows:
   })
 
 program
-  .command("health")
-  .description("Show plugin health dashboard")
-  .option("--json", "Output in JSON format")
-  .addHelpText("after", `
-Examples:
-  $ bunx oh-my-opencode health
-  $ bunx oh-my-opencode health --json
-`)
-  .action(async (options) => {
-    const exitCode = await runHealthDashboard({ json: options.json ?? false })
-    process.exit(exitCode)
-  })
-
-program
   .command("doctor")
   .description("Check oh-my-opencode installation health and diagnose issues")
   .option("--status", "Show compact system dashboard")
@@ -311,7 +296,9 @@ Examples:
     process.exit(exitCode)
   })
 
-configureRuntimeCommands(program)
+const invocationName = process.env.OMO_INVOCATION_NAME
+const isCodexPlatform = invocationName === "lazycodex" || invocationName === "lazycodex-ai"
+configureRuntimeCommands(program, { isCodexPlatform })
 
 program.addCommand(createMcpOAuthCommand())
 

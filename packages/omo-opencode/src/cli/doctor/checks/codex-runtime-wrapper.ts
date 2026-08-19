@@ -2,7 +2,7 @@ import { existsSync } from "node:fs"
 import { readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { join, resolve } from "node:path"
-import { resolveCodexInstallerBinDir } from "../../install-codex/install-codex"
+import { resolveCodexInstallerBinDir } from "@oh-my-opencode/omo-codex/install/install-codex"
 import type { CheckResult, DoctorIssue } from "../framework/types"
 
 const RUNTIME_WRAPPER_MARKER = "OMO_GENERATED_RUNTIME_WRAPPER"

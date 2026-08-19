@@ -1,6 +1,6 @@
 ---
 name: pre-publish-review
-description: "Nuclear-grade 16-agent pre-publish release gate. Runs /get-unpublished-changes to detect all changes since last npm release, spawns up to 10 ultrabrain agents for deep per-change analysis, invokes /review-work (5 agents) for holistic review, and 1 oracle for overall release synthesis. Runs ONLY when the user explicitly asks for a pre-publish review — a plain publish/release request MUST NOT trigger this; /publish ships directly. Triggers: 'pre-publish review', 'review before publish', 'release review', 'pre-release review', 'ready to publish?', 'can I publish?', 'pre-publish', 'safe to publish', 'publishing review', 'pre-publish check'."
+description: "Nuclear-grade 16-agent pre-publish release gate. Analyzes unpublished changes to detect all changes since last npm release, spawns up to 10 ultrabrain agents for deep per-change analysis, invokes /review-work (5 agents) for holistic review, and 1 oracle for overall release synthesis. Runs ONLY when the user explicitly asks for a pre-publish review — a plain publish/release request MUST NOT trigger this; /publish ships directly. Triggers: 'pre-publish review', 'review before publish', 'release review', 'pre-release review', 'ready to publish?', 'can I publish?', 'pre-publish', 'safe to publish', 'publishing review', 'pre-publish check'."
 ---
 
 # Pre-Publish Review — 16-Agent Release Gate
@@ -27,26 +27,48 @@ Every phase classifies evidence and risk across:
 
 ## Phase 0: Detect Unpublished Changes
 
-Run `/get-unpublished-changes` FIRST. This is the single source of truth for what changed and must include `omo pure components`, `omo opencode`, and `omo codex` layer-specific version recommendations.
+**CRITICAL: DO NOT just copy commit messages!**
 
-```
-skill(name="get-unpublished-changes")
-```
+For each commit, you MUST:
+1. Read the actual diff to understand WHAT CHANGED
+2. Describe the REAL change in plain language
+3. Explain WHY it matters (if not obvious)
 
-This command automatically:
-- Detects published npm version vs local version
-- Lists all commits since last release
-- Reads actual diffs (not just commit messages) to describe REAL changes
-- Groups changes by type (feat/fix/refactor/docs) with scope
-- Identifies breaking changes
-- Recommends a layer-specific version bump plus one overall workflow bump
+IMMEDIATELY output the analysis. NO questions. NO preamble.
+
+Analyze every change against these exact layers:
+
+| Layer | Includes | Version question |
+|---|---|---|
+| `omo pure components` | `packages/*-core`, MCP packages, `packages/shared-skills`, reusable scripts | Do shared components need a patch/minor/major release note even if adapters only consume them internally? |
+| `omo opencode` | Root `oh-my-opencode` / `oh-my-openagent`, `src/`, `.opencode/`, `.agents/`, CLI, config, hooks, tools, docs | What semver bump should the OpenCode/OpenAgent npm packages use? |
+| `omo codex` | `packages/omo-codex`, `lazycodex-ai`, Codex plugin metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace payload | Does LazyCodex need the same bump, a Codex-only note, or a marketplace release? |
+
+Exclude commits and paths matching `senpi`, `omo-senpi`, `senpi-task`, `pi-goal`, or `pi-webfetch` from user-facing notes and version recommendations. Record them only in a separate internal-adapter exclusion ledger.
+
+Steps:
+1. Detect latest published versions for `oh-my-opencode`, `oh-my-openagent`, and `lazycodex-ai`.
+2. Run `git diff v{published-version}..HEAD` to see actual changes.
+3. Classify every file into one or more release layers before grouping by feat/fix/refactor/docs.
+4. Describe the REAL changes and why each layer cares.
+5. Note breaking changes by affected layer.
+6. Recommend a layer-specific version bump and one overall workflow bump.
+
+Output Format:
+- feat: "Added X that does Y" (not just "add X feature")
+- fix: "Fixed bug where X happened, now Y" (not just "fix X bug")
+- refactor: "Changed X from A to B, now supports C" (not just "rename X")
+
+Include:
+- `Layered Impact Matrix`: rows for `omo pure components`, `omo opencode`, `omo codex`
+- `Layer-specific Version Recommendation`: patch/minor/major per layer plus one overall release bump
 
 **Save the full output** — it feeds directly into Phase 1 grouping and all agent prompts.
 
 Then capture raw data needed by agent prompts:
 
 ```bash
-# Extract versions (already in /get-unpublished-changes output)
+# Extract versions (already in Phase 0 analysis)
 PUBLISHED=$(npm view oh-my-opencode version 2>/dev/null || echo "not published")
 LOCAL=$(node -p "require('./package.json').version" 2>/dev/null || echo "unknown")
 
@@ -63,10 +85,10 @@ If `PUBLISHED` is "not published", this is a first release — use the full git 
 
 ## Phase 1: Parse Changes into Groups
 
-Use the `/get-unpublished-changes` output as the starting point — it already groups by scope and type.
+Use the Phase 0 analysis as the starting point — it already groups by scope and type.
 
 **Grouping strategy:**
-1. Start from the `/get-unpublished-changes` analysis which already categorizes by feat/fix/refactor/docs with scope
+1. Start from the Phase 0 analysis which already categorizes by feat/fix/refactor/docs with scope
 2. Further split by **module/area** — changes touching the same module or feature area belong together
 3. Target **up to 10 groups**. If fewer than 10 commits, each commit is its own group. If more than 10 logical areas, merge the smallest groups.
 4. For each group, extract:

@@ -1,9 +1,4 @@
----
-name: omomomo
-description: "Easter egg command - about oh-my-opencode. Triggers: omomomo, about, easter egg."
----
-
-You found an easter egg! 🥚✨
+export const OMOMOMO_TEMPLATE = `You found an easter egg! 🥚✨
 
 Print the following message to the user EXACTLY as written (in a friendly, celebratory tone):
 
@@ -32,4 +27,4 @@ Created with ❤️ by **[code-yeongyu](https://github.com/code-yeongyu)**
 
 ---
 
-*Enjoy coding on steroids!* 🚀
+*Enjoy coding on steroids!* 🚀`

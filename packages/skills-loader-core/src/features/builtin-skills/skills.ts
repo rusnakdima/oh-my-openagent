@@ -7,16 +7,10 @@ import {
   playwrightSkill,
   playwrightCliSkill,
   openchromeAsideSkill,
-  frontendSkill,
   gitMasterSkill,
   devBrowserSkill,
-  initDeepSkill,
   debuggingSkill,
-  removeAiSlopsSkill,
-  reviewWorkSkill,
   securityResearchSkill,
-  securityReviewSkill,
-  visualQaSkill,
   teamModeSkill,
   openspecSkill,
 } from "./skills/index"
@@ -62,19 +56,18 @@ export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): B
 
 	const skills = [
 		browserSkill,
-		frontendSkill,
 		gitMasterSkill,
-		reviewWorkSkill,
-		removeAiSlopsSkill,
-		initDeepSkill,
 		debuggingSkill,
-		securityResearchSkill,
-		securityReviewSkill,
-		visualQaSkill,
 	]
 
-  if (teamModeEnabled && !disabledSkills?.has("team-mode")) {
-    skills.push(teamModeSkill)
+  if (teamModeEnabled) {
+    if (!disabledSkills?.has("team-mode")) {
+      skills.push(teamModeSkill)
+    }
+    // security-research requires Team Mode infrastructure
+    if (!disabledSkills?.has("security-research")) {
+      skills.push(securityResearchSkill)
+    }
   }
 
   if (openspecEnabled && !disabledSkills?.has("openspec")) {

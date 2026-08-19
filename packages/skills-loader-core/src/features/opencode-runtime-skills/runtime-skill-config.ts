@@ -1,6 +1,6 @@
 import { isPlainRecord } from "@oh-my-opencode/utils"
 import type { RuntimeSkillConfig } from "../../types"
-import { securityResearchSkill, securityReviewSkill } from "../builtin-skills/skills/index"
+import { securityResearchSkill } from "../builtin-skills/skills/index"
 import { collectDisabledSkillAliases } from "../opencode-skill-loader/skill-disable-config"
 import { createOpenCodeSkillMarkdown, type OpenCodeSkillMarkdown } from "./skill-markdown"
 
@@ -33,18 +33,9 @@ export function selectRuntimeSecuritySkills(
 ): RuntimeSkillSourceEntry[] {
   const disabledSkills = collectDisabledSkillAliases(pluginConfig)
   const includeResearch = !disabledSkills.has("security-research")
-  const includeReview = !disabledSkills.has("security-review")
-  if (!includeResearch && !includeReview) return []
+  if (!includeResearch) return []
 
-  const skills = []
-  if (includeResearch) {
-    skills.push(securityResearchSkill)
-  }
-  if (includeReview) {
-    skills.push(securityReviewSkill)
-  }
-
-  return skills.map((skill) => createOpenCodeSkillMarkdown(skill))
+  return [securityResearchSkill].map((skill) => createOpenCodeSkillMarkdown(skill))
 }
 
 export function applyRuntimeSkillSourceConfig(params: {

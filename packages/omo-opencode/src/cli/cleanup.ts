@@ -1,4 +1,4 @@
-import { cleanupCodexLight } from "./install-codex/codex-cleanup"
+import { cleanupCodexLight } from "@oh-my-opencode/omo-codex/install/codex-cleanup"
 
 export type CleanupPlatform = "codex"
 
