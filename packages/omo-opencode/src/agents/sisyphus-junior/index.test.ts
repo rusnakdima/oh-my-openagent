@@ -79,13 +79,13 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
     test("uses default model when no override", () => {
       // given
       const override = {}
+      const systemDefaultModel = "anthropic/claude-sonnet-5"
 
       // when
-      const result = createSisyphusJuniorAgentWithOverrides(override)
+      const result = createSisyphusJuniorAgentWithOverrides(override, systemDefaultModel)
 
       // then
-      expect(SISYPHUS_JUNIOR_DEFAULTS.model).toBe("anthropic/claude-sonnet-5")
-      expect(result.model).toBe(SISYPHUS_JUNIOR_DEFAULTS.model)
+      expect(result.model).toBe(systemDefaultModel)
     })
 
     test("uses default temperature when no override", () => {
@@ -108,12 +108,13 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
         model: "openai/gpt-5.4",
         temperature: 0.9,
       }
+      const systemDefaultModel = "anthropic/claude-sonnet-5"
 
       // when
-      const result = createSisyphusJuniorAgentWithOverrides(override)
+      const result = createSisyphusJuniorAgentWithOverrides(override, systemDefaultModel)
 
       // then - defaults should be used, not the overrides
-      expect(result.model).toBe(SISYPHUS_JUNIOR_DEFAULTS.model)
+      expect(result.model).toBe(systemDefaultModel)
       expect(result.temperature).toBe(SISYPHUS_JUNIOR_DEFAULTS.temperature)
     })
   })
@@ -133,12 +134,13 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
     test("prompt override is ignored in favor of the routed prompt builder", () => {
       // given
       const override = { prompt: "Completely new prompt that replaces everything" }
+      const systemDefaultModel = "anthropic/claude-sonnet-5"
 
       // when
-      const result = createSisyphusJuniorAgentWithOverrides(override)
+      const result = createSisyphusJuniorAgentWithOverrides(override, systemDefaultModel)
 
       // then
-      expect(result.prompt).toBe(buildSisyphusJuniorPrompt(SISYPHUS_JUNIOR_DEFAULTS.model, false))
+      expect(result.prompt).toBe(buildSisyphusJuniorPrompt(systemDefaultModel, false))
     })
   })
 
