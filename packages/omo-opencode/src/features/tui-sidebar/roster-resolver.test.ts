@@ -50,7 +50,7 @@ function writeJson(filePath: string, value: unknown): void {
 }
 
 describe("resolveRoster", () => {
-  it("#given no config #when resolving roster #then it returns empty (no fallback models shown)", () => {
+  it("#given no config #when resolving roster #then it returns default resolver rows", () => {
     withIsolatedConfig("defaults", (root) => {
       // given
       const project = join(root, "project")
@@ -59,12 +59,14 @@ describe("resolveRoster", () => {
       // when
       const rows = resolveRoster(project)
 
-      // then - no user config means no entries shown (fallback chains not used since Aug 2026)
-      expect(rows.length).toBe(0)
+      // then - shows entries with "no model selected" when no TUI session model
+      expect(rows.length).toBeGreaterThan(0)
+      expect(rows.some((row) => row.label === "sisyphus")).toBe(true)
+      expect(rows.some((row) => row.label === "deep")).toBe(true)
     })
   })
 
-  it("#given agent and category overrides #when resolving roster #then it flattens sorted display rows", () => {
+  it("#given agent and category overrides #when resolving roster #then it shows all entries with global model", () => {
     withIsolatedConfig("overrides", (root) => {
       // given
       const project = join(root, "project")
@@ -82,14 +84,16 @@ describe("resolveRoster", () => {
       // when
       const rows = resolveRoster(project)
 
-      // then
+      // then - all entries show the same global model (or "no model selected" if no session)
       expect(rows).toEqual([...rows].sort((left, right) => left.label.localeCompare(right.label)))
-      expect(rows).toContainEqual({ label: "sisyphus", model: "model-leaf" })
-      expect(rows).toContainEqual({ label: "deep", model: "simple-model" })
+      expect(rows.length).toBeGreaterThan(0)
+      // All entries should have the same model (the global TUI model)
+      const models = [...new Set(rows.map((r) => r.model))]
+      expect(models.length).toBe(1)
     })
   })
 
-  it("#given malformed config #when resolving roster #then it returns empty (malformed means no valid override)", () => {
+  it("#given malformed config #when resolving roster #then it still returns resolver rows", () => {
     withIsolatedConfig("malformed", (root) => {
       // given
       const project = join(root, "project")
@@ -100,8 +104,9 @@ describe("resolveRoster", () => {
       // when
       const rows = resolveRoster(project)
 
-      // then - malformed config means no valid userOverride, so empty
-      expect(rows.length).toBe(0)
+      // then - malformed config still returns rows (malformed model is ignored, uses global)
+      expect(rows.length).toBeGreaterThan(0)
+      expect(rows.some((row) => row.label === "sisyphus")).toBe(true)
     })
   })
 })

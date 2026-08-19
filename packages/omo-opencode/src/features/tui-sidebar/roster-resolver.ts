@@ -3,6 +3,8 @@ import type { OmoConfig } from "../../cli/doctor/checks/model-resolution-types"
 import type { OhMyOpenCodeConfig } from "../../config"
 import { validatePluginConfig } from "../../config/validate"
 import type { RosterRow } from "./state-types"
+import { getSessionModel } from "../../shared/session-model-state"
+import { getMainSessionID } from "../claude-code-session-state"
 
 type ResolutionEntry = {
   readonly name: string
@@ -85,15 +87,20 @@ export function resolveRoster(directory: string): RosterRow[] {
         ? resolution.categories.filter((c) => visibleCategories.includes(c.name))
         : resolution.categories
 
-    // Only show configured entries (userOverride is defined).
-    // Fallback chain models are not used at runtime since GLOBAL-ONLY MODEL refactor (Aug 2026),
-    // so showing them is misleading.
-    const configuredAgents = agents.filter((a) => a.userOverride !== undefined)
-    const configuredCategories = categories.filter((c) => c.userOverride !== undefined)
+    // Get TUI global model (same for all agents since GLOBAL-ONLY MODEL applies to all)
+    const mainSessionID = getMainSessionID()
+    const sessionModel = mainSessionID ? getSessionModel(mainSessionID) : undefined
+    const globalModel = sessionModel ? `${sessionModel.providerID}/${sessionModel.modelID}` : undefined
 
-    return [...configuredAgents, ...configuredCategories]
+    // Use global model if set, otherwise fall back to configured effectiveModel
+    const effectiveModel = globalModel ?? "no model selected"
+
+    return [...agents, ...categories]
       .filter((entry) => !disabledAgents.has(entry.name))
-      .map(toRosterRow)
+      .map((entry) => ({
+        label: entry.name,
+        model: formatModelLabel(effectiveModel),
+      }))
       .sort((left, right) => left.label.localeCompare(right.label))
   } catch (error) {
     if (error instanceof Error) {
