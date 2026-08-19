@@ -11130,10 +11130,17 @@
               "type": "number",
               "minimum": 0,
               "maximum": 86400
+            },
+            "long_running_session_minutes": {
+              "default": 0,
+              "type": "number",
+              "minimum": 0,
+              "maximum": 10080
             }
           },
           "required": [
-            "long_running_tool_seconds"
+            "long_running_tool_seconds",
+            "long_running_session_minutes"
           ],
           "additionalProperties": false
         },
@@ -11520,7 +11527,14 @@
                   "ultrawork",
                   "team",
                   "hyperplan",
-                  "hyperplan-ultrawork"
+                  "hyperplan-ultrawork",
+                  "openspec",
+                  "search",
+                  "analyze",
+                  "refactor",
+                  "test",
+                  "fix",
+                  "review"
                 ]
               }
             },
@@ -11532,7 +11546,14 @@
                   "ultrawork",
                   "team",
                   "hyperplan",
-                  "hyperplan-ultrawork"
+                  "hyperplan-ultrawork",
+                  "openspec",
+                  "search",
+                  "analyze",
+                  "refactor",
+                  "test",
+                  "fix",
+                  "review"
                 ]
               }
             }
@@ -25969,10 +25990,17 @@
                     "type": "number",
                     "minimum": 0,
                     "maximum": 86400
+                  },
+                  "long_running_session_minutes": {
+                    "default": 0,
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 10080
                   }
                 },
                 "required": [
-                  "long_running_tool_seconds"
+                  "long_running_tool_seconds",
+                  "long_running_session_minutes"
                 ],
                 "additionalProperties": false
               },
@@ -26359,7 +26387,14 @@
                         "ultrawork",
                         "team",
                         "hyperplan",
-                        "hyperplan-ultrawork"
+                        "hyperplan-ultrawork",
+                        "openspec",
+                        "search",
+                        "analyze",
+                        "refactor",
+                        "test",
+                        "fix",
+                        "review"
                       ]
                     }
                   },
@@ -26371,7 +26406,14 @@
                         "ultrawork",
                         "team",
                         "hyperplan",
-                        "hyperplan-ultrawork"
+                        "hyperplan-ultrawork",
+                        "openspec",
+                        "search",
+                        "analyze",
+                        "refactor",
+                        "test",
+                        "fix",
+                        "review"
                       ]
                     }
                   }

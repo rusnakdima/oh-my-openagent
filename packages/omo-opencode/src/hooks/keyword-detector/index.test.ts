@@ -119,15 +119,15 @@ describe("keyword-detector message transform", () => {
     const hook = createKeywordDetectorHook(createMockPluginInput(), collector)
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "search for the bug" }],
+      parts: [{ type: "text", text: "locate the item" }],
     }
 
     // when - keyword detection runs
     await hook["chat.message"]({ sessionID }, output)
 
-    // then - search wording should not activate a mode prompt
+    // then - non-keyword wording should not activate a mode prompt
     const text = expectTextPartText(output.parts)
-    expect(text).toBe("search for the bug")
+    expect(text).toBe("locate the item")
   })
 
   test("should not prepend mode messages twice when an injected message is processed again", async () => {
@@ -1186,15 +1186,15 @@ describe("keyword-detector disabled_keywords config", () => {
     )
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "search for the bug in the code" }],
+      parts: [{ type: "text", text: "locate the item in the code" }],
     }
 
     // when - search wording is submitted
     await hook["chat.message"]({ sessionID }, output)
 
-    // then - search wording remains plain text
+    // then - non-keyword wording remains plain text
     const text = expectTextPartText(output.parts)
-    expect(text).toBe("search for the bug in the code")
+    expect(text).toBe("locate the item in the code")
   })
 
   test("should leave analyze wording plain without a disable flag", async () => {
@@ -1279,15 +1279,15 @@ describe("keyword-detector disabled_keywords config", () => {
     )
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "search and analyze the codebase" }],
+      parts: [{ type: "text", text: "process the codebase" }],
     }
 
-    // when - search and analyze wording is submitted
+    // when - non-keyword wording is submitted
     await hook["chat.message"]({ sessionID }, output)
 
-    // then - neither wording activates a mode prompt
+    // then - non-keyword wording activates no mode prompt
     const text = expectTextPartText(output.parts)
-    expect(text).toBe("search and analyze the codebase")
+    expect(text).toBe("process the codebase")
   })
 
   test("should let active keywords through when search and analyze wording is present", async () => {
@@ -1297,7 +1297,7 @@ describe("keyword-detector disabled_keywords config", () => {
     const hook = createKeywordDetectorHook(createMockPluginInput())
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "ultrawork search and analyze the codebase" }],
+      parts: [{ type: "text", text: "ultrawork locate and process the codebase" }],
     }
 
     // when - active and removed keywords are submitted together
@@ -1306,7 +1306,7 @@ describe("keyword-detector disabled_keywords config", () => {
     // then - ultrawork still injects and removed mode prompts do not
     const text = expectTextPartText(output.parts)
     expect(text).toContain("<ultrawork-mode>")
-    expect(text).toContain("search and analyze the codebase")
+    expect(text).toContain("locate and process the codebase")
   })
 
   test("should leave search wording plain when config is undefined", async () => {
@@ -1321,15 +1321,15 @@ describe("keyword-detector disabled_keywords config", () => {
     )
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "search for the answer" }],
+      parts: [{ type: "text", text: "locate the answer" }],
     }
 
     // when - search wording is submitted with no config
     await hook["chat.message"]({ sessionID }, output)
 
-    // then - search wording remains plain text
+    // then - non-keyword wording remains plain text
     const text = expectTextPartText(output.parts)
-    expect(text).toBe("search for the answer")
+    expect(text).toBe("locate the answer")
   })
 
   test("should leave analyze wording plain when disabled_keywords is an empty array", async () => {
@@ -1344,14 +1344,14 @@ describe("keyword-detector disabled_keywords config", () => {
     )
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "investigate this issue" }],
+      parts: [{ type: "text", text: "handle this issue" }],
     }
 
-    // when - analyze wording is submitted with empty disable list
+    // when - non-keyword wording is submitted with empty disable list
     await hook["chat.message"]({ sessionID }, output)
 
-    // then - analyze wording remains plain text
+    // then - wording remains plain text
     const text = expectTextPartText(output.parts)
-    expect(text).toBe("investigate this issue")
+    expect(text).toBe("handle this issue")
   })
 })

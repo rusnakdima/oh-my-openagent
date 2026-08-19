@@ -37,6 +37,7 @@ interface MessageWrapper {
 }
 
 const usageCacheByClient = new WeakMap<object, Map<string, Map<string, Promise<ContextWindowUsage | null>>>>()
+const largestOutputBySession = new Map<string, number>()
 
 // Test-only override for the fetch timeout used by `fetchContextWindowUsage`.
 // `undefined` means "use the production default".
@@ -95,6 +96,25 @@ export function invalidateContextWindowUsageCache(ctx: PluginInput, sessionID?: 
 		} else {
 			cache.clear()
 		}
+	}
+}
+
+export function trackLargestOutput(sessionID: string, outputBytes: number): void {
+	const current = largestOutputBySession.get(sessionID) ?? 0
+	if (outputBytes > current) {
+		largestOutputBySession.set(sessionID, outputBytes)
+	}
+}
+
+export function getLargestOutput(sessionID: string): number {
+	return largestOutputBySession.get(sessionID) ?? 0
+}
+
+export function clearLargestOutput(sessionID?: string): void {
+	if (sessionID) {
+		largestOutputBySession.delete(sessionID)
+	} else {
+		largestOutputBySession.clear()
 	}
 }
 
@@ -183,6 +203,7 @@ async function fetchContextWindowUsage(
 			usedTokens,
 			remainingTokens,
 			usagePercentage: usedTokens / actualLimit,
+			largestOutput: largestOutputBySession.get(sessionID) ?? 0,
 		};
 	} catch (error) {
 		log("[dynamic-truncator] fetchContextWindowUsage failed; falling back to null", {

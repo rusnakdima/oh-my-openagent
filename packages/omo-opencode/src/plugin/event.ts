@@ -6,6 +6,7 @@ import type { PluginContext } from "./types";
 
 import { getMainSessionID, subagentSessions, syncSubagentSessions } from "../features/claude-code-session-state";
 import { invalidateContextWindowUsageCache } from "../shared/dynamic-truncator";
+import { clearLargestOutput } from "../shared/context-window-usage";
 import { resolveSessionEventID } from "../shared/event-session-id";
 import { log } from "../shared/logger";
 import { normalizeSessionStatusToIdle } from "./session-status-normalizer";
@@ -159,6 +160,10 @@ export function createEventHandler(args: {
     }
 
     if (event.type === "session.deleted") {
+      const sessionID = resolveSessionEventID(props)
+      if (sessionID) {
+        clearLargestOutput(sessionID)
+      }
       await handleSessionDeletedEvent({
         props,
         tmuxIntegrationEnabled,

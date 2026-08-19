@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const KeywordTypeSchema = z.enum(["ultrawork", "team", "hyperplan", "hyperplan-ultrawork", "openspec"])
+export const KeywordTypeSchema = z.enum(["ultrawork", "team", "hyperplan", "hyperplan-ultrawork", "openspec", "search", "analyze", "refactor", "test", "fix", "review"])
 export type KeywordType = z.infer<typeof KeywordTypeSchema>
 
 export const KeywordDetectorConfigSchema = z.object({

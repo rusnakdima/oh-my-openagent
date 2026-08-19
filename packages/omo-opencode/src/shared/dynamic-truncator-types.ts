@@ -4,6 +4,8 @@ export type ContextWindowUsage = {
 	usedTokens: number;
 	remainingTokens: number;
 	usagePercentage: number;
+	/** Largest tool output seen in this session (bytes); 0 if no tool has run */
+	largestOutput: number;
 }
 
 export type ContextWindowUsageClient = Pick<PluginInput["client"], "session">

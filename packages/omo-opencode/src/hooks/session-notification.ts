@@ -25,6 +25,8 @@ interface SessionNotificationConfig {
   enforceMainSessionFilter?: boolean
   /** Grace period in ms to ignore late-arriving activity events after scheduling (default: 100) */
   activityGracePeriodMs?: number
+  /** Fire a session-long-running notification when session exceeds this many minutes (default: 0 = disabled) */
+  longRunningSessionMinutes?: number
 }
 
 export function createSessionNotification(ctx: PluginInput, config: SessionNotificationConfig = {}) {
@@ -39,9 +41,12 @@ export function createSessionNotification(ctx: PluginInput, config: SessionNotif
     skipIfIncompleteTodos: true,
     maxTrackedSessions: 100,
     enforceMainSessionFilter: true,
+    longRunningSessionMinutes: 0,
     ...config,
   }
 
+  const sessionStartTimes = new Map<string, number>()
+  const notifiedLongRunningSessions = new Set<string>()
   const sessionNotificationInit = createSessionNotificationInit()
   let currentPlatform: Platform | null = null
   let defaultSoundPath = mergedConfig.soundPath
@@ -100,7 +105,10 @@ export function createSessionNotification(ctx: PluginInput, config: SessionNotif
 
     if (event.type === "session.created") {
       const sessionID = resolveSessionEventID(props)
-      if (sessionID) scheduler.markSessionActivity(sessionID)
+      if (sessionID) {
+        sessionStartTimes.set(sessionID, Date.now())
+        scheduler.markSessionActivity(sessionID)
+      }
       return
     }
 
@@ -111,6 +119,24 @@ export function createSessionNotification(ctx: PluginInput, config: SessionNotif
       const platform = ensureNotificationPlatform()
       if (platform === "unsupported") return
       if (!shouldNotifyForSession(sessionID)) return
+
+      // Long-running session alert
+      if (mergedConfig.longRunningSessionMinutes > 0 && !notifiedLongRunningSessions.has(sessionID)) {
+        const startTime = sessionStartTimes.get(sessionID)
+        if (startTime !== undefined) {
+          const elapsedMs = Date.now() - startTime
+          const thresholdMs = mergedConfig.longRunningSessionMinutes * 60 * 1000
+          if (elapsedMs >= thresholdMs) {
+            notifiedLongRunningSessions.add(sessionID)
+            await sessionNotificationSender.sendSessionNotification(
+              ctx,
+              platform,
+              mergedConfig.title,
+              `Session has been running for ${mergedConfig.longRunningSessionMinutes} minutes`,
+            )
+          }
+        }
+      }
 
       scheduler.scheduleIdleNotification(sessionID)
       return
@@ -170,7 +196,11 @@ export function createSessionNotification(ctx: PluginInput, config: SessionNotif
 
     if (event.type === "session.deleted") {
       const sessionID = resolveSessionEventID(props)
-      if (sessionID) scheduler.deleteSession(sessionID)
+      if (sessionID) {
+        scheduler.deleteSession(sessionID)
+        sessionStartTimes.delete(sessionID)
+        notifiedLongRunningSessions.delete(sessionID)
+      }
     }
   }
 }

@@ -146,15 +146,16 @@ describe("keyword-detector hyperplan keyword", () => {
     const hook = createKeywordDetectorHook(createMockPluginInput())
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "open src/include/audio/buffer.hpp and fix the leak" }],
+      parts: [{ type: "text", text: "open src/include/audio/buffer.hpp and address the leak" }],
     }
 
     // when - keyword detection runs
     await hook["chat.message"]({ sessionID }, output)
 
     // then - hyperplan must not fire (the trailing '.hpp' is a header extension, not the trigger)
+    // 'address' does not trigger any keyword
     const text = textOf(output)
-    expect(text).toBe("open src/include/audio/buffer.hpp and fix the leak")
+    expect(text).toBe("open src/include/audio/buffer.hpp and address the leak")
   })
 
   test("should fire 'Hyperplan Mode Activated' toast when keyword detected", async () => {
@@ -188,15 +189,15 @@ describe("keyword-detector hyperplan keyword", () => {
     )
     const output = {
       message: {} as Record<string, unknown>,
-      parts: [{ type: "text", text: "hyperplan refactor this" }],
+      parts: [{ type: "text", text: "hyperplan work on this" }],
     }
 
     // when - hyperplan keyword would normally fire
     await hook["chat.message"]({ sessionID }, output)
 
-    // then - neither injection nor toast should occur
+    // then - neither injection nor toast should occur (hyperplan disabled; 'work on' is not a keyword)
     const text = textOf(output)
-    expect(text).toBe("hyperplan refactor this")
+    expect(text).toBe("hyperplan work on this")
     expect(toastCalls).not.toContain("Hyperplan Mode Activated")
   })
 

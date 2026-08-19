@@ -94,7 +94,11 @@ export function createSessionHooks(args: {
     if (externalNotifier.detected && externalNotifier.pluginName && !forceEnable) {
       log(getNotificationConflictWarning(externalNotifier.pluginName))
     } else {
-      sessionNotification = safeHook("session-notification", () => createSessionNotification(ctx))
+      sessionNotification = safeHook("session-notification", () =>
+        createSessionNotification(ctx, {
+          longRunningSessionMinutes: pluginConfig.notification?.long_running_session_minutes ?? 0,
+        }),
+      )
     }
   }
 

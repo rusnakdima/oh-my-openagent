@@ -108,10 +108,10 @@ export function createKeywordDetectorHook(
       if (isPlannerAgent(currentAgent)) {
         const preFilterCount = detectedKeywords.length
         detectedKeywords = detectedKeywords.filter(
-          (k) => k.type !== "ultrawork" && k.type !== "hyperplan" && k.type !== "hyperplan-ultrawork" && k.type !== "openspec"
+          (k) => k.type !== "ultrawork" && k.type !== "hyperplan" && k.type !== "hyperplan-ultrawork" && k.type !== "openspec" && k.type !== "search" && k.type !== "analyze" && k.type !== "refactor" && k.type !== "test" && k.type !== "fix" && k.type !== "review"
         )
         if (preFilterCount > detectedKeywords.length) {
-          log(`[keyword-detector] Filtered ultrawork/hyperplan/openspec keywords for planner agent`, { sessionID: input.sessionID, agent: currentAgent })
+          log(`[keyword-detector] Filtered mode keywords for planner agent`, { sessionID: input.sessionID, agent: currentAgent })
         }
       }
 
