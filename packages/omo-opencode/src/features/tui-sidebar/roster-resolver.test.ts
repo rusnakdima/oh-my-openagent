@@ -66,7 +66,7 @@ describe("resolveRoster", () => {
     })
   })
 
-  it("#given agent and category overrides #when resolving roster #then it shows all entries with global model", () => {
+  it("#given agent and category overrides #when resolving roster #then it shows per-entry effective models", () => {
     withIsolatedConfig("overrides", (root) => {
       // given
       const project = join(root, "project")
@@ -84,12 +84,17 @@ describe("resolveRoster", () => {
       // when
       const rows = resolveRoster(project)
 
-      // then - all entries show the same global model (or "no model selected" if no session)
+      // then - entries show their own effective models (not a uniform global model)
       expect(rows).toEqual([...rows].sort((left, right) => left.label.localeCompare(right.label)))
       expect(rows.length).toBeGreaterThan(0)
-      // All entries should have the same model (the global TUI model)
+      // sisyphus shows its override model; deep shows its override model
+      const sisyphusRow = rows.find((r) => r.label === "sisyphus")
+      const deepRow = rows.find((r) => r.label === "deep")
+      expect(sisyphusRow?.model).toBe("model-leaf")
+      expect(deepRow?.model).toBe("simple-model")
+      // Other entries show their builtin effective models (may differ from sisyphus/deep)
       const models = [...new Set(rows.map((r) => r.model))]
-      expect(models.length).toBe(1)
+      expect(models.length).toBeGreaterThan(1)
     })
   })
 

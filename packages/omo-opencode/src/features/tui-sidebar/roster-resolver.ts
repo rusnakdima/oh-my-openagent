@@ -3,8 +3,6 @@ import type { OmoConfig } from "../../cli/doctor/checks/model-resolution-types"
 import type { OhMyOpenCodeConfig } from "../../config"
 import { validatePluginConfig } from "../../config/validate"
 import type { RosterRow } from "./state-types"
-import { getSessionModel } from "../../shared/session-model-state"
-import { getMainSessionID } from "../claude-code-session-state"
 
 type ResolutionEntry = {
   readonly name: string
@@ -87,20 +85,11 @@ export function resolveRoster(directory: string): RosterRow[] {
         ? resolution.categories.filter((c) => visibleCategories.includes(c.name))
         : resolution.categories
 
-    // Get TUI global model (same for all agents since GLOBAL-ONLY MODEL applies to all)
-    const mainSessionID = getMainSessionID()
-    const sessionModel = mainSessionID ? getSessionModel(mainSessionID) : undefined
-    const globalModel = sessionModel ? `${sessionModel.providerID}/${sessionModel.modelID}` : undefined
-
-    // Use global model if set; otherwise "—" means no global TUI model selected.
-    // "—" is shown uniformly instead of per-entry fallback chain models from resolution.
-    const effectiveModel = globalModel ?? "—"
-
     return [...agents, ...categories]
       .filter((entry) => !disabledAgents.has(entry.name))
       .map((entry) => ({
         label: entry.name,
-        model: effectiveModel === "—" ? "—" : formatModelLabel(effectiveModel),
+        model: entry.effectiveModel ? formatModelLabel(entry.effectiveModel) : "—",
       }))
       .sort((left, right) => left.label.localeCompare(right.label))
   } catch (error) {
