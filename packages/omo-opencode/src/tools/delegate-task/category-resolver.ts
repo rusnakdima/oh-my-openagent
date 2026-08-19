@@ -118,101 +118,88 @@ Available categories: ${allCategoryNames}`)
     : userCategories?.[args.category!]?.model
 
   if (!requirement) {
-    // Precedence: explicit category model > sisyphus-junior default > category resolved model
-    // This keeps `sisyphus-junior.model` useful as a global default while allowing
-    // per-category overrides via `categories[category].model`.
-    actualModel = explicitCategoryModel ?? overrideModel ?? categoryResolvedModel
-    if (actualModel) {
-      modelInfo = explicitCategoryModel || overrideModel
-        ? { model: actualModel, type: "user-defined", source: "override" }
-        : { model: actualModel, type: "system-default", source: "system-default" }
-      const parsedModel = parseModelString(actualModel)
+    // GLOBAL-ONLY MODEL (Aug 2026): TUI model is the ONLY source.
+    // No implicit fallback to builtin category models.
+    // Error if no TUI model selected.
+    if (!systemDefaultModel) {
+      // No TUI model selected — error, do not fall back to builtin or configured defaults
+      const categoryNames = Object.keys(enabledCategories)
+      return categoryResolutionError(`No model selected in TUI for category "${args.category}".
+
+Select a model in the TUI model picker first, then retry.
+Available categories: ${categoryNames.join(", ")}`)
+    }
+    // TUI model is set — use it directly for unknown categories too
+    let parsedModel = parseModelString(systemDefaultModel)
+    if (!parsedModel) {
+      const detected = detectHeuristicModelFamily(systemDefaultModel)
+      if (detected) {
+        parsedModel = {
+          providerID: detected.provider ?? detected.family,
+          modelID: systemDefaultModel,
+        }
+      }
+    }
+    if (parsedModel) {
+      actualModel = systemDefaultModel
       const variantToUse = userCategories?.[args.category!]?.variant ?? resolved.config.variant
-      categoryModel = parsedModel
-        ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
-        : undefined
+      categoryModel = applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
+      modelInfo = { model: systemDefaultModel, type: "system-default", source: "system-default" }
     }
   } else {
-    // TUI model (systemDefaultModel) wins at step 1 if set; otherwise use explicit category override.
-    const userModelForResolution = systemDefaultModel ?? explicitCategoryModel ?? overrideModel
-    const resolution = resolveModelForDelegateTask({
-      userModel: userModelForResolution,
-      availableModels,
-      systemDefaultModel: systemDefaultModel ?? undefined,
-    })
+    // GLOBAL-ONLY MODEL (Aug 2026): TUI model is the ONLY source.
+    // No fallback to overrideModel (sisyphusJuniorModel) or builtin category defaults.
+    if (systemDefaultModel) {
+      // TUI model is set: use it directly, bypass delegate-core cold-cache behavior.
+      const resolution = resolveModelForDelegateTask({
+        userModel: systemDefaultModel,
+        availableModels,
+        systemDefaultModel: undefined,
+      })
 
-    if (resolution && "skipped" in resolution) {
+      if (resolution && "skipped" in resolution) {
+        isModelResolutionSkipped = true
+        // Cold cache: apply TUI model directly without delegate-core.
+        let parsedModel = parseModelString(systemDefaultModel)
+        if (!parsedModel) {
+          const detected = detectHeuristicModelFamily(systemDefaultModel)
+          if (detected) {
+            parsedModel = {
+              providerID: detected.provider ?? detected.family,
+              modelID: systemDefaultModel,
+            }
+          }
+        }
+        if (parsedModel) {
+          const variantToUse = userCategories?.[args.category!]?.variant ?? resolved.config.variant
+          categoryModel = applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
+          actualModel = systemDefaultModel
+          modelInfo = { model: systemDefaultModel, type: "system-default", source: "system-default" }
+        }
+      } else if (resolution) {
+        const { model: resolvedModel, variant: resolvedVariant } = resolution
+        actualModel = resolvedModel
+
+        if (!parseModelString(actualModel)) {
+          return categoryResolutionError(`Invalid model format "${actualModel}". Expected "provider/model" format (e.g., "anthropic/claude-sonnet-4-6").`)
+        }
+
+        modelInfo = { model: actualModel, type: "system-default", source: "system-default" }
+
+        const parsedModel = parseModelString(actualModel)
+        const variantToUse = userCategories?.[args.category!]?.variant ?? resolvedVariant ?? resolved.config.variant
+        categoryModel = parsedModel
+          ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
+          : undefined
+      }
+    } else {
+      // No TUI model: ERROR — do not fall back to builtin or configured defaults.
       isModelResolutionSkipped = true
-      // Prefer TUI model in cold cache; fall back to explicit override or category built-in model.
-      const userModelOverride = systemDefaultModel ?? explicitCategoryModel ?? overrideModel
-      if (userModelOverride) {
-        actualModel = userModelOverride
-        let parsedModel = parseModelString(userModelOverride)
-        if (!parsedModel && userModelOverride) {
-          // Bare model string (no /): use heuristic family detection to determine provider.
-          const detected = detectHeuristicModelFamily(userModelOverride)
-          if (detected) {
-            parsedModel = {
-              providerID: detected.provider ?? detected.family,
-              modelID: userModelOverride,
-            }
-          }
-        }
-        const variantToUse = userCategories?.[args.category!]?.variant ?? resolved.config.variant
-        categoryModel = parsedModel
-          ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
-          : undefined
-        modelInfo = { model: userModelOverride, type: "user-defined", source: "override" }
-      } else if (resolved.model) {
-        // Cold cache + no explicit override: use the category's built-in model from DEFAULT_CATEGORIES.
-        const builtinModel = resolved.model
-        actualModel = builtinModel
-        let parsedModel = parseModelString(builtinModel)
-        if (!parsedModel && builtinModel) {
-          // Bare model string (no /): use heuristic family detection.
-          const detected = detectHeuristicModelFamily(builtinModel)
-          if (detected) {
-            parsedModel = {
-              providerID: detected.provider ?? detected.family,
-              modelID: builtinModel,
-            }
-          }
-        }
-        const variantToUse = userCategories?.[args.category!]?.variant ?? resolved.config.variant
-        categoryModel = parsedModel
-          ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
-          : undefined
-        modelInfo = { model: builtinModel, type: "category-default", source: "category-default" }
-      }
-    } else if (resolution) {
-      const { model: resolvedModel, variant: resolvedVariant } = resolution
-      actualModel = resolvedModel
+      const categoryNames = Object.keys(enabledCategories)
+      return categoryResolutionError(`No model selected in TUI for category "${args.category}".
 
-      if (!parseModelString(actualModel)) {
-        return categoryResolutionError(`Invalid model format "${actualModel}". Expected "provider/model" format (e.g., "anthropic/claude-sonnet-4-6").`)
-      }
-
-      const type: "user-defined" | "inherited" | "category-default" | "system-default" =
-        (explicitCategoryModel || overrideModel)
-          ? "user-defined"
-          : (systemDefaultModel && actualModel === systemDefaultModel)
-              ? "system-default"
-              : "category-default"
-
-      const source: "override" | "category-default" | "system-default" =
-        type === "user-defined"
-          ? "override"
-          : type === "system-default"
-              ? "system-default"
-              : "category-default"
-
-      modelInfo = { model: actualModel, type, source }
-
-      const parsedModel = parseModelString(actualModel)
-      const variantToUse = userCategories?.[args.category!]?.variant ?? resolvedVariant ?? resolved.config.variant
-      categoryModel = parsedModel
-        ? applyCategoryParams({ ...parsedModel, variant: variantToUse ?? parsedModel.variant }, resolved.config)
-        : undefined
+Select a model in the TUI model picker first, then retry.
+Available categories: ${categoryNames.join(", ")}`)
     }
   }
 
@@ -227,16 +214,11 @@ Available categories: ${allCategoryNames}`)
     userCategories?.[args.category!]?.prompt_append,
   )
 
-  if (!categoryModel && !actualModel && !isModelResolutionSkipped) {
+  if (!categoryModel && !actualModel) {
+    // This should not be reached — when systemDefaultModel is set, we always produce a model.
+    // This is a last-resort guard in case something slips through.
     const categoryNames = Object.keys(enabledCategories)
-    return categoryResolutionError(`Model not configured for category "${args.category}".
-
-Configure in one of:
-1. OpenCode: Set "model" in opencode.json
-2. Oh-My-OpenCode: Set category model in .omo/omo.jsonc
-3. Provider: Connect a provider with available models
-
-Current category: ${args.category}
+    return categoryResolutionError(`No model available for category "${args.category}". Select a model in the TUI picker first.
 Available categories: ${categoryNames.join(", ")}`)
   }
 

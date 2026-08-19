@@ -1,7 +1,6 @@
 import type { AgentOverrides } from "../../config/schema"
 import { detectHeuristicModelFamily } from "@oh-my-opencode/model-core"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
-import { fuzzyMatchModel } from "../../shared/model-availability"
 import { normalizeModelFormat } from "../../shared/model-format-normalizer"
 import { log } from "../../shared/logger"
 import { getAvailableModelsForDelegateTask } from "./available-models"
@@ -32,15 +31,11 @@ export async function resolveSubagentModel(
   const agentCategoryModel = agentCategoryConfig?.model
 
   const availableModels = await getAvailableModelsForDelegateTask(executorCtx.client, executorCtx.availableModelsOverride)
-  const normalizedMatchedModel = matchedAgent.model
-    ? normalizeModelFormat(matchedAgent.model)
-    : undefined
-
   const hasExplicitOverride = agentOverride?.model || agentCategoryModel
 
+  // GLOBAL-ONLY MODEL (Aug 2026): TUI model is the ONLY source.
+  // When systemDefaultModel is set, it always wins — no fallback to builtin or discovered defaults.
   if (systemDefaultModel) {
-    // TUI-selected model: wins at step 1 (userModel) in resolveModelForDelegateTask.
-    // Never passed as matchedAgent.model here — that would override the TUI choice.
     const resolution = resolveModelForDelegateTask({
       userModel: systemDefaultModel,
       availableModels,
@@ -64,7 +59,6 @@ export async function resolveSubagentModel(
       // Cold cache: TUI model explicitly selected — apply it directly.
       let normalized = normalizeModelFormat(systemDefaultModel)
       if (!normalized && systemDefaultModel) {
-        // Bare model string (no /): use heuristic family detection to determine provider.
         const bareModel = systemDefaultModel
         const detected = detectHeuristicModelFamily(bareModel)
         if (detected) {
@@ -84,58 +78,16 @@ export async function resolveSubagentModel(
         })
       }
     }
-  } else if (hasExplicitOverride || matchedAgent.model) {
-    // No TUI model: use explicit override (agent config / category config) or matchedAgent default.
-    // Note: matchedAgent.model is passed as userModel here so the fallback chain
-    // can still apply when neither TUI model nor explicit override is set.
-    const resolution = resolveModelForDelegateTask({
-      userModel: agentOverride?.model ?? agentCategoryModel,
-      availableModels,
-      systemDefaultModel: undefined,
-    })
-    if (resolution && !("skipped" in resolution)) {
-      const normalized = normalizeModelFormat(resolution.model)
-      if (normalized) {
-        const variantToUse = agentOverride?.variant ?? resolution.variant ?? agentCategoryConfig?.variant
-        const resolvedModel = variantToUse ? { ...normalized, variant: variantToUse } : normalized
-        categoryModel = applyCategoryParams(resolvedModel, agentCategoryConfig)
-      }
-    }
-  } else {
-    // No TUI model and no explicit override: let the final fallback block use matchedAgent.model.
-    // Pass userModel=undefined so resolveModelForDelegateTask returns {skipped: true}
-    // (step 2 fires since availableModels is non-empty), reaching the !categoryModel block below.
-    const resolution = resolveModelForDelegateTask({
-      userModel: undefined,
-      availableModels,
-      systemDefaultModel: undefined,
-    })
 
-    const resolutionSkipped = resolution && "skipped" in resolution
-
-    if (resolution && !resolutionSkipped) {
-      const normalized = normalizeModelFormat(resolution.model)
-      if (normalized) {
-        const variantToUse = agentOverride?.variant ?? resolution.variant ?? agentCategoryConfig?.variant
-        const resolvedModel = variantToUse ? { ...normalized, variant: variantToUse } : normalized
-        categoryModel = applyCategoryParams(resolvedModel, agentCategoryConfig)
-      }
-    }
-    // If resolutionSkipped or resolution is undefined, fall through to the final
-    // !categoryModel && normalizedMatchedModel block below.
+    return { categoryModel }
   }
 
-  if (!categoryModel && normalizedMatchedModel) {
-    const fullModel = `${normalizedMatchedModel.providerID}/${normalizedMatchedModel.modelID}`
-    if (availableModels.size === 0 || fuzzyMatchModel(fullModel, availableModels, [normalizedMatchedModel.providerID])) {
-      categoryModel = normalizedMatchedModel
-    } else {
-      log("[delegate-task] Skipping unavailable agent default model", {
-        agent: agentToUse,
-        model: fullModel,
-      })
-    }
-  }
+  // No TUI model: ERROR — do not fall back to builtin or discovered defaults.
+  // The agent must have a TUI model selected.
+  log("[delegate-task] No TUI model selected for subagent delegation — model is required", {
+    agent: agentToUse,
+    hasExplicitOverride,
+  })
 
-  return { categoryModel }
+  return { categoryModel: undefined }
 }

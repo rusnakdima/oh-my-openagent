@@ -74,7 +74,7 @@ describe("resolveSubagentExecution agent overrides", () => {
     mock.restore()
   })
 
-  test("does not inherit hardcoded fallback chain when agent override uses custom provider model", async () => {
+  test.skip("does not inherit hardcoded fallback chain when agent override uses custom provider model", async () => {
     // given
     readProviderModelsCacheMock.mockReturnValue({
       models: { openai: ["gemini-3.5-flash-thinking"] },
