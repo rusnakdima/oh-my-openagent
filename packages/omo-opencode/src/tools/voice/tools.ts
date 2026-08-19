@@ -129,6 +129,7 @@ export function createVoiceTool(ctx: PluginInput, config: VoiceConfig): ToolDefi
         await injectTranscription({
           client: ctx.client,
           sessionID: toolContext.sessionID,
+          directory: toolContext.directory,
           text: transcription,
         })
       } catch (injectError) {

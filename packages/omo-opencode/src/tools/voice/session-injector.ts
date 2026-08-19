@@ -6,6 +6,7 @@ import { SessionInjectionError } from "./errors"
 interface InjectTranscriptionOptions {
   client: PluginInput["client"]
   sessionID: string
+  directory: string
   text: string
 }
 
@@ -19,13 +20,14 @@ export async function injectTranscription(opts: InjectTranscriptionOptions): Pro
     source: "voice-input",
     dedupeKey: `voice:${opts.sessionID}`,
     postDispatchHoldMs: 2000,
-    queue: true,
+    queueBehavior: "defer",
     queueRetryMs: 5000,
     input: {
       path: { id: opts.sessionID },
       body: {
         parts: [{ type: "text", text: opts.text }],
       },
+      query: { directory: opts.directory },
     },
   })
 

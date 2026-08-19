@@ -177,16 +177,11 @@ const module: TuiPluginModule = {
 
     // Register platform-specific shortcut to inject /voice into the active session
     // - macOS: meta+v (Ctrl+Shift+V = Terminal paste conflict)
-    // - Windows: ctrl+alt+v (Ctrl+Shift+V = PowerShell paste conflict)
-    // - Linux: ctrl+shift+alt+v (Ctrl+Shift+V = Kitty paste conflict)
+    // - Windows/Linux: ctrl+shift+v (cross-platform, no conflict in standard terminals)
     const platform = api.keymap.getHostMetadata().platform
-    const voiceShortcut = platform === "macos"
-      ? "meta+v"
-      : platform === "windows"
-        ? "ctrl+alt+v"
-        : "ctrl+shift+alt+v"
+    const voiceShortcut = platform === "macos" ? "meta+v" : "ctrl+shift+v"
 
-    api.keymap.registerLayer({
+    const unregister = api.keymap.registerLayer({
       bindings: [
         {
           key: voiceShortcut,
@@ -196,7 +191,7 @@ const module: TuiPluginModule = {
       commands: [
         {
           name: "voice.record",
-          run: (ctx) => {
+          run: () => {
             const route = api.route.current
             if (route.name !== "session") return
             const params = route.params as { sessionID?: string } | undefined
@@ -213,6 +208,7 @@ const module: TuiPluginModule = {
         },
       ],
     })
+    api.lifecycle.onDispose(unregister)
   },
 }
 
