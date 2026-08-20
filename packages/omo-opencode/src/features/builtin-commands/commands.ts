@@ -215,8 +215,8 @@ $ARGUMENTS
 </user-request>`,
       argumentHint: "<question>",
     },
-    "model-select": {
-      description: "(builtin) Select a TUI model for all agents or a specific agent via interactive tmux menu",
+    "setmodel": {
+      description: "(builtin) Set the TUI model for all agents or a specific agent via interactive tmux menu",
       template: `<command-instruction>
 ${MODEL_TEMPLATE}
 </command-instruction>`,

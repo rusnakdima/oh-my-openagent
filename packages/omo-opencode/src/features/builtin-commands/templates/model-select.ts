@@ -4,100 +4,99 @@ export const MODEL_TEMPLATE = `# /model Command
 
 Let the user select a TUI model for delegation via an interactive tmux menu.
 
-## How It Works
+## Usage
 
-1. Parse the agent name from arguments (e.g., \`/model deep\` → agent = "deep")
-2. If no agent given → set the GLOBAL model (clears all per-agent overrides)
-3. If agent given → set that agent's per-agent model override
+- \`/model\` → set the global model (clears per-agent overrides)
+- \`/model <agent>\` → set the model for a specific agent (e.g., \`/model deep\`)
 
 ## Steps
 
-### Step 1: Read available models from the OpenCode models cache
+### Step 1: Open the interactive menu
 
-Use a code block to read the models cache file directly:
+Call the \`interactive_menu\` tool with a curated list of popular models as options.
 
-\`\`\`typescript
-import { readFileSync } from "fs"
-import { join, dirname } from "path"
-
-// Find the cache directory
-const home = process.env.HOME ?? process.env.USERPROFILE ?? "/home/dmitriy"
-const cacheDir = join(home, ".cache", "opencode")
-const cacheFile = join(cacheDir, "models.json")
-
-const raw = readFileSync(cacheFile, "utf-8")
-const data = JSON.parse(raw) as Record<string, { models?: Record<string, unknown> }>
-
-const models: string[] = []
-for (const [providerId, provider] of Object.entries(data)) {
-  if (provider.models && typeof provider.models === "object") {
-    for (const modelId of Object.keys(provider.models)) {
-      models.push(\`\${providerId}/\${modelId}\`)
-    }
-  }
-}
-// Sort alphabetically
-models.sort((a, b) => a.localeCompare(b))
-models  // e.g. ["anthropic/claude-opus-5", "openai/gpt-5", ...]
-\`\`\`
-
-### Step 2: Open interactive menu
-
-Call the \`interactive_menu\` tool with the model list as numbered options:
-
+**For global model selection (\`/model\`):**
 \`\`\`json
 {
   "name": "interactive_menu",
   "arguments": {
-    "prompt": "Select model for {agent_label}:",
-    "options": models.map((m, i) => \`\${i + 1}. \${m}\`)
+    "prompt": "Select a model for ALL agents (global):",
+    "options": [
+      "1. opencode/big-pickle (built-in, fast)",
+      "2. 302ai/gpt-4o (ChatGPT, recommended)",
+      "3. 302ai/claude-sonnet-4-6-thinking (Anthropic, best reasoning)",
+      "4. 302ai/minimax-m2.7 (fast, low cost)",
+      "5. openai/gpt-4o (requires API key)"
+    ]
   }
 }
 \`\`\`
 
-- \`agent_label\` = "global" if no agent, otherwise the agent name
-
-### Step 3: Parse the result
+### Step 2: Parse the result
 
 The result is a JSON string:
 - \`{"value": "1"}\` → user selected option 1 (index = 0)
 - \`{"cancelled": true}\` → user cancelled
 
-### Step 4: Apply the model
+Extract the selection index and map to the model:
 
-After parsing the selection index, apply the model:
+| Index | Global Model |
+|-------|-------------|
+| 0 | opencode/big-pickle |
+| 1 | 302ai/gpt-4o |
+| 2 | 302ai/claude-sonnet-4-6-thinking |
+| 3 | 302ai/minimax-m2.7 |
+| 4 | openai/gpt-4o |
 
-**For global model (no agent argument):**
+### Step 3: Apply the model
+
+After parsing the selection, apply it via the state functions:
+
+**For global model (\`/model\`):**
 \`\`\`typescript
 const { setGlobalTuiModel, clearAllPerAgentModels } = await import("../../shared/session-model-state")
 const { getTuiStateMirrorSingleton } = await import("../../features/tui-sidebar/mirror-manager")
 
-const index = parseInt(selectionValue, 10) - 1
-const [providerID, modelID] = models[index].split("/")
+const models = [
+  "opencode/big-pickle",
+  "302ai/gpt-4o",
+  "302ai/claude-sonnet-4-6-thinking",
+  "302ai/minimax-m2.7",
+  "openai/gpt-4o"
+]
+const modelStr = models[index]
+const [providerID, modelID] = modelStr.split("/")
 setGlobalTuiModel({ providerID, modelID })
 clearAllPerAgentModels()
 getTuiStateMirrorSingleton()?.flush()
 \`\`\`
 
-**For per-agent model (agent argument provided):**
+**For per-agent model (\`/model deep\`):**
+Use the same list but set per-agent:
 \`\`\`typescript
 const { setPerAgentModel } = await import("../../shared/session-model-state")
 const { getTuiStateMirrorSingleton } = await import("../../features/tui-sidebar/mirror-manager")
 
-const index = parseInt(selectionValue, 10) - 1
-const [providerID, modelID] = models[index].split("/")
+const models = [
+  "opencode/big-pickle",
+  "302ai/gpt-4o",
+  "302ai/claude-sonnet-4-6-thinking",
+  "302ai/minimax-m2.7",
+  "openai/gpt-4o"
+]
+const modelStr = models[index]
+const [providerID, modelID] = modelStr.split("/")
 setPerAgentModel(agentName, { providerID, modelID })
 getTuiStateMirrorSingleton()?.flush()
 \`\`\`
 
-### Step 5: Confirm to user
+### Step 4: Confirm
 
-- Global: "Global model set to {providerID}/{modelID}. All per-agent overrides cleared."
+Tell the user what was set:
+- Global: "Global model set to {providerID}/{modelID}. Per-agent overrides cleared."
 - Per-agent: "{Agent} model set to {providerID}/{modelID}."
 
-## Arguments Format
+## Arguments
 
-- \`/model\` → no agent, sets global
-- \`/model deep\` → agent = "deep" (case-insensitive)
-- \`/model sisyphus\` → agent = "sisyphus"
+The agent name comes from $ARGUMENTS (e.g., "deep", "sisyphus", "ultrabrain").
 `
