@@ -10,7 +10,14 @@ export function createCloudflareDeepgramProvider(config: CloudflareDeepgramConfi
   return {
     name: "cloudflare-deepgram",
     validateConfig() {
+      const accountId = process.env["CF_ACCOUNT_ID"]
       const apiToken = process.env["CF_API_TOKEN"]
+      if (!accountId) {
+        return {
+          valid: false,
+          error: "Cloudflare account ID not found. Set CF_ACCOUNT_ID environment variable.",
+        }
+      }
       if (!apiToken) {
         return {
           valid: false,
@@ -20,9 +27,10 @@ export function createCloudflareDeepgramProvider(config: CloudflareDeepgramConfi
       return { valid: true }
     },
     async transcribe(audio: AudioBuffer): Promise<string> {
+      const accountId = process.env["CF_ACCOUNT_ID"]
       const apiToken = process.env["CF_API_TOKEN"]
-      if (!apiToken) {
-        throw new Error("CF_API_TOKEN not set")
+      if (!accountId || !apiToken) {
+        throw new Error("CF_ACCOUNT_ID and CF_API_TOKEN must both be set")
       }
 
       const base64Audio = Buffer.from(audio.data).toString("base64")
@@ -31,7 +39,7 @@ export function createCloudflareDeepgramProvider(config: CloudflareDeepgramConfi
       log(`[voice] Transcribing via Cloudflare Workers AI (${config.model})`)
 
       const response = await fetch(
-        `https://api.cloudflare.com/client/v4/accounts/${apiToken}/ai/run/${config.model}`,
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/ai/run/${config.model}`,
         {
           method: "POST",
           headers: {

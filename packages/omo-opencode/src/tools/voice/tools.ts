@@ -120,7 +120,7 @@ export function createVoiceTool(ctx: PluginInput, config: VoiceConfig): ToolDefi
         } catch (transcribeError) {
           lastTranscribeError = transcribeError as Error
           const isRetryable =
-            [429, 502, 503, 504].includes((transcribeError as { status?: number }).status ?? 0) ||
+            [429, 500, 502, 503, 504].includes((transcribeError as { status?: number }).status ?? 0) ||
             (transcribeError as Error).message?.includes("network")
           if (!isRetryable || attempt === MAX_RETRIES) break
           const delayMs = 2 ** attempt * 500

@@ -1,4 +1,7 @@
 import * as childProcess from "node:child_process"
+import * as fs from "node:fs"
+import { tmpdir } from "node:os"
+import { randomUUID } from "node:crypto"
 import { log } from "../../../shared"
 import type { AudioBuffer, STTProvider } from "./types"
 
@@ -39,7 +42,7 @@ export function createLocalFasterWhisperProvider(config: LocalFasterWhisperConfi
       }
 
       // Write audio to a temp file for faster-whisper to process
-      const tmpWav = `/tmp/omo-voice-${Date.now()}.wav`
+      const tmpWav = `${tmpdir()}/omo-voice-${randomUUID()}.wav`
       await Bun.write(tmpWav, audio.data)
 
       log(`[voice] Transcribing via local faster-whisper (${config.model})`)
@@ -64,9 +67,9 @@ export function createLocalFasterWhisperProvider(config: LocalFasterWhisperConfi
 
         return result.text.trim()
       } finally {
-        // Cleanup temp file
+        // Cleanup temp file — delete, not truncate
         try {
-          await Bun.write(tmpWav, "")
+          await fs.promises.unlink(tmpWav)
         } catch {
           // ignore cleanup errors
         }

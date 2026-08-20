@@ -56,13 +56,31 @@ describe("stt-provider-factory", () => {
       expect(result.error).toContain("OPENAI_API_KEY")
     })
 
-    test("cloudflare provider validateConfig returns invalid without token", () => {
+    test("cloudflare provider validateConfig returns invalid without CF_ACCOUNT_ID", () => {
       const provider = createSTTProvider("cloudflare", {
         model: "@cf/deepgram/nova-3",
       })
       const result = provider.validateConfig()
       expect(result.valid).toBe(false)
-      expect(result.error).toContain("CF_API_TOKEN")
+      expect(result.error).toContain("CF_ACCOUNT_ID")
+    })
+
+    test("cloudflare provider validateConfig returns invalid without CF_API_TOKEN", () => {
+      // Set CF_ACCOUNT_ID but not CF_API_TOKEN
+      const original = process.env["CF_ACCOUNT_ID"]
+      process.env["CF_ACCOUNT_ID"] = "test-account-id"
+      delete process.env["CF_API_TOKEN"]
+      try {
+        const provider = createSTTProvider("cloudflare", {
+          model: "@cf/deepgram/nova-3",
+        })
+        const result = provider.validateConfig()
+        expect(result.valid).toBe(false)
+        expect(result.error).toContain("CF_API_TOKEN")
+      } finally {
+        if (original !== undefined) process.env["CF_ACCOUNT_ID"] = original
+        else delete process.env["CF_ACCOUNT_ID"]
+      }
     })
 
     test("local provider validateConfig returns valid when executable and model are set", () => {
@@ -84,7 +102,8 @@ describe("stt-provider-factory", () => {
       const provider = createSTTProvider("cloudflare", {})
       const result = provider.validateConfig()
       expect(result.valid).toBe(false)
-      expect(result.error).toContain("CF_API_TOKEN")
+      // CR-1 fix: now checks CF_ACCOUNT_ID first, then CF_API_TOKEN
+      expect(result.error).toMatch(/CF_ACCOUNT_ID|CF_API_TOKEN/)
     })
   })
 })

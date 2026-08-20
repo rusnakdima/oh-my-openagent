@@ -1,5 +1,7 @@
 import * as childProcess from "node:child_process"
+import * as fs from "node:fs"
 import { tmpdir } from "node:os"
+import { randomUUID } from "node:crypto"
 import { log } from "../../../shared"
 import type { TTSProvider } from "./types"
 
@@ -53,15 +55,13 @@ export function createOpenAITTSProvider(config: OpenAITTSTConfig): TTSProvider {
         throw new Error(`OpenAI TTS API error ${response.status}: ${errorText}`)
       }
 
-      // Stream audio to a temp file and play it
-      const outputPath = `${tmpdir()}/omo-tts-${Date.now()}.${config.format}`
-      const fileStream = await import("node:fs").then(
-        (fs) => fs.createWriteStream(outputPath) as unknown as { write: (chunk: Uint8Array) => boolean; end: () => void },
-      )
-
       if (!response.body) {
         throw new Error("OpenAI TTS returned empty response body")
       }
+
+      // Stream audio to a temp file and play it
+      const outputPath = `${tmpdir()}/omo-tts-${randomUUID()}.${config.format}`
+      const fileStream = fs.createWriteStream(outputPath)
 
       const reader = response.body.getReader()
       try {
@@ -76,16 +76,25 @@ export function createOpenAITTSProvider(config: OpenAITTSTConfig): TTSProvider {
         reader.releaseLock()
       }
 
-      // Play the audio file
-      await playAudioFile(outputPath)
+      // Wait for the stream to be fully flushed to disk before playing
+      await new Promise<void>((resolve, reject) => {
+        fileStream.on("finish", resolve)
+        fileStream.on("error", reject)
+      })
+
+      // Play the audio file — always clean up temp file regardless of outcome
+      try {
+        await playAudioFile(outputPath)
+      } finally {
+        await fs.promises.unlink(outputPath).catch(() => {
+          // ignore cleanup errors
+        })
+      }
     },
   }
 }
 
 async function playAudioFile(filePath: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require("node:fs") as typeof import("node:fs")
-
   const platform = process.platform
   const player = platform === "win32" ? "powershell" : platform === "darwin" ? "afplay" : "aplay"
   const args =
@@ -97,12 +106,7 @@ async function playAudioFile(filePath: string): Promise<void> {
 
   return new Promise((resolve, reject) => {
     const proc = childProcess.spawn(player, args, { stdio: "ignore" })
-    proc.on("close", async (code) => {
-      try {
-        await fs.promises.unlink(filePath)
-      } catch {
-        // ignore cleanup errors
-      }
+    proc.on("close", (code) => {
       if (code === 0) resolve()
       else reject(new Error(`Audio playback exited with code ${code}`))
     })

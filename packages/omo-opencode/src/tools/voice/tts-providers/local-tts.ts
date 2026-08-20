@@ -12,14 +12,20 @@ export function createLocalTTSProvider(config: LocalTTSConfig): TTSProvider {
   return {
     name: "local-tts",
     validateConfig() {
-      const tool = config.backend === "say" ? "say" : "espeak"
+      const tool =
+        config.backend === "say" ? "say" : config.backend === "edge-tts" ? "edge-tts" : "espeak"
       try {
         childProcess.execFileSync("which", [tool], { stdio: "ignore" })
         return { valid: true }
       } catch {
         return {
           valid: false,
-          error: `${tool} not found. ${config.backend === "say" ? "macOS 'say' command is built-in." : "Install espeak (apt install espeak or brew install espeak)."}`,
+          error:
+            config.backend === "say"
+              ? "macOS 'say' command is built-in but not available on this system."
+              : config.backend === "edge-tts"
+                ? "edge-tts not found. Install with: pip install edge-tts"
+                : "espeak not found. Install espeak (apt install espeak or brew install espeak).",
         }
       }
     },

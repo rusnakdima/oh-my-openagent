@@ -1,5 +1,7 @@
 import * as childProcess from "node:child_process"
+import * as fs from "node:fs"
 import { tmpdir } from "node:os"
+import { randomUUID } from "node:crypto"
 import { log } from "../../shared"
 import {
   type AudioBuffer,
@@ -22,8 +24,6 @@ async function readAudioFile(
   startTime: number,
   sampleRate: number,
 ): Promise<AudioBuffer> {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const fs = require("node:fs") as typeof import("node:fs")
   try {
     const stats = await fs.promises.stat(outputPath)
     if (stats.size <= 44) {
@@ -50,7 +50,8 @@ async function readAudioFile(
 
 function createUnixRecorder(sampleRate: number = 16000): AudioRecorder {
   let activeProcess: childProcess.ChildProcess | null = null
-  let stopped = false
+  let vadHandle: { stop: () => void; promise: Promise<"silence" | "max_duration"> } | null = null
+  let safetyTimer: ReturnType<typeof setTimeout> | null = null
 
   return {
     async checkAvailability() {
@@ -62,7 +63,6 @@ function createUnixRecorder(sampleRate: number = 16000): AudioRecorder {
           tool: undefined,
         }
       }
-      // Try a quick test recording
       return { available: true, tool }
     },
 
@@ -74,14 +74,26 @@ function createUnixRecorder(sampleRate: number = 16000): AudioRecorder {
         )
       }
 
-      const outputPath = `${tmpdir()}/omo-voice-${Date.now()}.wav`
-      stopped = false
+      const outputPath = `${tmpdir()}/omo-voice-${randomUUID()}.wav`
 
       return new Promise((resolve, reject) => {
-        let stderr = ""
-        let recordingDone = false
-
+        let settled = false
         const startTime = Date.now()
+
+        function settle(res: (buf: AudioBuffer) => void, rej: (err: Error) => void) {
+          if (settled) return
+          settled = true
+          // CR-4: Clear safety timer on settle
+          if (safetyTimer !== null) {
+            clearTimeout(safetyTimer)
+            safetyTimer = null
+          }
+          // CR-5 + M-4: Stop VAD monitor on settle
+          if (vadHandle !== null) {
+            vadHandle.stop()
+            vadHandle = null
+          }
+        }
 
         // sox command: record from default audio device, convert to wav
         // silence command: trim silence at start, stop when silence > 0.5s below threshold
@@ -135,61 +147,55 @@ function createUnixRecorder(sampleRate: number = 16000): AudioRecorder {
           stdio: ["ignore", "pipe", "pipe"],
         })
 
-        activeProcess.stderr?.on("data", (chunk: Buffer) => {
-          stderr += chunk.toString()
-        })
-
         activeProcess.on("error", (err) => {
-          if (!stopped) {
-            reject(new AudioRecorderError(`Failed to start recording: ${err.message}`))
-          }
+          settle(() => {}, () => {})
+          reject(new AudioRecorderError(`Failed to start recording: ${err.message}`))
         })
 
-        activeProcess.on("close", (code) => {
+        activeProcess.on("close", () => {
           activeProcess = null
-          if (!stopped && !recordingDone) {
-            stopped = true
-            // Use async I/O to avoid race: file may not be flushed to disk yet
-            void readAudioFile(outputPath, startTime, sampleRate)
-              .then(resolve)
-              .catch((err) => reject(new AudioRecorderError(err.message)))
-          }
+          // Only settle if we haven't already (VAD or timeout may have fired first)
+          settle(() => {}, () => {})
+          void readAudioFile(outputPath, startTime, sampleRate)
+            .then(resolve)
+            .catch((err) => reject(new AudioRecorderError(err.message)))
         })
 
         // Safety timeout — stop recording if max duration exceeded
-        setTimeout(() => {
-          if (!stopped) {
-            stopped = true
-            if (activeProcess && !activeProcess.killed) {
-              activeProcess.kill("SIGTERM")
-            }
-            // Use async I/O: file may not be flushed to disk immediately after SIGTERM
-            void readAudioFile(outputPath, startTime, sampleRate)
-              .then(resolve)
-              .catch(() => reject(new AudioRecorderError("Recording timed out with no audio captured")))
+        // CR-4: Store handle so we can clear it when recording ends early
+        safetyTimer = setTimeout(() => {
+          safetyTimer = null
+          if (activeProcess && !activeProcess.killed) {
+            activeProcess.kill("SIGTERM")
           }
+          // CR-5 + M-4: Stop VAD when timeout fires
+          if (vadHandle !== null) {
+            vadHandle.stop()
+            vadHandle = null
+          }
+          settle(() => {}, () => {})
+          void readAudioFile(outputPath, startTime, sampleRate)
+            .then(resolve)
+            .catch(() => reject(new AudioRecorderError("Recording timed out with no audio captured")))
         }, opts.duration_ms + 5000)
 
         // Start VAD monitor for real-time silence detection (early stop)
-        // Only when min_duration has passed (avoid cutting off initial speech)
-        const minSilenceMs = opts.min_duration_ms
         const silenceThresholdLinear = Math.round(
           Math.pow(10, opts.silence_threshold_db / 20) * 32767,
         )
-        const vad = createVADMonitor(sampleRate, {
+        vadHandle = createVADMonitor(sampleRate, {
           silenceDurationMs: 1200,
           threshold: Math.max(silenceThresholdLinear, 500),
         })
 
-        // Race between VAD silence detection and max duration
-        void vad.promise
+        void vadHandle.promise
           .then((reason) => {
-            if (!stopped && reason === "silence") {
+            if (reason === "silence") {
               log(`[voice] VAD triggered early stop (silence detected)`)
-              stopped = true
               if (activeProcess && !activeProcess.killed) {
                 activeProcess.kill("SIGTERM")
               }
+              settle(() => {}, () => {})
               void readAudioFile(outputPath, startTime, sampleRate)
                 .then(resolve)
                 .catch((err) => reject(new AudioRecorderError(err.message)))
@@ -202,7 +208,16 @@ function createUnixRecorder(sampleRate: number = 16000): AudioRecorder {
     },
 
     stop() {
-      stopped = true
+      // CR-4: Clear safety timer
+      if (safetyTimer !== null) {
+        clearTimeout(safetyTimer)
+        safetyTimer = null
+      }
+      // CR-5 + M-4: Stop VAD monitor
+      if (vadHandle !== null) {
+        vadHandle.stop()
+        vadHandle = null
+      }
       if (activeProcess && !activeProcess.killed) {
         activeProcess.kill("SIGTERM")
         activeProcess = null

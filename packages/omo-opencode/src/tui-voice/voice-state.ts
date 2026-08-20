@@ -37,8 +37,9 @@ export function createTuiVoiceModule(
   }
 
   function setSessionContext(sessionID: string, directory: string) {
-    currentSessionID = sessionID
-    currentDirectory = directory
+    // M-5: Only set if not already set — don't blindly overwrite if startRecording() is called again
+    if (!currentSessionID) currentSessionID = sessionID
+    if (!currentDirectory) currentDirectory = directory
   }
 
   async function startRecording() {
@@ -64,6 +65,11 @@ export function createTuiVoiceModule(
       return
     }
 
+    // M-7: Stop any prior recorder before creating a new one
+    if (recorder) {
+      recorder.stop()
+      recorder = null
+    }
     recorder = createAudioRecorder({ sample_rate: sampleRate })
 
     const micStatus = await recorder.checkAvailability()
@@ -208,6 +214,9 @@ export function createTuiVoiceModule(
       recorder.stop()
       recorder = null
     }
+    // M-6: Clean up STT provider and recording promise
+    sttProvider = null
+    recordingPromise = null
     setState("idle")
   }
 
