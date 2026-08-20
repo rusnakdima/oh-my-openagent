@@ -10273,6 +10273,19 @@
       ],
       "additionalProperties": false
     },
+    "interactive_menu": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "default": true,
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "enabled"
+      ],
+      "additionalProperties": false
+    },
     "_migrations": {
       "type": "array",
       "items": {

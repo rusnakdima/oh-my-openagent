@@ -245,4 +245,59 @@ describe("TuiStateMirror", () => {
     // then
     expect(buildCount).toBe(1)
   })
+
+  it("#given a mirror manager #when onEvent fires #then it schedules a debounced flush", async () => {
+    // given: use real timers (bun:test Jest compat doesn't support advanceTimersByTime for setTimeout in this context)
+    const projectDir = makeTempDir("onevent-project")
+    const mirror = createMirror({
+      projectDir,
+      client: createClient({ "ses-main": { type: "busy" } }),
+    })
+
+    // when: fire an event — should schedule a debounced flush
+    mirror.onEvent("session.created" as Parameters<typeof mirror.onEvent>[0])
+    // Flush is scheduled but not yet executed (debounce WRITE_DEBOUNCE_MS)
+    const beforeFlush = readMirror(projectDir)
+    expect(beforeFlush).toBeNull()
+
+    // when: wait past the debounce window (real timers)
+    await new Promise((resolve) => setTimeout(resolve, WRITE_DEBOUNCE_MS + 50))
+
+    // then: flush was executed
+    expect(readMirror(projectDir)?.activeAgents).toEqual([{ name: "sisyphus", status: "busy" }])
+    mirror.stop()
+  })
+
+  it("#given a mirror manager #when onEvent fires multiple times rapidly #then only one flush is scheduled (debounce)", async () => {
+    // Use real timers to reliably trigger setTimeout-based debounce
+    const projectDir = makeTempDir("onevent-burst-project")
+    let flushCount = 0
+    const mirror = createMirror({
+      projectDir,
+      client: {
+        session: {
+          status: async () => {
+            flushCount += 1
+            return { data: { "ses-main": { type: "busy" } } }
+          },
+          messages: async () => ({ data: [] }),
+        },
+      },
+    })
+
+    // when: fire 5 events rapidly — all within the debounce window
+    mirror.onEvent("session.created" as Parameters<typeof mirror.onEvent>[0])
+    mirror.onEvent("session.created" as Parameters<typeof mirror.onEvent>[0])
+    mirror.onEvent("session.created" as Parameters<typeof mirror.onEvent>[0])
+    mirror.onEvent("session.created" as Parameters<typeof mirror.onEvent>[0])
+    mirror.onEvent("session.created" as Parameters<typeof mirror.onEvent>[0])
+
+    // wait past debounce window
+    await new Promise((resolve) => setTimeout(resolve, WRITE_DEBOUNCE_MS + 50))
+
+    // then: only one status call was made (debounce deduplicates)
+    expect(flushCount).toBe(1)
+    expect(readMirror(projectDir)?.activeAgents).toEqual([{ name: "sisyphus", status: "busy" }])
+    mirror.stop()
+  })
 })

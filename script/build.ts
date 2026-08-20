@@ -94,6 +94,25 @@ const nodes: BuildNode[] = [
 	{ id: "tui", command: "bun", args: ["build", "packages/omo-opencode/src/tui.ts", "--outdir", "dist", "--target", "bun", "--format", "esm", ...OPENTUI_EXTERNALS.flatMap((name) => ["--external", name])], deps: [] },
 	{ id: "shared-skills-assets", command: "bun", args: ["run", "build:shared-skills-assets"], deps: ["index"] },
 	{ id: "node-require-shim", command: "bun", args: ["run", "build:node-require-shim"], deps: ["index"] },
+	{
+		id: "dist-package-json",
+		command: "bun",
+		args: [
+			"--bun",
+			"-e",
+			`import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+const repoRoot = resolve(fileURLToPath(import.meta.url), "..");
+const pkg = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
+const distPkg = { name: pkg.name, version: pkg.version };
+const distDir = resolve(repoRoot, "dist");
+if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
+writeFileSync(resolve(distDir, "package.json"), JSON.stringify(distPkg, null, 2) + "\\n");
+console.log("dist/package.json written (name:", distPkg.name, ")");`,
+		],
+		deps: ["index"],
+	},
 	{ id: "declarations", command: "tsc", args: ["--emitDeclarationOnly"], deps: [] },
 	{ id: "cli", command: "bun", args: ["build", "packages/omo-opencode/src/cli/index.ts", "--outdir", "dist/cli", "--target", "bun", "--format", "esm"], deps: [] },
 	{ id: "cli-node", command: "bun", args: ["run", "build:cli-node"], deps: [] },

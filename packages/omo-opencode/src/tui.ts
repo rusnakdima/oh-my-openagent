@@ -44,7 +44,7 @@ function registerSidebarContentSlot<Node>({
   requestRender()
 }
 
-function materialize<Node>(nodes: readonly ViewNode[], solid: SolidRuntime<Node>): Node {
+export function materialize<Node>(nodes: readonly ViewNode[], solid: SolidRuntime<Node>): Node {
   const root = solid.createElement("box")
   solid.setProp(root, "flexDirection", "column")
   for (const node of nodes) {

@@ -12055,6 +12055,19 @@
           ],
           "additionalProperties": false
         },
+        "interactive_menu": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "default": true,
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "enabled"
+          ],
+          "additionalProperties": false
+        },
         "_migrations": {
           "type": "array",
           "items": {
@@ -27019,6 +27032,19 @@
                   "default_backend",
                   "capture",
                   "tts"
+                ],
+                "additionalProperties": false
+              },
+              "interactive_menu": {
+                "type": "object",
+                "properties": {
+                  "enabled": {
+                    "default": true,
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "enabled"
                 ],
                 "additionalProperties": false
               },
