@@ -1,4 +1,4 @@
-import { killAllTrackedMenuPanes, recreateMenuWindow, checkWindowExists, updateMenuWindowStatus } from "./state-manager"
+import { killAllTrackedMenuPanes, recreateMenuWindow, checkWindowExists, runTmuxCommand } from "./state-manager"
 import { loadInteractiveMenuSessionState } from "./storage"
 import { OMO_MENU_PANE_PREFIX } from "./constants"
 
@@ -59,13 +59,8 @@ export function createInteractiveMenuSessionHook() {
         // Also kill the named menu window if it exists
         const state = loadInteractiveMenuSessionState(sessionId)
         if (state?.windowName) {
-          const { spawn } = require("bun")
           try {
-            spawn({
-              cmd: ["/bin/bash", "-c", `tmux kill-window -t '${state.windowName}' 2>/dev/null || true`],
-              stdout: "pipe",
-              stderr: "pipe",
-            })
+            await runTmuxCommand(`tmux kill-window -t '${state.windowName}' 2>/dev/null || true`, 3000)
           } catch { /* best effort */ }
         }
       }

@@ -7,6 +7,8 @@ import {
   updateMenuWindowStatus,
   recreateMenuWindow,
   checkWindowExists,
+  runTmuxCommand,
+  buildMenuDisplay,
 } from "../../hooks/interactive-menu-session/state-manager"
 
 function extractInputFromPane(paneContent: string | null): string | null {
@@ -27,31 +29,6 @@ type MenuArgs = {
   prompt: string
   options?: string[]
   timeout_ms?: number
-}
-
-async function runCommand(cmd: string, timeoutMs: number): Promise<{ success: boolean; output: string }> {
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    setTimeout(() => reject(new Error("timeout")), timeoutMs)
-  })
-  try {
-    const proc = spawn({ cmd: ["/bin/bash", "-c", cmd], stdout: "pipe", stderr: "pipe" })
-    const exitCode = await Promise.race([proc.exited, timeoutPromise])
-    const stdout = await new Response(proc.stdout).text()
-    return { success: exitCode === 0, output: stdout.trim() }
-  } catch {
-    return { success: false, output: "" }
-  }
-}
-
-function buildMenuDisplay(prompt: string, options?: string[]): string {
-  let displayText = prompt
-  if (options && options.length > 0) {
-    displayText += "\n\n"
-    for (let i = 0; i < options.length; i++) {
-      displayText += `${i + 1}. ${options[i]}\n`
-    }
-  }
-  return displayText
 }
 
 async function ensureMenuWindow(
@@ -81,7 +58,7 @@ async function ensureMenuWindow(
   windowName = `omo-menu-${Date.now()}`
   const escapedDisplay = buildMenuDisplay(prompt, options).replace(/'/g, "'\\''")
 
-  const createResult = await runCommand(
+  const createResult = await runTmuxCommand(
     `tmux new-window -d -n '${windowName}' -P -F '#{window_id}' 2>&1`,
     5000,
   )
@@ -91,13 +68,13 @@ async function ensureMenuWindow(
 
   // Send the menu content
   const shellCmd = `echo ''; echo '${escapedDisplay}'; echo ''; echo '> '`
-  await runCommand(`tmux send-keys -t '${windowName}' '${shellCmd}' C-m`, 2000)
+  await runTmuxCommand(`tmux send-keys -t '${windowName}' '${shellCmd}' C-m`, 2000)
 
   // Wait for window to render
   await new Promise((r) => setTimeout(r, 300))
 
   // Verify window is live
-  const paneInfo = await runCommand(
+  const paneInfo = await runTmuxCommand(
     `tmux list-windows -F '#{window_name}' 2>/dev/null | grep '^${windowName}$' || echo 'NOT_FOUND'`,
     2000,
   )
@@ -129,7 +106,7 @@ async function executeInteractiveMenu(args: MenuArgs, sessionId?: string): Promi
 
   const killWindow = async () => {
     try {
-      await runCommand(`tmux kill-window -t '${windowName}' 2>/dev/null || true`, 2000)
+      await runTmuxCommand(`tmux kill-window -t '${windowName}' 2>/dev/null || true`, 2000)
     } catch { /* best effort */ }
   }
 
@@ -156,7 +133,7 @@ async function executeInteractiveMenu(args: MenuArgs, sessionId?: string): Promi
         continue
       }
 
-      const captureResult = await runCommand(
+      const captureResult = await runTmuxCommand(
         `tmux capture-pane -t '${windowName}.0' -p 2>/dev/null || true`,
         2000,
       )

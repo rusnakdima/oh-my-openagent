@@ -1,3 +1,4 @@
+import { spawn } from "bun"
 import { loadInteractiveMenuSessionState, saveInteractiveMenuSessionState, type InteractiveMenuSessionState, type MenuWindowStatus } from "./storage"
 import { OMO_MENU_PANE_PREFIX } from "./constants"
 
@@ -19,18 +20,15 @@ export function killAllTrackedMenuPanes(sessionId: string): void {
   for (const pane of state.trackedPanes) {
     if (pane.startsWith(OMO_MENU_PANE_PREFIX)) {
       try {
-        const { spawn } = require("bun")
-        // Kill the tmux window (not session) — windows are named omo-menu-*
         spawn({ cmd: ["/bin/bash", "-c", `tmux kill-window -t '${pane}' 2>/dev/null || true`], stdout: "pipe", stderr: "pipe" })
       } catch { /* best effort */ }
     }
   }
 }
 
-// --- Window recreation helpers ---
+// --- Shared tmux utilities ---
 
-async function runTmuxCommand(cmd: string, timeoutMs = 5000): Promise<{ success: boolean; output: string }> {
-  const { spawn } = require("bun")
+export async function runTmuxCommand(cmd: string, timeoutMs = 5000): Promise<{ success: boolean; output: string }> {
   return new Promise((resolve) => {
     const proc = spawn({ cmd: ["/bin/bash", "-c", cmd], stdout: "pipe", stderr: "pipe" })
     const timer = setTimeout(() => {
@@ -49,7 +47,7 @@ async function runTmuxCommand(cmd: string, timeoutMs = 5000): Promise<{ success:
   })
 }
 
-function buildMenuDisplay(prompt: string, options?: string[]): string {
+export function buildMenuDisplay(prompt: string, options?: string[]): string {
   let displayText = prompt
   if (options && options.length > 0) {
     displayText += "\n\n"
@@ -59,6 +57,8 @@ function buildMenuDisplay(prompt: string, options?: string[]): string {
   }
   return displayText
 }
+
+// --- Window recreation helpers ---
 
 export async function recreateMenuWindow(sessionId: string): Promise<boolean> {
   const state = loadInteractiveMenuSessionState(sessionId)
@@ -70,7 +70,7 @@ export async function recreateMenuWindow(sessionId: string): Promise<boolean> {
   // Kill any stale window with the same name first
   await runTmuxCommand(`tmux kill-window -t '${windowName}' 2>/dev/null || true`)
 
-  // Create a new visible window (non-detached — user can see it immediately)
+  // Create a new visible window
   const createResult = await runTmuxCommand(
     `tmux new-window -d -n '${windowName}' -P -F '#{window_id}' 2>&1`,
   )
@@ -108,4 +108,3 @@ export function checkWindowExists(windowName: string): Promise<boolean> {
     `tmux list-windows -F '#{window_name}' 2>/dev/null | grep -q '^${windowName}$' && echo 'EXISTS' || echo 'NOT_FOUND'`,
   ).then((r) => r.output.includes("EXISTS"))
 }
-

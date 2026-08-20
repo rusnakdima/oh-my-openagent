@@ -19,6 +19,7 @@ import { NotificationConfigSchema } from "./notification"
 import { OpenClawConfigSchema } from "./openclaw"
 import { ModelCapabilitiesConfigSchema } from "./model-capabilities"
 import { GoalConfigSchema } from "./goal"
+import { InteractiveMenuConfigSchema } from "./interactive-menu"
 import { OpenSpecConfigSchema } from "./openspec"
 import { MonitorConfigSchema } from "./monitor"
 import { RuntimeFallbackConfigSchema } from "./runtime-fallback"
@@ -108,6 +109,8 @@ export const OhMyOpenCodeConfigSchema = z.object({
   default_mode: DefaultModeConfigSchema.optional(),
   /** Voice input settings (default: disabled) */
   voice: VoiceConfigSchema.optional(),
+  /** Interactive menu settings (default: enabled when tmux is available) */
+  interactive_menu: InteractiveMenuConfigSchema.optional(),
   /** Migration history to prevent re-applying migrations (e.g., model version upgrades) */
   _migrations: z.array(z.string()).optional(),
 })
