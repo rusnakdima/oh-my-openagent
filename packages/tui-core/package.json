@@ -1,0 +1,23 @@
+{
+  "name": "@oh-my-opencode/tui-core",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Harness-neutral TUI interaction primitives for oh-my-openagent — screen capture, mouse clicks, and layout parsing via tmux.",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./src/index.ts"
+    }
+  },
+  "types": "./index.d.ts",
+  "scripts": {
+    "typecheck": "tsgo --noEmit -p tsconfig.json",
+    "test": "bun test src/*.test.ts src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@oh-my-opencode/utils": "workspace:*",
+    "@oh-my-opencode/tmux-core": "workspace:*"
+  },
+  "sideEffects": false
+}

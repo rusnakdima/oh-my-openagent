@@ -1,10 +1,10 @@
 # packages/ - Monorepo Packages
 
-**Generated:** 2026-08-17 / 94e954721
+**Generated:** 2026-08-22 / 0f15b9bfe
 
 ## OVERVIEW
 
-45 sibling packages across 6 roles. `omo-opencode` is the **build entry** for the main npm dist (`packages/omo-opencode/src/index.ts` → bundled into root `dist/`). The root `package.json` `files` array ships `dist/` + `bin/` + `postinstall.mjs` plus selected sibling artifacts (`lsp-tools-mcp`, `lsp-daemon`, `git-bash-mcp` `dist/`; `shared-skills`; the `omo-codex` plugin bundle; and `.opencode`/`.agents` command+skill dirs). Everything else is a sibling with its own package boundary; check the package docs before assuming a publication, deployment, or local-install surface.
+46 sibling packages across 6 roles. `omo-opencode` is the **build entry** for the main npm dist (`packages/omo-opencode/src/index.ts` → bundled into root `dist/`). The root `package.json` `files` array ships `dist/` + `bin/` + `postinstall.mjs` plus selected sibling artifacts (`lsp-tools-mcp`, `lsp-daemon`, `git-bash-mcp` `dist/`; `shared-skills`; the `omo-codex` plugin bundle; and `.opencode`/`.agents` command+skill dirs). Everything else is a sibling with its own package boundary; check the package docs before assuming a publication, deployment, or local-install surface.
 
 ## ROLE MAP
 
@@ -12,7 +12,7 @@
 |------|-------|----------|
 | **Platform launcher packages** | 12 | One per (OS × arch × variant). Uniform layout: `bin/` + `package.json` only. Selected at install time by `bin/` shim + `postinstall.mjs`. |
 | **MCP packages** | 4 | `lsp-tools-mcp`, `git-bash-mcp`, `lsp-daemon`, `ast-grep-mcp` |
-| **Core packages** | 20 | `utils`, `model-core`, `prompts-core`, `rules-engine` (was `rules-core`), `agents-md-core`, `comment-checker-core`, `hashline-core`, `boulder-state`, `telemetry-core`, `lsp-core`, `mcp-stdio-core`, `tmux-core`, `claude-code-compat-core`, `skills-loader-core`, `mcp-client-core`, `openclaw-core`, `team-core`, `delegate-core`, `omo-config-core`, `memory-core` |
+| **Core packages** | 21 | `utils`, `model-core`, `prompts-core`, `rules-engine` (was `rules-core`), `agents-md-core`, `comment-checker-core`, `hashline-core`, `boulder-state`, `telemetry-core`, `lsp-core`, `mcp-stdio-core`, `tmux-core`, `tui-core`, `claude-code-compat-core`, `skills-loader-core`, `mcp-client-core`, `openclaw-core`, `team-core`, `delegate-core`, `omo-config-core`, `memory-core` |
 | **Adapters** | 5 (+2 adapter-support) | `omo-opencode` (OpenCode Ultimate edition; the former root `src/`, build entry for the main npm dist) + `omo-codex` (Codex CLI Light edition; live npm alias `lazycodex-ai`, repository/bin identity `lazycodex`; Codex marketplace `sisyphuslabs` / plugin `omo`) + `omo-senpi` (Senpi native TypeScript extension adapter; local-path Pi package under `packages/omo-senpi/plugin`) + [`pi-goal`](pi-goal/AGENTS.md) (persistent Codex-style goal tools + continuation) + [`pi-webfetch`](pi-webfetch/AGENTS.md) (bounded URL-to-markdown/text/HTML tool). Adapter-support: `senpi-task` (Senpi-coupled task engine consumed only by `omo-senpi`; not harness-neutral, so not a `*-core` package) + `omo-native` (npm `omo-ai` distribution launcher staging the `omo-senpi` plugin payload). See [`packages/omo-opencode/src/AGENTS.md`](omo-opencode/src/AGENTS.md), [`packages/omo-codex/AGENTS.md`](omo-codex/AGENTS.md), [`packages/omo-senpi/AGENTS.md`](omo-senpi/AGENTS.md), [`packages/pi-goal/AGENTS.md`](pi-goal/AGENTS.md), [`packages/pi-webfetch/AGENTS.md`](pi-webfetch/AGENTS.md), [`packages/senpi-task/AGENTS.md`](senpi-task/AGENTS.md) |
 | **Skills** | 1 | [`shared-skills`](shared-skills/AGENTS.md) (cross-harness SKILL.md bundle shared between OMO and Codex; shipped via root `files` array) |
 | **Web** | 1 | `web` |
@@ -50,6 +50,7 @@ Each contains only a `bin/oh-my-opencode.js` launcher and a `package.json`. [`sc
 | [`lsp-core/`](lsp-core/AGENTS.md) | `src/`, `tsconfig.json` | Harness-neutral LSP engine, request context, tool definitions, and MCP entry helpers. |
 | [`mcp-stdio-core/`](mcp-stdio-core/AGENTS.md) | `src/`, `tsconfig.json` | Shared JSON-RPC stdio framing and dispatch primitives for MCP servers. |
 | [`tmux-core/`](tmux-core/AGENTS.md) | `src/`, `tsconfig.json` | Harness-neutral tmux session, pane, layout, and runner primitives. |
+| [`tui-core/`](tui-core/AGENTS.md) | `src/`, `tsconfig.json` | Harness-neutral TUI primitives: screen capture, mouse clicks, and layout parsing via tmux. |
 | [`claude-code-compat-core/`](claude-code-compat-core/AGENTS.md) | `src/`, `tsconfig.json` | Claude Code compatibility loaders for plugins, MCPs, commands, and agents. |
 | [`skills-loader-core/`](skills-loader-core/AGENTS.md) | `src/`, `tsconfig.json` | Skill loading, builtin skill, runtime skill, and skill matching primitives. |
 | [`mcp-client-core/`](mcp-client-core/AGENTS.md) | `src/`, `tsconfig.json` | MCP client lifecycle, skill-embedded MCP manager, and OAuth primitives. |

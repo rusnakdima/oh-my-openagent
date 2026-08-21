@@ -4,6 +4,10 @@
   // Balanced defaults for general development.
   // Tuned for reliability across diverse tasks without overspending.
 
+  // Set a default model for ALL agents. Overrides hardcoded fallback chains
+  // unless an agent has an explicit `model` in its config below.
+  // "default_model": "anthropic/claude-opus-5",
+
   "agents": {
     // Main orchestrator: handles delegation and drives tasks to completion
     "sisyphus": {

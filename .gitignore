@@ -61,3 +61,17 @@ plans/
 !.claude/commands
 !.claude/settings.json
 .dys/
+
+# TUI / worktree transient artifacts
+.opencode/
+bun/
+opencode/
+research/
+parent-wake-log.jsonl
+.build-*/
+.build-check-*/
+.build-extension-test-*/
+$marker
+packages/omo-opencode/$marker
+.agents/skills/opencode-qa/scripts/.omo/
+.agents/skills/opencode-qa/scripts/parent-wake-log.jsonl
