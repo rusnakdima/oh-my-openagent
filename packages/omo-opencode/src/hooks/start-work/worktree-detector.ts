@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process"
 import { existsSync, realpathSync } from "node:fs"
-import { resolve, win32 } from "node:path"
+import { dirname, isAbsolute, resolve, win32 } from "node:path"
 
 export type WorktreeEntry = {
   path: string
@@ -100,6 +100,49 @@ export function detectWorktreePath(directory: string): string | null {
       stdio: ["pipe", "pipe", "pipe"],
     }).trim()
     return normalizePath(worktreePath)
+  } catch (error) {
+    if (!(error instanceof Error)) {
+      throw error
+    }
+    return null
+  }
+}
+
+/**
+ * Resolve the main repository root from a worktree path.
+ *
+ * Strategy:
+ * 1. Try `git rev-parse --show-superproject-working-tree` — empty means not in a superproject.
+ * 2. Fall back to `git rev-parse --git-common-dir`, then resolve `.git` parent → main repo root.
+ */
+export function resolveMainRepoRoot(worktreePath: string): string | null {
+  try {
+    // --show-superproject-working-tree returns empty if not in a worktree or no superproject.
+    const superResult = execFileSync("git", ["rev-parse", "--show-superproject-working-tree"], {
+      cwd: worktreePath,
+      encoding: "utf-8",
+      timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim()
+    if (superResult) {
+      return normalizePath(superResult)
+    }
+
+    // Fall back: git-common-dir points to .git (or ../.git), parent of that is the main repo root.
+    const commonResult = execFileSync("git", ["rev-parse", "--git-common-dir"], {
+      cwd: worktreePath,
+      encoding: "utf-8",
+      timeout: 5000,
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim()
+    if (!commonResult) return null
+
+    // gitDir is either ".git" or an absolute path like "/path/to/repo/.git"
+    if (isAbsolute(commonResult)) {
+      return dirname(commonResult)
+    }
+    // Relative path like ".git" or "../.git"
+    return normalizePath(resolve(dirname(resolve(worktreePath, commonResult))))
   } catch (error) {
     if (!(error instanceof Error)) {
       throw error

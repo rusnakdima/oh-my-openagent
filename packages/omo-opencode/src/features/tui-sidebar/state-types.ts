@@ -1,4 +1,5 @@
 import type { BackgroundTaskStatus } from "../background-agent/types"
+import type { AgentMode } from "../../agents/types"
 
 export type AgentStatus = "busy" | "idle" | "error" | "running" | "retry"
 
@@ -16,6 +17,7 @@ export type JobRow = {
 
 export type RosterRow = {
   readonly label: string
+  readonly mode: AgentMode
   readonly model: string
   readonly effectiveModel: string
   readonly hasOverride: boolean
@@ -62,6 +64,7 @@ export type ModelPickerModalState =
       readonly targetAgent: string
       readonly selectedModel: string | null
     }
+  | { readonly kind: "agent-picker" }
 
 export type SidebarView =
   | {
@@ -72,11 +75,7 @@ export type SidebarView =
       readonly configBanner: ConfigBanner
     }
   | { readonly kind: "broken"; readonly messages: readonly string[] }
-  | {
-      readonly kind: "idle"
-      readonly roster: RosterState
-      readonly modal: ModelPickerModalState
-    }
+  | { readonly kind: "idle"; readonly roster: RosterState }
 
 export function assertNever(value: never): never {
   throw new Error(`Unexpected variant: ${JSON.stringify(value)}`)

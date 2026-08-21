@@ -26,6 +26,7 @@ import {
   createLongRunningNotificationHooks,
   createGitPreCommitHook,
   createGitPostCommitHook,
+  createWorktreeIsolationHook,
 } from "../../hooks"
 import {
   getOpenCodeVersion,
@@ -58,6 +59,7 @@ export type ToolGuardHooks = {
   longRunningNotification: ReturnType<typeof createLongRunningNotificationHooks> | null
   gitPreCommit: ReturnType<typeof createGitPreCommitHook> | null
   gitPostCommit: ReturnType<typeof createGitPostCommitHook> | null
+  worktreeIsolation: ReturnType<typeof createWorktreeIsolationHook> | null
 }
 
 export function createToolGuardHooks(args: {
@@ -182,6 +184,10 @@ export function createToolGuardHooks(args: {
     ? safeHook("git-post-commit", () => createGitPostCommitHook())
     : null
 
+  const worktreeIsolation = isHookEnabled("worktree-isolation")
+    ? safeHook("worktree-isolation", () => createWorktreeIsolationHook())
+    : null
+
   return {
     commentChecker,
     toolOutputTruncator,
@@ -205,5 +211,6 @@ export function createToolGuardHooks(args: {
     longRunningNotification,
     gitPreCommit,
     gitPostCommit,
+    worktreeIsolation,
   }
 }

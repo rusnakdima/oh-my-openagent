@@ -8,6 +8,10 @@
     "./config-migration": {
       "types": "./src/config-migration/index.ts",
       "import": "./src/config-migration/index.ts"
+    },
+    "./tui": {
+      "types": "./src/tui.ts",
+      "import": "./src/tui.ts"
     }
   },
   "scripts": { "typecheck": "tsgo --noEmit -p tsconfig.json" },
@@ -31,6 +35,7 @@
     "@oh-my-opencode/skills-loader-core": "workspace:*",
     "@oh-my-opencode/telemetry-core": "workspace:*",
     "@oh-my-opencode/tmux-core": "workspace:*",
+    "@oh-my-opencode/tui-core": "workspace:*",
     "@oh-my-opencode/team-core": "workspace:*",
     "@oh-my-opencode/utils": "workspace:*",
     "@opencode-ai/plugin": "1.15.13",

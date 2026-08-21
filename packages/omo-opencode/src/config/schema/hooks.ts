@@ -68,6 +68,8 @@ export const HookNameSchema = z.enum([
   "plan-format-validator",
   "legacy-plugin-toast",
   "openspec-session",
+  "worktree-isolation",
+  "worktree-cleanup",
 ])
 
 export type HookName = z.infer<typeof HookNameSchema>

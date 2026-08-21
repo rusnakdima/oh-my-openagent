@@ -9,6 +9,8 @@ import {
   getPerAgentModel,
   setGlobalTuiModel,
   setPerAgentModel,
+  setSelectedGlobalModel,
+  getSelectedGlobalModel,
 } from "./session-model-state"
 
 describe("session-model-state", () => {
@@ -97,32 +99,88 @@ describe("session-model-state", () => {
   })
 
   describe("getEffectiveModelForAgent", () => {
-    it("#given no global and no per-agent model #when getEffectiveModelForAgent #then returns null", () => {
-      expect(getEffectiveModelForAgent("sisyphus")).toBeNull()
+    // Aug 2026 Phase 9: falls back to CATEGORY_MODEL_REQUIREMENTS / AGENT_MODEL_REQUIREMENTS
+    it("#given no global model #when getEffectiveModelForAgent for category #then returns built-in fallback", () => {
+      // ultrabrain is in CATEGORY_MODEL_REQUIREMENTS with first entry openai/gpt-5.6-sol
+      const result = getEffectiveModelForAgent("ultrabrain")
+      expect(result).toEqual({ providerID: "openai", modelID: "gpt-5.6-sol" })
     })
 
-    it("#given global model but no per-agent #when getEffectiveModelForAgent #then returns global", () => {
+    it("#given no global model #when getEffectiveModelForAgent for agent #then returns built-in fallback", () => {
+      // prometheus is in AGENT_MODEL_REQUIREMENTS with first entry anthropic/claude-fable-5
+      const result = getEffectiveModelForAgent("prometheus")
+      expect(result).toEqual({ providerID: "anthropic", modelID: "claude-fable-5" })
+    })
+
+    it("#given no global model #when getEffectiveModelForAgent for unknown name #then returns null", () => {
+      // No requirements entry for this name
+      const result = getEffectiveModelForAgent("unknown-agent-xyz")
+      expect(result).toBeNull()
+    })
+
+    it("#given TUI model selected #when getEffectiveModelForAgent #then returns TUI model (overrides fallback)", () => {
+      setGlobalTuiModel({ providerID: "minimaxi", modelID: "MiniMax-M2.7" })
+      expect(getEffectiveModelForAgent("ultrabrain")).toEqual({ providerID: "minimaxi", modelID: "MiniMax-M2.7" })
+      expect(getEffectiveModelForAgent("prometheus")).toEqual({ providerID: "minimaxi", modelID: "MiniMax-M2.7" })
+    })
+
+    // Aug 2026: per-agent overrides are kept internally but getEffectiveModelForAgent
+    // ignores them — TUI model or built-in chain takes priority.
+    it("#given per-agent override but TUI model set #when getEffectiveModelForAgent #then returns TUI model (per-agent ignored)", () => {
       setGlobalTuiModel({ providerID: "anthropic", modelID: "claude-3-5-sonnet" })
+      setPerAgentModel("sisyphus", { providerID: "openai", modelID: "gpt-4o" })
       expect(getEffectiveModelForAgent("sisyphus")).toEqual({ providerID: "anthropic", modelID: "claude-3-5-sonnet" })
     })
 
-    it("#given per-agent override #when getEffectiveModelForAgent for that agent #then returns per-agent model (takes priority)", () => {
-      setGlobalTuiModel({ providerID: "anthropic", modelID: "claude-3-5-sonnet" })
+    it("#given per-agent override but no TUI model #when getEffectiveModelForAgent #then returns built-in fallback (per-agent ignored)", () => {
       setPerAgentModel("sisyphus", { providerID: "openai", modelID: "gpt-4o" })
-      expect(getEffectiveModelForAgent("sisyphus")).toEqual({ providerID: "openai", modelID: "gpt-4o" })
+      // Should fall back to AGENT_MODEL_REQUIREMENTS, not the per-agent override
+      const result = getEffectiveModelForAgent("sisyphus")
+      expect(result?.providerID).toBe("anthropic") // first chain entry: anthropic/claude-opus-5
+      expect(result?.modelID).toBe("claude-opus-5")
     })
 
-    it("#given per-agent override for one agent but not another #when getEffectiveModelForAgent for un-overridden agent #then returns global", () => {
+    it("#given per-agent model is cleared and no TUI model #when getEffectiveModelForAgent #then falls back to built-in", () => {
       setGlobalTuiModel({ providerID: "anthropic", modelID: "claude-3-5-sonnet" })
       setPerAgentModel("sisyphus", { providerID: "openai", modelID: "gpt-4o" })
-      expect(getEffectiveModelForAgent("atlas")).toEqual({ providerID: "anthropic", modelID: "claude-3-5-sonnet" })
-    })
-
-    it("#given per-agent model is cleared #when getEffectiveModelForAgent #then falls back to global", () => {
-      setGlobalTuiModel({ providerID: "anthropic", modelID: "claude-3-5-sonnet" })
-      setPerAgentModel("sisyphus", { providerID: "openai", modelID: "gpt-4o" })
+      clearGlobalTuiModel()
       clearPerAgentModel("sisyphus")
-      expect(getEffectiveModelForAgent("sisyphus")).toEqual({ providerID: "anthropic", modelID: "claude-3-5-sonnet" })
+      const result = getEffectiveModelForAgent("sisyphus")
+      expect(result?.providerID).toBe("anthropic")
+      expect(result?.modelID).toBe("claude-opus-5")
+    })
+  })
+
+  describe("setSelectedGlobalModel / getSelectedGlobalModel", () => {
+    beforeEach(() => {
+      clearGlobalTuiModel()
+      clearAllPerAgentModels()
+    })
+
+    it("#given no model set #when getSelectedGlobalModel #then returns null", () => {
+      expect(getSelectedGlobalModel()).toBeNull()
+    })
+
+    it("#given a model is set via setSelectedGlobalModel #when getSelectedGlobalModel #then returns it", () => {
+      setSelectedGlobalModel({ providerID: "openai", modelID: "gpt-4o" })
+      expect(getSelectedGlobalModel()).toEqual({ providerID: "openai", modelID: "gpt-4o" })
+    })
+
+    it("#when setSelectedGlobalModel is called #then it also clears all per-agent overrides", () => {
+      setPerAgentModel("sisyphus", { providerID: "minimax", modelID: "MiniMax-M2.7" })
+      setPerAgentModel("atlas", { providerID: "google", modelID: "gemini-pro" })
+      expect(getPerAgentModel("sisyphus")).toEqual({ providerID: "minimax", modelID: "MiniMax-M2.7" })
+      setSelectedGlobalModel({ providerID: "openai", modelID: "gpt-4o" })
+      expect(getSelectedGlobalModel()).toEqual({ providerID: "openai", modelID: "gpt-4o" })
+      expect(getPerAgentModel("sisyphus")).toBeUndefined()
+      expect(getPerAgentModel("atlas")).toBeUndefined()
+    })
+
+    it("#given a per-agent override exists #when setSelectedGlobalModel is called #then getEffectiveModelForAgent returns the new global model", () => {
+      setPerAgentModel("sisyphus", { providerID: "openai", modelID: "gpt-4o" })
+      setSelectedGlobalModel({ providerID: "anthropic", modelID: "claude-opus-5" })
+      expect(getEffectiveModelForAgent("sisyphus")).toEqual({ providerID: "anthropic", modelID: "claude-opus-5" })
+      expect(getEffectiveModelForAgent("atlas")).toEqual({ providerID: "anthropic", modelID: "claude-opus-5" })
     })
   })
 })

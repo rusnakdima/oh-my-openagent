@@ -17,6 +17,7 @@ import { createCliPostHog, getPostHogDistinctId } from "../../shared/posthog"
 import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "../../shared/prompt-async-gate"
 import { isAmbiguousPostDispatchPromptFailure } from "../../shared/prompt-failure-classifier"
 import { resolveRunnableRunAgent } from "./runnable-agent-resolver"
+import { resolveOrCreateWorktree } from "./worktree-resolver"
 
 export { resolveRunAgent }
 
@@ -41,8 +42,13 @@ export async function run(options: RunOptions): Promise<number> {
   const startTime = Date.now()
   const {
     message,
-    directory = process.cwd(),
+    directory: explicitDirectory,
+    worktree: worktreeSpec,
   } = options
+  const repoRoot = explicitDirectory ?? process.cwd()
+
+  // Resolve/create worktree if --worktree was specified
+  const directory = worktreeSpec ? await resolveOrCreateWorktree(worktreeSpec, repoRoot) : repoRoot
 
   const jsonManager = options.json ? createJsonOutputManager() : null
   if (jsonManager) jsonManager.redirectToStderr()
@@ -51,7 +57,7 @@ export async function run(options: RunOptions): Promise<number> {
     : createTimestampedStdoutController()
   timestampOutput?.enable()
 
-  const pluginConfig = loadPluginConfig(directory, { command: "run" })
+  const pluginConfig = loadPluginConfig(repoRoot, { command: "run" })
   const resolvedAgent = resolveRunAgent(options, pluginConfig)
   const abortController = new AbortController()
 

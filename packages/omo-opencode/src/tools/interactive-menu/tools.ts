@@ -92,7 +92,7 @@ async function ensureMenuWindow(
   return windowName
 }
 
-async function executeInteractiveMenu(args: MenuArgs, sessionId?: string): Promise<string> {
+export async function executeInteractiveMenu(args: MenuArgs, sessionId?: string): Promise<string> {
   const timeout = args.timeout_ms ?? DEFAULT_MENU_TIMEOUT_MS
   const sid = sessionId ?? "unknown"
 

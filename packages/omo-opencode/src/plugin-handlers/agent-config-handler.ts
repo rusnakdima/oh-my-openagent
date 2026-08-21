@@ -27,6 +27,7 @@ export async function applyAgentConfig(
     params.pluginConfig.agents,
     params.ctx.directory,
     currentModel,
+    params.pluginConfig.default_model,
     params.pluginConfig.categories,
     params.pluginConfig.git_master,
     allDiscoveredSkills,

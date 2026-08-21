@@ -83,7 +83,7 @@ describe("createAutoSlashCommandHook", () => {
       await hook["chat.message"](input, output)
 
       // then
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("Execute from project directory.")
       expect(output.parts[0].text).toContain("**Scope**: project")
     })
@@ -180,7 +180,7 @@ describe("createAutoSlashCommandHook", () => {
 
       // then should replace message with goal template
       expect(output.parts[0].text).not.toBe(originalText)
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("/goal Command")
       expect(output.parts[0].text).toContain("<user-task>")
       expect(output.parts[0].text).toContain("implement the feature")
@@ -199,7 +199,7 @@ describe("createAutoSlashCommandHook", () => {
 
       // then should replace message with goal template
       expect(output.parts[0].text).not.toBe(originalText)
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("/goal Command")
     })
   })
@@ -357,7 +357,7 @@ describe("createAutoSlashCommandHook", () => {
       await hook["command.execute.before"](input, output)
 
       //#then
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("/goal Command")
     })
 
@@ -387,7 +387,7 @@ describe("createAutoSlashCommandHook", () => {
       await hook["command.execute.before"](input, output)
 
       //#then
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("/goal Command")
       expect(output.parts[0].text).toContain("<user-task>")
       expect(output.parts[0].text).toContain("implement auth flow")
@@ -458,7 +458,7 @@ describe("createAutoSlashCommandHook", () => {
       await hook["chat.message"](input, output)
 
       // then should replace message with skill template
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("/my-test-skill Command")
       expect(output.parts[0].text).toContain("This is the skill template content")
     })
@@ -499,7 +499,7 @@ describe("createAutoSlashCommandHook", () => {
       await hook["command.execute.before"](input, output)
 
       // then should inject skill template
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("/my-test-skill Command")
       expect(output.parts[0].text).toContain("Skill template for command execute")
       expect(output.parts[0].text).toContain("extra args")
@@ -530,7 +530,7 @@ describe("createAutoSlashCommandHook", () => {
       await hook["chat.message"](input, output)
 
       // then should replace message with lazily loaded content
-      expect(output.parts[0].text).toContain("<auto-slash-command>")
+      expect(output.parts[0].text).not.toContain("<auto-slash-command>")
       expect(output.parts[0].text).toContain("Lazy loaded skill content here")
     })
   })

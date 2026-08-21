@@ -14,6 +14,7 @@ export function maybeCreateAtlasConfig(input: {
   uiSelectedModel?: string
   availableModels: Set<string>
   systemDefaultModel?: string
+  defaultModel?: string
   availableAgents: AvailableAgent[]
   availableSkills: AvailableSkill[]
   mergedCategories: Record<string, CategoryConfig>
@@ -27,6 +28,7 @@ export function maybeCreateAtlasConfig(input: {
     uiSelectedModel,
     availableModels,
     systemDefaultModel,
+    defaultModel,
     availableAgents,
     availableSkills,
     mergedCategories,
@@ -41,16 +43,16 @@ export function maybeCreateAtlasConfig(input: {
 
   let atlasResolution = applyModelResolution({
     uiSelectedModel: orchestratorOverride?.model !== undefined ? undefined : uiSelectedModel,
-    userModel: orchestratorOverride?.model,
+    userModel: orchestratorOverride?.model ?? defaultModel,
     requirement: atlasRequirement,
     availableModels,
     systemDefaultModel,
   })
 
-  if (!atlasResolution && orchestratorOverride?.model) {
+  if (!atlasResolution && (orchestratorOverride?.model ?? defaultModel)) {
     // User explicitly configured a model but resolution failed (e.g., cold cache, no system default).
     // Honor the user's choice directly instead of dropping Atlas entirely.
-    atlasResolution = { model: orchestratorOverride.model, provenance: "override" as const }
+    atlasResolution = { model: orchestratorOverride?.model ?? defaultModel!, provenance: "override" as const }
   }
 
   if (!atlasResolution) {

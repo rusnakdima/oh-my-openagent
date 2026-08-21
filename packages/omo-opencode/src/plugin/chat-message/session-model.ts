@@ -1,8 +1,12 @@
 import type { OhMyOpenCodeConfig } from "../../config"
 import { subagentSessions, getMainSessionID } from "../../features/claude-code-session-state"
 import { getAgentConfigKey } from "../../shared/agent-display-names"
-import { getSessionModel, setSessionModel } from "../../shared/session-model-state"
+import { getSessionModel, setSessionModel, setSelectedGlobalModel } from "../../shared/session-model-state"
+import { log } from "../../shared"
 import type { ChatMessageHandlerOutput, ChatMessageInput, SessionModelOverride } from "./types"
+
+// Track previous model per session to detect changes
+const previousModels = new Map<string, { providerID: string; modelID: string }>()
 
 function hasExplicitAgentModelOverride(
   agent: string | undefined,
@@ -44,30 +48,41 @@ export function getStoredMainSessionModel(
 }
 
 export function recordSessionModel(input: ChatMessageInput, output: ChatMessageHandlerOutput): void {
+  log("[recordSessionModel]", { inputModel: input.model, outputModel: output.message.model, sessionID: input.sessionID.slice(0, 8) })
   // First priority: input.model from TUI picker (current live selection — always wins)
   if (input.model) {
+    let parsed: { providerID: string; modelID: string } | null = null
+
     if (
       typeof input.model === "object" &&
       "providerID" in input.model &&
       "modelID" in input.model
     ) {
-      setSessionModel(input.sessionID, {
+      parsed = {
         providerID: (input.model as { providerID: string }).providerID,
         modelID: (input.model as { modelID: string }).modelID,
-      })
-      return
-    }
-    if (typeof input.model === "string") {
+      }
+    } else if (typeof input.model === "string") {
       const modelStr = input.model as string
       if (modelStr.includes("/")) {
         const parts = modelStr.split("/")
         const modelID = parts.pop()!
         const providerID = parts.join("/")
-        setSessionModel(input.sessionID, { providerID, modelID })
+        parsed = { providerID, modelID }
       }
-      // Bare string without "/" is not a valid model identifier — ignore
     }
-    return
+
+    if (parsed) {
+      setSessionModel(input.sessionID, parsed)
+
+      // Detect model change → update the global selected model
+      const prev = previousModels.get(input.sessionID)
+      if (!prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID) {
+        setSelectedGlobalModel(parsed)
+        previousModels.set(input.sessionID, parsed)
+      }
+      return
+    }
   }
 
   // Second priority: output.message.model set by our plugin (fallback when no input.model)
@@ -82,6 +97,14 @@ export function recordSessionModel(input: ChatMessageInput, output: ChatMessageH
     const modelID = (modelOverride as { readonly modelID?: string }).modelID
     if (typeof providerID === "string" && typeof modelID === "string") {
       setSessionModel(input.sessionID, { providerID, modelID })
+
+      // Also update global selected model on change
+      const prev = previousModels.get(input.sessionID)
+      const parsed = { providerID, modelID }
+      if (!prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID) {
+        setSelectedGlobalModel(parsed)
+        previousModels.set(input.sessionID, parsed)
+      }
     }
   }
 }

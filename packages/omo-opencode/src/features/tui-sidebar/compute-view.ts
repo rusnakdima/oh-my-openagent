@@ -5,7 +5,6 @@ import type {
   JobBoardState,
   LoopLive,
   LoopState,
-  ModelPickerModalState,
   RosterState,
   SidebarView,
 } from "./state-types"
@@ -16,8 +15,6 @@ export type ComputeViewSections = {
   readonly agents: AgentsState
   readonly jobs: JobBoardState
   readonly loop: LoopState
-  readonly modal: ModelPickerModalState
-  readonly availableModels: Array<{ providerID: string; modelID: string; label: string }>
 }
 
 export function computeView(sections: ComputeViewSections): SidebarView {
@@ -35,7 +32,7 @@ export function computeView(sections: ComputeViewSections): SidebarView {
     return { kind: "broken", messages: sections.config.messages }
   }
 
-  return { kind: "idle", roster: sections.roster, modal: sections.modal }
+  return { kind: "idle", roster: sections.roster }
 }
 
 export function viewKey(view: SidebarView): string {
@@ -51,7 +48,7 @@ export function viewKey(view: SidebarView): string {
     case "broken":
       return stableKey(["broken", [...view.messages]])
     case "idle":
-      return stableKey(["idle", rosterKeyParts(view.roster), modalKeyParts(view.modal)])
+      return stableKey(["idle", rosterKeyParts(view.roster)])
     default:
       return assertNever(view)
   }
@@ -73,17 +70,6 @@ function rosterKeyParts(roster: RosterState): readonly unknown[] {
       return ["roster", "rows", roster.rows.map((row) => [row.label, row.model, row.hasOverride])]
     default:
       return assertNever(roster)
-  }
-}
-
-function modalKeyParts(modal: ModelPickerModalState): readonly unknown[] {
-  switch (modal.kind) {
-    case "closed":
-      return ["modal", "closed"]
-    case "open":
-      return ["modal", "open", modal.targetAgent, modal.selectedModel]
-    default:
-      return assertNever(modal)
   }
 }
 

@@ -18,6 +18,7 @@ export function collectPendingBuiltinAgents(input: {
   agentOverrides: AgentOverrides
   directory?: string
   systemDefaultModel?: string
+  defaultModel?: string
   mergedCategories: Record<string, CategoryConfig>
   gitMasterConfig?: GitMasterConfig
   browserProvider?: BrowserAutomationProvider
@@ -36,6 +37,7 @@ export function collectPendingBuiltinAgents(input: {
     agentOverrides,
     directory,
     systemDefaultModel,
+    defaultModel,
     mergedCategories,
     gitMasterConfig,
     browserProvider,
@@ -78,9 +80,12 @@ export function collectPendingBuiltinAgents(input: {
 
     const isPrimaryAgent = isFactory(source) && source.mode === "primary"
 
+    // Determine userModel: per-agent override takes priority, otherwise use global defaultModel
+    const resolvedUserModel = override?.model ?? defaultModel
+
     let resolution = applyModelResolution({
       uiSelectedModel: (isPrimaryAgent && override?.model === undefined) ? uiSelectedModel : undefined,
-      userModel: override?.model,
+      userModel: resolvedUserModel,
       requirement,
       availableModels,
       systemDefaultModel,

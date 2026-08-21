@@ -2,12 +2,28 @@ import { getModelResolutionInfoWithOverrides } from "../../cli/doctor/checks/mod
 import type { OmoConfig } from "../../cli/doctor/checks/model-resolution-types"
 import type { OhMyOpenCodeConfig } from "../../config"
 import { validatePluginConfig } from "../../config/validate"
+import type { AgentMode } from "../../agents/types"
 import type { RosterRow } from "./state-types"
 import type { SessionModel } from "../../shared/session-model-state"
+import { readMirror } from "./mirror-io"
 
 type ResolutionEntry = {
   readonly name: string
   readonly effectiveModel: string
+}
+
+// Known built-in agent modes (Aug 2026: global-only model)
+const AGENT_MODE_MAP: Record<string, AgentMode> = {
+  sisyphus: "primary",
+  "sisyphus-junior": "subagent",
+  atlas: "primary",
+  hephaestus: "primary",
+  oracle: "subagent",
+  explore: "subagent",
+  librarian: "subagent",
+  metis: "subagent",
+  momus: "subagent",
+  "multimodal-looker": "subagent",
 }
 
 type AgentModelConfig = {
@@ -32,6 +48,7 @@ function formatModelLabel(model: string): string {
 function toRosterRow(entry: ResolutionEntry, hasOverride: boolean, isGlobal: boolean): RosterRow {
   return {
     label: entry.name,
+    mode: AGENT_MODE_MAP[entry.name] ?? "subagent",
     model: formatModelLabel(entry.effectiveModel),
     effectiveModel: entry.effectiveModel,
     hasOverride,
@@ -71,15 +88,20 @@ function toModelResolutionConfig(config: OhMyOpenCodeConfig): OmoConfig {
 
 export function resolveRoster(
   directory: string,
-  liveSessionModel?: SessionModel,
-  perAgentModels?: Record<string, SessionModel>,
 ): RosterRow[] {
   try {
     const config = validatePluginConfig(directory).config
     const sidebarConfig = config.tui?.sidebar
     const visibleAgents = sidebarConfig?.visibleAgents
     const visibleCategories = sidebarConfig?.visibleCategories
-    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config), liveSessionModel)
+    // Read model from mirror file (written by plugin heartbeat) — NOT from local module memory.
+    // Plugin and TUI are separate processes; TUI's session-model-state module is stale.
+    const mirror = readMirror(directory)
+    const mirrorModel = mirror?.tuiSelectedModel
+    const liveGlobalModel = mirrorModel
+      ? { providerID: mirrorModel.providerID, modelID: mirrorModel.modelID }
+      : undefined
+    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config), liveGlobalModel)
 
     const disabledAgents = new Set(config.disabled_agents ?? [])
 
@@ -96,22 +118,20 @@ export function resolveRoster(
     return [...agents, ...categories]
       .filter((entry) => !disabledAgents.has(entry.name))
       .map((entry) => {
-        // Model priority: per-agent override > global TUI model > config/fallback
-        const perAgentModel = perAgentModels?.[entry.name]
-        const hasOverride = !!perAgentModel
-        const isGlobal = !hasOverride && !!liveSessionModel
+        // Model priority: live global TUI model > config/fallback
+        const hasOverride = false
+        const isGlobal = !!liveGlobalModel
 
         let effectiveModel: string
-        if (perAgentModel) {
-          effectiveModel = `${perAgentModel.providerID}/${perAgentModel.modelID}`
-        } else if (liveSessionModel) {
-          effectiveModel = `${liveSessionModel.providerID}/${liveSessionModel.modelID}`
+        if (liveGlobalModel) {
+          effectiveModel = `${liveGlobalModel.providerID}/${liveGlobalModel.modelID}`
         } else {
           effectiveModel = entry.effectiveModel || "—"
         }
 
         return {
           label: entry.name,
+          mode: AGENT_MODE_MAP[entry.name] ?? "subagent",
           model: effectiveModel ? formatModelLabel(effectiveModel) : "—",
           effectiveModel,
           hasOverride,

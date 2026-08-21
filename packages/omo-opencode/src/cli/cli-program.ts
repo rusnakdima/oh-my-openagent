@@ -160,6 +160,7 @@ program
   .option("-a, --agent <name>", "Agent to use (default: from CLI/env/config, fallback: Sisyphus)")
   .option("-m, --model <provider/model>", "Model override (e.g., anthropic/claude-sonnet-4)")
   .option("-d, --directory <path>", "Working directory")
+  .option("-w, --worktree <name-or-path>", "Git worktree: create or reuse a worktree under ~/.omo/worktrees/<name>, or use an explicit path")
   .option("-p, --port <port>", "Server port (attaches if port already in use)", parseInt)
   .option("--attach <url>", "Attach to existing opencode server URL")
   .option("--on-complete <command>", "Shell command to run after completion")
@@ -202,6 +203,7 @@ Unlike 'opencode run', this command waits until:
       agent: options.agent,
       model: options.model,
       directory: options.directory,
+      worktree: options.worktree,
       port: options.port,
       attach: options.attach,
       onComplete: options.onComplete,

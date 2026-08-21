@@ -37,6 +37,12 @@ export const OhMyOpenCodeConfigSchema = z.object({
   $schema: z.string().optional(),
   /** Enable new task system (default: false) */
   new_task_system_enabled: z.boolean().optional(),
+  /**
+   * Default model for ALL agents. Overrides hardcoded fallback chains unless an agent
+   * has an explicit `model` in its config. Use this to set a single model across
+   * all agents without configuring each one individually.
+   */
+  default_model: z.string().optional(),
   /** Default agent name for `oh-my-opencode run` (env: OPENCODE_DEFAULT_AGENT) */
   default_run_agent: z.string().optional(),
   /** Preferred display order for known agents. Invalid names are ignored with a toast warning. */

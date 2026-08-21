@@ -16,6 +16,7 @@ import { WIKI_UPDATE_TEMPLATE } from "./templates/wiki-update"
 import { VOICE_TEMPLATE } from "./templates/voice"
 import { BTW_TEMPLATE } from "./templates/btw"
 import { MODEL_TEMPLATE } from "./templates/model-select"
+import { LIST_AGENTS_TEMPLATE } from "./templates/list-agents"
 
 interface LoadBuiltinCommandsOptions {
   useRegisteredAgents?: boolean
@@ -217,10 +218,13 @@ $ARGUMENTS
     },
     "setmodel": {
       description: "(builtin) Set the TUI model for all agents or a specific agent via interactive tmux menu",
-      template: `<command-instruction>
-${MODEL_TEMPLATE}
-</command-instruction>`,
+      template: MODEL_TEMPLATE,
       argumentHint: "[agent-name]",
+    },
+    "list-agents": {
+      description: "(builtin) Show all agents and their current models — pick one to configure",
+      template: LIST_AGENTS_TEMPLATE,
+      argumentHint: "",
     },
   }
 }

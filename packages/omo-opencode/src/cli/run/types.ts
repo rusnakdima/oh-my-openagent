@@ -13,6 +13,8 @@ export interface RunOptions {
   onComplete?: string
   json?: boolean
   sessionId?: string
+  /** Git worktree name or path. If the worktree doesn't exist, it will be created. */
+  worktree?: string
 }
 
 export interface ServerConnection {

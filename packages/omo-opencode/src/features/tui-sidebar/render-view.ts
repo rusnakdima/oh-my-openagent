@@ -2,12 +2,12 @@ import { LABEL_MAX } from "./constants"
 import { box, text } from "./element-helpers"
 import type { ViewNode } from "./element-helpers"
 import { assertNever } from "./state-types"
+
 import type {
   AgentsState,
   ConfigBanner,
   JobBoardState,
   LoopState,
-  ModelPickerModalState,
   RosterState,
   SidebarView,
 } from "./state-types"
@@ -23,11 +23,7 @@ type ThemeLike = {
   readonly borderSubtle?: unknown
 }
 
-export function buildViewNodes(
-  view: SidebarView,
-  theme: ThemeLike,
-  availableModels?: Array<{ providerID: string; modelID: string; label: string }>,
-): ViewNode[] {
+export function buildViewNodes(view: SidebarView, theme: ThemeLike): ViewNode[] {
   switch (view.kind) {
     case "active":
       return [
@@ -41,7 +37,7 @@ export function buildViewNodes(
     case "broken":
       return brokenNodes(view.messages, theme)
     case "idle":
-      return idleNodes(view.roster, view.modal, theme, availableModels)
+      return idleNodes(view.roster, theme)
     default:
       return assertNever(view)
   }
@@ -198,36 +194,14 @@ function brokenNodes(messages: readonly string[], theme: ThemeLike): ViewNode[] 
   ]
 }
 
-function idleNodes(
-  roster: RosterState,
-  modal: ModelPickerModalState,
-  theme: ThemeLike,
-  availableModels?: Array<{ providerID: string; modelID: string; label: string }>,
-): ViewNode[] {
-  const nodes: ViewNode[] = []
-
-  // "Models" section
-  nodes.push(section("Models", theme, rosterLines(roster).map((line) => text({ fg: theme.text }, line))))
-
-  // "Set Global Model" button
-  nodes.push(text({ fg: theme.accent }, "[Set Global Model]"))
-
-  // Modal overlay when open
-  if (modal.kind === "open" && availableModels) {
-    nodes.push(text({ fg: theme.textMuted }, ""))
-    nodes.push(text({ fg: theme.info }, `Pick model for ${modal.targetAgent}:`))
-    for (const m of availableModels) {
-      nodes.push(text({ fg: theme.text }, `  ${m.label}`))
-    }
-    // "Clear" button (per-agent only)
-    if (modal.targetAgent !== "__global__") {
-      nodes.push(text({ fg: theme.warning }, "[Clear]"))
-    }
-    // "Close" button
-    nodes.push(text({ fg: theme.textMuted }, "[Close]"))
-  }
-
-  return nodes
+function idleNodes(roster: RosterState, theme: ThemeLike): ViewNode[] {
+  const modelLines: ViewNode[] = rosterLines(roster).map((line) =>
+    text({ fg: theme.text }, line),
+  )
+  return [
+    section("Models", theme, modelLines),
+    text({ fg: theme.accent }, "[Set Global Model]"),
+  ]
 }
 
 function rosterLines(roster: RosterState): string[] {
@@ -236,8 +210,8 @@ function rosterLines(roster: RosterState): string[] {
       return ["No configured models"]
     case "rows":
       return roster.rows.map((row) => {
-        if (row.model === "—" && !row.hasOverride) return `${row.label} —`
-        return `${row.label} ${row.model}${row.hasOverride ? "*" : ""}`
+        if (row.model === "—" && !row.hasOverride) return `${row.label}`
+        return `${row.label} — ${row.model}`
       })
     default:
       return assertNever(roster)

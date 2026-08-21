@@ -17,6 +17,7 @@ export type BuiltinCommandName =
   | "voice"
   | "btw"
   | "setmodel"
+  | "list-agents"
 
 export interface BuiltinCommandConfig {
   disabled_commands?: BuiltinCommandName[]

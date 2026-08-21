@@ -1,6 +1,28 @@
 import { isRecord } from "@oh-my-opencode/utils"
 import { getSessionPromptParams } from "../shared/session-prompt-params-state"
 import { getModelCapabilities, log, resolveCompatibleModelSettings } from "../shared"
+import { setSelectedGlobalModel } from "../shared/session-model-state"
+import { readFileSync, writeFileSync } from "node:fs"
+import path from "node:path"
+
+// Track last model per session to detect changes (deduplicate LLM calls)
+const lastChatParamsModel = new Map<string, { providerID: string; modelID: string }>()
+
+const HOME = process.env.HOME ?? ""
+const OPENCODE_CONFIG = path.join(HOME, ".config/opencode/opencode.jsonc")
+const MIMOCODE_CONFIG = path.join(HOME, ".config/mimocode/mimocode.jsonc")
+
+function updateConfigModel(configPath: string, model: string): void {
+  try {
+    const raw = readFileSync(configPath, "utf-8")
+    const stripped = raw.replace(/\/\/.*$/gm, "")
+    const cfg = JSON.parse(stripped)
+    cfg.model = model
+    writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf-8")
+  } catch {
+    // Non-fatal — config file may not exist or be writable
+  }
+}
 
 const SAFE_MAX_OUTPUT_TOKENS_FALLBACK = 4096
 
@@ -114,6 +136,22 @@ export function createChatParamsHandler(_args: {
       providerID: normalizedInput.model.providerID,
       modelID: normalizedInput.model.modelID,
     })
+
+    // Capture model on every LLM call — fires reliably when user selects via /models
+    const parsed = {
+      providerID: normalizedInput.model.providerID,
+      modelID: normalizedInput.model.modelID,
+    }
+    const last = lastChatParamsModel.get(normalizedInput.sessionID)
+    if (!last || last.providerID !== parsed.providerID || last.modelID !== parsed.modelID) {
+      setSelectedGlobalModel(parsed)
+      lastChatParamsModel.set(normalizedInput.sessionID, parsed)
+      log("[chat-params] model captured", { model: parsed, sessionID: normalizedInput.sessionID.slice(0, 8) })
+      // Sync to config files so MiMoCode sidebar and OpenCode config stay in sync
+      const fullModel = `${parsed.providerID}/${parsed.modelID}`
+      updateConfigModel(OPENCODE_CONFIG, fullModel)
+      updateConfigModel(MIMOCODE_CONFIG, fullModel)
+    }
 
     const compatibility = resolveCompatibleModelSettings({
       providerID: normalizedInput.model.providerID,

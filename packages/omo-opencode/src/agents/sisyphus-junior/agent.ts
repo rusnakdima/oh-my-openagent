@@ -109,6 +109,7 @@ export function buildSisyphusJuniorPrompt(
 export function createSisyphusJuniorAgentWithOverrides(
   override: AgentOverrideConfig | undefined,
   systemDefaultModel?: string,
+  defaultModel?: string,
   useTaskSystem = false
 ): AgentConfig {
   if (override?.disable) {
@@ -116,7 +117,7 @@ export function createSisyphusJuniorAgentWithOverrides(
   }
 
   const overrideModel = (override as { model?: string } | undefined)?.model
-  const model = overrideModel ?? systemDefaultModel ?? SISYPHUS_JUNIOR_DEFAULTS.model
+  const model = overrideModel ?? defaultModel ?? systemDefaultModel ?? SISYPHUS_JUNIOR_DEFAULTS.model
   const temperature = override?.temperature ?? SISYPHUS_JUNIOR_DEFAULTS.temperature
 
   const promptAppend = override?.prompt_append

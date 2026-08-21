@@ -32,6 +32,7 @@ export async function buildPrometheusAgentConfig(params: {
   pluginPrometheusOverride: PrometheusOverride | undefined;
   userCategories: Record<string, CategoryConfig> | undefined;
   currentModel: string | undefined;
+  defaultModel?: string;
   disabledTools?: readonly string[];
 }): Promise<Record<string, unknown>> {
   const categoryConfig = params.pluginPrometheusOverride?.category
@@ -51,7 +52,7 @@ export async function buildPrometheusAgentConfig(params: {
     intent: {
       // No model restriction — any TUI model is accepted for Prometheus
       uiSelectedModel: configuredPrometheusModel ? undefined : params.currentModel,
-      userModel: params.pluginPrometheusOverride?.model,
+      userModel: params.pluginPrometheusOverride?.model ?? params.defaultModel,
       categoryDefaultModel: categoryConfig?.model,
     },
     constraints: { availableModels },

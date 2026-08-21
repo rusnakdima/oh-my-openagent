@@ -29,6 +29,7 @@ import {
   createLegacyPluginToastHook,
   createOpenSpecSessionHook,
   createOpenSpecController,
+  createWorktreeCleanupHook,
 } from "../../hooks"
 import { createGoalHook } from "../../hooks/goal"
 import {
@@ -65,6 +66,7 @@ export type SessionHooks = {
   runtimeFallback: ReturnType<typeof createRuntimeFallbackHook> | null
   legacyPluginToast: ReturnType<typeof createLegacyPluginToastHook> | null
   openspecSession: ReturnType<typeof createOpenSpecSessionHook> | null
+  worktreeCleanup: ReturnType<typeof createWorktreeCleanupHook> | null
 }
 
 export function createSessionHooks(args: {
@@ -251,5 +253,6 @@ export function createSessionHooks(args: {
     runtimeFallback,
     legacyPluginToast,
     openspecSession,
+    worktreeCleanup: safeHook("worktree-cleanup", () => createWorktreeCleanupHook()),
   }
 }

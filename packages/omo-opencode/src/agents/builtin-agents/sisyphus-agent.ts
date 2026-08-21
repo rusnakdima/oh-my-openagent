@@ -17,6 +17,7 @@ export function maybeCreateSisyphusConfig(input: {
   uiSelectedModel?: string
   availableModels: Set<string>
   systemDefaultModel?: string
+  defaultModel?: string
   isFirstRunNoCache: boolean
   availableAgents: AvailableAgent[]
   availableSkills: AvailableSkill[]
@@ -33,6 +34,7 @@ export function maybeCreateSisyphusConfig(input: {
     uiSelectedModel,
     availableModels,
     systemDefaultModel,
+    defaultModel,
     isFirstRunNoCache,
     availableAgents,
     availableSkills,
@@ -61,13 +63,13 @@ export function maybeCreateSisyphusConfig(input: {
 
   let sisyphusResolution = applyModelResolution({
     uiSelectedModel: sisyphusOverride?.model !== undefined ? undefined : uiSelectedModel,
-    userModel: sisyphusOverride?.model,
+    userModel: sisyphusOverride?.model ?? defaultModel,
     requirement: sisyphusRequirement,
     availableModels,
     systemDefaultModel,
   })
 
-  if (isFirstRunNoCache && !sisyphusOverride?.model && !uiSelectedModel) {
+  if (isFirstRunNoCache && !sisyphusOverride?.model && !uiSelectedModel && !defaultModel) {
     sisyphusResolution = getFirstFallbackModel(sisyphusRequirement)
   }
 

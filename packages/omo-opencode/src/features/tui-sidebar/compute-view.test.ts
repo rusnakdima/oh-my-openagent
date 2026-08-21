@@ -50,15 +50,13 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: idleJobs,
       loop: idleLoop,
-      modal: { kind: "closed" as const },
-      availableModels: [],
     }
 
     // when
     const view = computeView(sections)
 
     // then
-    expect(view).toEqual({ kind: "idle", roster, modal: { kind: "closed" } })
+    expect(view).toEqual({ kind: "idle", roster })
     expect("configBanner" in view).toBe(false)
   })
 
@@ -70,8 +68,6 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: idleJobs,
       loop: idleLoop,
-      modal: { kind: "closed" as const },
-      availableModels: [],
     }
 
     // when
@@ -189,11 +185,10 @@ describe("tui sidebar computeView", () => {
 
   it("#given a changed view value #when computing keys #then viewKey changes", () => {
     // given
-    const original: SidebarView = { kind: "idle", roster, modal: { kind: "closed" } }
+    const original: SidebarView = { kind: "idle", roster }
     const changed: SidebarView = {
       kind: "idle",
       roster: { kind: "rows", rows: [{ label: "atlas", model: "openai/gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }] },
-      modal: { kind: "closed" },
     }
 
     // when

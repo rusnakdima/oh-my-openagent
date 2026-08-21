@@ -232,8 +232,88 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
         return
       }
 
+      // Direct execution for /list-agents: the hook reads session state and calls
+      // executeInteractiveMenu directly in chat.message (fires BEFORE command.execute.before).
+      // We mark the command in sessionProcessedCommandExecutions so command.execute.before
+      // skips it (it would otherwise overwrite our result with the template text).
+      if (parsed.command.toLowerCase() === "list-agents") {
+        log(`[auto-slash-command] /list-agents — direct menu execution via chat.message`, {
+          sessionID: input.sessionID,
+        })
+
+        try {
+          const { getMainSessionID } = await import("../../features/claude-code-session-state/state")
+          const { getSessionModel } = await import("../../shared/session-model-state")
+          const { getModelResolutionInfoWithOverrides } = await import(
+            "../../cli/doctor/checks/model-resolution"
+          )
+          const { loadOmoConfig } = await import("../../cli/doctor/checks/model-resolution-config")
+
+          const mainSessionID = getMainSessionID()
+          const storedSessionModel = mainSessionID ? getSessionModel(mainSessionID) : undefined
+          const config = await loadOmoConfig()
+          const liveInfo = getModelResolutionInfoWithOverrides(config, storedSessionModel)
+
+          const options = liveInfo.agents.map((a, i) => `${i + 1}. ${a.name} — ${a.effectiveModel}`)
+
+          const { executeInteractiveMenu } = await import("../../tools/interactive-menu/tools")
+          const menuResult = await executeInteractiveMenu(
+            {
+              prompt: "Select agent to configure (current model shown):",
+              options,
+              timeout_ms: 60000,
+            },
+            input.sessionID,
+          )
+
+          let selectionText = "No selection made."
+          if (menuResult.startsWith('{"value":')) {
+            try {
+              const parsed2 = JSON.parse(menuResult)
+              const idx2 = parseInt(parsed2.value, 10) - 1
+              if (idx2 >= 0 && idx2 < liveInfo.agents.length) {
+                const agent = liveInfo.agents[idx2]
+                selectionText = `Selected ${agent.name} (current model: ${agent.effectiveModel}). Use /models to change the global model.`
+              }
+            } catch {
+              // malformed JSON, keep default text
+            }
+          } else if (menuResult.includes('"cancelled"') || menuResult.includes('"error"')) {
+            selectionText = "Selection cancelled or timed out."
+          }
+
+          output.parts[idx].text = selectionText
+
+          // Mark in command.execute.before dedup store so that hook skips this command
+          const cmdKey = `${input.sessionID}:fallback:${parsed.command.toLowerCase()}:`
+          sessionProcessedCommandExecutions.add(cmdKey)
+        } catch (err) {
+          log(`[auto-slash-command] /list-agents direct execution failed in chat.message`, {
+            sessionID: input.sessionID,
+            error: err instanceof Error ? err.message : String(err),
+          })
+          // Fall through to template-based approach
+          const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
+          output.parts[idx].text = taggedContent
+            .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
+            .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
+            .replace(/\n?<command-instruction>\n?/g, "")
+            .replace(/\n?<\/command-instruction>\n?/g, "")
+        }
+        return
+      }
+
       const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
-      output.parts[idx].text = taggedContent
+      // For non-btw commands, strip BOTH wrappers — OpenCode 1.18.19 does not strip them,
+      // causing visible tags in chat. For /btw, keep tags so the goal guard in loop-commands.ts works.
+      const outputText = isBuiltinBtw
+        ? taggedContent
+        : taggedContent
+            .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
+            .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
+            .replace(/\n?<command-instruction>\n?/g, "")
+            .replace(/\n?<\/command-instruction>\n?/g, "")
+      output.parts[idx].text = outputText
       if (isBuiltinBtw) {
         markBtwCommandPart(parsed.command, output.parts[idx])
         markBtwCommandMessage(parsed.command, output)
@@ -250,6 +330,11 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
       input: CommandExecuteBeforeInput,
       output: CommandExecuteBeforeOutput
     ): Promise<void> => {
+      log(`[auto-slash-command] command.execute.before FIRED`, {
+        sessionID: input.sessionID,
+        command: input.command,
+        arguments: input.arguments,
+      })
       try {
         if (input.command.toLowerCase() !== "btw") {
           clearBtwTurnActive(input.sessionID)
@@ -321,15 +406,24 @@ export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions
         )
 
         const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
+        // For non-btw commands, strip BOTH wrappers — OpenCode 1.18.19 does not strip them,
+        // causing visible tags in chat. For /btw, keep tags so the goal guard in loop-commands.ts works.
+        const outputText = isBuiltinBtw
+          ? taggedContent
+          : taggedContent
+              .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
+              .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
+              .replace(/\n?<command-instruction>\n?/g, "")
+              .replace(/\n?<\/command-instruction>\n?/g, "")
 
         const idx = findSlashCommandPartIndex(output.parts)
         if (idx >= 0) {
-          output.parts[idx].text = taggedContent
+          output.parts[idx].text = outputText
           if (isBuiltinBtw) {
             markBtwCommandPart(parsed.command, output.parts[idx])
           }
         } else {
-          const injectedPart = { type: "text", text: taggedContent }
+          const injectedPart = { type: "text", text: outputText }
           if (isBuiltinBtw) {
             markBtwCommandPart(parsed.command, injectedPart)
           }

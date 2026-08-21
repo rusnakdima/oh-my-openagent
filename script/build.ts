@@ -105,7 +105,19 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 const repoRoot = resolve(fileURLToPath(import.meta.url), "..");
 const pkg = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
-const distPkg = { name: pkg.name, version: pkg.version };
+const distPkg = {
+  name: pkg.name,
+  version: pkg.version,
+  exports: {
+    ".": {
+      types: "./dist/index.d.ts",
+      import: "./dist/index.js",
+    },
+    "./server": "./dist/index.js",
+    "./tui": "./dist/tui.js",
+    "./schema.json": "./dist/oh-my-opencode.schema.json",
+  },
+};
 const distDir = resolve(repoRoot, "dist");
 if (!existsSync(distDir)) mkdirSync(distDir, { recursive: true });
 writeFileSync(resolve(distDir, "package.json"), JSON.stringify(distPkg, null, 2) + "\\n");

@@ -144,6 +144,7 @@ async function createCoreAgentConfig(
         | undefined,
       userCategories: pluginConfig.categories,
       currentModel,
+      defaultModel: pluginConfig.default_model,
       disabledTools: pluginConfig.disabled_tools,
     });
   }
@@ -155,6 +156,7 @@ async function createCoreAgentConfig(
   agentConfig["sisyphus-junior"] = createSisyphusJuniorAgentWithOverrides(
     pluginConfig.agents?.["sisyphus-junior"],
     (builtinAgents.atlas as { model?: string } | undefined)?.model,
+    pluginConfig.default_model,
     useTaskSystem,
   );
 

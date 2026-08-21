@@ -6,10 +6,11 @@ import { deriveAgents, deriveConfig, deriveJobBoard, deriveLoop, deriveRoster } 
 import type { ViewNode } from "./features/tui-sidebar/element-helpers"
 import { readMirror } from "./features/tui-sidebar/mirror-io"
 import { buildViewNodes } from "./features/tui-sidebar/render-view"
-import type { ModelPickerModalState, RosterRow } from "./features/tui-sidebar/state-types"
+import type { RosterRow } from "./features/tui-sidebar/state-types"
 import type { SidebarView } from "./features/tui-sidebar/state-types"
 import { log } from "./shared/logger"
 import { setupTuiVoice } from "./tui-voice/index"
+import { getAvailableModels } from "./shared/model-cache-state"
 
 type SolidRuntime<Node> = {
   readonly createElement: (tag: string) => Node
@@ -91,69 +92,23 @@ async function loadPluginValidation(directory: string): Promise<PluginValidation
 
 async function loadRosterRows(
   directory: string,
-  tuiSelectedModel?: { providerID: string; modelID: string },
-  perAgentModels?: Record<string, { providerID: string; modelID: string }>,
 ): Promise<readonly RosterRow[]> {
   const { resolveRoster } = await import("./features/tui-sidebar/roster-resolver")
   const resolver: RosterResolver = resolveRoster
-  return resolver(directory, tuiSelectedModel, perAgentModels)
+  return resolver(directory)
 }
 
-async function readView(
-  directory: string,
-  modal: ModelPickerModalState,
-  availableModels: Array<{ providerID: string; modelID: string; label: string }>,
-): Promise<SidebarView> {
+async function readView(directory: string): Promise<SidebarView> {
   const validation = await loadPluginValidation(directory)
   const mirror = readMirror(directory)
-  const roster = await loadRosterRows(
-    directory,
-    mirror?.tuiSelectedModel ?? undefined,
-    mirror?.perAgentModels ?? undefined,
-  )
+  const roster = await loadRosterRows(directory)
   return computeView({
     config: deriveConfig(validation),
     roster: deriveRoster(roster),
     agents: deriveAgents(mirror),
     jobs: deriveJobBoard(mirror),
     loop: deriveLoop(mirror),
-    modal,
-    availableModels,
   })
-}
-
-// Available models for the modal picker - read from OpenCode's model cache
-function getAvailableModels(): Array<{ providerID: string; modelID: string; label: string }> {
-  try {
-    const { getModelCacheState } = require("./shared/model-cache-state")
-    const cache = getModelCacheState()
-    if (!cache) return []
-    const models: Array<{ providerID: string; modelID: string; label: string }> = []
-    for (const [key, value] of Object.entries(cache)) {
-      if (key.includes("/") && typeof value === "object" && value !== null) {
-        const [providerID, modelID] = key.split("/")
-        models.push({ providerID, modelID, label: modelID })
-      }
-    }
-    // Sort by modelID for consistent display
-    models.sort((a, b) => a.modelID.localeCompare(b.modelID))
-    return models
-  } catch {
-    return []
-  }
-}
-
-// Find the roster row at a given click index
-function findRosterRowAtIndex(
-  rows: readonly RosterRow[],
-  index: number,
-): { agentName: string; model: string } | null {
-  // Index 0 = "Models" section header, 1..N = rows, N+1 = "Set Global Model"
-  const rowIndex = index - 1
-  if (rowIndex >= 0 && rowIndex < rows.length) {
-    return { agentName: rows[rowIndex].label, model: rows[rowIndex].effectiveModel }
-  }
-  return null
 }
 
 export function handleTuiPollError(
@@ -167,34 +122,37 @@ export function handleTuiPollError(
   throw error
 }
 
+// @ts-ignore - console.log for debugging
 const module: TuiPluginModule = {
   id: "oh-my-openagent:tui",
   tui: async (api) => {
+    console.error("[tui] TUI PLUGIN LOADING NOW!!! api keys:", Object.keys(api))
+    log("[tui] TUI plugin loading...")
+    log("[tui] api keys:", Object.keys(api))
+    log("[tui] api.command available:", !!api.command)
+    log("[tui] api.ui available:", !!api.ui)
     const solid = await import("@opentui/solid").catch(() => null)
     if (!solid) {
+      console.error("[tui] @opentui/solid not available - skipping TUI plugin")
+      log("[tui] @opentui/solid not available - skipping TUI plugin")
       return
     }
+    console.error("[tui] @opentui/solid loaded successfully")
+    log("[tui] @opentui/solid loaded successfully")
 
     const directory = api.state.path.directory
     if ((await loadPluginValidation(directory)).config.tui?.sidebar?.enabled === false) {
       return
     }
 
-    // Modal state: "closed" or the currently open modal
-    let currentModal: ModelPickerModalState = { kind: "closed" }
-    let currentView = await readView(directory, currentModal, getAvailableModels())
+    // Get initial roster rows for click mapping
+    const initialRoster = await loadRosterRows(directory)
+
+    let currentView = await readView(directory)
     let currentKey = viewKey(currentView)
     let disposed = false
     let inFlight = false
     let timer: ReturnType<typeof setTimeout> | null = null
-
-    // Get initial roster rows for click mapping
-    const mirror = readMirror(directory)
-    const initialRoster = await loadRosterRows(
-      directory,
-      mirror?.tuiSelectedModel ?? undefined,
-      mirror?.perAgentModels ?? undefined,
-    )
 
     function requestRenderWithModal(): void {
       api.renderer.requestRender()
@@ -205,12 +163,10 @@ const module: TuiPluginModule = {
         api.slots.register(registration)
       },
       requestRender: requestRenderWithModal,
-      renderSidebar: () => materialize(buildViewNodes(currentView, api.theme.current, getAvailableModels()), solid),
+      renderSidebar: () => materialize(buildViewNodes(currentView, api.theme.current), solid),
     })
 
     // Handle sidebar click events from OpenCode TUI
-    // Click events are passed via the client.onChatMessage or a dedicated click handler
-    // We use the slot's onClick support that OpenCode provides
     try {
       // @ts-ignore - sidebar click handler may not be in types
       if (api.client?.tui?.onSidebarClick) {
@@ -223,111 +179,85 @@ const module: TuiPluginModule = {
       // onSidebarClick not available in this OpenCode version
     }
 
+    // NOTE: /omo-model is removed — use OpenCode's native /models command instead.
+    // The global model is captured via chat.message when the user sends a message
+    // after selecting via /models.
+
     async function handleSidebarClick(
       index: number,
       roster: readonly RosterRow[],
-      dir: string,
+      _dir: string,
     ): Promise<void> {
-      // Index 0 = "Models" section header
-      // 1..N = roster rows
-      // N+1 = "Set Global Model" button
-      // N+2..N+2+modelCount = model picker items (when modal is open)
-      // N+2+modelCount = "Clear" button (per-agent modal only)
-      // N+2+modelCount+1 = "Close" button
+      // Index 0 = "Models" section header (global model line + roster rows)
+      // N = "Set Global Model" button
 
-      if (currentModal.kind === "open") {
-        // Modal is open - handle modal interactions
-        const rosterRowCount = roster.length
-        const setGlobalIndex = rosterRowCount + 1
-        const clearIndex = setGlobalIndex + 1
-        const closeIndex = clearIndex + 1
-        const modelListStart = setGlobalIndex
+      const rosterRowCount = roster.length
+      const setGlobalIndex = rosterRowCount + 1
 
-        if (index === setGlobalIndex) {
-          // "Set Global Model" clicked in modal → close modal, reopen as global picker
-          currentModal = { kind: "open", targetAgent: "__global__", selectedModel: null }
-        } else if (index === clearIndex) {
-          // "Clear" clicked → clear per-agent override, close modal
-          if (currentModal.kind === "open" && currentModal.targetAgent !== "__global__") {
-            await clearAgentModelOverride(currentModal.targetAgent)
-          }
-          currentModal = { kind: "closed" }
-        } else if (index === closeIndex) {
-          // "Close" clicked → close modal
-          currentModal = { kind: "closed" }
-        } else if (index >= modelListStart) {
-          // A model was selected
-          const availableModels = getAvailableModels()
-          const modelIndex = index - modelListStart
-          if (modelIndex >= 0 && modelIndex < availableModels.length) {
-            const selected = availableModels[modelIndex]
-            await applyModelSelection(currentModal.kind === "open" ? currentModal.targetAgent : "__global__", selected)
-            currentModal = { kind: "closed" }
-          }
-        }
-      } else {
-        // Modal is closed - check if a roster row was clicked
-        if (index === 0) {
-          // "Models" header - no action
-          return
-        }
-        const rowIndex = index - 1
-        if (rowIndex >= 0 && rowIndex < roster.length) {
-          // Open modal for this agent
-          const row = roster[rowIndex]
-          currentModal = { kind: "open", targetAgent: row.label, selectedModel: row.effectiveModel }
-        } else if (rowIndex === roster.length) {
-          // "Set Global Model" button
-          currentModal = { kind: "open", targetAgent: "__global__", selectedModel: null }
-        }
+      if (index === 0) {
+        // "Models" header - no action
+        return
       }
 
-      // Refresh view with new modal state
-      currentView = await readView(dir, currentModal, getAvailableModels())
-      const nextKey = viewKey(currentView)
-      if (nextKey !== currentKey) {
-        currentKey = nextKey
-        requestRenderWithModal()
+      const rowIndex = index - 1
+      if (rowIndex >= 0 && rowIndex < rosterRowCount) {
+        // Roster row clicked — no action (display only in global-only mode)
+        return
+      }
+
+      if (rowIndex === rosterRowCount) {
+        // "Set Global Model" button → open dialog
+        openGlobalModelDialog()
       }
     }
 
-    async function applyModelSelection(agentName: string, model: { providerID: string; modelID: string }): Promise<void> {
+    function openGlobalModelDialog(): void {
+      const models = getAvailableModels()
+      if (models.length === 0) {
+        api.ui.dialog.replace(() =>
+          api.ui.DialogSelect({
+            title: "Pick Global Model",
+            options: [
+              {
+                title: "No models available",
+                value: null,
+                description: "Configure your API providers in OpenCode settings",
+              },
+            ],
+            onSelect: () => {
+              api.ui.dialog.clear()
+            },
+          }),
+        )
+        return
+      }
+      api.ui.dialog.replace(() =>
+        api.ui.DialogSelect({
+          title: "Pick Global Model",
+          options: models.map((m) => ({
+            title: m.label,
+            value: m,
+            description: `${m.providerID}/${m.modelID}`,
+          })),
+          onSelect: (opt) => {
+            if (opt.value) {
+              void applyModelSelection(opt.value)
+            }
+            api.ui.dialog.clear()
+          },
+        }),
+      )
+    }
+
+    async function applyModelSelection(model: { providerID: string; modelID: string }): Promise<void> {
       try {
-        // Import the setter functions from session-model-state
-        const { setGlobalTuiModel, setPerAgentModel, clearAllPerAgentModels } = await import(
-          "./shared/session-model-state"
-        )
-        if (agentName === "__global__") {
-          // Setting global model clears all per-agent overrides
-          setGlobalTuiModel(model)
-          clearAllPerAgentModels()
-          log("[tui] set global model", { providerID: model.providerID, modelID: model.modelID })
-        } else {
-          setPerAgentModel(agentName, model)
-          log("[tui] set per-agent model", { agent: agentName, providerID: model.providerID, modelID: model.modelID })
-        }
-        // Trigger immediate mirror flush so the plugin picks up the new state
-        const { getTuiStateMirrorSingleton } = await import(
-          "./features/tui-sidebar/mirror-manager"
-        )
+        const { setSelectedGlobalModel } = await import("./shared/session-model-state")
+        setSelectedGlobalModel(model)
+        log("[tui] set global model", { providerID: model.providerID, modelID: model.modelID })
+        const { getTuiStateMirrorSingleton } = await import("./features/tui-sidebar/mirror-manager")
         void getTuiStateMirrorSingleton()?.flush()
       } catch (err) {
         log("[tui] failed to apply model selection", { error: err })
-      }
-    }
-
-    async function clearAgentModelOverride(agentName: string): Promise<void> {
-      try {
-        const { clearPerAgentModel } = await import("./shared/session-model-state")
-        clearPerAgentModel(agentName)
-        log("[tui] cleared per-agent model override", { agent: agentName })
-        // Trigger immediate mirror flush
-        const { getTuiStateMirrorSingleton } = await import(
-          "./features/tui-sidebar/mirror-manager"
-        )
-        void getTuiStateMirrorSingleton()?.flush()
-      } catch (err) {
-        log("[tui] failed to clear per-agent model", { error: err })
       }
     }
 
@@ -342,7 +272,7 @@ const module: TuiPluginModule = {
       }
       inFlight = true
       try {
-        const nextView = await readView(directory, currentModal, getAvailableModels())
+        const nextView = await readView(directory)
         const nextKey = viewKey(nextView)
         if (nextKey !== currentKey) {
           currentView = nextView

@@ -13,8 +13,10 @@ import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch"
 import { log } from "../shared"
 import { getSisyphusJuniorModelOverride } from "./tool-registry-team-tools"
 import { createNativeSkills, getPluginInputNativeSkills } from "./native-skills"
+import { enterWorktreeTool, exitWorktreeTool } from "../tools/worktree"
 import { createSkillContext } from "./skill-context"
 import { createRuntimeSkillsResolver, readRuntimeHostSkills } from "./runtime-skill-resolver"
+import { createTuiTools } from "../tools/tui"
 
 export function createCoreTools(args: {
   readonly ctx: PluginContext
@@ -134,6 +136,8 @@ export function createCoreTools(args: {
     tools.look_at = factories.createLookAt(ctx)
   }
   tools.task = delegateTask
+  tools.enter_worktree = enterWorktreeTool
+  tools.exit_worktree = exitWorktreeTool
   tools.skill_mcp = skillMcpTool
   tools.skill = skillTool
 
@@ -144,6 +148,9 @@ export function createCoreTools(args: {
       getSessionID: getMainSessionID,
     }))
   }
+
+  // TUI interaction tools (always-on, require tmux)
+  Object.assign(tools, createTuiTools(ctx))
 
   return tools
 }
