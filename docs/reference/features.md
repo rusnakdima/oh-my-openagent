@@ -833,13 +833,13 @@ Hooks intercept and modify behavior at key points in the agent lifecycle across 
 
 Current composition counts:
 
-- Session: 24
+- Session: 25
 - Tool Guard: 18 (17 non-Team slots plus `teamToolGating`)
 - Transform: 7
 - Continuation: 7
 - Skill: 2
-- Total composed slots: 58
-- About 50-51 are active with default config; the maximum is 62 when the 4 direct Team Mode event handlers are included
+- Total composed slots: 59
+- About 51-52 are active with default config; the maximum is 63 when the 4 direct Team Mode event handlers are included
 
 ### Hook Events
 
@@ -870,6 +870,7 @@ Current composition counts:
 | --------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **keyword-detector**        | Message             | IntentGate detector. Activates `ultrawork`/`ulw`, `team`, `hyperplan`, and `hyperplan-ultrawork` from message keywords. |
 | **think-mode**              | Message             | On "think"/"ultrathink" in the user message, sets the message variant to `high` unless already a high variant.                                              |
+| **image-proxy**             | Message             | Sends image attachments through `multimodal-looker` only when the active model is known to accept text only, then replaces unsupported image input with the generated description. |
 | **goal**                    | Event               | Re-injects a goal continuation prompt on session.idle while a goal is active; clears the goal on session.deleted.                                           |
 | **start-work**              | Message + command.execute.before | After /start-work is expanded, selects a Prometheus plan, initializes boulder state, scaffolds notepads, switches the session to Atlas, and injects plan context. |
 | **auto-slash-command**      | Message + command.execute.before | Expands detected slash commands into their command templates in the prompt.                                                                    |
