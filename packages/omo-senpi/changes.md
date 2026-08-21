@@ -1,3 +1,100 @@
+## 2026-08-21 — Follow the Senpi 2026.8.21 host contract
+
+The adapter peer and development dependency now require Senpi `2026.8.21`, and the
+task engine's peer and development pins move with it. The 2026.8.21 host carries
+the settings-lock CPU-spin repair that froze the omo TUI at ~100% CPU under
+provider-error storms: contended settings-lock retries sleep through
+`Atomics.wait` instead of busy-waiting, retry-fallback chain canonicalization is
+memoized per error burst, and the `cursor-cli-oauth` / `claude-sdk-oauth` lanes
+cache their settings loads by mtime+size. It also carries the follow-up that
+makes settings reads lock-free: writers publish through a same-directory temp
+file plus rename, so read-only settings loads take no lock and can never observe
+a torn write. Alongside those, the host refreshes hydrated provider catalog data
+(the vercel-ai-gateway Grok vendor slug moved `xai/` -> `spacexai/`, and opencode
+delisted `deepseek-v4-flash-free`).
+
+The bump covers all four manifest surfaces, the workspace lockfile, the
+`senpi-pin` and package-shape test pins, and the provider-map provenance comment
+(re-verified: `packages/ai/src/providers/all.ts`, which defines
+`builtinProviders()`, is byte-identical between `v2026.8.20-2` and `v2026.8.21`,
+so the builtin provider ids are unchanged).
+
+## 2026-08-21 — Add mass-ulw trigger aliases
+
+The mass-ulw keyword detector now also fires on `ulw mass`, `ulwmass`, `mulw`, and
+`meth` (any case, space/hyphen variants), alongside the existing `mass ulw` /
+`massulw` / `mass-ulw` spellings. `MASS_ULW_PATTERN` becomes
+`/\b(?:mass[\s-]*ulw(?!-)|ulw[\s-]*mass|mulw|meth)\b/i`; the `ulw(?!-)` guard,
+all suppressions, and both injection paths are unchanged.
+
+## 2026-08-20 — Render transcript notices in the Senpi notice-box family
+
+Fallback architect announcements, task completion and liveness cards, and memory reflection, health, soul, accepted-turn, and write notices now share the Senpi-canonical padded `customMessageBg` block. Titles retain semantic tone and bold emphasis, body rows stay dim, and diagnostic detail remains expanded-only.
+
+Compact category warnings and normal tool result rows remain unchanged.
+
+## 2026-08-19 — Follow the Senpi 2026.8.19 host contract
+
+**What changed.** The adapter peer and development dependency now require Senpi
+`2026.8.19`, and the task engine's peer and development pins move with it.
+`packages/omo-senpi/package.json`, `packages/senpi-task/package.json`,
+`packages/omo-native/package.json`, the root `package.json` development pin,
+and the workspace `bun.lock` advance together, along with the
+`packages/omo-native/bin/lib/provider-map.json` provenance stamp and the
+`packages/omo-senpi/src/package-shape.test.ts` /
+`packages/omo-native/test/package-shape.test.ts` /
+`packages/omo-native/test/senpi-pin.test.ts` expectations.
+
+**Why.** The 2026.8.19 host stops implicit fallback expansion from routing
+through provider lanes that are guaranteed to refuse: a registered provider can
+declare itself ineligible, and the cursor-cli-oauth lane does so while its
+`--force` acknowledgement is missing or its kill switch is set. It also stops
+auto-compaction from being starved when a provider reports a small context
+while the local transcript keeps growing, and it detects the
+`com.apple.quarantine` attribute on shipped native PTY prebuilds before
+`dlopen()`, so macOS degrades to the pipe fallback instead of blocking the
+process on a Gatekeeper dialog. The release additionally carries the `/loop`
+scheduled-prompt builtin, memory and mass-ulw tip rotation, and the upstream
+`badlogic/pi-mono` main@`59a71b23` sync.
+
+**Why an extension could not handle it.** These are host-version pins. The
+adapter cannot express a required Senpi runtime version from inside an
+extension; the manifests are the contract the installer and the workspace
+resolver read.
+
+**Expected merge conflict zones.** The adapter and task manifests, the
+`omo-native` manifest and its pin tests, the workspace lockfile, package-shape
+expectations, and the provider-map provenance comment.
+
+## 2026-08-18 — Follow the Senpi 2026.8.18-3 host contract
+
+The adapter peer and development dependency now require Senpi `2026.8.18-3`,
+and the task engine's peer and development pins move with it. The 2026.8.18-3
+host repairs the release changelog itself: a merge resolution had left a stray
+conflict marker and duplicated empty headings inside the `[Unreleased]`
+section, which the release stamper would have frozen into an immutable
+released section.
+
+The host release also carries the accumulated post-2026.8.18-2 runtime work:
+active goals resume after a continuation-flooded session load suppressed
+auto-continuation, transient provider stream-start timeouts spend their full
+configured retry budget, Cursor exec-bridge dispatches bind to the run that
+opened their stream, leaked-invoke recovery resolves wire-aliased tool names,
+Cursor context windows track the models.dev first-party catalog, Cursor
+reasoning levels drive both Cursor surfaces, advertised Cursor tool schemas
+are sanitized of JSON-Schema composition keywords, input typed during
+auto-compaction is queued instead of dropped, eval cells with no tool calls
+omit the throughput badge, the packaged codemode sidecar retains its Babel
+dependency closure, and Claude SDK OAuth selects the libc-appropriate binary.
+
+This bump does not add or alter adapter behavior beyond the inherited host
+fixes. The provider registry contract was re-verified: `builtinProviders()` in
+`packages/ai/src/providers/all.ts` is byte-identical to 2026.8.18-2, so the
+42 builtin provider IDs are unchanged and only the provider-map provenance
+stamp moves. Conflict zones are the adapter and task manifests, the workspace
+lockfile, package-shape and senpi-pin expectations, and the provider-map
+provenance comment.
+
 ## 2026-08-18 — Follow the Senpi 2026.8.18-2 host contract
 
 The adapter peer and development dependency now require Senpi `2026.8.18-2`,
@@ -26,6 +123,12 @@ the compatibility banner no longer advertises the nonexistent `git` category.
 The generated skill guard derives valid named agents and categories from the
 runtime registries, so future shared-skill or native-skill drift fails before
 shipping. Shared OpenCode skill sources remain unchanged.
+
+## 2026-08-18 — Keep completed resident team members visible
+
+The below-editor task widget now keeps completed canonical team members while their process-local handles remain resident, so users can still see members that `task_send` can revive. Active rows remain first, the five-row cap still applies afterward, and retained completed rows render as settled compact rows without a live spinner.
+
+Ordinary completed background tasks and stale or non-resident team records remain hidden. This is a presentation-only change; task lifecycle, residency, and messaging behavior are unchanged.
 
 ## 2026-08-18 — Follow the Senpi 2026.8.18 host contract
 

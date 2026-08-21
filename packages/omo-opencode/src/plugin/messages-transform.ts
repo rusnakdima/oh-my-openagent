@@ -31,6 +31,7 @@ type MessageWithParts = {
 
 type MessagesTransformOutput = { messages: MessageWithParts[] }
 type MessagesTransformHooks = {
+  btwSideContextInjector?: CreatedHooks["btwSideContextInjector"]
   contextInjectorMessagesTransform?: CreatedHooks["contextInjectorMessagesTransform"]
   teamModeStatusInjector?: CreatedHooks["teamModeStatusInjector"]
   teamMailboxInjector?: CreatedHooks["teamMailboxInjector"]
@@ -43,6 +44,7 @@ type MessagesTransformHookKey = keyof MessagesTransformHooks
 type MessagesTransformHookEntry = {
   readonly key: MessagesTransformHookKey
   readonly name: string
+  readonly fatal?: boolean
 }
 type UserMessageInfo = Extract<Message, { role: "user" }>
 type ModelIdentifier = {
@@ -51,6 +53,11 @@ type ModelIdentifier = {
 }
 
 const MESSAGES_TRANSFORM_HOOKS = [
+  {
+    key: "btwSideContextInjector",
+    name: "btwSideContextInjector",
+    fatal: true,
+  },
   { key: "contextInjectorMessagesTransform", name: "contextInjectorMessagesTransform" },
   { key: "teamModeStatusInjector", name: "teamModeStatusInjector" },
   { key: "teamMailboxInjector", name: "teamMailboxInjector" },
@@ -244,12 +251,18 @@ export function createMessagesTransformHandler(args: {
 }): (input: Record<string, never>, output: MessagesTransformOutput) => Promise<void> {
   return async (input, output): Promise<void> => {
     for (const hook of MESSAGES_TRANSFORM_HOOKS) {
-      const hookEntry = args.hooks[hook.key as keyof MessagesTransformHooks] as
-        | { "experimental.chat.messages.transform": (input: unknown, output: unknown) => Promise<void> | void }
-        | null
-        | undefined
-      const hookFn = hookEntry?.["experimental.chat.messages.transform"] ?? null
-      await runMessagesTransformHookSafely(hook.name, hookFn, input, output)
+      const handler =
+        args.hooks[hook.key]?.["experimental.chat.messages.transform"]
+      if (hook.fatal) {
+        if (handler) await Promise.resolve(handler(input, output))
+        continue
+      }
+      await runMessagesTransformHookSafely(
+        hook.name,
+        handler,
+        input,
+        output,
+      )
     }
 
     ensureUserTurnAfterAssistantTail(output)

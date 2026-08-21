@@ -5859,6 +5859,9 @@ var OmoMemoryPeopleSchema = object({
 var OmoMemorySoulSchema = object({
   edit_notice: boolean2().default(true)
 }).strict();
+var OmoMemoryWriteNoticeSchema = object({
+  enabled: boolean2().default(true)
+}).strict();
 var OmoMemoryReflectionTriggerLayerSchema = object({
   step_count: number2().int().nonnegative().optional(),
   on_compaction: boolean2().optional()
@@ -5902,6 +5905,9 @@ var OmoMemoryPeopleLayerSchema = object({
 var OmoMemorySoulLayerSchema = object({
   edit_notice: boolean2().optional()
 }).strict();
+var OmoMemoryWriteNoticeLayerSchema = object({
+  enabled: boolean2().optional()
+}).strict();
 var OmoMemoryAgentOverridesSchema = object({
   enabled: boolean2().optional(),
   agent: string2().min(1).optional(),
@@ -5911,6 +5917,7 @@ var OmoMemoryAgentOverridesSchema = object({
   dream: OmoMemoryDreamLayerSchema.optional(),
   people: OmoMemoryPeopleLayerSchema.optional(),
   soul: OmoMemorySoulLayerSchema.optional(),
+  write_notice: OmoMemoryWriteNoticeLayerSchema.optional(),
   sync: OmoMemorySyncLayerSchema.optional(),
   search: OmoMemorySearchLayerSchema.optional(),
   compile_warn_tokens: number2().int().positive().optional()
@@ -5939,6 +5946,7 @@ var OmoMemorySettingsSchema = object({
   }),
   people: OmoMemoryPeopleSchema.default({ enabled: true, max_entries: 40, max_entry_chars: 200 }),
   soul: OmoMemorySoulSchema.default({ edit_notice: true }),
+  write_notice: OmoMemoryWriteNoticeSchema.default({ enabled: true }),
   sync: OmoMemorySyncSchema.default({ enabled: true }),
   search: OmoMemorySearchSchema.default({ enabled: true }),
   compile_warn_tokens: number2().int().positive().default(30000),
@@ -5954,6 +5962,7 @@ var OmoMemorySettingsLayerSchema = object({
   dream: OmoMemoryDreamLayerSchema.optional(),
   people: OmoMemoryPeopleLayerSchema.optional(),
   soul: OmoMemorySoulLayerSchema.optional(),
+  write_notice: OmoMemoryWriteNoticeLayerSchema.optional(),
   sync: OmoMemorySyncLayerSchema.optional(),
   search: OmoMemorySearchLayerSchema.optional(),
   compile_warn_tokens: number2().int().positive().optional(),

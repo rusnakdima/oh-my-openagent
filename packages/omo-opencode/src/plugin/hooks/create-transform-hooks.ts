@@ -15,12 +15,14 @@ import {
   contextCollector,
   createContextInjectorMessagesTransformHook,
 } from "../../features/context-injector"
+import { createBtwSideContextInjectorHook } from "../../features/btw-side"
 import { safeCreateHook } from "../../shared/safe-create-hook"
 import { isBtwMarked } from "../../hooks/btw-context-strip/predicates"
 
 export type TransformHooks = {
   claudeCodeHooks: ReturnType<typeof createClaudeCodeHooksHook> | null
   keywordDetector: ReturnType<typeof createKeywordDetectorHook> | null
+  btwSideContextInjector: ReturnType<typeof createBtwSideContextInjectorHook>
   contextInjectorMessagesTransform: ReturnType<typeof createContextInjectorMessagesTransformHook>
   teamModeStatusInjector: ReturnType<typeof createTeamModeStatusInjector> | null
   teamMailboxInjector: ReturnType<typeof createTeamMailboxInjector> | null
@@ -72,6 +74,9 @@ export function createTransformHooks(args: {
 
   const contextInjectorMessagesTransform =
     createContextInjectorMessagesTransformHook(contextCollector)
+  const btwSideContextInjector = createBtwSideContextInjectorHook({
+    client: ctx.client,
+  })
 
   const teamModeConfig = pluginConfig.team_mode
 
@@ -116,6 +121,7 @@ export function createTransformHooks(args: {
   return {
     claudeCodeHooks,
     keywordDetector,
+    btwSideContextInjector,
     contextInjectorMessagesTransform,
     teamModeStatusInjector,
     teamMailboxInjector,
