@@ -5549,6 +5549,17 @@ var OmoCodegraphSettingsSchema = OmoCodegraphSettingsLayerSchema.extend({
   telemetry: boolean2().default(false)
 }).strict();
 
+// ../../omo-config-core/src/schema/git-master.ts
+var OmoGitMasterSettingsShape = {
+  commit_footer: union([boolean2(), string2()]),
+  include_co_authored_by: boolean2()
+};
+var OmoGitMasterSettingsLayerSchema = object(OmoGitMasterSettingsShape).partial().strict();
+var OmoGitMasterSettingsSchema = OmoGitMasterSettingsLayerSchema.extend({
+  commit_footer: union([boolean2(), string2()]).default(true),
+  include_co_authored_by: boolean2().default(true)
+}).strict();
+
 // ../../omo-config-core/src/schema/memory.ts
 var OmoMemoryReflectionTriggerSchema = object({
   step_count: number2().int().nonnegative().default(25),
@@ -5874,6 +5885,7 @@ var OmoTypedHarnessConfigSchema = object({
   categories: OmoCategoriesConfigSchema.optional(),
   agents: OmoAgentsConfigSchema.optional(),
   codegraph: OmoCodegraphSettingsLayerSchema.optional(),
+  git_master: OmoGitMasterSettingsLayerSchema.optional(),
   task: OmoTaskSettingsLayerSchema.optional(),
   teams: OmoTeamsConfigLayerSchema.optional(),
   models: OmoModelCatalogLayerSchema.optional(),
@@ -5884,6 +5896,7 @@ var OmoConfigProfileSchema = object({
   categories: OmoCategoriesConfigSchema.optional(),
   agents: OmoAgentsConfigSchema.optional(),
   codegraph: OmoCodegraphSettingsLayerSchema.optional(),
+  git_master: OmoGitMasterSettingsLayerSchema.optional(),
   task: OmoTaskSettingsLayerSchema.optional(),
   teams: OmoTeamsConfigLayerSchema.optional(),
   models: OmoModelCatalogLayerSchema.optional(),
@@ -5898,6 +5911,7 @@ var OmoConfigSchema = object({
   categories: OmoCategoriesConfigSchema.optional(),
   agents: OmoAgentsConfigSchema.optional(),
   codegraph: OmoCodegraphSettingsSchema.optional(),
+  git_master: OmoGitMasterSettingsSchema.optional(),
   task: OmoTaskSettingsSchema.optional(),
   teams: OmoTeamsConfigSchema.optional(),
   models: OmoModelCatalogSchema.optional(),
@@ -5915,6 +5929,7 @@ var OmoConfigLayerSchema = object({
   categories: OmoCategoriesConfigSchema.optional(),
   agents: OmoAgentsConfigSchema.optional(),
   codegraph: OmoCodegraphSettingsLayerSchema.optional(),
+  git_master: OmoGitMasterSettingsLayerSchema.optional(),
   task: OmoTaskSettingsLayerSchema.optional(),
   teams: OmoTeamsConfigLayerSchema.optional(),
   models: OmoModelCatalogLayerSchema.optional(),
@@ -9743,7 +9758,8 @@ function spawnDetachedSessionStartWorker(invocation) {
   const child = spawn(invocation.command, [...invocation.args], {
     detached: true,
     env: invocation.env,
-    stdio: "ignore"
+    stdio: "ignore",
+    windowsHide: true
   });
   child.unref();
 }
@@ -11651,7 +11667,11 @@ function createParentWatchdog(config2, onDeadParent) {
   const probeAlive = config2.probeAlive ?? isProcessAlive2;
   let fired = false;
   const timer = setInterval(() => {
-    if (fired || probeAlive(parentPid))
+    if (fired)
+      return;
+    const alive = probeAlive(parentPid);
+    config2.onPoll?.(alive);
+    if (alive)
       return;
     fired = true;
     onDeadParent(parentPid, pollIntervalMs);
@@ -11703,7 +11723,8 @@ async function runBridgedCodegraphProcess(command, args, options) {
   const child = spawn3(invocation.command, invocation.args, {
     cwd: options.cwd,
     env: options.env,
-    stdio: ["pipe", "pipe", "inherit"]
+    stdio: ["pipe", "pipe", "inherit"],
+    windowsHide: true
   });
   const childInput = child.stdin;
   const childOutput = child.stdout;
