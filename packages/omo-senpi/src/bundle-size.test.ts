@@ -38,6 +38,17 @@ const builtExtensionPath = join(packageRoot, "plugin", "extensions", "omo.js")
 // user feature wired into the extension entry; the imports span the whole engine (nothing accidental
 // inlined, no new third-party dependency added). Measured 863,893 bytes after minification. Headroom to
 // 880,000 leaves margin for follow-up memory polish without inviting unrelated bloat.
+// Raised 880,000 -> 900,000 for plan omo-native-telemetry: the plan-scoped first-party feature code
+// is wired into the extension entry and grew the freshly rebuilt bundle to a measured 891,384 bytes.
+// No new third-party dependency was inlined; posthog-node was already present, and
+// bundle-purity.test.ts passes on the new build. A trim was attempted and rejected because reclaiming
+// the bytes would require a secondary chunk and loader-topology change. The round 900,000 ceiling
+// preserves explicit headroom instead of raising the budget to the failing value.
+// Raised 900,000 -> 910,000 for issue #6752: the ported OpenCode stop-continuation-guard adds a
+// per-pi WeakMap-backed guard, two new slash commands (/stop-continuation and /resume-continuation),
+// a session_shutdown clear path, and guard reads in both start-work-continuation and ulw-loop. This
+// is first-party correctness code (a bug fix, not a new third-party inline), measured at 900,869
+// bytes after minification. bundle-purity.test.ts passes on the new build.
 const BUDGET_BYTES = 1_050_000
 
 describe("omo-senpi bundle size budget", () => {

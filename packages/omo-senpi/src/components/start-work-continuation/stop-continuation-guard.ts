@@ -1,10 +1,13 @@
 import type { SenpiExtensionAPI } from "../../extension/types"
 
 /**
+ * Port of the OpenCode `stop-continuation-guard` (see
+ * `packages/omo-opencode/src/hooks/stop-continuation-guard/hook.ts`) for the Senpi adapter.
+ *
  * A per-session flag that durably suppresses `start-work-continuation` and `ulw-loop`
  * `agent_end` injections until continuation is explicitly resumed.
  *
- * Semantics:
+ * Semantics (matches the OpenCode reference):
  * - `stop(sessionId)`: mark the session as stopped.
  * - `isStopped(sessionId)`: consulted by `agent_end` handlers to skip continuation injection.
  * - `clear(sessionId)`: called only by an EXPLICIT resume (a `/resume-continuation` slash
