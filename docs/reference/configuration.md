@@ -389,16 +389,16 @@ Disable categories: `{ "categories": { "ultrabrain": { "disable": true } } }`
 
 ### Model Resolution
 
-Runtime priority:
+Runtime priority (highest wins):
 
-1. **UI-selected model** - model chosen in the OpenCode UI, for primary agents
-2. **User override** - model set in config → used exactly as-is. Even on cold cache, explicit user configuration takes precedence over hardcoded fallback chains
-3. **Category default** - model inherited from the assigned category config
-4. **User `fallback_models`** - user-configured fallback list is tried before built-in fallback chains
-5. **Provider fallback chain** - built-in provider/model chain from OmO source
-6. **System default** - OpenCode's configured default model
+1. **UI-native model** — model selected in OpenCode native `/models` or the TUI sidebar Global Model picker. The `chat.params` hook captures the TUI-selected `providerID/modelID` on every LLM call; for primary agents this overrides all config.
+2. **`default_model`** — single global default set in `[opencode]` config (`"default_model": "provider/model"`). When no UI-native model is selected, every agent resolves to `default_model`. Omit to let the UI-native model or provider default drive selection. Commented example: `// "default_model": "anthropic/claude-opus-5"` means "omit → use TUI model".
+3. **Provider default** — OpenCode's configured default model when neither UI-native nor `default_model` is set.
+4. **Fallback chains** — hardcoded `AGENT_MODEL_REQUIREMENTS` / `CATEGORY_MODEL_REQUIREMENTS` are tried **only** when `model_fallback` (or `runtime_fallback.enabled`) is `true`. When fallback is disabled (default `false`), resolution stops at the provider default and reports unavailable rather than walking the chain. `agents.*.model`, `categories.*.model`, and `fallback_models` / `models` are deprecated — omit to use the UI-native / `default_model` path; they remain parsed for backward compat but `doctor` will warn.
 
-The same resolved chain drives spawn-time selection and runtime retry fallback, so a recovered task stays on the same category chain.
+> **Deprecation:** Per-agent `agents.*.model` and per-category `categories.*.model` (and their `models` / `fallback_models` chains) are deprecated in the TUI-native era. Omit them and configure a single `default_model` or pick the model in the TUI (`[Set Global Model]`). The deprecated keys still parse but will be removed in a future release.
+
+The same resolved chain drives spawn-time selection and runtime retry fallback, so a recovered task stays on the same category chain. `doctor --verbose` shows the effective resolution per agent/category.
 
 In the OpenCode plugin, every merged category appears in `availableCategories`; hiding categories with a dead fallback chain is not implemented here. That dead-chain filtering, the `model_unavailable` spawn failure, and the `task.warnings.unavailable_categories` flag belong to the Senpi/core `task` system, documented in the [omo.json reference](./omo-json.md).
 

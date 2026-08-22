@@ -17,7 +17,7 @@ const invalidConfig: ConfigState = {
 }
 const roster: RosterState = {
   kind: "rows",
-  rows: [{ label: "sisyphus", model: "openai/gpt-5.5" }],
+  rows: [{ label: "sisyphus", mode: "primary", model: "openai/gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }],
 }
 const idleAgents: AgentsState = { kind: "none" }
 const idleJobs: JobBoardState = { kind: "none" }
@@ -188,7 +188,7 @@ describe("tui sidebar computeView", () => {
     const original: SidebarView = { kind: "idle", roster }
     const changed: SidebarView = {
       kind: "idle",
-      roster: { kind: "rows", rows: [{ label: "atlas", model: "openai/gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }] },
+      roster: { kind: "rows", rows: [{ label: "atlas", mode: "primary", model: "openai/gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }] },
     }
 
     // when

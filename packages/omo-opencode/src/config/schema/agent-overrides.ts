@@ -4,10 +4,19 @@ import { FallbackModelObjectSchema, FallbackModelsSchema } from "./fallback-mode
 import { AgentPermissionSchema } from "./internal/permission"
 
 export const AgentOverrideConfigSchema = z.object({
-  /** @deprecated Use `category` instead. Model is inherited from category defaults. */
+  /**
+   * @deprecated Per-agent static `model` is deprecated — omit to use the TUI Global Model
+   * (UI-native model via `/models` / TUI `[Set Global Model]`) or `default_model`.
+   * Per-agent `model` will be removed in a future release; configure `default_model`
+   * at the top level or pick the model in the UI instead. Retained for backward compat.
+   */
   model: z.string().optional(),
-  /** Ordered model chain; the first entry is primary and the rest are fallbacks. */
+  /**
+   * @deprecated Per-agent `models` chain is deprecated — omit to use the TUI Global Model
+   * or `default_model`. Fallback chains are only walked when `model_fallback` is enabled.
+   */
   models: z.array(z.union([z.string(), FallbackModelObjectSchema])).optional(),
+  /** @deprecated Use `models` instead; and per-agent chains themselves are deprecated — omit to use TUI Global Model. */
   fallback_models: FallbackModelsSchema.optional(),
   reasoning: OmoReasoningSchema.optional(),
   /** @deprecated Use `reasoning` instead. */

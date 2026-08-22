@@ -89,11 +89,11 @@ describe("tui sidebar renderView", () => {
     expect(description).toContain("agents.sisyphus.model")
   })
 
-  it("#given idle roster #when rendering #then it lists configured model rows", () => {
+  it("#given idle roster #when rendering #then it lists configured model rows with mode suffix", () => {
     // given
     const view: SidebarView = {
       kind: "idle",
-      roster: { kind: "rows", rows: [{ label: "sisyphus", model: "gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }] },
+      roster: { kind: "rows", rows: [{ label: "sisyphus", mode: "primary", model: "gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }] },
       modal: { kind: "closed" },
     }
 
@@ -104,6 +104,39 @@ describe("tui sidebar renderView", () => {
     // then
     expect(description).toContain("sisyphus")
     expect(description).toContain("gpt-5.5")
+    expect(description).toContain("(primary)")
+    expect(description).toContain("sisyphus (primary) — gpt-5.5")
     expect(nodes[0]?.kind).toBe("box")
+  })
+
+  it("#given idle roster with subagent mode #when rendering #then mode suffix appears", () => {
+    // given
+    const view: SidebarView = {
+      kind: "idle",
+      roster: { kind: "rows", rows: [{ label: "explore", mode: "subagent", model: "gpt-5-nano", effectiveModel: "openai/gpt-5-nano", hasOverride: false, isGlobal: true }] },
+      modal: { kind: "closed" },
+    }
+
+    // when
+    const description = describeView(view)
+
+    // then
+    expect(description).toContain("explore (subagent) — gpt-5-nano")
+  })
+
+  it("#given roster row with no model #when rendering #then mode suffix still appears", () => {
+    // given
+    const view: SidebarView = {
+      kind: "idle",
+      roster: { kind: "rows", rows: [{ label: "librarian", mode: "subagent", model: "—", effectiveModel: "—", hasOverride: false, isGlobal: false }] },
+      modal: { kind: "closed" },
+    }
+
+    // when
+    const description = describeView(view)
+
+    // then
+    expect(description).toContain("librarian (subagent)")
+    expect(description).not.toContain("—")
   })
 })
