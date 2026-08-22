@@ -47,6 +47,12 @@ type AgentConfigSnapshot = {
   readonly agents: Record<string, unknown>;
 }
 
+// Module-level state for cache invalidation from outside the config handler
+let agentConfigSnapshot: AgentConfigSnapshot | undefined = undefined;
+
+// Held in closure so reapplyAgentConfigFromDisk can call configHandler directly
+let _configHandler: ((config: Record<string, unknown>) => Promise<void>) | undefined = undefined;
+
 function cloneConfigValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(cloneConfigValue)
@@ -90,9 +96,8 @@ function replayAgentConfigSideEffects(params: {
 
 export function createConfigHandler(deps: ConfigHandlerDeps) {
   const { ctx, pluginConfig, modelCacheState, runtimeSkillSourceUrl } = deps;
-  let agentConfigSnapshot: AgentConfigSnapshot | undefined;
 
-  return async (config: Record<string, unknown>) => {
+  const configHandler: (config: Record<string, unknown>) => Promise<void> = async (config) => {
     const formatterConfig = config.formatter;
 
     setAdditionalAllowedMcpEnvVars(pluginConfig.mcp_env_allowlist ?? [])
@@ -158,5 +163,44 @@ export function createConfigHandler(deps: ConfigHandlerDeps) {
       commandCount: Object.keys((config.command as Record<string, unknown>) ?? {})
         .length,
     });
-  };
+  }
+
+  _configHandler = configHandler
+  return configHandler
+}
+
+/**
+ * Invalidate the agent config cache so the next config hook call re-applies
+ * agent configuration with a fresh effectiveUiModel from getGlobalTuiModel().
+ * Safe to call multiple times — isReapplyGuard prevents re-entrance.
+ */
+export function triggerAgentConfigSnapshotInvalidate(): void {
+  agentConfigSnapshot = undefined
+}
+
+/**
+ * Re-apply agent config by re-reading opencode.jsonc from disk and calling
+ * the config handler with the updated model. Triggers agent re-registration
+ * with the new global TUI model in the same session (no restart needed).
+ *
+ * Reads HOME from process.env so this works from any process (plugin or TUI).
+ */
+export async function reapplyAgentConfigFromDisk(): Promise<void> {
+  if (!_configHandler) return
+  const HOME = process.env.HOME ?? ""
+  const opencodeConfigPath = `${HOME}/.config/opencode/opencode.jsonc`
+  try {
+    const raw = await import("node:fs/promises").then((fs) =>
+      fs.readFile(opencodeConfigPath, "utf-8").catch(() => ""),
+    )
+    if (!raw) return
+    const stripped = raw.replace(/\/\/.*$/gm, "")
+    const cfg = JSON.parse(stripped) as Record<string, unknown>
+    if (!cfg.model || typeof cfg.model !== "string") return
+    triggerAgentConfigSnapshotInvalidate()
+    log("[config-handler] reapply from disk, model=", { model: cfg.model })
+    await _configHandler(cfg)
+  } catch (err) {
+    log("[config-handler] reapply from disk failed", { error: err })
+  }
 }

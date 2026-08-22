@@ -1,4 +1,9 @@
-export { createConfigHandler, type ConfigHandlerDeps } from "./config-handler";
+export {
+  createConfigHandler,
+  triggerAgentConfigSnapshotInvalidate,
+  reapplyAgentConfigFromDisk,
+  type ConfigHandlerDeps,
+} from "./config-handler";
 export * from "./provider-config-handler";
 export * from "./agent-config-handler";
 export * from "./tool-config-handler";

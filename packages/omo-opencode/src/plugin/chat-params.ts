@@ -2,6 +2,7 @@ import { isRecord } from "@oh-my-opencode/utils"
 import { getSessionPromptParams } from "../shared/session-prompt-params-state"
 import { getModelCapabilities, log, resolveCompatibleModelSettings } from "../shared"
 import { setSelectedGlobalModel } from "../shared/session-model-state"
+import { reapplyAgentConfigFromDisk } from "../plugin-handlers"
 import { readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
@@ -158,6 +159,14 @@ export function createChatParamsHandler(_args: {
       const fullModel = `${parsed.providerID}/${parsed.modelID}`
       updateConfigModel(OPENCODE_CONFIG, fullModel)
       updateConfigModel(MIMOCODE_CONFIG, fullModel)
+      // Re-apply agent config so the new global model takes effect immediately in the
+      // same session — primary agents (sisyphus/atlas/hephaestus) get the new model
+      // without waiting for a restart. Subagents already read globalTuiModel at spawn.
+      if (isGlobalChanged) {
+        void reapplyAgentConfigFromDisk().catch((err) =>
+          log("[chat-params] reapply failed", { error: err }),
+        )
+      }
     }
 
     const compatibility = resolveCompatibleModelSettings({

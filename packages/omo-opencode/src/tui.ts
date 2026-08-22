@@ -197,7 +197,7 @@ const module: TuiPluginModule = {
       if (api.client?.tui?.onSidebarClick) {
         // @ts-ignore
         api.client.tui.onSidebarClick((event: { index: number }) => {
-          void handleSidebarClick(event.index, initialRoster, directory)
+          void handleSidebarClick(event.index, initialRoster, directory, currentView)
         })
       }
     } catch {
@@ -210,28 +210,18 @@ const module: TuiPluginModule = {
 
     async function handleSidebarClick(
       index: number,
-      roster: readonly RosterRow[],
+      _roster: readonly RosterRow[],
       _dir: string,
+      currentView: Awaited<ReturnType<typeof readView>>,
     ): Promise<void> {
-      // Index 0 = "Models" section header (global model line + roster rows)
-      // N = "Set Global Model" button
+      // active view:  index 0 = box, index 1 = "Set Global Model"
+      // broken view:  index 0 = section, index 1 = "Set Global Model"
+      // idle view:    index 0 = section("Models"), 1..N = roster rows, N+1 = "Set Global Model"
 
-      const rosterRowCount = roster.length
-      const setGlobalIndex = rosterRowCount + 1
+      const setGlobalIndex =
+        currentView.kind === "idle" ? _roster.length + 2 : 1
 
-      if (index === 0) {
-        // "Models" header - no action
-        return
-      }
-
-      const rowIndex = index - 1
-      if (rowIndex >= 0 && rowIndex < rosterRowCount) {
-        // Roster row clicked — no action (display only in global-only mode)
-        return
-      }
-
-      if (rowIndex === rosterRowCount) {
-        // "Set Global Model" button → open dialog
+      if (index === setGlobalIndex) {
         openGlobalModelDialog()
       }
     }
@@ -285,6 +275,14 @@ const module: TuiPluginModule = {
         updateConfigModelTui(MIMOCODE_CONFIG_TUI, fullModel)
         const { getTuiStateMirrorSingleton } = await import("./features/tui-sidebar/mirror-manager")
         void getTuiStateMirrorSingleton()?.flush()
+        // Re-apply agent config so the new global model takes effect immediately in the
+        // same session (plugin process).  This updates primary agents (sisyphus/atlas/
+        // hephaestus) without waiting for a restart.  Subagents already read
+        // globalTuiModel at spawn.  TUI and plugin share opencode.jsonc on disk.
+        const { reapplyAgentConfigFromDisk } = await import("./plugin-handlers")
+        void reapplyAgentConfigFromDisk().catch((err) =>
+          log("[tui] reapply failed", { error: err }),
+        )
       } catch (err) {
         log("[tui] failed to apply model selection", { error: err })
       }
