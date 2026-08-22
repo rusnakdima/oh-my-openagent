@@ -44,7 +44,7 @@ describe("GitHub Copilot GPT-5.6 resolution", () => {
 
       // when
       const result = resolveModelWithFallback({
-        fallbackChain: requirement.fallbackChain,
+        modelFallbackEnabled: true, fallbackChain: requirement.fallbackChain,
         availableModels,
         systemDefaultModel: "system/default",
       })
@@ -64,7 +64,7 @@ describe("GitHub Copilot GPT-5.6 resolution", () => {
 
     // when
     const result = resolveModelWithFallback({
-      fallbackChain: AGENT_MODEL_REQUIREMENTS.momus.fallbackChain,
+      modelFallbackEnabled: true, fallbackChain: AGENT_MODEL_REQUIREMENTS.momus.fallbackChain,
       availableModels,
       systemDefaultModel: "system/default",
     })
@@ -86,7 +86,7 @@ describe("GitHub Copilot GPT-5.6 resolution", () => {
 
     // when
     const result = resolveModelWithFallback({
-      fallbackChain: AGENT_MODEL_REQUIREMENTS.momus.fallbackChain,
+      modelFallbackEnabled: true, fallbackChain: AGENT_MODEL_REQUIREMENTS.momus.fallbackChain,
       availableModels,
       systemDefaultModel: "system/default",
     })
@@ -124,7 +124,7 @@ describe("GitHub Copilot GPT-5.6 resolution", () => {
 
     // when
     const result = resolveModelWithFallback({
-      fallbackChain: AGENT_MODEL_REQUIREMENTS.momus.fallbackChain,
+      modelFallbackEnabled: true, fallbackChain: AGENT_MODEL_REQUIREMENTS.momus.fallbackChain,
       availableModels,
       systemDefaultModel: "system/default",
     })
@@ -150,7 +150,7 @@ describe("GitHub Copilot GPT-5.6 resolution", () => {
 
       // when
       const result = resolveModelWithFallback({
-        fallbackChain: requirement.fallbackChain,
+        modelFallbackEnabled: true, fallbackChain: requirement.fallbackChain,
         availableModels,
         systemDefaultModel: "system/default",
       })

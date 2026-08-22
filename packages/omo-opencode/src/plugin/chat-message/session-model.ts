@@ -6,7 +6,9 @@ import { log } from "../../shared"
 import type { ChatMessageHandlerOutput, ChatMessageInput, SessionModelOverride } from "./types"
 
 // Track previous model per session to detect changes
+// Subagent sessionIDs also write globalTuiModel — map includes ALL sessions (primary + subagent)
 const previousModels = new Map<string, { providerID: string; modelID: string }>()
+let lastGlobalPreviousModel: { providerID: string; modelID: string } | null = null
 
 function hasExplicitAgentModelOverride(
   agent: string | undefined,
@@ -75,11 +77,14 @@ export function recordSessionModel(input: ChatMessageInput, output: ChatMessageH
     if (parsed) {
       setSessionModel(input.sessionID, parsed)
 
-      // Detect model change → update the global selected model
+      // Detect model change → update the global selected model (includes subagent sessions)
       const prev = previousModels.get(input.sessionID)
-      if (!prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID) {
+      const isPerSessionChanged = !prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID
+      const isGlobalChanged = !lastGlobalPreviousModel || lastGlobalPreviousModel.providerID !== parsed.providerID || lastGlobalPreviousModel.modelID !== parsed.modelID
+      if (isPerSessionChanged || isGlobalChanged) {
         setSelectedGlobalModel(parsed)
         previousModels.set(input.sessionID, parsed)
+        lastGlobalPreviousModel = parsed
       }
       return
     }
@@ -98,12 +103,15 @@ export function recordSessionModel(input: ChatMessageInput, output: ChatMessageH
     if (typeof providerID === "string" && typeof modelID === "string") {
       setSessionModel(input.sessionID, { providerID, modelID })
 
-      // Also update global selected model on change
+      // Also update global selected model on change (includes subagent sessions)
       const prev = previousModels.get(input.sessionID)
       const parsed = { providerID, modelID }
-      if (!prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID) {
+      const isPerSessionChanged = !prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID
+      const isGlobalChanged = !lastGlobalPreviousModel || lastGlobalPreviousModel.providerID !== parsed.providerID || lastGlobalPreviousModel.modelID !== parsed.modelID
+      if (isPerSessionChanged || isGlobalChanged) {
         setSelectedGlobalModel(parsed)
         previousModels.set(input.sessionID, parsed)
+        lastGlobalPreviousModel = parsed
       }
     }
   }

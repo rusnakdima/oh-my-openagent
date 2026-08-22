@@ -130,7 +130,7 @@ describe("resolveModelWithFallback", () => {
       const input: ExtendedModelResolutionInput = {
         uiSelectedModel: "opencode/big-pickle",
         userModel: "anthropic/claude-opus-4-7",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic", "github-copilot"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7", "github-copilot/claude-opus-4-7-preview"]),
@@ -206,7 +206,7 @@ describe("resolveModelWithFallback", () => {
       // given
       const input: ExtendedModelResolutionInput = {
         userModel: "anthropic/claude-opus-4-7",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic", "github-copilot"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7", "github-copilot/claude-opus-4-7-preview"]),
@@ -227,7 +227,7 @@ describe("resolveModelWithFallback", () => {
       // given
       const input: ExtendedModelResolutionInput = {
         userModel: "custom/my-model",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7"]),
@@ -247,7 +247,7 @@ describe("resolveModelWithFallback", () => {
       // given
       const input: ExtendedModelResolutionInput = {
         userModel: "   ",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7"]),
@@ -266,7 +266,7 @@ describe("resolveModelWithFallback", () => {
       // given
       const input: ExtendedModelResolutionInput = {
         userModel: "",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7"]),
@@ -286,7 +286,7 @@ describe("resolveModelWithFallback", () => {
     test("tries providers in order within entry and returns first match", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic", "github-copilot", "opencode"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["github-copilot/claude-opus-4-7-preview", "opencode/claude-opus-4-7"]),
@@ -311,7 +311,7 @@ describe("resolveModelWithFallback", () => {
     test("respects provider priority order within entry", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["openai", "anthropic", "google"], model: "gpt-5.4" },
         ],
         availableModels: new Set(["openai/gpt-5.4", "anthropic/claude-opus-4-7", "google/gemini-3.1-pro"]),
@@ -330,7 +330,7 @@ describe("resolveModelWithFallback", () => {
     test("tries next provider when first provider has no match", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic", "opencode"], model: "gpt-5-nano" },
         ],
         availableModels: new Set(["opencode/gpt-5-nano"]),
@@ -349,7 +349,7 @@ describe("resolveModelWithFallback", () => {
     test("uses fuzzy matching within provider", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic", "github-copilot"], model: "claude-opus" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7", "github-copilot/claude-opus-4-7-preview"]),
@@ -383,7 +383,7 @@ describe("resolveModelWithFallback", () => {
     test("skips fallback chain when empty", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [],
+        modelFallbackEnabled: true, fallbackChain: [],
         availableModels: new Set(["anthropic/claude-opus-4-7"]),
         systemDefaultModel: "google/gemini-3.1-pro",
       }
@@ -399,7 +399,7 @@ describe("resolveModelWithFallback", () => {
     test("case-insensitive fuzzy matching", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "CLAUDE-OPUS" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7"]),
@@ -418,7 +418,7 @@ describe("resolveModelWithFallback", () => {
     test("cross-provider match tries next entry if no match found anywhere", () => {
       // given - first entry model not available anywhere, second entry available
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["zai-coding-plan"], model: "nonexistent-model" },
           { providers: ["anthropic"], model: "claude-sonnet-4-6" },
         ],
@@ -440,7 +440,7 @@ describe("resolveModelWithFallback", () => {
     test("returns system default when no availability match found in fallback chain", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "nonexistent-model" },
         ],
         availableModels: new Set(["openai/gpt-5.4", "anthropic/claude-opus-4-7"]),
@@ -480,7 +480,7 @@ describe("resolveModelWithFallback", () => {
       // given - model cache missing but connected-providers cache exists
       const cacheSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai", "google"])
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic", "openai"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(),
@@ -501,7 +501,7 @@ describe("resolveModelWithFallback", () => {
       // given - user has github-copilot but not google connected
       const cacheSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["github-copilot"])
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["google", "github-copilot", "opencode"], model: "gemini-3.1-pro" },
         ],
         availableModels: new Set(),
@@ -523,7 +523,7 @@ describe("resolveModelWithFallback", () => {
       // given - user only has anthropic connected, but fallback chain has openai/opencode
       const cacheSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["anthropic"])
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["openai", "opencode"], model: "claude-haiku-4-5" },
         ],
         availableModels: new Set(),
@@ -585,7 +585,7 @@ describe("resolveModelWithFallback", () => {
 
       // when
       const result = resolveModelWithFallback({
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["openai", "github-copilot", "opencode"], model: "gpt-5.4", variant: "high" },
           { providers: ["anthropic", "github-copilot", "opencode"], model: "claude-opus-4-7", variant: "max" },
         ],
@@ -605,7 +605,7 @@ describe("resolveModelWithFallback", () => {
 
       // when
       const result = resolveModelWithFallback({
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["openai", "anthropic"], model: "gpt-5.4" },
           { providers: ["google"], model: "gemini-3.1-pro" },
         ],
@@ -628,7 +628,7 @@ describe("resolveModelWithFallback", () => {
 
       // when
       const result = resolveModelWithFallback({
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["openai"], model: "gpt-5.4" },
           { providers: ["anthropic"], model: "claude-opus-4-7" },
         ],
@@ -648,7 +648,7 @@ describe("resolveModelWithFallback", () => {
 
       // when
       const result = resolveModelWithFallback({
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["openai"], model: "gpt-5.4" },
           { providers: ["anthropic"], model: "claude-opus-4-7" },
           { providers: ["google"], model: "gemini-3.1-pro" },
@@ -688,7 +688,7 @@ describe("resolveModelWithFallback", () => {
       // given - gemini-3.1-pro is the category default, but only gemini-3.1-pro-preview is available
       const input: ExtendedModelResolutionInput = {
         categoryDefaultModel: "google/gemini-3.1-pro",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["google", "github-copilot", "opencode"], model: "gemini-3.1-pro" },
         ],
         availableModels: new Set(["google/gemini-3.1-pro-preview", "anthropic/claude-opus-4-7"]),
@@ -708,7 +708,7 @@ describe("resolveModelWithFallback", () => {
       // given - exact match exists
       const input: ExtendedModelResolutionInput = {
         categoryDefaultModel: "google/gemini-3.1-pro",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["google"], model: "gemini-3.1-pro" },
         ],
         availableModels: new Set(["google/gemini-3.1-pro", "google/gemini-3.1-pro-preview"]),
@@ -728,7 +728,7 @@ describe("resolveModelWithFallback", () => {
       // given - categoryDefaultModel has no match, but fallbackChain does
       const input: ExtendedModelResolutionInput = {
         categoryDefaultModel: "google/gemini-3.1-pro",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7"]),
@@ -749,7 +749,7 @@ describe("resolveModelWithFallback", () => {
       const input: ExtendedModelResolutionInput = {
         userModel: "anthropic/claude-opus-4-7",
         categoryDefaultModel: "google/gemini-3.1-pro",
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["google"], model: "gemini-3.1-pro" },
         ],
         availableModels: new Set(["google/gemini-3.1-pro-preview", "anthropic/claude-opus-4-7"]),
@@ -826,7 +826,7 @@ describe("resolveModelWithFallback", () => {
       // given - google connected, fallback chain has gemini-3.1-pro
       const cacheSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["google"])
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["google", "github-copilot"], model: "gemini-3.1-pro" },
         ],
         availableModels: new Set(),
@@ -867,7 +867,7 @@ describe("resolveModelWithFallback", () => {
     test("returns undefined when systemDefaultModel is undefined and no fallback found", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "nonexistent-model" },
         ],
         availableModels: new Set(["openai/gpt-5.4"]),
@@ -915,7 +915,7 @@ describe("resolveModelWithFallback", () => {
     test("still returns fallback match when systemDefaultModel undefined", () => {
       // given
       const input: ExtendedModelResolutionInput = {
-        fallbackChain: [
+        modelFallbackEnabled: true, fallbackChain: [
           { providers: ["anthropic"], model: "claude-opus-4-7" },
         ],
         availableModels: new Set(["anthropic/claude-opus-4-7"]),

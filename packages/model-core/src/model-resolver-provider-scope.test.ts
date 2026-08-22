@@ -25,7 +25,7 @@ describe("resolveModelWithFallback provider scoping", () => {
   test("skips same-name models from other providers when preferred provider unavailable", () => {
     // given
     const input: ExtendedModelResolutionInput = {
-      fallbackChain: [
+      modelFallbackEnabled: true, fallbackChain: [
         { providers: ["zai-coding-plan"], model: "glm-5" },
         { providers: ["anthropic"], model: "claude-sonnet-4-6" },
       ],
@@ -46,7 +46,7 @@ describe("resolveModelWithFallback provider scoping", () => {
   test("prefers specified provider over same-name model from another provider", () => {
     // given
     const input: ExtendedModelResolutionInput = {
-      fallbackChain: [
+      modelFallbackEnabled: true, fallbackChain: [
         { providers: ["zai-coding-plan"], model: "glm-5" },
       ],
       availableModels: new Set(["zai-coding-plan/glm-5", "opencode/glm-5"]),
@@ -65,7 +65,7 @@ describe("resolveModelWithFallback provider scoping", () => {
   test("does not preserve variant from an unmatched provider-scoped entry", () => {
     // given
     const input: ExtendedModelResolutionInput = {
-      fallbackChain: [
+      modelFallbackEnabled: true, fallbackChain: [
         { providers: ["zai-coding-plan"], model: "glm-5", variant: "high" },
       ],
       availableModels: new Set(["opencode/glm-5"]),

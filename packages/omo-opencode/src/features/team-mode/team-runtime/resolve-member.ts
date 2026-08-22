@@ -73,7 +73,6 @@ export async function resolveMember(
         },
         withoutSisyphusJuniorOverride(ctx),
         undefined,
-        undefined,
       )
 
       if (execution.error) {

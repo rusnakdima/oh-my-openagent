@@ -6,7 +6,7 @@ import { AGENT_MODEL_REQUIREMENTS, isAnyFallbackModelAvailable } from "../../sha
 import { log } from "../../shared/logger"
 import { applyEnvironmentContext } from "./environment-context"
 import { applyOverrides } from "./agent-overrides"
-import { applyModelResolution, getFirstFallbackModel } from "./model-resolution"
+import { applyModelResolution } from "./model-resolution"
 import { createSisyphusAgent } from "../sisyphus"
 import { applyFrontierToolSchemaPermission } from "../frontier-tool-schema-guard"
 import { setSisyphusRuntimePromptContext } from "../sisyphus-runtime-prompt-reconciler"
@@ -69,9 +69,7 @@ export function maybeCreateSisyphusConfig(input: {
     systemDefaultModel,
   })
 
-  if (isFirstRunNoCache && !sisyphusOverride?.model && !uiSelectedModel && !defaultModel) {
-    sisyphusResolution = getFirstFallbackModel(sisyphusRequirement)
-  }
+  // No fallback to hardcoded chain when model_fallback_enabled is false — provider default wins.
 
   if (!sisyphusResolution) {
     log("[agent-registration] Agent skipped: model resolution returned no result", {

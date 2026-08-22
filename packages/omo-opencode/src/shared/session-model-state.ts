@@ -1,4 +1,5 @@
 import { AGENT_MODEL_REQUIREMENTS, CATEGORY_MODEL_REQUIREMENTS } from "./model-requirements"
+import { readProviderModelsCache } from "./connected-providers-cache"
 
 export type SessionModel = { providerID: string; modelID: string }
 
@@ -85,10 +86,29 @@ export function getPerAgentModelsSnapshot(): Record<string, SessionModel> {
   return Object.fromEntries(perAgentModels)
 }
 
+// --- Provider default model (dynamic-only, first entry from cache) ---
+
+export function getProviderDefaultModel(): SessionModel | null {
+  const cache = readProviderModelsCache()
+  if (!cache) return null
+  for (const [providerID, modelEntries] of Object.entries(cache.models)) {
+    if (!modelEntries || modelEntries.length === 0) continue
+    const first = modelEntries[0]
+    const modelID = typeof first === "string" ? first : (first as { id: string }).id
+    if (typeof modelID === "string" && modelID.length > 0) {
+      return { providerID, modelID }
+    }
+  }
+  return null
+}
+
 // --- Effective model resolution ---
-// Priority: 1. TUI-selected global model (overrides all)  2. Built-in fallback chain
+// Priority: 1. TUI-selected global model (overrides all)  2. Provider default (dynamic)  3. Built-in fallback (only when fallback enabled; otherwise null)
+// Global model applies to ALL modes (primary|subagent|all) — no mode filter.
 
 export function getEffectiveModelForAgent(agentName: string): SessionModel | null {
   if (globalTuiModel) return globalTuiModel
+  const providerDefault = getProviderDefaultModel()
+  if (providerDefault) return providerDefault
   return getBuiltinFallback(agentName)
 }
