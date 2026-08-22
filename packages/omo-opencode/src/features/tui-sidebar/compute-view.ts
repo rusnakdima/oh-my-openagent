@@ -67,7 +67,7 @@ function rosterKeyParts(roster: RosterState): readonly unknown[] {
     case "empty":
       return ["roster", "empty"]
     case "rows":
-      return ["roster", "rows", roster.rows.map((row) => [row.label, row.model, row.hasOverride, row.mode, row.isGlobal])]
+      return ["roster", "rows", roster.rows.map((row) => [row.label, row.mode, row.model, row.effectiveModel, row.hasOverride, row.isGlobal])]
     default:
       return assertNever(roster)
   }
@@ -78,7 +78,7 @@ function agentsKeyParts(agents: AgentsState): readonly unknown[] {
     case "none":
       return ["agents", "none"]
     case "list":
-      return ["agents", "list", agents.agents.map((agent) => [agent.name, agent.status])]
+      return ["agents", "list", agents.agents.map((agent) => [agent.name, agent.status, agent.mode, agent.model])]
     default:
       return assertNever(agents)
   }

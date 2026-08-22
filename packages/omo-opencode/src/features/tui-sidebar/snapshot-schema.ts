@@ -21,9 +21,13 @@ const BACKGROUND_TASK_STATUS_VALUES = [
   "interrupt",
 ] as const satisfies readonly BackgroundTaskStatus[]
 
+const AGENT_MODE_VALUES = ["primary", "subagent", "all"] as const
+
 const AgentRowSchema = z.object({
   name: z.string(),
   status: z.enum(AGENT_STATUS_VALUES),
+  model: z.string().optional(),
+  mode: z.enum(AGENT_MODE_VALUES).optional(),
 })
 
 const JobRowSchema = z.object({

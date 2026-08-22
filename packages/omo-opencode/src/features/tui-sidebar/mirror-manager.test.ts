@@ -108,7 +108,9 @@ describe("TuiStateMirror", () => {
     await mirror.flush()
 
     // then
-    expect(readMirror(projectDir)?.activeAgents).toEqual([{ name: "sisyphus", status: "running" }])
+    expect(readMirror(projectDir)?.activeAgents).toEqual([
+      { name: "sisyphus", status: "running", model: "anthropic/claude-opus-5", mode: "primary" },
+    ])
   })
 
   it("#given a started mirror #when heartbeat fires without events #then it writes the mirror", async () => {
@@ -128,7 +130,9 @@ describe("TuiStateMirror", () => {
     await heartbeatWrite
 
     // then
-    expect(readMirror(projectDir)?.activeAgents).toEqual([{ name: "sisyphus", status: "busy" }])
+    expect(readMirror(projectDir)?.activeAgents).toEqual([
+      { name: "sisyphus", status: "busy", model: "anthropic/claude-opus-5", mode: "primary" },
+    ])
     mirror.stop()
   })
 
@@ -264,7 +268,9 @@ describe("TuiStateMirror", () => {
     await new Promise((resolve) => setTimeout(resolve, WRITE_DEBOUNCE_MS + 50))
 
     // then: flush was executed
-    expect(readMirror(projectDir)?.activeAgents).toEqual([{ name: "sisyphus", status: "busy" }])
+    expect(readMirror(projectDir)?.activeAgents).toEqual([
+      { name: "sisyphus", status: "busy", model: "anthropic/claude-opus-5", mode: "primary" },
+    ])
     mirror.stop()
   })
 
@@ -297,7 +303,9 @@ describe("TuiStateMirror", () => {
 
     // then: only one status call was made (debounce deduplicates)
     expect(flushCount).toBe(1)
-    expect(readMirror(projectDir)?.activeAgents).toEqual([{ name: "sisyphus", status: "busy" }])
+    expect(readMirror(projectDir)?.activeAgents).toEqual([
+      { name: "sisyphus", status: "busy", model: "anthropic/claude-opus-5", mode: "primary" },
+    ])
     mirror.stop()
   })
 })

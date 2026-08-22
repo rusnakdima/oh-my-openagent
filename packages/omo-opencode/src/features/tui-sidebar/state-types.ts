@@ -6,6 +6,8 @@ export type AgentStatus = "busy" | "idle" | "error" | "running" | "retry"
 export type AgentRow = {
   readonly name: string
   readonly status: AgentStatus
+  readonly model?: string
+  readonly mode?: AgentMode
 }
 
 export type JobRow = {

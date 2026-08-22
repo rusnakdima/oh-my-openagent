@@ -133,7 +133,12 @@ function agentNodes(agents: AgentsState, theme: ThemeLike): ViewNode[] {
         section(
           "Agents",
           theme,
-          agents.agents.map((agent) => text({ fg: theme.text }, `${truncate(agent.name)} ${agent.status}`)),
+          agents.agents.map((agent) =>
+            text(
+              { fg: theme.text },
+              `${truncate(agent.name)} (${agent.mode ?? "subagent"}) — ${truncate(agent.model ?? "—")} ${agent.status}`,
+            ),
+          ),
         ),
       ]
     default:
@@ -146,7 +151,10 @@ function agentLines(agents: AgentsState): string[] {
     case "none":
       return []
     case "list":
-      return ["Agents", ...agents.agents.map((agent) => `${agent.name} ${agent.status}`)]
+      return [
+        "Agents",
+        ...agents.agents.map((agent) => `${agent.name} (${agent.mode ?? "subagent"}) — ${agent.model ?? "—"} ${agent.status}`),
+      ]
     default:
       return assertNever(agents)
   }
@@ -210,9 +218,10 @@ function rosterLines(roster: RosterState): string[] {
       return ["No configured models"]
     case "rows":
       return roster.rows.map((row) => {
-        const modeSuffix = `(${row.mode})`
-        if (row.model === "—" && !row.hasOverride) return `${row.label} ${modeSuffix}`
-        return `${row.label} ${modeSuffix} — ${row.model}`
+        const labelPart = truncate(row.label)
+        const modePart = `(${row.mode ?? "subagent"})`
+        if (row.model === "—" && !row.hasOverride) return `${labelPart} ${modePart}`
+        return `${labelPart} ${modePart} — ${row.model}`
       })
     default:
       return assertNever(roster)
