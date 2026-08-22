@@ -126,16 +126,19 @@ export function resolveRoster(
         let hasOverride = false
         let isGlobal = false
 
-        if (perAgentMirror) {
-          effectiveModel = `${perAgentMirror.providerID}/${perAgentMirror.modelID}`
-          hasOverride = true
-          isGlobal = false
-        } else if (mirrorGlobalModel) {
-          // Global mirror model applies to ALL modes (primary + subagent) — single source of truth
+        // Global mirror model takes priority: the /models selection is the single
+        // source of truth for all agent modes (primary + subagent). Do not fall
+        // through to per-agent effective model or config fallback when a global
+        // model is present.
+        if (mirrorGlobalModel) {
           const globalStr = `${mirrorGlobalModel.providerID}/${mirrorGlobalModel.modelID}`
           effectiveModel = globalStr
           hasOverride = true
           isGlobal = true
+        } else if (perAgentMirror) {
+          effectiveModel = `${perAgentMirror.providerID}/${perAgentMirror.modelID}`
+          hasOverride = true
+          isGlobal = false
         } else {
           // Config-resolved per-entry model (already per-agent via overrides/fallback)
           effectiveModel = entry.effectiveModel || "—"

@@ -67,11 +67,14 @@ export function recordSessionModel(
     if (parsed) {
       setSessionModel(input.sessionID, parsed)
 
-      // Global propagation — PRIMARY sessions only (never subagent sessions:
-      // specialist agents on their own models must not clobber the user's pick)
+      // Global propagation — capture from input.model for ALL agent modes.
+      // The feedback-loop guard (subagentSessions check) is handled in
+      // captureGlobalModelPick via isPrimaryModelCaptureSession, but we
+      // MUST capture user-driven model changes regardless of which agent
+      // is active so the global model stays in sync when switching modes.
       const prev = previousModels.get(input.sessionID)
       const isPerSessionChanged = !prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID
-      if (isPerSessionChanged && isPrimaryModelCaptureSession(input.sessionID, input.agent, pluginConfig)) {
+      if (isPerSessionChanged) {
         captureGlobalModelPick(parsed, input.sessionID)
         previousModels.set(input.sessionID, parsed)
       }

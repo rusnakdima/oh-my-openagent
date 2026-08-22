@@ -1,7 +1,8 @@
 import { isRecord } from "@oh-my-opencode/utils"
 import { getSessionPromptParams } from "../shared/session-prompt-params-state"
 import { getModelCapabilities, log, resolveCompatibleModelSettings } from "../shared"
-import { captureGlobalModelPick, isPrimaryModelCaptureSession } from "./global-model-capture"
+import { captureGlobalModelPick } from "./global-model-capture"
+import { getSelectedGlobalModel } from "../shared/session-model-state"
 import type { OhMyOpenCodeConfig } from "../config"
 
 // Track last model per session to detect user-driven changes (deduplicate writes)
@@ -123,8 +124,8 @@ export function createChatParamsHandler(_args: {
     })
 
     // Capture USER-DRIVEN model picks (fires when the user selects via /models).
-    // PRIMARY sessions only: subagent/specialist sessions run on their own models
-    // and must never overwrite the user's global pick (feedback-loop guard).
+    // All sessions should capture user selections to keep global model visible
+    // across agent mode switches. Dedup at global level to prevent feedback loops.
     if (pluginConfig) {
       const parsed = {
         providerID: normalizedInput.model.providerID,
@@ -134,7 +135,9 @@ export function createChatParamsHandler(_args: {
       const isPerSessionChanged = !lastPerSession || lastPerSession.providerID !== parsed.providerID || lastPerSession.modelID !== parsed.modelID
       if (isPerSessionChanged) {
         lastChatParamsModel.set(normalizedInput.sessionID, parsed)
-        if (isPrimaryModelCaptureSession(normalizedInput.sessionID, normalizedInput.agent.name, pluginConfig)) {
+        // Dedup at global level to prevent feedback loops
+        const current = getSelectedGlobalModel()
+        if (!current || current.providerID !== parsed.providerID || current.modelID !== parsed.modelID) {
           log("[chat-params] user model pick captured", { model: parsed, sessionID: normalizedInput.sessionID.slice(0, 8) })
           captureGlobalModelPick(parsed, normalizedInput.sessionID)
         }
