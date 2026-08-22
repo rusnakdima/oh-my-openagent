@@ -1939,6 +1939,9 @@
         "model_fallback": {
           "type": "boolean"
         },
+        "model_fallback_enabled": {
+          "type": "boolean"
+        },
         "agents": {
           "type": "object",
           "properties": {
@@ -17031,6 +17034,9 @@
                 "type": "boolean"
               },
               "model_fallback": {
+                "type": "boolean"
+              },
+              "model_fallback_enabled": {
                 "type": "boolean"
               },
               "agents": {

@@ -12,6 +12,24 @@ import type { SidebarView } from "./features/tui-sidebar/state-types"
 import { log } from "./shared/logger"
 import { setupTuiVoice } from "./tui-voice/index"
 import { getAvailableModels } from "./shared/model-cache-state"
+import { readFileSync, writeFileSync } from "node:fs"
+import path from "node:path"
+
+const HOME_TUI = process.env.HOME ?? ""
+const OPENCODE_CONFIG_TUI = path.join(HOME_TUI, ".config/opencode/opencode.jsonc")
+const MIMOCODE_CONFIG_TUI = path.join(HOME_TUI, ".config/mimocode/mimocode.jsonc")
+
+function updateConfigModelTui(configPath: string, model: string): void {
+  try {
+    const raw = readFileSync(configPath, "utf-8")
+    const stripped = raw.replace(/\/\/.*$/gm, "")
+    const cfg = JSON.parse(stripped)
+    cfg.model = model
+    writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf-8")
+  } catch {
+    // Non-fatal — config file may not exist or be writable
+  }
+}
 
 type SolidRuntime<Node> = {
   readonly createElement: (tag: string) => Node
@@ -261,6 +279,10 @@ const module: TuiPluginModule = {
         const { setSelectedGlobalModel } = await import("./shared/session-model-state")
         setSelectedGlobalModel(model)
         log("[tui] set global model", { providerID: model.providerID, modelID: model.modelID })
+        // Persist to config files so builtin-agents (which read params.config.model) see the selection for ALL modes
+        const fullModel = `${model.providerID}/${model.modelID}`
+        updateConfigModelTui(OPENCODE_CONFIG_TUI, fullModel)
+        updateConfigModelTui(MIMOCODE_CONFIG_TUI, fullModel)
         const { getTuiStateMirrorSingleton } = await import("./features/tui-sidebar/mirror-manager")
         void getTuiStateMirrorSingleton()?.flush()
       } catch (err) {

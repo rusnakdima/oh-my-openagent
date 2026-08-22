@@ -130,8 +130,8 @@ export function resolveRoster(
           effectiveModel = `${perAgentMirror.providerID}/${perAgentMirror.modelID}`
           hasOverride = true
           isGlobal = false
-        } else if (mirrorGlobalModel && mode === "primary") {
-          // For primary agents, global mirror model applies per-agent (still per-agent via mode check)
+        } else if (mirrorGlobalModel) {
+          // Global mirror model applies to ALL modes (primary + subagent) — single source of truth
           const globalStr = `${mirrorGlobalModel.providerID}/${mirrorGlobalModel.modelID}`
           effectiveModel = globalStr
           hasOverride = true

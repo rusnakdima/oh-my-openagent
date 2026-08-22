@@ -4,7 +4,7 @@ import type { CategoryConfig, GitMasterConfig } from "../../config/schema"
 import type { BrowserAutomationProvider } from "../../config/schema"
 import type { AvailableAgent } from "../dynamic-agent-prompt-builder"
 import { AGENT_MODEL_REQUIREMENTS, isModelAvailable } from "../../shared"
-import { buildAgent, isFactory } from "../agent-builder"
+import { buildAgent } from "../agent-builder"
 import { resolveAgentSkills } from "../agent-skill-resolution"
 import { applyOverrides } from "./agent-overrides"
 import { applyEnvironmentContext } from "./environment-context"
@@ -78,13 +78,11 @@ export function collectPendingBuiltinAgents(input: {
       }
     }
 
-    const isPrimaryAgent = isFactory(source) && source.mode === "primary"
-
     // Determine userModel: per-agent override takes priority, otherwise use global defaultModel
     const resolvedUserModel = override?.model ?? defaultModel
 
     let resolution = applyModelResolution({
-      uiSelectedModel: (isPrimaryAgent && override?.model === undefined) ? uiSelectedModel : undefined,
+      uiSelectedModel: override?.model === undefined ? uiSelectedModel : undefined,
       userModel: resolvedUserModel,
       requirement,
       availableModels,
