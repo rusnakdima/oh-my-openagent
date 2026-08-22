@@ -49,7 +49,15 @@ export function deriveAgents(snap: TuiRuntimeSnapshot | null): AgentsState {
 
   return {
     kind: "list",
-    agents: [...snap.activeAgents].sort((left, right) => left.name.localeCompare(right.name)).slice(0, MAX_AGENTS),
+    agents: [...snap.activeAgents]
+      .sort((left, right) => {
+        const nameCmp = left.name.localeCompare(right.name)
+        if (nameCmp !== 0) return nameCmp
+        const modeCmp = (left.mode ?? "").localeCompare(right.mode ?? "")
+        if (modeCmp !== 0) return modeCmp
+        return (left.model ?? "").localeCompare(right.model ?? "")
+      })
+      .slice(0, MAX_AGENTS),
   }
 }
 
@@ -69,7 +77,11 @@ export function deriveLoop(snap: TuiRuntimeSnapshot | null): LoopState {
 }
 
 function compareRosterRows(left: RosterRow, right: RosterRow): number {
-  return left.label.localeCompare(right.label)
+  const labelCmp = left.label.localeCompare(right.label)
+  if (labelCmp !== 0) return labelCmp
+  const modeCmp = left.mode.localeCompare(right.mode)
+  if (modeCmp !== 0) return modeCmp
+  return left.model.localeCompare(right.model)
 }
 
 function compareJobs(left: JobRow, right: JobRow): number {

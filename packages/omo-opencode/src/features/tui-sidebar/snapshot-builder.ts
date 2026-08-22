@@ -2,11 +2,13 @@ import { getLastAgentFromSession } from "../../hooks/atlas/session-last-agent"
 import { normalizeSDKResponse } from "../../shared/normalize-sdk-response"
 import { getMainSessionID } from "../claude-code-session-state"
 import {
+  getEffectiveModelForAgent,
   getSessionModel,
   getGlobalTuiModel,
   getPerAgentModelsSnapshot,
   type SessionModel,
 } from "../../shared/session-model-state"
+import type { AgentMode } from "../../agents/types"
 import { MIRROR_SCHEMA_VERSION } from "./constants"
 import { readActiveLoop } from "./loop-reader"
 import { canonicalProjectDir } from "./mirror-path"
@@ -70,6 +72,25 @@ async function readStatuses(input: BuildTuiRuntimeSnapshotInput): Promise<Sessio
   return normalizeSDKResponse<SessionStatusMap>(response, {})
 }
 
+const AGENT_MODE_MAP: Record<string, AgentMode> = {
+  sisyphus: "primary",
+  "sisyphus-junior": "subagent",
+  atlas: "primary",
+  hephaestus: "primary",
+  oracle: "subagent",
+  explore: "subagent",
+  librarian: "subagent",
+  metis: "subagent",
+  momus: "subagent",
+  "multimodal-looker": "subagent",
+  prometheus: "primary",
+}
+
+function formatAgentModel(effective: SessionModel | null): string | undefined {
+  if (!effective) return undefined
+  return `${effective.providerID}/${effective.modelID}`
+}
+
 async function activeAgentsFromStatuses(
   statuses: SessionStatusMap,
   client: TuiMirrorClient,
@@ -80,10 +101,19 @@ async function activeAgentsFromStatuses(
     .filter((row): row is { readonly sessionID: string; readonly status: ActiveAgentStatus } => row.status !== null)
 
   return Promise.all(
-    rows.map(async (row) => ({
-      name: (await sessionAgentResolver(row.sessionID, client)) ?? row.sessionID,
-      status: row.status,
-    })),
+    rows.map(async (row) => {
+      const name = (await sessionAgentResolver(row.sessionID, client)) ?? row.sessionID
+      const effective = getEffectiveModelForAgent(name)
+      const fallbackModel = getSessionModel(row.sessionID)
+      const model = formatAgentModel(effective) ?? (fallbackModel ? `${fallbackModel.providerID}/${fallbackModel.modelID}` : undefined)
+      const mode = AGENT_MODE_MAP[name] ?? "subagent"
+      return {
+        name,
+        status: row.status,
+        ...(model ? { model } : {}),
+        mode,
+      }
+    }),
   )
 }
 

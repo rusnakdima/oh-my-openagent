@@ -18,8 +18,8 @@ describe("constants", () => {
     expect(MIRROR_DIR_NAME).toBe("tui-state")
   })
 
-  it("MIRROR_SCHEMA_VERSION is 2", () => {
-    expect(MIRROR_SCHEMA_VERSION).toBe(2)
+  it("MIRROR_SCHEMA_VERSION is 3", () => {
+    expect(MIRROR_SCHEMA_VERSION).toBe(3)
   })
 
   it("STALE_MS is 6000 (mirror snapshot too old to trust)", () => {

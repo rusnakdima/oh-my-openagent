@@ -4,7 +4,7 @@ import type { OhMyOpenCodeConfig } from "../../config"
 import { validatePluginConfig } from "../../config/validate"
 import type { AgentMode } from "../../agents/types"
 import type { RosterRow } from "./state-types"
-import type { SessionModel } from "../../shared/session-model-state"
+import { getEffectiveModelForAgent } from "../../shared/session-model-state"
 import { readMirror } from "./mirror-io"
 
 type ResolutionEntry = {
@@ -12,12 +12,13 @@ type ResolutionEntry = {
   readonly effectiveModel: string
 }
 
-// Known built-in agent modes (Aug 2026: global-only model)
-const AGENT_MODE_MAP: Record<string, AgentMode> = {
+// Known built-in agent modes (Aug 2026: per-agent mode + model)
+export const AGENT_MODE_MAP: Record<string, AgentMode> = {
   sisyphus: "primary",
   "sisyphus-junior": "subagent",
   atlas: "primary",
   hephaestus: "primary",
+  prometheus: "primary",
   oracle: "subagent",
   explore: "subagent",
   librarian: "subagent",
@@ -94,14 +95,12 @@ export function resolveRoster(
     const sidebarConfig = config.tui?.sidebar
     const visibleAgents = sidebarConfig?.visibleAgents
     const visibleCategories = sidebarConfig?.visibleCategories
-    // Read model from mirror file (written by plugin heartbeat) — NOT from local module memory.
-    // Plugin and TUI are separate processes; TUI's session-model-state module is stale.
+    // Read model from mirror file (written by plugin heartbeat) — per-agent models
     const mirror = readMirror(directory)
-    const mirrorModel = mirror?.tuiSelectedModel
-    const liveGlobalModel = mirrorModel
-      ? { providerID: mirrorModel.providerID, modelID: mirrorModel.modelID }
-      : undefined
-    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config), liveGlobalModel)
+    const perAgentMirrorModels = mirror?.perAgentModels ?? {}
+    const mirrorGlobalModel = mirror?.tuiSelectedModel
+    // Resolve without live global override — per-agent effective via getEffectiveModelForAgent / mirror
+    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config), undefined)
 
     const disabledAgents = new Set(config.disabled_agents ?? [])
 
@@ -118,20 +117,42 @@ export function resolveRoster(
     return [...agents, ...categories]
       .filter((entry) => !disabledAgents.has(entry.name))
       .map((entry) => {
-        // Model priority: live global TUI model > config/fallback
-        const hasOverride = false
-        const isGlobal = !!liveGlobalModel
+        // Per-agent model: perAgent mirror > config/fallback (getModelResolutionInfoWithOverrides)
+        // getEffectiveModelForAgent is consulted only when mirror has per-agent or global to avoid clobbering config
+        const perAgentMirror = perAgentMirrorModels[entry.name]
+        const mode = AGENT_MODE_MAP[entry.name] ?? "subagent"
 
         let effectiveModel: string
-        if (liveGlobalModel) {
-          effectiveModel = `${liveGlobalModel.providerID}/${liveGlobalModel.modelID}`
+        let hasOverride = false
+        let isGlobal = false
+
+        if (perAgentMirror) {
+          effectiveModel = `${perAgentMirror.providerID}/${perAgentMirror.modelID}`
+          hasOverride = true
+          isGlobal = false
+        } else if (mirrorGlobalModel && mode === "primary") {
+          // For primary agents, global mirror model applies per-agent (still per-agent via mode check)
+          const globalStr = `${mirrorGlobalModel.providerID}/${mirrorGlobalModel.modelID}`
+          effectiveModel = globalStr
+          hasOverride = true
+          isGlobal = true
         } else {
+          // Config-resolved per-entry model (already per-agent via overrides/fallback)
           effectiveModel = entry.effectiveModel || "—"
+          // Also consider live per-agent via getEffectiveModelForAgent only as fallback if entry is fallback and we have live info
+          const perAgentEffective = getEffectiveModelForAgent(entry.name)
+          if (perAgentEffective) {
+            const perAgentString = `${perAgentEffective.providerID}/${perAgentEffective.modelID}`
+            // Don't clobber explicit config overrides
+            if (!entry.effectiveModel || entry.effectiveModel === perAgentString) {
+              effectiveModel = perAgentString
+            }
+          }
         }
 
         return {
           label: entry.name,
-          mode: AGENT_MODE_MAP[entry.name] ?? "subagent",
+          mode,
           model: effectiveModel ? formatModelLabel(effectiveModel) : "—",
           effectiveModel,
           hasOverride,

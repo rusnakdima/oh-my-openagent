@@ -137,8 +137,8 @@ describe("buildTuiRuntimeSnapshot", () => {
     expect(TuiRuntimeSnapshotSchema.safeParse(snapshot).success).toBe(true)
     expect(snapshot.projectDir).toBe(realpathSync.native(resolve(projectDir)))
     expect(snapshot.activeAgents).toEqual([
-      { name: "sisyphus", status: "busy" },
-      { name: "atlas", status: "retry" },
+      { name: "sisyphus", status: "busy", model: "anthropic/claude-opus-5", mode: "primary" },
+      { name: "atlas", status: "retry", model: "anthropic/claude-sonnet-5", mode: "primary" },
     ])
     expect(snapshot.jobBoard).toEqual([
       { title: "Explore runtime", status: "running", toolCalls: 3, lastTool: "grep" },
@@ -173,7 +173,7 @@ describe("buildTuiRuntimeSnapshot", () => {
     })
 
     // then
-    expect(snapshot.activeAgents).toEqual([{ name: "ses-fallback", status: "running" }])
+    expect(snapshot.activeAgents).toEqual([{ name: "ses-fallback", status: "running", mode: "subagent" }])
   })
 
   it("#given prompt-derived task and loop titles #when building #then persisted mirror text is redacted", async () => {
