@@ -1,4 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test"
+import { mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import {
   clearAllPerAgentModels,
@@ -12,10 +15,20 @@ import {
   setSelectedGlobalModel,
   getSelectedGlobalModel,
 } from "./session-model-state"
+import { _resetGlobalModelStoreCacheForTesting } from "./global-model-store"
 
 describe("session-model-state", () => {
-  // Reset all state before each test to ensure isolation
+  let tempDataHome = ""
+  let originalXdgDataHome: string | undefined
+
+  // Reset all state before each test to ensure isolation. XDG_DATA_HOME is
+  // sandboxed so getEffectiveModelForAgent's persisted-store fallback can never
+  // read a real user pick from this machine.
   beforeEach(() => {
+    tempDataHome = mkdtempSync(join(tmpdir(), "session-model-state-"))
+    originalXdgDataHome = process.env.XDG_DATA_HOME
+    process.env.XDG_DATA_HOME = tempDataHome
+    _resetGlobalModelStoreCacheForTesting()
     clearGlobalTuiModel()
     clearAllPerAgentModels()
   })
@@ -23,6 +36,15 @@ describe("session-model-state", () => {
   afterEach(() => {
     clearGlobalTuiModel()
     clearAllPerAgentModels()
+    _resetGlobalModelStoreCacheForTesting()
+    if (originalXdgDataHome === undefined) {
+      delete process.env.XDG_DATA_HOME
+    } else {
+      process.env.XDG_DATA_HOME = originalXdgDataHome
+    }
+    if (tempDataHome) {
+      rmSync(tempDataHome, { recursive: true, force: true })
+    }
   })
 
   describe("setGlobalTuiModel / getGlobalTuiModel", () => {

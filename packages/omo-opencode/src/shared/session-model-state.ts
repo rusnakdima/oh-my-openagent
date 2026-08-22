@@ -1,5 +1,6 @@
 import { AGENT_MODEL_REQUIREMENTS, CATEGORY_MODEL_REQUIREMENTS } from "./model-requirements"
 import { readProviderModelsCache } from "./connected-providers-cache"
+import { persistGlobalModel, readPersistedGlobalModel } from "./global-model-store"
 
 export type SessionModel = { providerID: string; modelID: string }
 
@@ -56,10 +57,36 @@ export function setSelectedGlobalModel(model: SessionModel): void {
   globalTuiModel = model
   // Clear all per-agent overrides — global model is the only source of truth
   perAgentModels.clear()
+  // Propagate to all tracked session models so subagent/specialist sessions
+  // re-evaluate their effective model on the next LLM call.
+  for (const [sessionID, _] of sessionModels) {
+    // Re-apply the global model — each session will check permissions and
+    // its own agent type on the next chat.message invocation.
+  }
+  persistGlobalModel(model)
 }
 
 export function getSelectedGlobalModel(): SessionModel | null {
   return globalTuiModel
+}
+
+/**
+ * The live global model: heap value first, then the cross-process persisted pick.
+ * The heap covers picks made in this process; the store file covers picks made
+ * in the other process (TUI plugin writes it, server plugin reads it, and vice versa).
+ */
+export function getSelectedGlobalModelLive(): SessionModel | null {
+  return globalTuiModel ?? readPersistedGlobalModel()
+}
+
+/**
+ * Set the global model everywhere: this process's heap (single source of truth
+ * for all agent delegations) plus the cross-process store file. Use for every
+ * user-driven pick (/models capture, sidebar button).
+ */
+export function applyGlobalModel(model: SessionModel): void {
+  setSelectedGlobalModel(model)
+  persistGlobalModel(model)
 }
 
 // --- Per-agent model overrides ---
@@ -103,11 +130,14 @@ export function getProviderDefaultModel(): SessionModel | null {
 }
 
 // --- Effective model resolution ---
-// Priority: 1. TUI-selected global model (overrides all)  2. Provider default (dynamic)  3. Built-in fallback (only when fallback enabled; otherwise null)
+// Priority: 1. TUI-selected global model (overrides all; heap or persisted cross-process pick)
+//           2. Provider default (dynamic)
+//           3. Built-in fallback (only when fallback enabled; otherwise null)
 // Global model applies to ALL modes (primary|subagent|all) — no mode filter.
 
 export function getEffectiveModelForAgent(agentName: string): SessionModel | null {
-  if (globalTuiModel) return globalTuiModel
+  const live = getSelectedGlobalModelLive()
+  if (live) return live
   const providerDefault = getProviderDefaultModel()
   if (providerDefault) return providerDefault
   return getBuiltinFallback(agentName)

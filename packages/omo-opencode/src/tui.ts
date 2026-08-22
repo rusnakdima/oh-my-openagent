@@ -12,24 +12,6 @@ import type { SidebarView } from "./features/tui-sidebar/state-types"
 import { log } from "./shared/logger"
 import { setupTuiVoice } from "./tui-voice/index"
 import { getAvailableModels } from "./shared/model-cache-state"
-import { readFileSync, writeFileSync } from "node:fs"
-import path from "node:path"
-
-const HOME_TUI = process.env.HOME ?? ""
-const OPENCODE_CONFIG_TUI = path.join(HOME_TUI, ".config/opencode/opencode.jsonc")
-const MIMOCODE_CONFIG_TUI = path.join(HOME_TUI, ".config/mimocode/mimocode.jsonc")
-
-function updateConfigModelTui(configPath: string, model: string): void {
-  try {
-    const raw = readFileSync(configPath, "utf-8")
-    const stripped = raw.replace(/\/\/.*$/gm, "")
-    const cfg = JSON.parse(stripped)
-    cfg.model = model
-    writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf-8")
-  } catch {
-    // Non-fatal — config file may not exist or be writable
-  }
-}
 
 type SolidRuntime<Node> = {
   readonly createElement: (tag: string) => Node
@@ -197,7 +179,7 @@ const module: TuiPluginModule = {
       if (api.client?.tui?.onSidebarClick) {
         // @ts-ignore
         api.client.tui.onSidebarClick((event: { index: number }) => {
-          void handleSidebarClick(event.index, initialRoster, directory)
+          void handleSidebarClick(event.index, initialRoster, directory, currentView)
         })
       }
     } catch {
@@ -210,28 +192,18 @@ const module: TuiPluginModule = {
 
     async function handleSidebarClick(
       index: number,
-      roster: readonly RosterRow[],
+      _roster: readonly RosterRow[],
       _dir: string,
+      currentView: Awaited<ReturnType<typeof readView>>,
     ): Promise<void> {
-      // Index 0 = "Models" section header (global model line + roster rows)
-      // N = "Set Global Model" button
+      // active view:  index 0 = box, index 1 = "Set Global Model"
+      // broken view:  index 0 = section, index 1 = "Set Global Model"
+      // idle view:    index 0 = section("Models"), 1..N = roster rows, N+1 = "Set Global Model"
 
-      const rosterRowCount = roster.length
-      const setGlobalIndex = rosterRowCount + 1
+      const setGlobalIndex =
+        currentView.kind === "idle" ? _roster.length + 2 : 1
 
-      if (index === 0) {
-        // "Models" header - no action
-        return
-      }
-
-      const rowIndex = index - 1
-      if (rowIndex >= 0 && rowIndex < rosterRowCount) {
-        // Roster row clicked — no action (display only in global-only mode)
-        return
-      }
-
-      if (rowIndex === rosterRowCount) {
-        // "Set Global Model" button → open dialog
+      if (index === setGlobalIndex) {
         openGlobalModelDialog()
       }
     }
@@ -276,15 +248,14 @@ const module: TuiPluginModule = {
 
     async function applyModelSelection(model: { providerID: string; modelID: string }): Promise<void> {
       try {
-        const { setSelectedGlobalModel } = await import("./shared/session-model-state")
-        setSelectedGlobalModel(model)
+        // Persist to the cross-process store (the channel the server plugin reads)
+        // and to the user config files (for future sessions). The server plugin's
+        // chat.message override applies the pick to ALL agent modes live.
+        const { applyGlobalModel } = await import("./shared/session-model-state")
+        applyGlobalModel(model)
+        const { writeGlobalModelToConfigs } = await import("./shared/persist-config-model")
+        writeGlobalModelToConfigs(model)
         log("[tui] set global model", { providerID: model.providerID, modelID: model.modelID })
-        // Persist to config files so builtin-agents (which read params.config.model) see the selection for ALL modes
-        const fullModel = `${model.providerID}/${model.modelID}`
-        updateConfigModelTui(OPENCODE_CONFIG_TUI, fullModel)
-        updateConfigModelTui(MIMOCODE_CONFIG_TUI, fullModel)
-        const { getTuiStateMirrorSingleton } = await import("./features/tui-sidebar/mirror-manager")
-        void getTuiStateMirrorSingleton()?.flush()
       } catch (err) {
         log("[tui] failed to apply model selection", { error: err })
       }

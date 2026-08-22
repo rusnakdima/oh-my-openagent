@@ -1,29 +1,14 @@
-import type { OhMyOpenCodeConfig } from "../../config"
 import { subagentSessions, getMainSessionID } from "../../features/claude-code-session-state"
-import { getAgentConfigKey } from "../../shared/agent-display-names"
-import { getSessionModel, setSessionModel, setSelectedGlobalModel } from "../../shared/session-model-state"
+import { getSessionModel, setSessionModel } from "../../shared/session-model-state"
 import { log } from "../../shared"
+import { captureGlobalModelPick, hasExplicitAgentModelOverride, isPrimaryModelCaptureSession } from "../global-model-capture"
+import type { OhMyOpenCodeConfig } from "../../config"
 import type { ChatMessageHandlerOutput, ChatMessageInput, SessionModelOverride } from "./types"
 
+export { hasExplicitAgentModelOverride }
+
 // Track previous model per session to detect changes
-// Subagent sessionIDs also write globalTuiModel — map includes ALL sessions (primary + subagent)
 const previousModels = new Map<string, { providerID: string; modelID: string }>()
-let lastGlobalPreviousModel: { providerID: string; modelID: string } | null = null
-
-function hasExplicitAgentModelOverride(
-  agent: string | undefined,
-  pluginConfig: OhMyOpenCodeConfig,
-): boolean {
-  const configuredAgents = pluginConfig.agents
-  const normalizedAgent = typeof agent === "string" ? getAgentConfigKey(agent) : undefined
-  if (!normalizedAgent || !configuredAgents || !(normalizedAgent in configuredAgents)) {
-    return false
-  }
-
-  const configuredAgent = configuredAgents[normalizedAgent as keyof typeof configuredAgents]
-  const configuredModel = configuredAgent?.model
-  return typeof configuredModel === "string" && configuredModel.trim().length > 0
-}
 
 export function getStoredMainSessionModel(
   input: ChatMessageInput,
@@ -49,9 +34,14 @@ export function getStoredMainSessionModel(
   return getSessionModel(input.sessionID)
 }
 
-export function recordSessionModel(input: ChatMessageInput, output: ChatMessageHandlerOutput): void {
+export function recordSessionModel(
+  input: ChatMessageInput,
+  output: ChatMessageHandlerOutput,
+  pluginConfig: OhMyOpenCodeConfig,
+): void {
   log("[recordSessionModel]", { inputModel: input.model, outputModel: output.message.model, sessionID: input.sessionID.slice(0, 8) })
-  // First priority: input.model from TUI picker (current live selection — always wins)
+
+  // First priority: input.model from the TUI /models picker (live user selection)
   if (input.model) {
     let parsed: { providerID: string; modelID: string } | null = null
 
@@ -77,20 +67,22 @@ export function recordSessionModel(input: ChatMessageInput, output: ChatMessageH
     if (parsed) {
       setSessionModel(input.sessionID, parsed)
 
-      // Detect model change → update the global selected model (includes subagent sessions)
+      // Global propagation — PRIMARY sessions only (never subagent sessions:
+      // specialist agents on their own models must not clobber the user's pick)
       const prev = previousModels.get(input.sessionID)
       const isPerSessionChanged = !prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID
-      const isGlobalChanged = !lastGlobalPreviousModel || lastGlobalPreviousModel.providerID !== parsed.providerID || lastGlobalPreviousModel.modelID !== parsed.modelID
-      if (isPerSessionChanged || isGlobalChanged) {
-        setSelectedGlobalModel(parsed)
+      if (isPerSessionChanged && isPrimaryModelCaptureSession(input.sessionID, input.agent, pluginConfig)) {
+        captureGlobalModelPick(parsed, input.sessionID)
         previousModels.set(input.sessionID, parsed)
-        lastGlobalPreviousModel = parsed
       }
       return
     }
   }
 
-  // Second priority: output.message.model set by our plugin (fallback when no input.model)
+  // Second priority: output.message.model set by our plugin (fallback when no input.model).
+  // Session-local recording only — NEVER propagate to the global model from here:
+  // output.message.model frequently contains our own fallback overrides, and
+  // capturing those back would create a self-feedback loop.
   const modelOverride = output.message.model
   if (
     modelOverride &&
@@ -102,17 +94,6 @@ export function recordSessionModel(input: ChatMessageInput, output: ChatMessageH
     const modelID = (modelOverride as { readonly modelID?: string }).modelID
     if (typeof providerID === "string" && typeof modelID === "string") {
       setSessionModel(input.sessionID, { providerID, modelID })
-
-      // Also update global selected model on change (includes subagent sessions)
-      const prev = previousModels.get(input.sessionID)
-      const parsed = { providerID, modelID }
-      const isPerSessionChanged = !prev || prev.providerID !== parsed.providerID || prev.modelID !== parsed.modelID
-      const isGlobalChanged = !lastGlobalPreviousModel || lastGlobalPreviousModel.providerID !== parsed.providerID || lastGlobalPreviousModel.modelID !== parsed.modelID
-      if (isPerSessionChanged || isGlobalChanged) {
-        setSelectedGlobalModel(parsed)
-        previousModels.set(input.sessionID, parsed)
-        lastGlobalPreviousModel = parsed
-      }
     }
   }
 }

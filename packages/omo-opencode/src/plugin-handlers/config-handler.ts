@@ -47,6 +47,9 @@ type AgentConfigSnapshot = {
   readonly agents: Record<string, unknown>;
 }
 
+// Module-level state for cache invalidation from outside the config handler
+let agentConfigSnapshot: AgentConfigSnapshot | undefined = undefined;
+
 function cloneConfigValue(value: unknown): unknown {
   if (Array.isArray(value)) {
     return value.map(cloneConfigValue)
@@ -90,9 +93,8 @@ function replayAgentConfigSideEffects(params: {
 
 export function createConfigHandler(deps: ConfigHandlerDeps) {
   const { ctx, pluginConfig, modelCacheState, runtimeSkillSourceUrl } = deps;
-  let agentConfigSnapshot: AgentConfigSnapshot | undefined;
 
-  return async (config: Record<string, unknown>) => {
+  const configHandler: (config: Record<string, unknown>) => Promise<void> = async (config) => {
     const formatterConfig = config.formatter;
 
     setAdditionalAllowedMcpEnvVars(pluginConfig.mcp_env_allowlist ?? [])
@@ -158,5 +160,16 @@ export function createConfigHandler(deps: ConfigHandlerDeps) {
       commandCount: Object.keys((config.command as Record<string, unknown>) ?? {})
         .length,
     });
-  };
+  }
+
+  return configHandler
+}
+
+/**
+ * Invalidate the agent config cache so the next config hook call re-applies
+ * agent configuration with a fresh effectiveUiModel from getGlobalTuiModel().
+ * Safe to call multiple times.
+ */
+export function triggerAgentConfigSnapshotInvalidate(): void {
+  agentConfigSnapshot = undefined
 }

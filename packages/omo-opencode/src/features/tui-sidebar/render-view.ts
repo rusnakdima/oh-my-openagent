@@ -33,6 +33,7 @@ export function buildViewNodes(view: SidebarView, theme: ThemeLike): ViewNode[] 
           ...agentNodes(view.agents, theme),
           ...jobNodes(view.jobs, theme),
         ]),
+        setGlobalModelNode(theme),
       ]
     case "broken":
       return brokenNodes(view.messages, theme)
@@ -199,6 +200,7 @@ function brokenNodes(messages: readonly string[], theme: ThemeLike): ViewNode[] 
       text({ fg: theme.error }, "config invalid - run doctor"),
       ...messages.map((message) => text({ fg: theme.textMuted }, truncate(message))),
     ]),
+    text({ fg: theme.accent }, "[Set Global Model]"),
   ]
 }
 
@@ -210,6 +212,10 @@ function idleNodes(roster: RosterState, theme: ThemeLike): ViewNode[] {
     section("Models", theme, modelLines),
     text({ fg: theme.accent }, "[Set Global Model]"),
   ]
+}
+
+function setGlobalModelNode(theme: ThemeLike): ViewNode {
+  return text({ fg: theme.accent }, "[Set Global Model]")
 }
 
 function rosterLines(roster: RosterState): string[] {

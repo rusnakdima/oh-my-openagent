@@ -1,30 +1,11 @@
 import { isRecord } from "@oh-my-opencode/utils"
 import { getSessionPromptParams } from "../shared/session-prompt-params-state"
 import { getModelCapabilities, log, resolveCompatibleModelSettings } from "../shared"
-import { setSelectedGlobalModel } from "../shared/session-model-state"
-import { readFileSync, writeFileSync } from "node:fs"
-import path from "node:path"
+import { captureGlobalModelPick, isPrimaryModelCaptureSession } from "./global-model-capture"
+import type { OhMyOpenCodeConfig } from "../config"
 
-// Track last model per session to detect changes (deduplicate LLM calls)
-// Subagent sessionIDs also write globalTuiModel — map includes ALL sessions (primary + subagent), not just primary.
+// Track last model per session to detect user-driven changes (deduplicate writes)
 const lastChatParamsModel = new Map<string, { providerID: string; modelID: string }>()
-let lastGlobalChatParamsModel: { providerID: string; modelID: string } | null = null
-
-const HOME = process.env.HOME ?? ""
-const OPENCODE_CONFIG = path.join(HOME, ".config/opencode/opencode.jsonc")
-const MIMOCODE_CONFIG = path.join(HOME, ".config/mimocode/mimocode.jsonc")
-
-function updateConfigModel(configPath: string, model: string): void {
-  try {
-    const raw = readFileSync(configPath, "utf-8")
-    const stripped = raw.replace(/\/\/.*$/gm, "")
-    const cfg = JSON.parse(stripped)
-    cfg.model = model
-    writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf-8")
-  } catch {
-    // Non-fatal — config file may not exist or be writable
-  }
-}
 
 const SAFE_MAX_OUTPUT_TOKENS_FALLBACK = 4096
 
@@ -106,7 +87,9 @@ function isChatParamsOutput(raw: unknown): raw is ChatParamsOutput {
 
 export function createChatParamsHandler(_args: {
   client?: unknown
+  pluginConfig?: OhMyOpenCodeConfig
 } = {}): (input: unknown, output: unknown) => Promise<void> {
+  const pluginConfig = _args.pluginConfig
   return async (input, output): Promise<void> => {
     const normalizedInput = buildChatParamsInput(input)
     if (!normalizedInput) return
@@ -139,25 +122,23 @@ export function createChatParamsHandler(_args: {
       modelID: normalizedInput.model.modelID,
     })
 
-    // Capture model on every LLM call — fires reliably when user selects via /models
-    // Global TUI model applies to ALL modes (primary|subagent|all); subagent sessionIDs also write.
-    const parsed = {
-      providerID: normalizedInput.model.providerID,
-      modelID: normalizedInput.model.modelID,
-    }
-    const lastPerSession = lastChatParamsModel.get(normalizedInput.sessionID)
-    const lastGlobal = lastGlobalChatParamsModel
-    const isPerSessionChanged = !lastPerSession || lastPerSession.providerID !== parsed.providerID || lastPerSession.modelID !== parsed.modelID
-    const isGlobalChanged = !lastGlobal || lastGlobal.providerID !== parsed.providerID || lastGlobal.modelID !== parsed.modelID
-    if (isPerSessionChanged || isGlobalChanged) {
-      setSelectedGlobalModel(parsed)
-      lastChatParamsModel.set(normalizedInput.sessionID, parsed)
-      lastGlobalChatParamsModel = parsed
-      log("[chat-params] model captured", { model: parsed, sessionID: normalizedInput.sessionID.slice(0, 8) })
-      // Sync to config files so MiMoCode sidebar and OpenCode config stay in sync
-      const fullModel = `${parsed.providerID}/${parsed.modelID}`
-      updateConfigModel(OPENCODE_CONFIG, fullModel)
-      updateConfigModel(MIMOCODE_CONFIG, fullModel)
+    // Capture USER-DRIVEN model picks (fires when the user selects via /models).
+    // PRIMARY sessions only: subagent/specialist sessions run on their own models
+    // and must never overwrite the user's global pick (feedback-loop guard).
+    if (pluginConfig) {
+      const parsed = {
+        providerID: normalizedInput.model.providerID,
+        modelID: normalizedInput.model.modelID,
+      }
+      const lastPerSession = lastChatParamsModel.get(normalizedInput.sessionID)
+      const isPerSessionChanged = !lastPerSession || lastPerSession.providerID !== parsed.providerID || lastPerSession.modelID !== parsed.modelID
+      if (isPerSessionChanged) {
+        lastChatParamsModel.set(normalizedInput.sessionID, parsed)
+        if (isPrimaryModelCaptureSession(normalizedInput.sessionID, normalizedInput.agent.name, pluginConfig)) {
+          log("[chat-params] user model pick captured", { model: parsed, sessionID: normalizedInput.sessionID.slice(0, 8) })
+          captureGlobalModelPick(parsed, normalizedInput.sessionID)
+        }
+      }
     }
 
     const compatibility = resolveCompatibleModelSettings({
