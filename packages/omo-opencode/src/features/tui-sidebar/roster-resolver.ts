@@ -99,8 +99,8 @@ export function resolveRoster(
     const mirror = readMirror(directory)
     const perAgentMirrorModels = mirror?.perAgentModels ?? {}
     const mirrorGlobalModel = mirror?.tuiSelectedModel
-    // Resolve without live global override — per-agent effective via getEffectiveModelForAgent / mirror
-    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config), undefined)
+    // Resolve with live global override from mirror — global model takes priority
+    const resolution = getModelResolutionInfoWithOverrides(toModelResolutionConfig(config), mirrorGlobalModel ?? undefined)
 
     const disabledAgents = new Set(config.disabled_agents ?? [])
 
