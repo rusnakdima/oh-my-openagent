@@ -210,8 +210,9 @@ function rosterLines(roster: RosterState): string[] {
       return ["No configured models"]
     case "rows":
       return roster.rows.map((row) => {
-        if (row.model === "—" && !row.hasOverride) return `${row.label}`
-        return `${row.label} — ${row.model}`
+        const modeSuffix = `(${row.mode})`
+        if (row.model === "—" && !row.hasOverride) return `${row.label} ${modeSuffix}`
+        return `${row.label} ${modeSuffix} — ${row.model}`
       })
     default:
       return assertNever(roster)

@@ -5,10 +5,17 @@ import { FallbackModelObjectSchema, FallbackModelsSchema } from "./fallback-mode
 export const CategoryConfigSchema = z.object({
   /** Human-readable description of the category's purpose. Shown in task prompt. */
   description: z.string().optional(),
+  /**
+   * @deprecated Per-category static `model` is deprecated — omit to use the TUI Global Model
+   * or `default_model`. Will be removed in a future release.
+   */
   model: z.string().optional(),
-  /** Ordered model chain; the first entry is the primary model and the rest are fallbacks. */
+  /**
+   * @deprecated Per-category `models` chain is deprecated — omit to use TUI Global Model.
+   * Fallback chains only apply when `model_fallback` is enabled.
+   */
   models: z.array(z.union([z.string(), FallbackModelObjectSchema])).optional(),
-  /** @deprecated Use `models` instead. */
+  /** @deprecated Use `models` instead; and per-category chains themselves are deprecated — omit to use TUI Global Model. */
   fallback_models: FallbackModelsSchema.optional(),
   reasoning: OmoReasoningSchema.optional(),
   /** @deprecated Use `reasoning` instead. */

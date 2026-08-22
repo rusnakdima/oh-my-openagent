@@ -3,22 +3,30 @@
 
   // Balanced defaults for general development.
   // Tuned for reliability across diverse tasks without overspending.
-
-  // Set a default model for ALL agents. Overrides hardcoded fallback chains
-  // unless an agent has an explicit `model` in its config below.
+  //
+  // Model selection is TUI-native. Omit per-agent `model` / per-category `model`
+  // to use the Global Model selected via OpenCode `/models` or the TUI sidebar
+  // [Set Global Model] picker.
+  //
+  // Optionally set ONE global default for all agents (uncomment):
   // "default_model": "anthropic/claude-opus-5",
+  //
+  // Per-agent `agents.*.model` and per-category `categories.*.model` are
+  // deprecated — omit to use the TUI Global Model / default_model. See
+  // docs/reference/configuration.md#model-resolution.
+  // Example of deprecated usage (do not use):
+  // "sisyphus": { "model": "anthropic/claude-opus-5" } // deprecated
 
   "[opencode]": {
     "agents": {
       // Main orchestrator: handles delegation and drives tasks to completion
+      // omit model -> uses TUI Global Model / default_model
       "sisyphus": {
-        "model": "anthropic/claude-opus-5",
-        "ultrawork": { "model": "anthropic/claude-opus-5", "reasoning": "max" },
+        "prompt_append": "Delegate to category-routed subagents for focused work.",
       },
 
       // Deep autonomous worker: end-to-end implementation
       "hephaestus": {
-        "model": "openai/gpt-5.6-sol",
         "prompt_append": "Explore thoroughly, then implement. Prefer small, testable changes.",
       },
 
@@ -28,16 +36,18 @@
       },
 
       // Architecture consultant: complex design and debugging
-      "oracle": { "model": "openai/gpt-5.6-sol", "reasoning": "high" },
+      "oracle": {
+        "reasoning": "high",
+      },
 
       // Documentation and code search
-      "librarian": { "model": "google/gemini-3.6-flash" },
+      "librarian": {},
 
       // Fast codebase exploration
-      "explore": { "model": "github-copilot/grok-code-fast-1" },
+      "explore": {},
 
       // Visual tasks: UI/UX, images, diagrams
-      "multimodal-looker": { "model": "google/gemini-3.1-pro" },
+      "multimodal-looker": {},
 
       // Plan consultant: reviews and improves plans
       "metis": {},
@@ -49,17 +59,17 @@
       "atlas": {},
 
       // Lightweight task executor for simple jobs
-      "sisyphus-junior": { "model": "opencode/gpt-5-nano" },
+      "sisyphus-junior": {},
     },
 
     "categories": {
-      "quick": { "model": "opencode/gpt-5-nano" },
-      "unspecified-low": { "model": "xai/grok-4.6", "reasoning": "xhigh" },
-      "unspecified-high": { "model": "anthropic/claude-opus-5", "reasoning": "max" },
-      "writing": { "model": "kimi-for-coding/kimi-k3", "reasoning": "low" },
-      "visual-engineering": { "model": "anthropic/claude-opus-5", "reasoning": "max" },
-      "deep": { "model": "openai/gpt-5.6-sol", "reasoning": "medium" },
-      "ultrabrain": { "model": "openai/gpt-5.6-sol", "reasoning": "xhigh" },
+      "quick": {},
+      "unspecified-low": { "reasoning": "xhigh" },
+      "unspecified-high": { "reasoning": "max" },
+      "writing": { "reasoning": "low" },
+      "visual-engineering": { "reasoning": "max" },
+      "deep": { "reasoning": "medium" },
+      "ultrabrain": { "reasoning": "xhigh" },
     },
 
     // Conservative concurrency for cost control

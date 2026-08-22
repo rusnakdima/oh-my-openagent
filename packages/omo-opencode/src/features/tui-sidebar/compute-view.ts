@@ -67,7 +67,7 @@ function rosterKeyParts(roster: RosterState): readonly unknown[] {
     case "empty":
       return ["roster", "empty"]
     case "rows":
-      return ["roster", "rows", roster.rows.map((row) => [row.label, row.model, row.hasOverride])]
+      return ["roster", "rows", roster.rows.map((row) => [row.label, row.model, row.hasOverride, row.mode, row.isGlobal])]
     default:
       return assertNever(roster)
   }

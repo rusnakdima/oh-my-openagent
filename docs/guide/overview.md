@@ -165,42 +165,46 @@ At runtime, fallback chains ensure work continues even if your preferred provide
 
 ### Custom Model Configuration
 
-You can override specific agents or categories in your config:
+> **Deprecated:** Per-agent `agents.*.model` and per-category `categories.*.model` are deprecated. Omit to use the TUI Global Model (picked via OpenCode `/models` or TUI `[Set Global Model]`) or set a single top-level `default_model`. The example below shows the deprecated shape for backward-compat reference only — new configs should omit those `model` keys.
+
+You can override specific agents or categories in your config (deprecated — prefer `default_model` or UI selection):
 
 ```jsonc
 {
   "$schema": "https://raw.githubusercontent.com/code-yeongyu/oh-my-openagent/dev/assets/omo.schema.json",
 
+  // Prefer: "default_model": "anthropic/claude-opus-5", // single global default
+  // or pick via TUI/OpenCode `/models`. Per-agent `model` below is deprecated.
   "agents": {
     // Main orchestrator: Claude Opus or Kimi K3 work best
     "sisyphus": {
-      "model": "kimi-for-coding/kimi-k3",
+      "model": "kimi-for-coding/kimi-k3", // deprecated — omit to use Global Model
       "ultrawork": { "model": "anthropic/claude-opus-5", "variant": "max" },
     },
 
     // Research agents: cheaper models are fine
-    "librarian": { "model": "google/gemini-3.6-flash" },
-    "explore": { "model": "github-copilot/grok-code-fast-1" },
+    "librarian": { "model": "google/gemini-3.6-flash" }, // deprecated
+    "explore": { "model": "github-copilot/grok-code-fast-1" }, // deprecated
 
     // Architecture consultation: GPT or Claude Opus
-    "oracle": { "model": "openai/gpt-5.6-sol", "variant": "high" },
+    "oracle": { "model": "openai/gpt-5.6-sol", "variant": "high" }, // deprecated
   },
 
   "categories": {
     // Frontend/UI work: Opus 5, then Kimi K3 and GLM 5.2
     "visual-engineering": {
-      "model": "anthropic/claude-opus-5",
+      "model": "anthropic/claude-opus-5", // deprecated
       "variant": "max",
     },
 
     // Hard logic and architecture: GPT-5.6 Sol max
-    "ultrabrain": { "model": "openai/gpt-5.6-sol", "variant": "max" },
+    "ultrabrain": { "model": "openai/gpt-5.6-sol", "variant": "max" }, // deprecated
 
     // Autonomous research and execution
-    "deep": { "model": "openai/gpt-5.6-sol", "variant": "medium" },
+    "deep": { "model": "openai/gpt-5.6-sol", "variant": "medium" }, // deprecated
 
     // Creative and design work
-    "artistry": { "model": "anthropic/claude-fable-5", "variant": "xhigh" },
+    "artistry": { "model": "anthropic/claude-fable-5", "variant": "xhigh" }, // deprecated
 
     // Quick tasks: fast and cheap
     "quick": { "model": "kimi-for-coding/kimi-for-coding-highspeed" },
