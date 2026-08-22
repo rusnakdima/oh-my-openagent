@@ -1,5 +1,7 @@
 import { createBuiltinAgents } from "../agents";
 import { collectDisabledSkillAliases } from "../plugin/skill-context";
+import { getGlobalTuiModel } from "../shared/session-model-state";
+import { readMirror } from "../features/tui-sidebar/mirror-io";
 import { isTaskSystemEnabled } from "../shared";
 import { AGENT_NAME_MAP } from "../shared/migration";
 import { assembleAgentConfig } from "./agent-config-assembly";
@@ -19,6 +21,20 @@ export async function applyAgentConfig(
   const browserProvider =
     params.pluginConfig.browser_automation_engine?.provider ?? "playwright";
   const currentModel = params.config.model as string | undefined;
+  // Global TUI model is the single source of truth for ALL agent modes.
+  // Plugin heap (set via /models -> chat.params/chat.message) and TUI heap are separate processes,
+  // so also try reading the mirror file as fallback for cross-process sync.
+  const globalTui = getGlobalTuiModel() ?? (() => {
+    try {
+      const mirror = readMirror(params.ctx.directory)
+      const m = mirror?.tuiSelectedModel
+      return m ? { providerID: m.providerID, modelID: m.modelID } : null
+    } catch {
+      return null
+    }
+  })()
+  const effectiveGlobalModel = globalTui ? `${globalTui.providerID}/${globalTui.modelID}` : undefined
+  const effectiveUiModel = effectiveGlobalModel ?? currentModel
   const disabledSkills = collectDisabledSkillAliases(params.pluginConfig);
   const useTaskSystem = isTaskSystemEnabled(params.pluginConfig);
   const disableOmoEnv = params.pluginConfig.experimental?.disable_omo_env ?? false;
@@ -26,14 +42,14 @@ export async function applyAgentConfig(
     migratedDisabledAgents,
     params.pluginConfig.agents,
     params.ctx.directory,
-    currentModel,
+    effectiveGlobalModel ?? currentModel,
     params.pluginConfig.default_model,
     params.pluginConfig.categories,
     params.pluginConfig.git_master,
     allDiscoveredSkills,
     sources.customAgentSummaries,
     browserProvider,
-    currentModel,
+    effectiveUiModel,
     disabledSkills,
     useTaskSystem,
     disableOmoEnv,
@@ -48,7 +64,7 @@ export async function applyAgentConfig(
     pluginConfig: params.pluginConfig,
     builtinAgents,
     sources,
-    currentModel,
+    currentModel: effectiveUiModel ?? currentModel,
     useTaskSystem,
     disabledAgentNames,
   });

@@ -2,6 +2,7 @@ import type { DelegatedModelConfig } from "../../../shared/model-resolution-type
 import type { ExecutorContext } from "../../../tools/delegate-task/executor-types"
 import type { DelegateTaskArgs } from "../../../tools/delegate-task/types"
 import type { Member } from "../types"
+import { getGlobalTuiModel } from "../../../shared/session-model-state"
 import {
   buildSystemContent,
   resolveCategoryExecution,
@@ -65,6 +66,8 @@ export async function resolveMember(
 ): Promise<ResolvedMember> {
   try {
     if (member.kind === "category") {
+      const global = getGlobalTuiModel()
+      const systemDefault = global ? `${global.providerID}/${global.modelID}` : undefined
       const execution = await resolveCategoryExecution(
         {
           ...createBaseDelegateTaskArgs(member.prompt),
@@ -72,6 +75,7 @@ export async function resolveMember(
           subagent_type: "sisyphus-junior",
         },
         withoutSisyphusJuniorOverride(ctx),
+        systemDefault,
         undefined,
       )
 
@@ -92,6 +96,13 @@ export async function resolveMember(
       }
     }
 
+    const subGlobal = getGlobalTuiModel()
+    const subSystemDefault = subGlobal ? `${subGlobal.providerID}/${subGlobal.modelID}` : undefined
+    const opts: Record<string, unknown> = {
+      allowSisyphusJuniorDirect: true,
+      allowPrimaryAgentDelegation: true,
+    }
+    if (subSystemDefault) (opts as { systemDefaultModel?: string }).systemDefaultModel = subSystemDefault
     const execution = await resolveSubagentExecution(
       {
         ...createBaseDelegateTaskArgs(member.prompt ?? ""),
@@ -100,10 +111,7 @@ export async function resolveMember(
       ctx,
       parentAgent,
       categoryExamples,
-      {
-        allowSisyphusJuniorDirect: true,
-        allowPrimaryAgentDelegation: true,
-      },
+      opts as { allowSisyphusJuniorDirect: boolean; allowPrimaryAgentDelegation: boolean; systemDefaultModel?: string },
     )
 
     if (execution.error) {

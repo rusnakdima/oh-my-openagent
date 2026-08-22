@@ -155,7 +155,7 @@ async function createCoreAgentConfig(
 
   agentConfig["sisyphus-junior"] = createSisyphusJuniorAgentWithOverrides(
     pluginConfig.agents?.["sisyphus-junior"],
-    (builtinAgents.atlas as { model?: string } | undefined)?.model,
+    params.currentModel ?? (builtinAgents.atlas as { model?: string } | undefined)?.model,
     pluginConfig.default_model,
     useTaskSystem,
   );

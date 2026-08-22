@@ -501,6 +501,9 @@ describe("createCallOmoAgent", () => {
 
   test("falls back to first entry in agent's fallbackChain when no override is configured (#5301)", async () => {
     //#given
+    const { setSelectedGlobalModel, clearGlobalTuiModel } = await import("../../shared/session-model-state")
+    // When global is set via /models, it should be used for all modes (including explore)
+    setSelectedGlobalModel({ providerID: "anthropic", modelID: "claude-opus-5" })
     const launch = mock((_input: { model?: { providerID: string; modelID: string }; fallbackChain?: unknown[] }) => Promise.resolve({
       id: "task-default-model",
       sessionId: "sub-session",
@@ -512,7 +515,7 @@ describe("createCallOmoAgent", () => {
       launch,
       getTask: mock(() => undefined),
     }
-    // no agentOverrides, no userCategories — the default fallback path
+    // no agentOverrides, no userCategories — the global model path
     const toolDef = createCallOmoAgent(
       createMockCtx(DEFAULT_AGENTS),
       managerWithLaunch,
@@ -537,12 +540,12 @@ describe("createCallOmoAgent", () => {
       throw new Error("Expected launch to be called")
     }
     const [launchArgs] = firstLaunchCall
-    // explore's first fallbackChain entry is openai/gpt-5.6-luna-fast at low reasoning
+    // Global TUI model applies to ALL modes — explore should get the selected global model
     expect(launchArgs.model).toEqual({
-      providerID: "openai",
-      modelID: "gpt-5.6-luna-fast",
-      variant: "low",
+      providerID: "anthropic",
+      modelID: "claude-opus-5",
     })
+    clearGlobalTuiModel()
   })
 
   test("should return a tool error when sync spawn depth validation fails", async () => {

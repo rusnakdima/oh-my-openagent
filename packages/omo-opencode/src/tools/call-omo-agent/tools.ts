@@ -12,6 +12,7 @@ import { normalizeFallbackModels } from "../../shared/model-resolver"
 import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-models"
 import { log } from "../../shared"
 import { parseModelString } from "../../shared"
+import { getGlobalTuiModel } from "../../shared/session-model-state"
 import { executeBackground } from "./background-executor"
 import { executeSync } from "./sync-executor"
 import { resolveCallableAgents } from "./agent-resolver"
@@ -77,6 +78,15 @@ function resolveModelAndFallbackChain(args: {
       })
     }
   } else {
+    // Global TUI model applies to ALL modes — honor picker for call_omo_agent subagents
+    const global = getGlobalTuiModel()
+    if (global) {
+      model = { providerID: global.providerID, modelID: global.modelID }
+      log("[call_omo_agent] Resolved model from global TUI model", {
+        agent: subagentType,
+        model: `${global.providerID}/${global.modelID}`,
+      })
+    }
     // No fallback to hardcoded chain when model_fallback_enabled is false — provider default wins.
   }
 
@@ -88,10 +98,12 @@ function resolveModelAndFallbackChain(args: {
     ?? agentRequirement?.fallbackChain?.[0]?.providers?.[0]
     ?? "opencode"
   const configuredFallbackChain = buildFallbackChainFromModels(normalizedFallbackModels, defaultProviderID)
+  const globalForFallback = getGlobalTuiModel()
+  const fallbackChain = globalForFallback ? configuredFallbackChain : (configuredFallbackChain ?? agentRequirement?.fallbackChain)
 
   return {
     model,
-    fallbackChain: configuredFallbackChain ?? agentRequirement?.fallbackChain,
+    fallbackChain,
   }
 }
 
