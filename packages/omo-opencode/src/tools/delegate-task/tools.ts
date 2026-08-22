@@ -133,22 +133,11 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         return `Invalid arguments: Must provide either category or subagent_type.`
       }
 
-      // TUI model from per-agent state (per-agent override > global TUI model)
-      // Computed AFTER we know whether this is category or subagent_type delegation
+      // GLOBAL-ONLY MODEL (Aug 2026): TUI model is the ONLY source — no inheritedModel.
       let systemDefaultModel: string | undefined
-      let inheritedModel: string | undefined
-
-      try {
-        inheritedModel = parentContext.model
-          ? `${parentContext.model.providerID}/${parentContext.model.modelID}`
-          : undefined
-      } catch {
-        inheritedModel = undefined
-      }
 
       log("[task] model resolution", {
         parentContextModel: parentContext.model,
-        inheritedModel,
       })
 
       let agentToUse: string
@@ -167,7 +156,7 @@ export function createDelegateTask(options: DelegateTaskToolOptions): ToolDefini
         } catch {
           systemDefaultModel = undefined
         }
-        const resolution = await resolveCategoryExecution(delegateTaskArgs, options, inheritedModel, systemDefaultModel)
+        const resolution = await resolveCategoryExecution(delegateTaskArgs, options, systemDefaultModel)
         if (resolution.error) {
           return resolution.error
         }

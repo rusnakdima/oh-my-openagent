@@ -61,9 +61,12 @@ function categoryResolutionError(error: string): CategoryResolutionResult {
 export async function resolveCategoryExecution(
   args: DelegateTaskArgs,
   executorCtx: ExecutorContext,
-  inheritedModel: string | undefined,
-  systemDefaultModel: string | undefined
+  systemDefaultModelOrInherited: string | undefined,
+  systemDefaultModelMaybe?: string | undefined
 ): Promise<CategoryResolutionResult> {
+  // Backward compat: old callers passed (args, ctx, inheritedModel, systemDefaultModel)
+  // New callers pass (args, ctx, systemDefaultModel) — no inheritedModel.
+  const systemDefaultModel = systemDefaultModelMaybe ?? systemDefaultModelOrInherited
   const { client, userCategories, sisyphusJuniorModel, availableModelsOverride } = executorCtx
 
   const categoryName = args.category!
@@ -79,7 +82,6 @@ export async function resolveCategoryExecution(
 
   const resolved = resolveCategoryConfig(categoryName, {
     userCategories,
-    inheritedModel,
     systemDefaultModel,
     availableModels,
   })

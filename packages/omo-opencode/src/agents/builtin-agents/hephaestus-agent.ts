@@ -7,7 +7,7 @@ import { log } from "../../shared/logger"
 import { createHephaestusAgent } from "../hephaestus"
 import { applyEnvironmentContext } from "./environment-context"
 import { applyCategoryOverride, mergeAgentConfig } from "./agent-overrides"
-import { applyModelResolution, getFirstFallbackModel } from "./model-resolution"
+import { applyModelResolution } from "./model-resolution"
 import { applyFrontierToolSchemaPermission } from "../frontier-tool-schema-guard"
 
 export function maybeCreateHephaestusConfig(input: {
@@ -59,9 +59,7 @@ export function maybeCreateHephaestusConfig(input: {
     systemDefaultModel,
   })
 
-  if (isFirstRunNoCache && !hephaestusOverride?.model && !defaultModel) {
-    hephaestusResolution = getFirstFallbackModel(hephaestusRequirement)
-  }
+  // No fallback to hardcoded chain when model_fallback_enabled is false — provider default wins.
 
   if (!hephaestusResolution) {
     log("[agent-registration] Agent skipped: model resolution returned no result", {

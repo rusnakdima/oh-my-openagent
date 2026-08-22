@@ -6,7 +6,9 @@ import { readFileSync, writeFileSync } from "node:fs"
 import path from "node:path"
 
 // Track last model per session to detect changes (deduplicate LLM calls)
+// Subagent sessionIDs also write globalTuiModel — map includes ALL sessions (primary + subagent), not just primary.
 const lastChatParamsModel = new Map<string, { providerID: string; modelID: string }>()
+let lastGlobalChatParamsModel: { providerID: string; modelID: string } | null = null
 
 const HOME = process.env.HOME ?? ""
 const OPENCODE_CONFIG = path.join(HOME, ".config/opencode/opencode.jsonc")
@@ -138,14 +140,19 @@ export function createChatParamsHandler(_args: {
     })
 
     // Capture model on every LLM call — fires reliably when user selects via /models
+    // Global TUI model applies to ALL modes (primary|subagent|all); subagent sessionIDs also write.
     const parsed = {
       providerID: normalizedInput.model.providerID,
       modelID: normalizedInput.model.modelID,
     }
-    const last = lastChatParamsModel.get(normalizedInput.sessionID)
-    if (!last || last.providerID !== parsed.providerID || last.modelID !== parsed.modelID) {
+    const lastPerSession = lastChatParamsModel.get(normalizedInput.sessionID)
+    const lastGlobal = lastGlobalChatParamsModel
+    const isPerSessionChanged = !lastPerSession || lastPerSession.providerID !== parsed.providerID || lastPerSession.modelID !== parsed.modelID
+    const isGlobalChanged = !lastGlobal || lastGlobal.providerID !== parsed.providerID || lastGlobal.modelID !== parsed.modelID
+    if (isPerSessionChanged || isGlobalChanged) {
       setSelectedGlobalModel(parsed)
       lastChatParamsModel.set(normalizedInput.sessionID, parsed)
+      lastGlobalChatParamsModel = parsed
       log("[chat-params] model captured", { model: parsed, sessionID: normalizedInput.sessionID.slice(0, 8) })
       // Sync to config files so MiMoCode sidebar and OpenCode config stay in sync
       const fullModel = `${parsed.providerID}/${parsed.modelID}`

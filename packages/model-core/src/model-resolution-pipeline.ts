@@ -40,6 +40,7 @@ export type ModelResolutionRequest = {
   policy?: {
     fallbackChain?: FallbackEntry[]
     systemDefaultModel?: string
+    modelFallbackEnabled?: boolean
   }
 }
 
@@ -203,7 +204,7 @@ export function resolveModelPipeline(
     }
   }
 
-  if (fallbackChain && fallbackChain.length > 0) {
+  if (policy?.modelFallbackEnabled && fallbackChain && fallbackChain.length > 0) {
     if (availableModels.size === 0) {
       const connectedProviders = constraints.connectedProviders ?? providerCache.readConnectedProvidersCache()
       const connectedSet = connectedProviders ? new Set(connectedProviders) : null
@@ -261,6 +262,8 @@ export function resolveModelPipeline(
       }
       log("No available model found in fallback chain, falling through to system default")
     }
+  } else if (fallbackChain && fallbackChain.length > 0) {
+    log("Fallback chains disabled (modelFallbackEnabled=false), skipping to system default", { fallbackChainLength: fallbackChain.length })
   }
 
   if (systemDefaultModel === undefined) {

@@ -9,7 +9,6 @@ import { log } from "../../shared/logger"
 
 export interface ResolveCategoryConfigOptions {
   userCategories?: CategoriesConfig
-  inheritedModel?: string
   systemDefaultModel?: string
   availableModels?: Set<string>
 }
@@ -54,7 +53,7 @@ export function resolveCategoryConfig(
   categoryName: string,
   options: ResolveCategoryConfigOptions
 ): ResolveCategoryConfigResult | null {
-  const { userCategories, inheritedModel: _inheritedModel, systemDefaultModel, availableModels } = options
+  const { userCategories, systemDefaultModel, availableModels } = options
 
   const defaultConfig = DEFAULT_CATEGORIES[categoryName]
   const configuredUserConfig = userCategories?.[categoryName]
@@ -88,11 +87,10 @@ export function resolveCategoryConfig(
   }
 
   // GLOBAL-ONLY MODEL (Aug 2026): TUI model (systemDefaultModel) is the ONLY source.
-  // When set, it wins over everything — no builtin fallback.
-  // When NOT set: falls back to defaultConfig?.model for the error case.
+  // No inheritedModel — dynamic-only, provider default wins when TUI not set.
   const model = resolveModel({
     userModel: userConfig?.model,
-    inheritedModel: systemDefaultModel ? undefined : defaultConfig?.model,
+    inheritedModel: undefined,
     systemDefault: systemDefaultModel,
   })
   const isUserConfiguredModel = normalizeModel(userConfig?.model) !== undefined

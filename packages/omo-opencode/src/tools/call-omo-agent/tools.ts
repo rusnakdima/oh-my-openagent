@@ -18,7 +18,6 @@ import { resolveCallableAgents } from "./agent-resolver"
 import { createOrGetSession } from "./session-creator"
 import { processMessages } from "./message-processor"
 import { waitForCompletion } from "./completion-poller"
-import { getFirstFallbackModel } from "../../agents/builtin-agents/model-resolution"
 
 function createSyncExecutorDeps(modelFallbackControllerAccessor?: ModelFallbackControllerAccessor) {
   return {
@@ -78,18 +77,7 @@ function resolveModelAndFallbackChain(args: {
       })
     }
   } else {
-    const firstFallback = getFirstFallbackModel(agentRequirement)
-    if (firstFallback) {
-      const normalized = parseModelString(firstFallback.model)
-      if (normalized) {
-        model = firstFallback.variant ? { ...normalized, variant: firstFallback.variant } : normalized
-        log("[call_omo_agent] Resolved model from first fallbackChain entry", {
-          agent: subagentType,
-          model: firstFallback.model,
-          variant: firstFallback.variant,
-        })
-      }
-    }
+    // No fallback to hardcoded chain when model_fallback_enabled is false — provider default wins.
   }
 
   const normalizedFallbackModels = normalizeFallbackModels(

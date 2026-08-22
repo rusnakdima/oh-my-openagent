@@ -8,7 +8,7 @@ import { buildAgent, isFactory } from "../agent-builder"
 import { resolveAgentSkills } from "../agent-skill-resolution"
 import { applyOverrides } from "./agent-overrides"
 import { applyEnvironmentContext } from "./environment-context"
-import { applyModelResolution, getFirstFallbackModel } from "./model-resolution"
+import { applyModelResolution } from "./model-resolution"
 import { log } from "../../shared/logger"
 
 export function collectPendingBuiltinAgents(input: {
@@ -99,9 +99,8 @@ export function collectPendingBuiltinAgents(input: {
           configuredModel: override.model,
         })
         resolution = { model: override.model, provenance: "override" as const }
-      } else {
-        resolution = getFirstFallbackModel(requirement)
       }
+      // No fallback to hardcoded chain when model_fallback_enabled is false — provider default wins.
     }
     if (!resolution) {
       log("[agent-registration] Agent skipped: model resolution returned no result", {
