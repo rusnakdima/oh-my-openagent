@@ -12,24 +12,6 @@ import type { SidebarView } from "./features/tui-sidebar/state-types"
 import { log } from "./shared/logger"
 import { setupTuiVoice } from "./tui-voice/index"
 import { getAvailableModels } from "./shared/model-cache-state"
-import { readFileSync, writeFileSync } from "node:fs"
-import path from "node:path"
-
-const HOME_TUI = process.env.HOME ?? ""
-const OPENCODE_CONFIG_TUI = path.join(HOME_TUI, ".config/opencode/opencode.jsonc")
-const MIMOCODE_CONFIG_TUI = path.join(HOME_TUI, ".config/mimocode/mimocode.jsonc")
-
-function updateConfigModelTui(configPath: string, model: string): void {
-  try {
-    const raw = readFileSync(configPath, "utf-8")
-    const stripped = raw.replace(/\/\/.*$/gm, "")
-    const cfg = JSON.parse(stripped)
-    cfg.model = model
-    writeFileSync(configPath, JSON.stringify(cfg, null, 2), "utf-8")
-  } catch {
-    // Non-fatal — config file may not exist or be writable
-  }
-}
 
 type SolidRuntime<Node> = {
   readonly createElement: (tag: string) => Node
@@ -266,23 +248,14 @@ const module: TuiPluginModule = {
 
     async function applyModelSelection(model: { providerID: string; modelID: string }): Promise<void> {
       try {
-        const { setSelectedGlobalModel } = await import("./shared/session-model-state")
-        setSelectedGlobalModel(model)
+        // Persist to the cross-process store (the channel the server plugin reads)
+        // and to the user config files (for future sessions). The server plugin's
+        // chat.message override applies the pick to ALL agent modes live.
+        const { applyGlobalModel } = await import("./shared/session-model-state")
+        applyGlobalModel(model)
+        const { writeGlobalModelToConfigs } = await import("./shared/persist-config-model")
+        writeGlobalModelToConfigs(model)
         log("[tui] set global model", { providerID: model.providerID, modelID: model.modelID })
-        // Persist to config files so builtin-agents (which read params.config.model) see the selection for ALL modes
-        const fullModel = `${model.providerID}/${model.modelID}`
-        updateConfigModelTui(OPENCODE_CONFIG_TUI, fullModel)
-        updateConfigModelTui(MIMOCODE_CONFIG_TUI, fullModel)
-        const { getTuiStateMirrorSingleton } = await import("./features/tui-sidebar/mirror-manager")
-        void getTuiStateMirrorSingleton()?.flush()
-        // Re-apply agent config so the new global model takes effect immediately in the
-        // same session (plugin process).  This updates primary agents (sisyphus/atlas/
-        // hephaestus) without waiting for a restart.  Subagents already read
-        // globalTuiModel at spawn.  TUI and plugin share opencode.jsonc on disk.
-        const { reapplyAgentConfigFromDisk } = await import("./plugin-handlers")
-        void reapplyAgentConfigFromDisk().catch((err) =>
-          log("[tui] reapply failed", { error: err }),
-        )
       } catch (err) {
         log("[tui] failed to apply model selection", { error: err })
       }

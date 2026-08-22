@@ -1,6 +1,6 @@
 import { createBuiltinAgents } from "../agents";
 import { collectDisabledSkillAliases } from "../plugin/skill-context";
-import { getGlobalTuiModel } from "../shared/session-model-state";
+import { getSelectedGlobalModelLive } from "../shared/session-model-state";
 import { readMirror } from "../features/tui-sidebar/mirror-io";
 import { isTaskSystemEnabled } from "../shared";
 import { AGENT_NAME_MAP } from "../shared/migration";
@@ -22,9 +22,10 @@ export async function applyAgentConfig(
     params.pluginConfig.browser_automation_engine?.provider ?? "playwright";
   const currentModel = params.config.model as string | undefined;
   // Global TUI model is the single source of truth for ALL agent modes.
-  // Plugin heap (set via /models -> chat.params/chat.message) and TUI heap are separate processes,
-  // so also try reading the mirror file as fallback for cross-process sync.
-  const globalTui = getGlobalTuiModel() ?? (() => {
+  // Plugin heap (set via /models -> chat.params/chat.message) and TUI heap are separate processes;
+  // getSelectedGlobalModelLive() falls back to the persisted cross-process store
+  // (written by the TUI sidebar pick), then the mirror file as a legacy fallback.
+  const globalTui = getSelectedGlobalModelLive() ?? (() => {
     try {
       const mirror = readMirror(params.ctx.directory)
       const m = mirror?.tuiSelectedModel

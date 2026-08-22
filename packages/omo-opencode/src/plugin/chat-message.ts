@@ -8,6 +8,7 @@ import {
   log,
 } from "../shared"
 import type { ChatMessagePart } from "./chat-message/types"
+import { applyGlobalModelToChatMessage } from "./chat-message/global-model-apply"
 import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override"
 import type { PluginContext } from "./types"
 import { handleGoalMessage } from "./chat-message/loop-commands"
@@ -57,13 +58,14 @@ async function runChatMessageHooks(args: {
   readonly input: ChatMessageInput
   readonly output: ChatMessageHandlerOutput
   readonly hooks: ChatMessageHooks
+  readonly pluginConfig: OhMyOpenCodeConfig
   readonly runtimeFallbackEnabled: boolean
 }): Promise<void> {
-  const { input, output, hooks, runtimeFallbackEnabled } = args
+  const { input, output, hooks, pluginConfig, runtimeFallbackEnabled } = args
   if (!runtimeFallbackEnabled) {
     await hooks.modelFallback?.["chat.message"]?.(input, output)
   }
-  recordSessionModel(input, output)
+  recordSessionModel(input, output, pluginConfig)
   await hooks.stopContinuationGuard?.["chat.message"]?.(input)
   await hooks.backgroundNotificationHook?.["chat.message"]?.(input, output)
   await hooks.runtimeFallback?.["chat.message"]?.(input, output)
@@ -133,10 +135,16 @@ export function createChatMessageHandler(args: {
       output.message.model = storedMainSessionModel
     }
 
+    // Apply the user's global model pick to every OMO agent mode for this call.
+    // Runs BEFORE the hook chain so later error-recovery overrides
+    // (runtime-fallback, model-fallback) still win during fallbacks.
+    applyGlobalModelToChatMessage(input, output, pluginConfig)
+
     await runChatMessageHooks({
       input,
       output,
       hooks,
+      pluginConfig,
       runtimeFallbackEnabled,
     })
 

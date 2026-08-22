@@ -2,7 +2,7 @@ import type { DelegatedModelConfig } from "../../../shared/model-resolution-type
 import type { ExecutorContext } from "../../../tools/delegate-task/executor-types"
 import type { DelegateTaskArgs } from "../../../tools/delegate-task/types"
 import type { Member } from "../types"
-import { getGlobalTuiModel } from "../../../shared/session-model-state"
+import { getSelectedGlobalModelLive } from "../../../shared/session-model-state"
 import {
   buildSystemContent,
   resolveCategoryExecution,
@@ -66,7 +66,7 @@ export async function resolveMember(
 ): Promise<ResolvedMember> {
   try {
     if (member.kind === "category") {
-      const global = getGlobalTuiModel()
+      const global = getSelectedGlobalModelLive()
       const systemDefault = global ? `${global.providerID}/${global.modelID}` : undefined
       const execution = await resolveCategoryExecution(
         {
@@ -96,7 +96,7 @@ export async function resolveMember(
       }
     }
 
-    const subGlobal = getGlobalTuiModel()
+    const subGlobal = getSelectedGlobalModelLive()
     const subSystemDefault = subGlobal ? `${subGlobal.providerID}/${subGlobal.modelID}` : undefined
     const opts: Record<string, unknown> = {
       allowSisyphusJuniorDirect: true,

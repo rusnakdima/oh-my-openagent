@@ -4,7 +4,7 @@ import { getMainSessionID } from "../claude-code-session-state"
 import {
   getEffectiveModelForAgent,
   getSessionModel,
-  getGlobalTuiModel,
+  getSelectedGlobalModelLive,
   getPerAgentModelsSnapshot,
   type SessionModel,
 } from "../../shared/session-model-state"
@@ -147,7 +147,7 @@ function redactLoopText(loop: TuiRuntimeSnapshot["loop"]): TuiRuntimeSnapshot["l
 function getTuiSelectedModel(): TuiRuntimeSnapshot["tuiSelectedModel"] {
   try {
     // First check: per-agent TUI model (new global TUI model state)
-    const globalModel = getGlobalTuiModel()
+    const globalModel = getSelectedGlobalModelLive()
     if (globalModel) {
       return { providerID: globalModel.providerID, modelID: globalModel.modelID }
     }

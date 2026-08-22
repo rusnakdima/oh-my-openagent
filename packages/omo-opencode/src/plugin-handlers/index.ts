@@ -1,7 +1,6 @@
 export {
   createConfigHandler,
   triggerAgentConfigSnapshotInvalidate,
-  reapplyAgentConfigFromDisk,
   type ConfigHandlerDeps,
 } from "./config-handler";
 export * from "./provider-config-handler";
