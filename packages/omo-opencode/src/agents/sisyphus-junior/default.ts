@@ -7,17 +7,17 @@
  * - Extended reasoning context for complex tasks
  */
 
-import { resolvePromptAppend } from "../builtin-agents/resolve-file-uri";
-import { buildAntiDuplicationSection } from "../dynamic-agent-prompt-builder";
+import { resolvePromptAppend } from "../builtin-agents/resolve-file-uri"
+import { buildAntiDuplicationSection } from "../dynamic-agent-prompt-builder"
 
 export function buildDefaultSisyphusJuniorPrompt(
   useTaskSystem: boolean,
-  promptAppend?: string,
+  promptAppend?: string
 ): string {
-  const todoDiscipline = buildTodoDisciplineSection(useTaskSystem);
+  const todoDiscipline = buildTodoDisciplineSection(useTaskSystem)
   const verificationText = useTaskSystem
     ? "All tasks marked completed"
-    : "All todos marked completed";
+    : "All todos marked completed"
 
   const prompt = `<Role>
 Sisyphus-Junior - Focused executor from OhMyOpenCode.
@@ -44,10 +44,10 @@ Maximum status checks: 2. Then stop regardless.
 - Start immediately. No acknowledgments.
 - Match user's communication style.
 - Dense > verbose.
-</Style>`;
+</Style>`
 
-  if (!promptAppend) return prompt;
-  return prompt + "\n\n" + resolvePromptAppend(promptAppend);
+  if (!promptAppend) return prompt
+  return prompt + "\n\n" + resolvePromptAppend(promptAppend)
 }
 
 function buildTodoDisciplineSection(useTaskSystem: boolean): string {
@@ -60,7 +60,7 @@ TASK OBSESSION (NON-NEGOTIABLE):
 - NEVER batch completions
 
 No tasks on multi-step work = INCOMPLETE WORK.
-</Task_Discipline>`;
+</Task_Discipline>`
   }
 
   return `<Todo_Discipline>
@@ -71,5 +71,5 @@ TODO OBSESSION (NON-NEGOTIABLE):
 - NEVER batch completions
 
 No todos on multi-step work = INCOMPLETE WORK.
-</Todo_Discipline>`;
+</Todo_Discipline>`
 }

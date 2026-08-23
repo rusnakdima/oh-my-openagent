@@ -1,18 +1,18 @@
-import { describe, expect, test } from "bun:test";
-import type { Message, Part } from "@opencode-ai/sdk";
+import { describe, expect, test } from "bun:test"
+import type { Message, Part } from "@opencode-ai/sdk"
 
-import { createMessagesTransformHandler } from "./messages-transform";
+import { createMessagesTransformHandler } from "./messages-transform"
 
 type TestMessage = {
-  info: Message;
-  parts: Part[];
-};
+  info: Message
+  parts: Part[]
+}
 
 function userMessage(input: {
-  id: string;
-  sessionID: string;
-  providerID: string;
-  modelID: string;
+  id: string
+  sessionID: string
+  providerID: string
+  modelID: string
 }): Message {
   return {
     id: input.id,
@@ -21,7 +21,7 @@ function userMessage(input: {
     time: { created: 1 },
     agent: "sisyphus",
     model: { providerID: input.providerID, modelID: input.modelID },
-  };
+  }
 }
 
 function assistantMessage(input: { id: string; sessionID: string }): Message {
@@ -42,32 +42,28 @@ function assistantMessage(input: { id: string; sessionID: string }): Message {
       reasoning: 0,
       cache: { read: 0, write: 0 },
     },
-  };
+  }
 }
 
-function textPart(
-  input: { id: string; sessionID: string; messageID: string; text: string },
-): Part {
+function textPart(input: { id: string; sessionID: string; messageID: string; text: string }): Part {
   return {
     id: input.id,
     sessionID: input.sessionID,
     messageID: input.messageID,
     type: "text",
     text: input.text,
-  };
+  }
 }
 
 async function runHandler(messages: TestMessage[]): Promise<void> {
-  const handler = createMessagesTransformHandler({ hooks: {} });
-  await handler({}, { messages });
+  const handler = createMessagesTransformHandler({ hooks: {} })
+  await handler({}, { messages })
 }
 
 describe("messages transform assistant prefill alias repair", () => {
   test("#given Anthropic-backed alias providers end with a rejecting assistant tail #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
-    const scenarios: Array<
-      { name: string; providerID: string; modelID: string }
-    > = [
+    const scenarios: Array<{ name: string; providerID: string; modelID: string }> = [
       {
         name: "opencode anthropic npm alias",
         providerID: "opencode",
@@ -128,7 +124,7 @@ describe("messages transform assistant prefill alias repair", () => {
         providerID: "aws-bedrock-anthropic",
         modelID: "us.anthropic.claude-opus-4-8",
       },
-    ];
+    ]
 
     for (const scenario of scenarios) {
       const messages: TestMessage[] = [
@@ -158,53 +154,35 @@ describe("messages transform assistant prefill alias repair", () => {
             text: "done",
           })],
         },
-      ];
+      ]
 
       //#when
-      await runHandler(messages);
+      await runHandler(messages)
 
       //#then
-      expect(messages, scenario.name).toHaveLength(3);
+      expect(messages, scenario.name).toHaveLength(3)
       expect(messages.at(-1)?.info, scenario.name).toMatchObject({
         role: "user",
         sessionID: `ses_${scenario.providerID}`,
         agent: "sisyphus",
         model: { providerID: scenario.providerID, modelID: scenario.modelID },
-      });
+      })
       expect(messages.at(-1)?.parts[0], scenario.name).toMatchObject({
         type: "text",
         text: "[internal] Continue from the previous assistant state.",
         synthetic: true,
-      });
+      })
     }
-  });
+  })
 
   test("#given alias providers with models outside the unsupported Anthropic family #when messages transform runs #then it keeps the assistant tail unchanged", async () => {
     //#given
-    const scenarios: Array<
-      { name: string; providerID: string; modelID: string }
-    > = [
-      {
-        name: "opencode non-claude model",
-        providerID: "opencode",
-        modelID: "big-pickle",
-      },
-      {
-        name: "opencode older claude model",
-        providerID: "opencode",
-        modelID: "claude-sonnet-4-5",
-      },
-      {
-        name: "openrouter non-anthropic namespace",
-        providerID: "openrouter",
-        modelID: "openai/gpt-5.4",
-      },
-      {
-        name: "openrouter bare claude-looking id",
-        providerID: "openrouter",
-        modelID: "claude-opus-4-8",
-      },
-    ];
+    const scenarios: Array<{ name: string; providerID: string; modelID: string }> = [
+      { name: "opencode non-claude model", providerID: "opencode", modelID: "big-pickle" },
+      { name: "opencode older claude model", providerID: "opencode", modelID: "claude-sonnet-4-5" },
+      { name: "openrouter non-anthropic namespace", providerID: "openrouter", modelID: "openai/gpt-5.4" },
+      { name: "openrouter bare claude-looking id", providerID: "openrouter", modelID: "claude-opus-4-8" },
+    ]
 
     for (const scenario of scenarios) {
       const messages: TestMessage[] = [
@@ -234,14 +212,14 @@ describe("messages transform assistant prefill alias repair", () => {
             text: "completed assistant answer",
           })],
         },
-      ];
+      ]
 
       //#when
-      await runHandler(messages);
+      await runHandler(messages)
 
       //#then
-      expect(messages, scenario.name).toHaveLength(2);
-      expect(messages.at(-1)?.info.role, scenario.name).toBe("assistant");
+      expect(messages, scenario.name).toHaveLength(2)
+      expect(messages.at(-1)?.info.role, scenario.name).toBe("assistant")
     }
-  });
-});
+  })
+})

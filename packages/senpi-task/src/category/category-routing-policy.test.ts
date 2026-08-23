@@ -1,7 +1,7 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import { CATEGORY_FALLBACK_CHAINS } from "./fallback-chains";
-import { DEFAULT_CATEGORIES } from "./index";
+import { CATEGORY_FALLBACK_CHAINS } from "./fallback-chains"
+import { DEFAULT_CATEGORIES } from "./index"
 
 describe("Senpi category routing policy", () => {
   test("uses the requested primary model and effort for routed categories", () => {
@@ -11,7 +11,7 @@ describe("Senpi category routing policy", () => {
       quick: DEFAULT_CATEGORIES["quick"],
       unspecifiedHigh: DEFAULT_CATEGORIES["unspecified-high"],
       unspecifiedLow: DEFAULT_CATEGORIES["unspecified-low"],
-    };
+    }
 
     // then
     expect(routing).toEqual({
@@ -19,15 +19,15 @@ describe("Senpi category routing policy", () => {
       quick: { model: "kimi-coding/kimi-for-coding-highspeed" },
       unspecifiedHigh: { model: "kimi-coding/k3", variant: "max" },
       unspecifiedLow: { model: "xai/grok-4.6", variant: "xhigh" },
-    });
-  });
+    })
+  })
 
   test("unspecified-low fallback chain is grok-4.6 xhigh first and excludes luna", () => {
     // given / when
-    const chain = CATEGORY_FALLBACK_CHAINS["unspecified-low"];
+    const chain = CATEGORY_FALLBACK_CHAINS["unspecified-low"]
 
     // then
-    expect(chain.map((entry) => entry.model)).not.toContain("gpt-5.6-luna");
+    expect(chain.map((entry) => entry.model)).not.toContain("gpt-5.6-luna")
     expect(chain).toEqual([
       {
         providers: ["xai", "github-copilot", "opencode", "vercel"],
@@ -35,34 +35,17 @@ describe("Senpi category routing policy", () => {
         variant: "xhigh",
       },
       {
-        providers: [
-          "openai",
-          "quotio-openai",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["openai", "quotio-openai", "github-copilot", "opencode", "vercel"],
         model: "gpt-5.6-terra",
         variant: "high",
       },
       {
-        providers: [
-          "anthropic",
-          "anthropic-api",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["anthropic", "anthropic-api", "github-copilot", "opencode", "vercel"],
         model: "claude-sonnet-5",
         variant: "low",
       },
       {
-        providers: [
-          "qwen-token-plan",
-          "alibaba-token-plan",
-          "qwen-token-plan-cn",
-          "alibaba-token-plan-cn",
-        ],
+        providers: ["qwen-token-plan", "alibaba-token-plan", "qwen-token-plan-cn", "alibaba-token-plan-cn"],
         model: "qwen3.8-max-preview",
         variant: "max",
       },
@@ -76,6 +59,6 @@ describe("Senpi category routing policy", () => {
         model: "mimo-v2.5-pro",
         variant: "max",
       },
-    ]);
-  });
-});
+    ])
+  })
+})

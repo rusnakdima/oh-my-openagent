@@ -7,9 +7,8 @@ levers do all the work.
 ## Lever 1 — an isolated `CODEX_HOME`
 
 `CODEX_HOME` is Codex's master state root: `config.toml`, `auth.json`, sessions,
-the state SQLite, plugins, and logs all hang off it
-(`utils/home-dir/src/lib.rs`). Point it at a fresh temp dir and Codex
-reads/writes nothing else.
+the state SQLite, plugins, and logs all hang off it (`utils/home-dir/src/lib.rs`).
+Point it at a fresh temp dir and Codex reads/writes nothing else.
 
 Gotcha: when `CODEX_HOME` is set it **must already exist** or Codex hard-errors.
 `cqa_mk_isolated_home` creates it first.
@@ -52,7 +51,7 @@ still lands on the mock.
 The interactive shell here wraps `codex` in a function that injects
 `--profile quotio`. That breaks non-runtime subcommands like
 `generate-json-schema` and would point a turn at the quotio provider. **Bash
-scripts do not inherit that function**, so `codex` inside a
-`#!/usr/bin/env bash` script is the real binary on PATH. `cqa_codex_bin`
-resolves it explicitly; never rely on the interactive alias. Combined with the
-isolated `CODEX_HOME`, the real quotio config is never read.
+scripts do not inherit that function**, so `codex` inside a `#!/usr/bin/env bash`
+script is the real binary on PATH. `cqa_codex_bin` resolves it explicitly; never
+rely on the interactive alias. Combined with the isolated `CODEX_HOME`, the real
+quotio config is never read.

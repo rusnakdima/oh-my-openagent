@@ -1,22 +1,16 @@
 # pwntools — Scripted Binary / Network Interaction
 
-**https://docs.pwntools.com/en/stable/ ·
-https://github.com/Gallopsled/pwntools**
+**https://docs.pwntools.com/en/stable/ · https://github.com/Gallopsled/pwntools**
 
-pwntools is a Python framework for building reproducible interactions with
-binaries and network services. Originally built for CTF exploitation, it's the
-correct tool for any situation where you need:
+pwntools is a Python framework for building reproducible interactions with binaries and network services. Originally built for CTF exploitation, it's the correct tool for any situation where you need:
 
 - A crafted input sent to a binary or network service, repeatably
-- A "failing test" equivalent for a bug that only manifests with specific
-  byte-level input
+- A "failing test" equivalent for a bug that only manifests with specific byte-level input
 - A fuzz harness
 - An exploit PoC
-- Anything where you're tempted to use `echo ... | ./binary` but need more
-  control than shell allows
+- Anything where you're tempted to use `echo ... | ./binary` but need more control than shell allows
 
-**Use pwntools for Phase 5 reproduction of binary bugs and Phase 7 tests against
-binaries.**
+**Use pwntools for Phase 5 reproduction of binary bugs and Phase 7 tests against binaries.**
 
 ---
 
@@ -32,8 +26,7 @@ pip install pwntools
 python -c 'from pwn import *; print("ok")'
 ```
 
-On some Linux distros you may need build deps:
-`apt install python3-dev libssl-dev`.
+On some Linux distros you may need build deps: `apt install python3-dev libssl-dev`.
 
 ---
 
@@ -73,7 +66,6 @@ p.sendafter(b'key:', key)
 ```
 
 Timeouts:
-
 ```python
 try:
     data = p.recvuntil(b'done', timeout=5)
@@ -91,8 +83,7 @@ context.binary = elf = ELF('./target')   # auto-sets arch/os/endianness
 context.update(arch='amd64', os='linux', endian='little', bits=64)
 ```
 
-After setting context, helpers like `asm()`, `disasm()`, `cyclic()`, and `ROP()`
-produce correct output for that target automatically.
+After setting context, helpers like `asm()`, `disasm()`, `cyclic()`, and `ROP()` produce correct output for that target automatically.
 
 ### 4. ELF — parse without reverse-engineering by hand
 
@@ -109,7 +100,6 @@ list(elf.functions)[:10]             # first 10 function names
 ```
 
 For the libc that's linked:
-
 ```python
 libc = ELF('/lib/x86_64-linux-gnu/libc.so.6')
 libc.symbols['system']
@@ -244,23 +234,17 @@ gdb.attach(p, gdbscript='break *0x401234')
 p.sendline(b'trigger input')
 ```
 
-This is the best way to debug a specific crash repeatably — pwntools drives
-input, gdb/pwndbg observes runtime state.
+This is the best way to debug a specific crash repeatably — pwntools drives input, gdb/pwndbg observes runtime state.
 
 ---
 
 ## Gotchas
 
-- **Python version**: pwntools supports Python 3.8+. Very old distros may not
-  have it.
-- **`p.interactive()` blocks.** It's for manual exploration; remove it from
-  automated scripts.
-- **ASLR on local runs**: turn off for reproducibility during debugging:
-  `echo 0 | sudo tee /proc/sys/kernel/randomize_va_space` (remember to revert —
-  journal this!).
+- **Python version**: pwntools supports Python 3.8+. Very old distros may not have it.
+- **`p.interactive()` blocks.** It's for manual exploration; remove it from automated scripts.
+- **ASLR on local runs**: turn off for reproducibility during debugging: `echo 0 | sudo tee /proc/sys/kernel/randomize_va_space` (remember to revert — journal this!).
 - **`gdb.debug()` requires `gdb-multiarch`** for cross-arch binaries.
-- **Subprocess cleanup**: if your script crashes, orphan `./target` processes
-  may linger. Kill them at Phase 9 or add `atexit` cleanup.
+- **Subprocess cleanup**: if your script crashes, orphan `./target` processes may linger. Kill them at Phase 9 or add `atexit` cleanup.
 
 ---
 

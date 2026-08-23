@@ -1,18 +1,14 @@
-import { describe, expect, mock, test } from "bun:test";
-import type { ToolContext } from "@opencode-ai/plugin/tool";
+import { describe, expect, mock, test } from "bun:test"
+import type { ToolContext } from "@opencode-ai/plugin/tool"
 
-import type {
-  MonitorManager,
-  MonitorRecord,
-  MonitorStartOpts,
-} from "../../features/monitor/types";
-import type { BashPermissionAskInput } from "../../features/monitor/permission";
-import type { OhMyOpenCodeConfig } from "../../config/schema/oh-my-opencode-config";
-import type { PluginContext } from "../../plugin/types";
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
-import { createMonitorStart } from "./monitor-start";
+import type { MonitorManager, MonitorRecord, MonitorStartOpts } from "../../features/monitor/types"
+import type { BashPermissionAskInput } from "../../features/monitor/permission"
+import type { OhMyOpenCodeConfig } from "../../config/schema/oh-my-opencode-config"
+import type { PluginContext } from "../../plugin/types"
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import { createMonitorStart } from "./monitor-start"
 
-type PermissionAsk = (input: BashPermissionAskInput) => Promise<void>;
+type PermissionAsk = (input: BashPermissionAskInput) => Promise<void>
 
 function createRecord(overrides: Partial<MonitorRecord> = {}): MonitorRecord {
   return {
@@ -33,12 +29,10 @@ function createRecord(overrides: Partial<MonitorRecord> = {}): MonitorRecord {
       lastSequence: 0,
     },
     ...overrides,
-  };
+  }
 }
 
-function createPluginConfig(
-  monitor: Partial<NonNullable<OhMyOpenCodeConfig["monitor"]>> = {},
-): OhMyOpenCodeConfig {
+function createPluginConfig(monitor: Partial<NonNullable<OhMyOpenCodeConfig["monitor"]>> = {}): OhMyOpenCodeConfig {
   return unsafeTestValue<OhMyOpenCodeConfig>({
     monitor: {
       enabled: true,
@@ -53,7 +47,7 @@ function createPluginConfig(
       pattern_max_length: 512,
       ...monitor,
     },
-  });
+  })
 }
 
 function createToolContext(ask?: PermissionAsk): ToolContext {
@@ -66,74 +60,66 @@ function createToolContext(ask?: PermissionAsk): ToolContext {
     abort: new AbortController().signal,
     metadata: () => {},
     ask: ask ?? (async () => {}),
-  });
+  })
 }
 
 function createHarness(startResult: MonitorRecord = createRecord()) {
-  const startCalls: MonitorStartOpts[] = [];
+  const startCalls: MonitorStartOpts[] = []
   const start = mock(async (opts: MonitorStartOpts) => {
-    startCalls.push(opts);
-    return startResult;
-  });
-  const manager = unsafeTestValue<MonitorManager>({ start });
-  const pluginContext = unsafeTestValue<PluginContext>({});
+    startCalls.push(opts)
+    return startResult
+  })
+  const manager = unsafeTestValue<MonitorManager>({ start })
+  const pluginContext = unsafeTestValue<PluginContext>({})
 
-  return { manager, pluginContext, start, startCalls };
+  return { manager, pluginContext, start, startCalls }
 }
 
 describe("createMonitorStart", () => {
   describe("#given Bash-equivalent permission denies the command", () => {
     test("#when monitor_start executes #then it returns the denial reason without spawning", async () => {
       // given
-      const { manager, pluginContext, start } = createHarness();
+      const { manager, pluginContext, start } = createHarness()
       const ask = mock(async () => {
-        throw new Error("blocked by bash policy");
-      });
-      const tool = createMonitorStart(
-        manager,
-        createPluginConfig(),
-        pluginContext,
-      );
+        throw new Error("blocked by bash policy")
+      })
+      const tool = createMonitorStart(manager, createPluginConfig(), pluginContext)
 
       // when
       const result = await tool.execute(
         { command: "bun test", label: "unit tests" },
         createToolContext(ask),
-      );
+      )
 
       // then
-      expect(start).not.toHaveBeenCalled();
-      expect(result).toContain("blocked by bash policy");
-    });
-  });
+      expect(start).not.toHaveBeenCalled()
+      expect(result).toContain("blocked by bash policy")
+    })
+  })
 
   describe('#given match_pattern is invalid regex "["', () => {
     test("#when monitor_start executes #then it returns validation error without spawning", async () => {
       // given
-      const { manager, pluginContext, start } = createHarness();
-      const ask = mock(async () => {});
-      const tool = createMonitorStart(
-        manager,
-        createPluginConfig(),
-        pluginContext,
-      );
+      const { manager, pluginContext, start } = createHarness()
+      const ask = mock(async () => {})
+      const tool = createMonitorStart(manager, createPluginConfig(), pluginContext)
 
       // when
       const result = await tool.execute(
         { command: "bun test", label: "unit tests", match_pattern: "[" },
         createToolContext(ask),
-      );
+      )
 
       // then
-      expect(start).not.toHaveBeenCalled();
-      expect(result).toContain("invalid regex");
-    });
-  });
+      expect(start).not.toHaveBeenCalled()
+      expect(result).toContain("invalid regex")
+    })
+  })
 
   describe("#given permission allows the command", () => {
     test("#when monitor_start executes #then it starts once with parent context and returns stop instructions", async () => {
       // given
-      const command = "bun test SECRET_TOKEN=redacted";
+      const command = "bun test SECRET_TOKEN=redacted"
       const { manager, pluginContext, start, startCalls } = createHarness(
         createRecord({
           id: "mon_allowed",
@@ -141,27 +127,18 @@ describe("createMonitorStart", () => {
           label: "unit tests",
           mode: "live_safe",
         }),
-      );
-      const ask = mock(async () => {});
-      const tool = createMonitorStart(
-        manager,
-        createPluginConfig(),
-        pluginContext,
-      );
+      )
+      const ask = mock(async () => {})
+      const tool = createMonitorStart(manager, createPluginConfig(), pluginContext)
 
       // when
       const result = await tool.execute(
-        {
-          command,
-          label: "unit tests",
-          mode: "live_safe",
-          match_pattern: "ERROR|FAIL",
-        },
+        { command, label: "unit tests", mode: "live_safe", match_pattern: "ERROR|FAIL" },
         createToolContext(ask),
-      );
+      )
 
       // then
-      expect(start).toHaveBeenCalledTimes(1);
+      expect(start).toHaveBeenCalledTimes(1)
       expect(startCalls[0]).toEqual({
         command,
         label: "unit tests",
@@ -169,41 +146,37 @@ describe("createMonitorStart", () => {
         matchPattern: "ERROR|FAIL",
         parentSessionId: "ses_parent",
         parentMessageId: "msg_parent",
-      });
-      expect(result).toContain("monitor_id: mon_allowed");
-      expect(result).toContain("label: unit tests");
-      expect(result).toContain("mode: live_safe");
-      expect(result).toContain('monitor_stop with monitor_id="mon_allowed"');
-      expect(result).toContain("output arrives automatically");
-      expect(result).not.toContain(command);
-    });
-  });
+      })
+      expect(result).toContain("monitor_id: mon_allowed")
+      expect(result).toContain("label: unit tests")
+      expect(result).toContain("mode: live_safe")
+      expect(result).toContain('monitor_stop with monitor_id="mon_allowed"')
+      expect(result).toContain("output arrives automatically")
+      expect(result).not.toContain(command)
+    })
+  })
 
   describe("#given live_safe is disabled in config", () => {
-    test("#when mode is live_safe #then it starts in idle mode and explains the coercion", async () => {
+    test('#when mode is live_safe #then it starts in idle mode and explains the coercion', async () => {
       // given
-      const { manager, pluginContext, startCalls } = createHarness(
-        createRecord({ mode: "idle" }),
-      );
-      const ask = mock(async () => {});
+      const { manager, pluginContext, startCalls } = createHarness(createRecord({ mode: "idle" }))
+      const ask = mock(async () => {})
       const tool = createMonitorStart(
         manager,
         createPluginConfig({ live_mode_enabled: false }),
         pluginContext,
-      );
+      )
 
       // when
       const result = await tool.execute(
         { command: "bun test", label: "unit tests", mode: "live_safe" },
         createToolContext(ask),
-      );
+      )
 
       // then
-      expect(startCalls[0]?.mode).toBe("idle");
-      expect(result).toContain("mode: idle");
-      expect(result).toContain(
-        'requested mode "live_safe" was coerced to "idle"',
-      );
-    });
-  });
-});
+      expect(startCalls[0]?.mode).toBe("idle")
+      expect(result).toContain("mode: idle")
+      expect(result).toContain('requested mode "live_safe" was coerced to "idle"')
+    })
+  })
+})

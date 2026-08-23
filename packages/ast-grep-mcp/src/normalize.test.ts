@@ -7,10 +7,7 @@ function record(file: string, byteOffset: number, text = "console.log(a, b)") {
   return {
     text,
     range: {
-      byteOffset: {
-        start: byteOffset,
-        end: byteOffset + Buffer.byteLength(text),
-      },
+      byteOffset: { start: byteOffset, end: byteOffset + Buffer.byteLength(text) },
       start: { line: 2, column: 4 },
       end: { line: 2, column: 4 + text.length },
     },
@@ -30,24 +27,9 @@ function record(file: string, byteOffset: number, text = "console.log(a, b)") {
       },
       multi: {
         ARGS: [
-          {
-            text: "a",
-            range: {
-              byteOffset: { start: byteOffset + 12, end: byteOffset + 13 },
-            },
-          },
-          {
-            text: ",",
-            range: {
-              byteOffset: { start: byteOffset + 13, end: byteOffset + 14 },
-            },
-          },
-          {
-            text: "b",
-            range: {
-              byteOffset: { start: byteOffset + 15, end: byteOffset + 16 },
-            },
-          },
+          { text: "a", range: { byteOffset: { start: byteOffset + 12, end: byteOffset + 13 } } },
+          { text: ",", range: { byteOffset: { start: byteOffset + 13, end: byteOffset + 14 } } },
+          { text: "b", range: { byteOffset: { start: byteOffset + 15, end: byteOffset + 16 } } },
         ],
         EMPTY: [],
       },
@@ -60,10 +42,7 @@ function record(file: string, byteOffset: number, text = "console.log(a, b)") {
 
 describe("ast-grep output normalization", () => {
   it("#given a pinned run record #when normalized #then coordinates, paths, and metavariables use the stable contract", () => {
-    const normalized = normalizeMatch(
-      record("/workspace/project/src/a.ts", 100),
-      workdir,
-    );
+    const normalized = normalizeMatch(record("/workspace/project/src/a.ts", 100), workdir);
 
     expect(normalized).toEqual({
       path: "src/a.ts",
@@ -83,14 +62,9 @@ describe("ast-grep output normalization", () => {
   });
 
   it("#given inside, outside, and Windows paths #when normalized #then separators and containment are stable", () => {
-    expect(normalizeMatch(record("/other/a.ts", 0), workdir).path).toBe(
-      "/other/a.ts",
-    );
-    expect(normalizeMatch(record("C:\\repo\\src\\a.ts", 0), "C:\\repo").path)
-      .toBe("src/a.ts");
-    expect(normalizeMatch(record("D:\\other\\a.ts", 0), "C:\\repo").path).toBe(
-      "D:/other/a.ts",
-    );
+    expect(normalizeMatch(record("/other/a.ts", 0), workdir).path).toBe("/other/a.ts");
+    expect(normalizeMatch(record("C:\\repo\\src\\a.ts", 0), "C:\\repo").path).toBe("src/a.ts");
+    expect(normalizeMatch(record("D:\\other\\a.ts", 0), "C:\\repo").path).toBe("D:/other/a.ts");
   });
 
   it("#given unsorted records #when normalized #then results sort by path and byte offset", () => {
@@ -100,9 +74,7 @@ describe("ast-grep output normalization", () => {
       record("/workspace/project/a.ts", 3),
     ], workdir);
 
-    expect(
-      normalized.map((match) => [match.path, match.range.start.byteOffset]),
-    ).toEqual([
+    expect(normalized.map((match) => [match.path, match.range.start.byteOffset])).toEqual([
       ["a.ts", 3],
       ["a.ts", 20],
       ["z.ts", 1],

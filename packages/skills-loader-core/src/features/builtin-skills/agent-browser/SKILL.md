@@ -18,15 +18,13 @@ agent-browser close             # Close browser
 ## Core workflow
 
 1. Navigate: `agent-browser open <url>`
-2. Snapshot: `agent-browser snapshot -i` (returns elements with refs like `@e1`,
-   `@e2`)
+2. Snapshot: `agent-browser snapshot -i` (returns elements with refs like `@e1`, `@e2`)
 3. Interact using refs from the snapshot
 4. Re-snapshot after navigation or significant DOM changes
 
 ## Commands
 
 ### Navigation
-
 ```bash
 agent-browser open <url>      # Navigate to URL (aliases: goto, navigate)
 agent-browser back            # Go back
@@ -36,7 +34,6 @@ agent-browser close           # Close browser (aliases: quit, exit)
 ```
 
 ### Snapshot (page analysis)
-
 ```bash
 agent-browser snapshot            # Full accessibility tree
 agent-browser snapshot -i         # Interactive elements only (recommended)
@@ -47,11 +44,9 @@ agent-browser snapshot -s "#main" # Scope to CSS selector
 agent-browser snapshot -i -c -d 5 # Combine options
 ```
 
-The `-C` flag is useful for modern web apps that use custom clickable elements
-(divs, spans) instead of standard buttons/links.
+The `-C` flag is useful for modern web apps that use custom clickable elements (divs, spans) instead of standard buttons/links.
 
 ### Interactions (use @refs from snapshot)
-
 ```bash
 agent-browser click @e1           # Click (--new-tab to open in new tab)
 agent-browser dblclick @e1        # Double-click
@@ -75,7 +70,6 @@ agent-browser upload @e1 file.pdf # Upload files
 ```
 
 ### Get information
-
 ```bash
 agent-browser get text @e1        # Get element text
 agent-browser get html @e1        # Get innerHTML
@@ -89,7 +83,6 @@ agent-browser get styles @e1      # Get computed styles
 ```
 
 ### Check state
-
 ```bash
 agent-browser is visible @e1      # Check if visible
 agent-browser is enabled @e1      # Check if enabled
@@ -97,7 +90,6 @@ agent-browser is checked @e1      # Check if checked
 ```
 
 ### Screenshots & PDF
-
 ```bash
 agent-browser screenshot          # Screenshot (saves to temp dir if no path)
 agent-browser screenshot path.png # Save to file
@@ -106,10 +98,7 @@ agent-browser screenshot --annotate   # Annotated screenshot with numbered eleme
 agent-browser pdf output.pdf      # Save as PDF
 ```
 
-Annotated screenshots overlay numbered labels `[N]` on interactive elements.
-Each label corresponds to ref `@eN`, so refs work for both visual and text
-workflows:
-
+Annotated screenshots overlay numbered labels `[N]` on interactive elements. Each label corresponds to ref `@eN`, so refs work for both visual and text workflows:
 ```bash
 agent-browser screenshot --annotate ./page.png
 # Output: [1] @e1 button "Submit", [2] @e2 link "Home", [3] @e3 textbox "Email"
@@ -117,19 +106,15 @@ agent-browser click @e2     # Click the "Home" link labeled [2]
 ```
 
 ### Video recording
-
 ```bash
 agent-browser record start ./demo.webm    # Start recording (uses current URL + state)
 agent-browser click @e1                   # Perform actions
 agent-browser record stop                 # Stop and save video
 agent-browser record restart ./take2.webm # Stop current + start new recording
 ```
-
-Recording creates a fresh context but preserves cookies/storage from your
-session.
+Recording creates a fresh context but preserves cookies/storage from your session.
 
 ### Wait
-
 ```bash
 agent-browser wait @e1                     # Wait for element
 agent-browser wait 2000                    # Wait milliseconds
@@ -142,7 +127,6 @@ agent-browser wait --fn "window.ready"     # Wait for JS condition
 Load states: `load`, `domcontentloaded`, `networkidle`
 
 ### Mouse control
-
 ```bash
 agent-browser mouse move 100 200      # Move mouse
 agent-browser mouse down left         # Press button (left/right/middle)
@@ -151,7 +135,6 @@ agent-browser mouse wheel 100         # Scroll wheel
 ```
 
 ### Semantic locators (alternative to refs)
-
 ```bash
 agent-browser find role button click --name "Submit"
 agent-browser find text "Sign In" click
@@ -166,11 +149,9 @@ agent-browser find nth 2 "a" text
 ```
 
 Actions: `click`, `fill`, `type`, `hover`, `focus`, `check`, `uncheck`, `text`
-Options: `--name <name>` (filter role by accessible name), `--exact` (require
-exact text match)
+Options: `--name <name>` (filter role by accessible name), `--exact` (require exact text match)
 
 ### Browser settings
-
 ```bash
 agent-browser set viewport 1920 1080      # Set viewport size
 agent-browser set device "iPhone 14"      # Emulate device
@@ -182,7 +163,6 @@ agent-browser set media dark              # Emulate color scheme
 ```
 
 ### Cookies & Storage
-
 ```bash
 agent-browser cookies                     # Get all cookies
 agent-browser cookies set name value      # Set cookie
@@ -197,7 +177,6 @@ agent-browser storage session             # Same for sessionStorage
 ```
 
 ### Network
-
 ```bash
 agent-browser network route <url>              # Intercept requests
 agent-browser network route <url> --abort      # Block requests
@@ -208,7 +187,6 @@ agent-browser network requests --filter api    # Filter requests
 ```
 
 ### Tabs & Windows
-
 ```bash
 agent-browser tab                 # List tabs
 agent-browser tab new [url]       # New tab
@@ -218,21 +196,18 @@ agent-browser window new          # New window
 ```
 
 ### Frames
-
 ```bash
 agent-browser frame "#iframe"     # Switch to iframe
 agent-browser frame main          # Back to main frame
 ```
 
 ### Dialogs
-
 ```bash
 agent-browser dialog accept [text]  # Accept dialog (with optional prompt text)
 agent-browser dialog dismiss        # Dismiss dialog
 ```
 
 ### Diff (compare snapshots, screenshots, URLs)
-
 ```bash
 agent-browser diff snapshot                              # Compare current vs last snapshot
 agent-browser diff snapshot --baseline before.txt        # Compare current vs saved snapshot file
@@ -246,7 +221,6 @@ agent-browser diff url https://v1.com https://v2.com --selector "#main"  # Scope
 ```
 
 ### JavaScript
-
 ```bash
 agent-browser eval "document.title"   # Run JavaScript
 agent-browser eval -b "base64code"    # Run base64-encoded JS
@@ -254,7 +228,6 @@ agent-browser eval --stdin            # Read JS from stdin
 ```
 
 ### Debug & Profiling
-
 ```bash
 agent-browser console                 # View console messages
 agent-browser console --clear         # Clear console
@@ -268,7 +241,6 @@ agent-browser profiler stop profile.json  # Stop and save profile
 ```
 
 ### State management
-
 ```bash
 agent-browser state save auth.json    # Save auth state
 agent-browser state load auth.json    # Load auth state
@@ -281,7 +253,6 @@ agent-browser state clean --older-than <days>  # Delete old states
 ```
 
 ### Setup
-
 ```bash
 agent-browser install                 # Download Chromium browser
 agent-browser install --with-deps     # Also install system deps (Linux)
@@ -289,43 +260,42 @@ agent-browser install --with-deps     # Also install system deps (Linux)
 
 ## Global Options
 
-| Option                     | Description                                                                 |
-| -------------------------- | --------------------------------------------------------------------------- |
-| `--session <name>`         | Isolated browser session (`AGENT_BROWSER_SESSION` env)                      |
-| `--session-name <name>`    | Auto-save/restore session state (`AGENT_BROWSER_SESSION_NAME` env)          |
-| `--profile <path>`         | Persistent browser profile (`AGENT_BROWSER_PROFILE` env)                    |
-| `--state <path>`           | Load storage state from JSON file (`AGENT_BROWSER_STATE` env)               |
-| `--headers <json>`         | HTTP headers scoped to URL's origin                                         |
-| `--executable-path <path>` | Custom browser binary (`AGENT_BROWSER_EXECUTABLE_PATH` env)                 |
-| `--extension <path>`       | Load browser extension (repeatable; `AGENT_BROWSER_EXTENSIONS` env)         |
-| `--args <args>`            | Browser launch args (`AGENT_BROWSER_ARGS` env)                              |
-| `--user-agent <ua>`        | Custom User-Agent (`AGENT_BROWSER_USER_AGENT` env)                          |
-| `--proxy <url>`            | Proxy server (`AGENT_BROWSER_PROXY` env)                                    |
-| `--proxy-bypass <hosts>`   | Hosts to bypass proxy (`AGENT_BROWSER_PROXY_BYPASS` env)                    |
-| `--ignore-https-errors`    | Ignore HTTPS certificate errors                                             |
-| `--allow-file-access`      | Allow file:// URLs to access local files                                    |
-| `-p, --provider <name>`    | Cloud browser provider (`AGENT_BROWSER_PROVIDER` env)                       |
-| `--device <name>`          | iOS device name (`AGENT_BROWSER_IOS_DEVICE` env)                            |
-| `--json`                   | Machine-readable JSON output                                                |
-| `--full, -f`               | Full page screenshot                                                        |
-| `--annotate`               | Annotated screenshot with numbered labels (`AGENT_BROWSER_ANNOTATE` env)    |
-| `--headed`                 | Show browser window (`AGENT_BROWSER_HEADED` env)                            |
-| `--cdp <port\|wss://url>`  | Connect via Chrome DevTools Protocol                                        |
-| `--auto-connect`           | Auto-discover running Chrome (`AGENT_BROWSER_AUTO_CONNECT` env)             |
-| `--color-scheme <scheme>`  | Color scheme: dark, light, no-preference (`AGENT_BROWSER_COLOR_SCHEME` env) |
-| `--download-path <path>`   | Default download directory (`AGENT_BROWSER_DOWNLOAD_PATH` env)              |
-| `--native`                 | [Experimental] Use native Rust daemon (`AGENT_BROWSER_NATIVE` env)          |
-| `--config <path>`          | Custom config file (`AGENT_BROWSER_CONFIG` env)                             |
-| `--debug`                  | Debug output                                                                |
+| Option | Description |
+|--------|-------------|
+| `--session <name>` | Isolated browser session (`AGENT_BROWSER_SESSION` env) |
+| `--session-name <name>` | Auto-save/restore session state (`AGENT_BROWSER_SESSION_NAME` env) |
+| `--profile <path>` | Persistent browser profile (`AGENT_BROWSER_PROFILE` env) |
+| `--state <path>` | Load storage state from JSON file (`AGENT_BROWSER_STATE` env) |
+| `--headers <json>` | HTTP headers scoped to URL's origin |
+| `--executable-path <path>` | Custom browser binary (`AGENT_BROWSER_EXECUTABLE_PATH` env) |
+| `--extension <path>` | Load browser extension (repeatable; `AGENT_BROWSER_EXTENSIONS` env) |
+| `--args <args>` | Browser launch args (`AGENT_BROWSER_ARGS` env) |
+| `--user-agent <ua>` | Custom User-Agent (`AGENT_BROWSER_USER_AGENT` env) |
+| `--proxy <url>` | Proxy server (`AGENT_BROWSER_PROXY` env) |
+| `--proxy-bypass <hosts>` | Hosts to bypass proxy (`AGENT_BROWSER_PROXY_BYPASS` env) |
+| `--ignore-https-errors` | Ignore HTTPS certificate errors |
+| `--allow-file-access` | Allow file:// URLs to access local files |
+| `-p, --provider <name>` | Cloud browser provider (`AGENT_BROWSER_PROVIDER` env) |
+| `--device <name>` | iOS device name (`AGENT_BROWSER_IOS_DEVICE` env) |
+| `--json` | Machine-readable JSON output |
+| `--full, -f` | Full page screenshot |
+| `--annotate` | Annotated screenshot with numbered labels (`AGENT_BROWSER_ANNOTATE` env) |
+| `--headed` | Show browser window (`AGENT_BROWSER_HEADED` env) |
+| `--cdp <port\|wss://url>` | Connect via Chrome DevTools Protocol |
+| `--auto-connect` | Auto-discover running Chrome (`AGENT_BROWSER_AUTO_CONNECT` env) |
+| `--color-scheme <scheme>` | Color scheme: dark, light, no-preference (`AGENT_BROWSER_COLOR_SCHEME` env) |
+| `--download-path <path>` | Default download directory (`AGENT_BROWSER_DOWNLOAD_PATH` env) |
+| `--native` | [Experimental] Use native Rust daemon (`AGENT_BROWSER_NATIVE` env) |
+| `--config <path>` | Custom config file (`AGENT_BROWSER_CONFIG` env) |
+| `--debug` | Debug output |
 
 ### Security options
-
-| Option                     | Description                                                                    |
-| -------------------------- | ------------------------------------------------------------------------------ |
-| `--content-boundaries`     | Wrap page output in boundary markers (`AGENT_BROWSER_CONTENT_BOUNDARIES` env)  |
-| `--max-output <chars>`     | Truncate page output to N characters (`AGENT_BROWSER_MAX_OUTPUT` env)          |
-| `--allowed-domains <list>` | Comma-separated allowed domain patterns (`AGENT_BROWSER_ALLOWED_DOMAINS` env)  |
-| `--action-policy <path>`   | Path to action policy JSON file (`AGENT_BROWSER_ACTION_POLICY` env)            |
+| Option | Description |
+|--------|-------------|
+| `--content-boundaries` | Wrap page output in boundary markers (`AGENT_BROWSER_CONTENT_BOUNDARIES` env) |
+| `--max-output <chars>` | Truncate page output to N characters (`AGENT_BROWSER_MAX_OUTPUT` env) |
+| `--allowed-domains <list>` | Comma-separated allowed domain patterns (`AGENT_BROWSER_ALLOWED_DOMAINS` env) |
+| `--action-policy <path>` | Path to action policy JSON file (`AGENT_BROWSER_ACTION_POLICY` env) |
 | `--confirm-actions <list>` | Action categories requiring confirmation (`AGENT_BROWSER_CONFIRM_ACTIONS` env) |
 
 ## Configuration file
@@ -333,7 +303,6 @@ agent-browser install --with-deps     # Also install system deps (Linux)
 Create `agent-browser.json` for persistent defaults (no need to repeat flags):
 
 **Locations (lowest to highest priority):**
-
 1. `~/.agent-browser/config.json` — user-level defaults
 2. `./agent-browser.json` — project-level overrides
 3. `AGENT_BROWSER_*` environment variables
@@ -380,7 +349,6 @@ agent-browser open https://app.example.com/dashboard
 ```
 
 ### Header-based Auth (Skip login flows)
-
 ```bash
 # Headers scoped to api.example.com only
 agent-browser open api.example.com --headers '{"Authorization": "Bearer <token>"}'
@@ -391,7 +359,6 @@ agent-browser set headers '{"X-Custom-Header": "value"}'
 ```
 
 ### Authentication Vault
-
 ```bash
 # Store credentials locally (encrypted). The LLM never sees passwords.
 echo "pass" | agent-browser auth save github --url https://github.com/login --username user --password-stdin
@@ -401,7 +368,6 @@ agent-browser auth login github
 ## Sessions & Persistent Profiles
 
 ### Sessions (parallel browsers)
-
 ```bash
 agent-browser --session test1 open site-a.com
 agent-browser --session test2 open site-b.com
@@ -409,7 +375,6 @@ agent-browser session list
 ```
 
 ### Session persistence (auto-save/restore)
-
 ```bash
 agent-browser --session-name twitter open twitter.com
 # Login once, state persists automatically across restarts
@@ -417,10 +382,7 @@ agent-browser --session-name twitter open twitter.com
 ```
 
 ### Persistent Profiles
-
-Persists cookies, localStorage, IndexedDB, service workers, cache, login
-sessions across browser restarts.
-
+Persists cookies, localStorage, IndexedDB, service workers, cache, login sessions across browser restarts.
 ```bash
 agent-browser --profile ~/.myapp-profile open myapp.com
 # Or via env var
@@ -430,7 +392,6 @@ AGENT_BROWSER_PROFILE=~/.myapp-profile agent-browser open myapp.com
 ## JSON output (for parsing)
 
 Add `--json` for machine-readable output:
-
 ```bash
 agent-browser snapshot -i --json
 agent-browser get text @e1 --json
@@ -479,7 +440,6 @@ agent-browser -p ios close                                       # Close session
 ## Native Mode (Experimental)
 
 Pure Rust daemon using direct CDP — no Node.js/Playwright required:
-
 ```bash
 agent-browser --native open example.com
 # Or: export AGENT_BROWSER_NATIVE=1
@@ -487,7 +447,4 @@ agent-browser --native open example.com
 ```
 
 ---
-
-Install: `bun add -g agent-browser && agent-browser install`. Run
-`agent-browser --help` for all commands. Repo:
-https://github.com/vercel-labs/agent-browser
+Install: `bun add -g agent-browser && agent-browser install`. Run `agent-browser --help` for all commands. Repo: https://github.com/vercel-labs/agent-browser

@@ -1,6 +1,6 @@
 export type {
   DelegatedModelConfig,
-  ModelResolutionProvenance,
   ModelResolutionRequest,
+  ModelResolutionProvenance,
   ModelResolutionResult,
-} from "@oh-my-opencode/model-core";
+} from "@oh-my-opencode/model-core"

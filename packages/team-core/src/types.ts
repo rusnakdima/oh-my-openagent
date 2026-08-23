@@ -1,5 +1,5 @@
-import * as z from "zod";
-import { createParseMember } from "./member-parser";
+import * as z from "zod"
+import { createParseMember } from "./member-parser"
 
 export const MESSAGE_KINDS = [
   "message",
@@ -7,17 +7,11 @@ export const MESSAGE_KINDS = [
   "shutdown_approved",
   "shutdown_rejected",
   "announcement",
-] as const;
+] as const
 
-export const MEMBER_KINDS = ["category", "subagent_type"] as const;
+export const MEMBER_KINDS = ["category", "subagent_type"] as const
 
-export const TASK_STATUSES = [
-  "pending",
-  "claimed",
-  "in_progress",
-  "completed",
-  "deleted",
-] as const;
+export const TASK_STATUSES = ["pending", "claimed", "in_progress", "completed", "deleted"] as const
 
 export const RUNTIME_STATUSES = [
   "creating",
@@ -27,7 +21,7 @@ export const RUNTIME_STATUSES = [
   "deleted",
   "failed",
   "orphaned",
-] as const;
+] as const
 
 const MemberBaseSchema = z.object({
   name: z.string().min(1).regex(/^[a-z0-9-]+$/),
@@ -38,32 +32,28 @@ const MemberBaseSchema = z.object({
   backendType: z.enum(["in-process", "tmux"]).default("in-process"),
   color: z.string().optional(),
   isActive: z.boolean().default(true),
-}).strict();
+}).strict()
 
 export const CategoryMemberSchema = MemberBaseSchema.extend({
   kind: z.literal("category"),
   category: z.string().min(1),
   prompt: z.string().min(1),
-});
+})
 
 export const SubagentMemberSchema = MemberBaseSchema.extend({
   kind: z.literal("subagent_type"),
   subagent_type: z.string().min(1),
   prompt: z.string().optional(),
-});
+})
 
-export const MemberSchema = z.discriminatedUnion("kind", [
-  CategoryMemberSchema,
-  SubagentMemberSchema,
-]);
+export const MemberSchema = z.discriminatedUnion("kind", [CategoryMemberSchema, SubagentMemberSchema])
 
 const TeamReferenceSchema = z.object({
   path: z.string(),
   description: z.string().optional(),
-}).strict();
+}).strict()
 
-const MISSING_TEAM_LEAD_MESSAGE =
-  "leadAgentId required (or write a `lead: {...}` field, or mark one member with `isLead: true`)";
+const MISSING_TEAM_LEAD_MESSAGE = "leadAgentId required (or write a `lead: {...}` field, or mark one member with `isLead: true`)"
 
 export const TeamSpecSchema = z.object({
   version: z.literal(1).default(1),
@@ -80,23 +70,23 @@ export const TeamSpecSchema = z.object({
       code: "custom",
       message: MISSING_TEAM_LEAD_MESSAGE,
       path: ["leadAgentId"],
-    });
+    })
   }
 }).transform((teamSpec) => {
   if (teamSpec.leadAgentId !== undefined) {
-    return teamSpec;
+    return teamSpec
   }
 
-  const firstMember = teamSpec.members[0];
+  const firstMember = teamSpec.members[0]
   if (!firstMember) {
-    throw new Error(MISSING_TEAM_LEAD_MESSAGE);
+    throw new Error(MISSING_TEAM_LEAD_MESSAGE)
   }
 
   return {
     ...teamSpec,
     leadAgentId: firstMember.name,
-  };
-});
+  }
+})
 
 export const MessageSchema = z.object({
   version: z.literal(1),
@@ -110,7 +100,7 @@ export const MessageSchema = z.object({
   timestamp: z.number().int().positive(),
   correlationId: z.string().uuid().optional(),
   color: z.string().optional(),
-});
+})
 
 export const TaskSchema = z.object({
   version: z.literal(1),
@@ -126,7 +116,7 @@ export const TaskSchema = z.object({
   createdAt: z.number().int().positive(),
   updatedAt: z.number().int().positive(),
   claimedAt: z.number().int().positive().optional(),
-});
+})
 
 const RuntimeStateMemberModelSchema = z.object({
   providerID: z.string(),
@@ -140,7 +130,7 @@ const RuntimeStateMemberModelSchema = z.object({
     type: z.enum(["enabled", "disabled"]),
     budgetTokens: z.number().int().positive().optional(),
   }).optional(),
-}).strict();
+}).strict()
 
 const RuntimeStateMemberSchema = z.object({
   name: z.string(),
@@ -151,19 +141,12 @@ const RuntimeStateMemberSchema = z.object({
   subagent_type: z.string().optional(),
   category: z.string().optional(),
   model: RuntimeStateMemberModelSchema.optional(),
-  status: z.enum([
-    "pending",
-    "running",
-    "idle",
-    "errored",
-    "completed",
-    "shutdown_approved",
-  ]),
+  status: z.enum(["pending", "running", "idle", "errored", "completed", "shutdown_approved"]),
   color: z.string().optional(),
   worktreePath: z.string().optional(),
   lastInjectedTurnMarker: z.string().optional(),
   pendingInjectedMessageIds: z.array(z.string()).default([]),
-}).strict();
+}).strict()
 
 const RuntimeBoundsSchema = z.object({
   maxMembers: z.number().int().default(8),
@@ -171,7 +154,7 @@ const RuntimeBoundsSchema = z.object({
   maxMessagesPerRun: z.number().int().default(10000),
   maxWallClockMinutes: z.number().int().default(120),
   maxMemberTurns: z.number().int().default(500),
-}).strict();
+}).strict()
 
 const ShutdownRequestSchema = z.object({
   memberId: z.string(),
@@ -180,7 +163,7 @@ const ShutdownRequestSchema = z.object({
   approvedAt: z.number().int().positive().optional(),
   rejectedReason: z.string().optional(),
   rejectedAt: z.number().int().positive().optional(),
-}).strict();
+}).strict()
 
 const RuntimeStateTmuxLayoutSchema = z.object({
   ownedSession: z.boolean(),
@@ -188,7 +171,7 @@ const RuntimeStateTmuxLayoutSchema = z.object({
   focusWindowId: z.string().optional(),
   gridWindowId: z.string().optional(),
   paneIds: z.array(z.string()).optional(),
-}).strict();
+}).strict()
 
 export const RuntimeStateSchema = z.object({
   version: z.literal(1),
@@ -202,19 +185,17 @@ export const RuntimeStateSchema = z.object({
   members: z.array(RuntimeStateMemberSchema),
   shutdownRequests: z.array(ShutdownRequestSchema).default([]),
   bounds: RuntimeBoundsSchema,
-});
+})
 
-export const AGENT_ELIGIBILITY_REGISTRY: Readonly<
-  Record<string, {
-    verdict: "eligible" | "conditional" | "hard-reject";
-    rejectionMessage?: string;
-  }>
-> = {
+export const AGENT_ELIGIBILITY_REGISTRY: Readonly<Record<string, {
+  verdict: "eligible" | "conditional" | "hard-reject"
+  rejectionMessage?: string
+}>> = {
   sisyphus: { verdict: "eligible" },
   hephaestus: {
     verdict: "conditional",
     rejectionMessage:
-      'Agent \'hephaestus\' lacks teammate permission. Either apply D-36 (add teammate: "allow" in tool-config-handler.ts) or use subagent_type: "sisyphus" instead.',
+      "Agent 'hephaestus' lacks teammate permission. Either apply D-36 (add teammate: \"allow\" in tool-config-handler.ts) or use subagent_type: \"sisyphus\" instead.",
   },
   oracle: {
     verdict: "hard-reject",
@@ -253,53 +234,47 @@ export const AGENT_ELIGIBILITY_REGISTRY: Readonly<
       "Agent 'prometheus' is plan-mode-only; can only write to .omo/*.md (enforced by prometheusMdOnly hook). Cannot write to team mailbox. Use delegate-task with subagent_type: 'plan' instead.",
   },
   "sisyphus-junior": { verdict: "eligible" },
-} as const;
+} as const
 
 /**
  * §V.3 member validation error messages live in member-parser.ts.
  * Includes: "Unknown subagent_type '<name>'. Available ELIGIBLE agents: sisyphus, atlas, sisyphus-junior, hephaestus (if D-36 applied). Use delegate-task for read-only agents like oracle, librarian, explore, metis, momus, multimodal-looker."
  */
 
-const parseMemberBase = createParseMember(
-  MemberSchema,
-  AGENT_ELIGIBILITY_REGISTRY,
-);
+const parseMemberBase = createParseMember(MemberSchema, AGENT_ELIGIBILITY_REGISTRY)
 
 export function parseMember(input: unknown): Member {
   if (input == null || typeof input !== "object") {
-    return parseMemberBase(input);
+    return parseMemberBase(input)
   }
 
-  const raw = input as Record<string, unknown>;
+  const raw = input as Record<string, unknown>
   if (raw.subagent_type !== undefined) {
-    if (
-      typeof raw.subagent_type !== "string" ||
-      !(raw.subagent_type in AGENT_ELIGIBILITY_REGISTRY)
-    ) {
-      return parseMemberBase(input);
+    if (typeof raw.subagent_type !== "string" || !(raw.subagent_type in AGENT_ELIGIBILITY_REGISTRY)) {
+      return parseMemberBase(input)
     }
 
-    const entry = AGENT_ELIGIBILITY_REGISTRY[raw.subagent_type];
+    const entry = AGENT_ELIGIBILITY_REGISTRY[raw.subagent_type]
     if (entry.verdict === "hard-reject") {
-      throw new Error(entry.rejectionMessage);
+      throw new Error(entry.rejectionMessage)
     }
   }
 
-  return parseMemberBase(input);
+  return parseMemberBase(input)
 }
 
-export type TeamSpec = z.infer<typeof TeamSpecSchema>;
-export type Member = z.infer<typeof MemberSchema>;
-export type CategoryMember = z.infer<typeof CategoryMemberSchema>;
-export type SubagentMember = z.infer<typeof SubagentMemberSchema>;
-export type Message = z.infer<typeof MessageSchema>;
-export type Task = z.infer<typeof TaskSchema>;
-export type RuntimeStateMember = z.infer<typeof RuntimeStateMemberSchema>;
-export type RuntimeState = z.infer<typeof RuntimeStateSchema>;
+export type TeamSpec = z.infer<typeof TeamSpecSchema>
+export type Member = z.infer<typeof MemberSchema>
+export type CategoryMember = z.infer<typeof CategoryMemberSchema>
+export type SubagentMember = z.infer<typeof SubagentMemberSchema>
+export type Message = z.infer<typeof MessageSchema>
+export type Task = z.infer<typeof TaskSchema>
+export type RuntimeStateMember = z.infer<typeof RuntimeStateMemberSchema>
+export type RuntimeState = z.infer<typeof RuntimeStateSchema>
 
 export type ActiveTeamSummary = Readonly<
   Pick<RuntimeState, "teamRunId" | "teamName" | "status" | "leadSessionId"> & {
-    memberCount: number;
-    scope: RuntimeState["specSource"];
+    memberCount: number
+    scope: RuntimeState["specSource"]
   }
->;
+>

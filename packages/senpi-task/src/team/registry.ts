@@ -1,92 +1,72 @@
-import type { Dirent } from "node:fs";
-import { readdir, readFile } from "node:fs/promises";
-import { join } from "node:path";
+import type { Dirent } from "node:fs"
+import { readFile, readdir } from "node:fs/promises"
+import { join } from "node:path"
 
-import type { TeamSpec } from "@oh-my-opencode/team-core/types";
+import type { TeamSpec } from "@oh-my-opencode/team-core/types"
 
-import { SenpiTeamSpecError } from "./errors";
-import {
-  type SenpiTeamMemberPorts,
-  validateSenpiTeamMembers,
-} from "./member-validator";
-import { normalizeSenpiTeamSpec } from "./normalize";
-import { resolveProjectTeamSpecPath } from "./storage";
+import { SenpiTeamSpecError } from "./errors"
+import { type SenpiTeamMemberPorts, validateSenpiTeamMembers } from "./member-validator"
+import { normalizeSenpiTeamSpec } from "./normalize"
+import { resolveProjectTeamSpecPath } from "./storage"
 
-export type TeamSpecSource = "project" | "omo-json";
+export type TeamSpecSource = "project" | "omo-json"
 
 export type TeamRegistryEntry = {
-  readonly name: string;
-  readonly source: TeamSpecSource;
-  readonly spec: TeamSpec;
-};
-
-export type TeamRegistryError = {
-  readonly name: string;
-  readonly source: TeamSpecSource;
-  readonly code: string;
-  readonly message: string;
-};
-
-export type LoadTeamRegistryInput = {
-  readonly projectRoot: string;
-  readonly omoTeams?: Record<string, unknown>;
-  readonly ports: SenpiTeamMemberPorts;
-};
-
-export type LoadTeamRegistryResult = {
-  readonly teams: readonly TeamRegistryEntry[];
-  readonly errors: readonly TeamRegistryError[];
-};
-
-type RawProjectSpec = {
-  readonly name: string;
-  readonly rawText: string;
-};
-
-function toRegistryError(
-  name: string,
-  source: TeamSpecSource,
-  error: unknown,
-): TeamRegistryError {
-  if (error instanceof SenpiTeamSpecError) {
-    return { name, source, code: error.code, message: error.message };
-  }
-  return {
-    name,
-    source,
-    code: "UNKNOWN",
-    message: error instanceof Error ? error.message : String(error),
-  };
+  readonly name: string
+  readonly source: TeamSpecSource
+  readonly spec: TeamSpec
 }
 
-async function readProjectTeamSpecs(
-  projectRoot: string,
-): Promise<readonly RawProjectSpec[]> {
-  const teamsDir = join(projectRoot, ".omo", "teams");
-  let entries: Dirent[];
+export type TeamRegistryError = {
+  readonly name: string
+  readonly source: TeamSpecSource
+  readonly code: string
+  readonly message: string
+}
+
+export type LoadTeamRegistryInput = {
+  readonly projectRoot: string
+  readonly omoTeams?: Record<string, unknown>
+  readonly ports: SenpiTeamMemberPorts
+}
+
+export type LoadTeamRegistryResult = {
+  readonly teams: readonly TeamRegistryEntry[]
+  readonly errors: readonly TeamRegistryError[]
+}
+
+type RawProjectSpec = {
+  readonly name: string
+  readonly rawText: string
+}
+
+function toRegistryError(name: string, source: TeamSpecSource, error: unknown): TeamRegistryError {
+  if (error instanceof SenpiTeamSpecError) {
+    return { name, source, code: error.code, message: error.message }
+  }
+  return { name, source, code: "UNKNOWN", message: error instanceof Error ? error.message : String(error) }
+}
+
+async function readProjectTeamSpecs(projectRoot: string): Promise<readonly RawProjectSpec[]> {
+  const teamsDir = join(projectRoot, ".omo", "teams")
+  let entries: Dirent[]
   try {
-    entries = await readdir(teamsDir, {
-      withFileTypes: true,
-      encoding: "utf8",
-    });
+    entries = await readdir(teamsDir, { withFileTypes: true, encoding: "utf8" })
   } catch {
-    return [];
+    return []
   }
 
-  const candidates: RawProjectSpec[] = [];
+  const candidates: RawProjectSpec[] = []
   for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
+    if (!entry.isDirectory()) continue
     try {
-      const rawText = await readFile(
-        resolveProjectTeamSpecPath(projectRoot, entry.name),
-        "utf8",
-      );
-      candidates.push({ name: entry.name, rawText });
+      const rawText = await readFile(resolveProjectTeamSpecPath(projectRoot, entry.name), "utf8")
+      candidates.push({ name: entry.name, rawText })
     } catch {
-      continue;
+      continue
     }
   }
-  return candidates;
+  return candidates
 }
 
 function ingest(
@@ -98,11 +78,11 @@ function ingest(
   errors: TeamRegistryError[],
 ): void {
   try {
-    const spec = normalizeSenpiTeamSpec(rawSpec, name);
-    validateSenpiTeamMembers(spec, ports);
-    teams.push({ name, source, spec });
+    const spec = normalizeSenpiTeamSpec(rawSpec, name)
+    validateSenpiTeamMembers(spec, ports)
+    teams.push({ name, source, spec })
   } catch (error) {
-    errors.push(toRegistryError(name, source, error));
+    errors.push(toRegistryError(name, source, error))
   }
 }
 
@@ -113,43 +93,34 @@ function ingest(
  * `normalizeSenpiTeamSpec` (team-core normalizer + schema, never `validateSpec`) and checked by the
  * senpi-local member validator; a failing team is recorded in `errors` and spawns zero members.
  */
-export async function loadTeamRegistry(
-  input: LoadTeamRegistryInput,
-): Promise<LoadTeamRegistryResult> {
-  const teams: TeamRegistryEntry[] = [];
-  const errors: TeamRegistryError[] = [];
+export async function loadTeamRegistry(input: LoadTeamRegistryInput): Promise<LoadTeamRegistryResult> {
+  const teams: TeamRegistryEntry[] = []
+  const errors: TeamRegistryError[] = []
 
-  const projectSpecs = await readProjectTeamSpecs(input.projectRoot);
-  const projectNames = new Set(projectSpecs.map((candidate) => candidate.name));
+  const projectSpecs = await readProjectTeamSpecs(input.projectRoot)
+  const projectNames = new Set(projectSpecs.map((candidate) => candidate.name))
 
   for (const candidate of projectSpecs) {
-    let rawSpec: unknown;
+    let rawSpec: unknown
     try {
-      rawSpec = JSON.parse(candidate.rawText);
+      rawSpec = JSON.parse(candidate.rawText)
     } catch (error) {
       errors.push({
         name: candidate.name,
         source: "project",
         code: "INVALID_JSON",
         message: error instanceof Error ? error.message : String(error),
-      });
-      continue;
+      })
+      continue
     }
-    ingest(candidate.name, "project", rawSpec, input.ports, teams, errors);
+    ingest(candidate.name, "project", rawSpec, input.ports, teams, errors)
   }
 
-  const omoTeams = input.omoTeams ?? {};
+  const omoTeams = input.omoTeams ?? {}
   for (const name of Object.keys(omoTeams)) {
-    if (projectNames.has(name)) continue;
-    ingest(
-      name,
-      "omo-json",
-      Object.hasOwn(omoTeams, name) ? omoTeams[name] : undefined,
-      input.ports,
-      teams,
-      errors,
-    );
+    if (projectNames.has(name)) continue
+    ingest(name, "omo-json", Object.hasOwn(omoTeams, name) ? omoTeams[name] : undefined, input.ports, teams, errors)
   }
 
-  return { teams, errors };
+  return { teams, errors }
 }

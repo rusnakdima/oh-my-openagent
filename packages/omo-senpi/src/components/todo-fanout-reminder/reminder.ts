@@ -6,4 +6,4 @@ export const TODO_FANOUT_REMINDER = [
   "3. TELL the user the decision either way: which parts route to which categories and why fan-out pays off, or why you are working directly. Never delegate silently and never grind through a fan-out-shaped task silently.",
   "4. KEEP the todo list fresh: mark start/done the instant each task transitions, append newly discovered steps the moment they surface, drop abandoned ones. A stale todo list is a defect.",
   "</system-reminder>",
-].join("\n");
+].join("\n")

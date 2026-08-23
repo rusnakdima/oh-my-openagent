@@ -30,9 +30,8 @@ get_user(42)    # type error: int is not UserId
 sleep(Milliseconds(100.0))  # type error
 ```
 
-**Use when**: IDs, indices, keys, units of measurement — any pair where swapping
-is a bug. **Skip when**: ephemeral local math where branding adds noise with
-zero safety gain.
+**Use when**: IDs, indices, keys, units of measurement — any pair where swapping is a bug.
+**Skip when**: ephemeral local math where branding adds noise with zero safety gain.
 
 ---
 
@@ -50,8 +49,7 @@ DEFAULT_TIMEOUT: Final = 30.0
 MAX_RETRIES = 5  # type error: cannot assign to Final
 ```
 
-If it changes at runtime, it's not a constant — make it a function parameter or
-config field.
+If it changes at runtime, it's not a constant — make it a function parameter or config field.
 
 ---
 
@@ -99,15 +97,13 @@ def check_role(role: str) -> bool: ...
 def check_role(role: Role) -> bool: ...
 ```
 
-`StrEnum` when values serialize as strings (API, DB). `IntEnum` for numeric
-codes. Plain `Enum` for pure labels.
+`StrEnum` when values serialize as strings (API, DB). `IntEnum` for numeric codes. Plain `Enum` for pure labels.
 
 ---
 
 ## Type narrowing — let the checker follow your logic
 
-`isinstance`, `is None`, and `match` narrow types automatically. Use them
-instead of `cast`.
+`isinstance`, `is None`, and `match` narrow types automatically. Use them instead of `cast`.
 
 ```python
 def process(value: str | int | None) -> str:
@@ -139,8 +135,7 @@ def send(addr: str) -> None:
 
 ### TypeIs (Python 3.13+) — the strict version
 
-`TypeIs` is stricter than `TypeGuard` — it narrows in both `if` and `else`
-branches.
+`TypeIs` is stricter than `TypeGuard` — it narrows in both `if` and `else` branches.
 
 ```python
 from typing import TypeIs
@@ -174,11 +169,8 @@ def f(x: int | None) -> str | int: ...
 
 ## Sources
 
-- Python docs:
-  [typing — NewType](https://docs.python.org/3/library/typing.html#newtype)
-- Python docs:
-  [typing — Final](https://docs.python.org/3/library/typing.html#typing.Final)
-- Python docs:
-  [typing — TypeGuard](https://docs.python.org/3/library/typing.html#typing.TypeGuard)
+- Python docs: [typing — NewType](https://docs.python.org/3/library/typing.html#newtype)
+- Python docs: [typing — Final](https://docs.python.org/3/library/typing.html#typing.Final)
+- Python docs: [typing — TypeGuard](https://docs.python.org/3/library/typing.html#typing.TypeGuard)
 - PEP 604: [Union syntax X | Y](https://peps.python.org/pep-0604/)
 - PEP 742: [TypeIs](https://peps.python.org/pep-0742/)

@@ -1,13 +1,13 @@
-import type { TrackedSession } from "./types";
+import type { TrackedSession } from "./types"
 
 export function createTrackedSession(params: {
-  sessionId: string;
-  paneId: string;
-  description: string;
-  now?: Date;
-  attachActivated?: boolean;
+  sessionId: string
+  paneId: string
+  description: string
+  now?: Date
+  attachActivated?: boolean
 }): TrackedSession {
-  const now = params.now ?? new Date();
+  const now = params.now ?? new Date()
 
   if (params.attachActivated) {
     return {
@@ -23,7 +23,7 @@ export function createTrackedSession(params: {
       activityVersion: 0,
       stableIdlePolls: 0,
       observedIdleActivityVersion: 0,
-    };
+    }
   }
 
   return {
@@ -37,17 +37,13 @@ export function createTrackedSession(params: {
     closePending: false,
     closeRetryCount: 0,
     activityVersion: 0,
-  };
+  }
 }
 
-export function markTrackedSessionClosePending(
-  tracked: TrackedSession,
-): TrackedSession {
+export function markTrackedSessionClosePending(tracked: TrackedSession): TrackedSession {
   return {
     ...tracked,
     closePending: true,
-    closeRetryCount: tracked.closePending
-      ? tracked.closeRetryCount + 1
-      : tracked.closeRetryCount,
-  };
+    closeRetryCount: tracked.closePending ? tracked.closeRetryCount + 1 : tracked.closeRetryCount,
+  }
 }

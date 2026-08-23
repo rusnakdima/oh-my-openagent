@@ -1,7 +1,6 @@
 # Team Mode
 
-Parallel multi-agent coordination for omo, modeled after Claude Code's
-experimental Agent Teams.
+Parallel multi-agent coordination for omo, modeled after Claude Code's experimental Agent Teams.
 
 ## Status
 
@@ -15,8 +14,7 @@ OFF by default. Enable via JSONC config.
 
 ## Enable
 
-Add to the `[opencode]` block of `~/.omo/omo.jsonc` (user) or `.omo/omo.jsonc`
-(project):
+Add to the `[opencode]` block of `~/.omo/omo.jsonc` (user) or `.omo/omo.jsonc` (project):
 
 ```jsonc
 {
@@ -31,11 +29,7 @@ Add to the `[opencode]` block of `~/.omo/omo.jsonc` (user) or `.omo/omo.jsonc`
 
 After enabling, restart opencode. The 12 `team_*` tools become available.
 
-> Bug-fix note: v4.2.1 adds a fresh-install regression test for this minimal
-> config and logs the resolved `team_mode` state plus team tool count during
-> startup. If the tools still do not appear after restart, inspect
-> `oh-my-opencode.log` for the loaded config path and
-> `[tool-registry] Built tool registry` entry.
+> Bug-fix note: v4.2.1 adds a fresh-install regression test for this minimal config and logs the resolved `team_mode` state plus team tool count during startup. If the tools still do not appear after restart, inspect `oh-my-opencode.log` for the loaded config path and `[tool-registry] Built tool registry` entry.
 
 ## Config schema (11 fields)
 
@@ -55,8 +49,7 @@ All fields live under `team_mode`:
 
 ## Define a team
 
-Team specs live under `~/.omo/teams/{name}/config.json` (user scope) or
-`<project>/.omo/teams/{name}/config.json` (project scope):
+Team specs live under `~/.omo/teams/{name}/config.json` (user scope) or `<project>/.omo/teams/{name}/config.json` (project scope):
 
 ```json
 {
@@ -64,69 +57,48 @@ Team specs live under `~/.omo/teams/{name}/config.json` (user scope) or
   "description": "Explore the ccapi project structure.",
   "lead": { "kind": "subagent_type", "subagent_type": "sisyphus" },
   "members": [
-    {
-      "kind": "category",
-      "name": "scout-1",
-      "category": "deep",
-      "prompt": "Scout the source directory for auth patterns."
-    },
-    {
-      "kind": "category",
-      "name": "scout-2",
-      "category": "quick",
-      "prompt": "Scout tests for auth coverage."
-    }
+    { "kind": "category", "name": "scout-1", "category": "deep", "prompt": "Scout the source directory for auth patterns." },
+    { "kind": "category", "name": "scout-2", "category": "quick", "prompt": "Scout tests for auth coverage." }
   ]
 }
 ```
 
 When both scopes define the same team name, project scope wins.
 
-`version`, `createdAt`, and `leadAgentId` are optional in config files. The
-loader fills them automatically. You can either write a top-level `lead: {...}`
-shorthand, mark one member with `isLead: true`, or omit both when the team has
-exactly one member.
+`version`, `createdAt`, and `leadAgentId` are optional in config files. The loader fills them automatically. You can either write a top-level `lead: {...}` shorthand, mark one member with `isLead: true`, or omit both when the team has exactly one member.
 
 ## Member kinds
 
-- **`kind: "subagent_type"`** — direct agent (atlas, sisyphus, sisyphus-junior,
-  hephaestus). `prompt` optional.
-- **`kind: "category"`** — routed through `sisyphus-junior` with the chosen
-  category model. `prompt` REQUIRED.
+- **`kind: "subagent_type"`** — direct agent (atlas, sisyphus, sisyphus-junior, hephaestus). `prompt` optional.
+- **`kind: "category"`** — routed through `sisyphus-junior` with the chosen category model. `prompt` REQUIRED.
 
 ## Eligible agents
 
-- **Eligible:** `sisyphus`, `atlas`, `sisyphus-junior`, `hephaestus` (OpenCode
-  grants `teammate: "allow"` by default).
-- **Hard-reject:** `oracle`, `librarian`, `explore`, `multimodal-looker`,
-  `metis`, `momus`, `prometheus`.
+- **Eligible:** `sisyphus`, `atlas`, `sisyphus-junior`, `hephaestus` (OpenCode grants `teammate: "allow"` by default).
+- **Hard-reject:** `oracle`, `librarian`, `explore`, `multimodal-looker`, `metis`, `momus`, `prometheus`.
 
-Hard-reject agents fail TeamSpec parsing because they cannot write mailbox
-state. Use the `task` tool for those agents; its implementation module is named
-`delegate-task`.
+Hard-reject agents fail TeamSpec parsing because they cannot write mailbox state. Use the `task` tool for those agents; its implementation module is named `delegate-task`.
 
 ## Lifecycle
 
 1. `team_create` — spawns team and member sessions.
 2. Lead delegates work via `team_send_message`, `team_task_create`.
-3. Members claim tasks (`team_task_update` with `status: "claimed"`), report
-   back via `team_send_message`.
-4. `team_shutdown_request` → member or lead acks via `team_approve_shutdown` /
-   `team_reject_shutdown`.
+3. Members claim tasks (`team_task_update` with `status: "claimed"`), report back via `team_send_message`.
+4. `team_shutdown_request` → member or lead acks via `team_approve_shutdown` / `team_reject_shutdown`.
 5. `team_delete` — removes runtime state, worktrees, optional tmux layout.
 
 ## 12 tools
 
-| Tool                                              | Purpose                                                             |
-| ------------------------------------------------- | ------------------------------------------------------------------- |
-| `team_create`                                     | Spawn a team.                                                       |
-| `team_delete`                                     | Tear down (lead only; rejects active members unless `force: true`). |
-| `team_shutdown_request`                           | Lead asks a member to wrap up.                                      |
-| `team_approve_shutdown` / `team_reject_shutdown`  | Member or lead responds.                                            |
-| `team_send_message`                               | Peer-to-peer mailbox; lead-only broadcast.                          |
-| `team_task_create` / `_list` / `_update` / `_get` | Shared task list.                                                   |
-| `team_status`                                     | Aggregate runtime view.                                             |
-| `team_list`                                       | Declared + active teams.                                            |
+| Tool | Purpose |
+|------|---------|
+| `team_create` | Spawn a team. |
+| `team_delete` | Tear down (lead only; rejects active members unless `force: true`). |
+| `team_shutdown_request` | Lead asks a member to wrap up. |
+| `team_approve_shutdown` / `team_reject_shutdown` | Member or lead responds. |
+| `team_send_message` | Peer-to-peer mailbox; lead-only broadcast. |
+| `team_task_create` / `_list` / `_update` / `_get` | Shared task list. |
+| `team_status` | Aggregate runtime view. |
+| `team_list` | Declared + active teams. |
 
 ## Bounds (defaults)
 
@@ -136,34 +108,26 @@ state. Use the `task` tool for those agents; its implementation module is named
 
 ## Worktrees (optional per member)
 
-Add `"worktreePath": "../wt-scout"` to a member entry. Path is
-filesystem-relative or absolute; bare branch names are rejected. Requires `git`.
+Add `"worktreePath": "../wt-scout"` to a member entry. Path is filesystem-relative or absolute; bare branch names are rejected. Requires `git`.
 
 ## tmux visualization (optional)
 
-Set `tmux_visualization: true`. Requires running inside a tmux session and tmux
-on PATH. Failures are isolated - a missing tmux never blocks team creation.
+Set `tmux_visualization: true`. Requires running inside a tmux session and tmux on PATH. Failures are isolated - a missing tmux never blocks team creation.
 
-When enabled, each member gets a dedicated tmux pane attached to that member's
-session via `opencode attach`. The pane runs the full interactive opencode TUI
-for the member so you can watch streaming output in real time. Panes start in
-each member worktree when configured, otherwise the repo root.
+When enabled, each member gets a dedicated tmux pane attached to that member's session via `opencode attach`. The pane runs the full interactive opencode TUI for the member so you can watch streaming output in real time. Panes start in each member worktree when configured, otherwise the repo root.
 
-`team_delete` closes the panes and tears down the team layout. Per-member
-shutdown closes just that pane and rebalances the remaining layout.
+`team_delete` closes the panes and tears down the team layout. Per-member shutdown closes just that pane and rebalances the remaining layout.
 
 ## What team mode does NOT do
 
 - No nested teams (members cannot call `team_create`).
 - No synchronous reply waits (`team_send_message` is fire-and-forget).
-- Members are asked not to spawn further children (member guidance prompt); the
-  `task` tool is not budget-gated to 0. Nested `team_create` is denied.
+- Members are asked not to spawn further children (member guidance prompt); the `task` tool is not budget-gated to 0. Nested `team_create` is denied.
 - `team_delete` rejects active members unless `force: true`.
 
 ## Diagnostics
 
-`bunx oh-my-openagent doctor` includes a `team-mode` check showing tmux/git
-availability, declared team count, and active runtime dirs.
+`bunx oh-my-openagent doctor` includes a `team-mode` check showing tmux/git availability, declared team count, and active runtime dirs.
 
 ## Storage layout
 
@@ -180,13 +144,8 @@ availability, declared team count, and active runtime dirs.
     └── tasks/.highwatermark                      # tasklist id allocator
 ```
 
-`.delivering-{uuid}.json` files exist only while a message is being
-live-delivered via `promptAsync`. They are committed to `processed/` on delivery
-success, released back to `{uuid}.json` on failure, or reclaimed on team resume
-if stranded by a crash (10 minute TTL). `listUnreadMessages` ignores dotfile
-entries so the fallback poll never double-injects a reserved message.
+`.delivering-{uuid}.json` files exist only while a message is being live-delivered via `promptAsync`. They are committed to `processed/` on delivery success, released back to `{uuid}.json` on failure, or reclaimed on team resume if stranded by a crash (10 minute TTL). `listUnreadMessages` ignores dotfile entries so the fallback poll never double-injects a reserved message.
 
 ## Reference
 
-Implementation notes: `packages/omo-opencode/src/features/team-mode/AGENTS.md`
-and `packages/team-core/AGENTS.md`.
+Implementation notes: `packages/omo-opencode/src/features/team-mode/AGENTS.md` and `packages/team-core/AGENTS.md`.

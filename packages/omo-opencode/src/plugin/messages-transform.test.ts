@@ -1,133 +1,112 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, it, expect } from "bun:test"
 
-import { createMessagesTransformHandler } from "./messages-transform";
-import { createCategorySkillReminderHook } from "../hooks/category-skill-reminder";
-import { createToolPairValidatorHook } from "../hooks/tool-pair-validator/hook";
-import {
-  _resetForTesting,
-  updateSessionAgent,
-} from "../features/claude-code-session-state";
-import { OMO_INTERNAL_INITIATOR_MARKER } from "../shared/internal-initiator-marker";
-import type { CreatedHooks } from "../create-hooks";
+import { createMessagesTransformHandler } from "./messages-transform"
+import { createCategorySkillReminderHook } from "../hooks/category-skill-reminder"
+import { createToolPairValidatorHook } from "../hooks/tool-pair-validator/hook"
+import { _resetForTesting, updateSessionAgent } from "../features/claude-code-session-state"
+import { OMO_INTERNAL_INITIATOR_MARKER } from "../shared/internal-initiator-marker"
+import type { CreatedHooks } from "../create-hooks"
 
 type TestPart = {
-  type: string;
-  id?: string;
-  sessionID?: string;
-  messageID?: string;
-  callID?: string;
-  tool?: string;
-  state?: {
-    status?: string;
-    input?: Record<string, unknown>;
-    time?: { start: number; end?: number };
-  };
-  tool_use_id?: string;
-  content?: string;
-  text?: string;
-  synthetic?: boolean;
-  metadata?: { compaction_continue?: boolean };
-};
+  type: string
+  id?: string
+  sessionID?: string
+  messageID?: string
+  callID?: string
+  tool?: string
+  state?: { status?: string; input?: Record<string, unknown>; time?: { start: number; end?: number } }
+  tool_use_id?: string
+  content?: string
+  text?: string
+  synthetic?: boolean
+  metadata?: { compaction_continue?: boolean }
+}
 
 type TestMessage = {
   info: {
-    role: "assistant" | "user";
-    id?: string;
-    sessionID?: string;
-    agent?: string;
-    model?: { providerID: string; modelID: string };
-    system?: string;
-    tools?: Record<string, boolean>;
-    providerID?: string;
-    modelID?: string;
-  };
-  parts: TestPart[];
-};
+    role: "assistant" | "user"
+    id?: string
+    sessionID?: string
+    agent?: string
+    model?: { providerID: string; modelID: string }
+    system?: string
+    tools?: Record<string, boolean>
+    providerID?: string
+    modelID?: string
+  }
+  parts: TestPart[]
+}
 
 type TransformHook = (
   input: Record<string, never>,
   output: { messages: TestMessage[] },
-) => Promise<void>;
+) => Promise<void>
 
-function makeHook(
-  handler: TransformHook,
-): NonNullable<CreatedHooks["toolPairValidator"]> {
+function makeHook(handler: TransformHook): NonNullable<CreatedHooks["toolPairValidator"]> {
   return {
     "experimental.chat.messages.transform": handler as never,
-  } as never;
+  } as never
 }
 
 function makeHooks(overrides: {
-  btw?: TransformHook;
-  contextInjector?: TransformHook;
-  teamModeStatus?: TransformHook;
-  teamMailbox?: TransformHook;
-  thinkingBlock?: TransformHook;
-  toolPair?: TransformHook;
-  categorySkill?: TransformHook;
+  btw?: TransformHook
+  contextInjector?: TransformHook
+  teamModeStatus?: TransformHook
+  teamMailbox?: TransformHook
+  thinkingBlock?: TransformHook
+  toolPair?: TransformHook
+  categorySkill?: TransformHook
 }): CreatedHooks {
   return {
     btwSideContextInjector: overrides.btw ? makeHook(overrides.btw) : undefined,
-    contextInjectorMessagesTransform: overrides.contextInjector
-      ? makeHook(overrides.contextInjector)
-      : undefined,
-    teamModeStatusInjector: overrides.teamModeStatus
-      ? makeHook(overrides.teamModeStatus)
-      : undefined,
-    teamMailboxInjector: overrides.teamMailbox
-      ? makeHook(overrides.teamMailbox)
-      : undefined,
-    thinkingBlockValidator: overrides.thinkingBlock
-      ? makeHook(overrides.thinkingBlock)
-      : undefined,
-    toolPairValidator: overrides.toolPair
-      ? makeHook(overrides.toolPair)
-      : undefined,
-    categorySkillReminder: overrides.categorySkill
-      ? makeHook(overrides.categorySkill)
-      : undefined,
-  } as CreatedHooks;
+    contextInjectorMessagesTransform: overrides.contextInjector ? makeHook(overrides.contextInjector) : undefined,
+    teamModeStatusInjector: overrides.teamModeStatus ? makeHook(overrides.teamModeStatus) : undefined,
+    teamMailboxInjector: overrides.teamMailbox ? makeHook(overrides.teamMailbox) : undefined,
+    thinkingBlockValidator: overrides.thinkingBlock ? makeHook(overrides.thinkingBlock) : undefined,
+    toolPairValidator: overrides.toolPair ? makeHook(overrides.toolPair) : undefined,
+    categorySkillReminder: overrides.categorySkill ? makeHook(overrides.categorySkill) : undefined,
+  } as CreatedHooks
 }
 
 async function runHandler(
   hooks: CreatedHooks,
   messages: TestMessage[],
 ): Promise<void> {
-  const handler = createMessagesTransformHandler({ hooks });
-  await handler({} as never, { messages: messages as never });
+  const handler = createMessagesTransformHandler({ hooks })
+  await handler({} as never, { messages: messages as never })
 }
 
 afterEach(() => {
-  _resetForTesting();
-});
+  _resetForTesting()
+})
 
 describe("createMessagesTransformHandler", () => {
   it("runs all hooks in order when none throw", async () => {
     //#given
-    const callOrder: string[] = [];
+    const callOrder: string[] = []
     const hooks = makeHooks({
       contextInjector: async () => {
-        callOrder.push("context-injector");
+        callOrder.push("context-injector")
       },
       teamModeStatus: async () => {
-        callOrder.push("team-mode-status-injector");
+        callOrder.push("team-mode-status-injector")
       },
       teamMailbox: async () => {
-        callOrder.push("team-mailbox-injector");
+        callOrder.push("team-mailbox-injector")
       },
       thinkingBlock: async () => {
-        callOrder.push("thinking-block-validator");
+        callOrder.push("thinking-block-validator")
       },
       toolPair: async () => {
-        callOrder.push("tool-pair-validator");
+        callOrder.push("tool-pair-validator")
       },
       categorySkill: async () => {
-        callOrder.push("category-skill-reminder");
+        callOrder.push("category-skill-reminder")
       },
-    });
+    })
 
     //#when
-    await runHandler(hooks, []);
+    await runHandler(hooks, [])
 
     //#then
     expect(callOrder).toEqual([
@@ -136,111 +115,108 @@ describe("createMessagesTransformHandler", () => {
       "team-mailbox-injector",
       "tool-pair-validator",
       "category-skill-reminder",
-    ]);
-  });
+    ])
+  })
 
   it("#given category-skill-reminder is disabled #when messages transform runs #then the user message is unchanged", async () => {
     //#given
     const messages: TestMessage[] = [
       { info: { role: "user" }, parts: [{ type: "text", text: "unchanged" }] },
-    ];
+    ]
     const hooks = {
       ...makeHooks({}),
       categorySkillReminder: null,
-    } as CreatedHooks;
+    } as CreatedHooks
 
     //#when
-    await runHandler(hooks, messages);
+    await runHandler(hooks, messages)
 
     //#then
     expect(messages).toEqual([
       { info: { role: "user" }, parts: [{ type: "text", text: "unchanged" }] },
-    ]);
-  });
+    ])
+  })
 
   it("#given a legacy thinking-block-validator hook #when messages transform runs #then it is not invoked", async () => {
     //#given
-    let thinkingBlockRan = false;
-    let toolPairRan = false;
+    let thinkingBlockRan = false
+    let toolPairRan = false
     const hooks = makeHooks({
       thinkingBlock: async () => {
-        thinkingBlockRan = true;
+        thinkingBlockRan = true
       },
       toolPair: async () => {
-        toolPairRan = true;
+        toolPairRan = true
       },
-    });
+    })
 
     //#when
-    await runHandler(hooks, []);
+    await runHandler(hooks, [])
 
     //#then
-    expect(thinkingBlockRan).toBe(false);
-    expect(toolPairRan).toBe(true);
-  });
+    expect(thinkingBlockRan).toBe(false)
+    expect(toolPairRan).toBe(true)
+  })
 
   it("runs tool-pair-validator even when context-injector throws", async () => {
     //#given
-    let toolPairRan = false;
+    let toolPairRan = false
     const hooks = makeHooks({
       contextInjector: async () => {
-        throw new Error("context-injector boom");
+        throw new Error("context-injector boom")
       },
       toolPair: async () => {
-        toolPairRan = true;
+        toolPairRan = true
       },
-    });
+    })
 
     //#when
-    await runHandler(hooks, []);
+    await runHandler(hooks, [])
 
     //#then
-    expect(toolPairRan).toBe(true);
-  });
+    expect(toolPairRan).toBe(true)
+  })
 
   it("propagates BTW classification failures before the request can continue", async () => {
     //#given
     const hooks = makeHooks({
       btw: async () => {
-        throw new Error("Unable to classify session for BTW isolation.");
+        throw new Error("Unable to classify session for BTW isolation.")
       },
-    });
+    })
 
     //#when
-    const transform = runHandler(hooks, []);
+    const transform = runHandler(hooks, [])
 
     //#then
     await expect(transform).rejects.toThrow(
       "Unable to classify session for BTW isolation.",
-    );
-  });
+    )
+  })
 
   it("runs tool-pair-validator even when thinking-block-validator throws", async () => {
     //#given
-    let toolPairRan = false;
+    let toolPairRan = false
     const hooks = makeHooks({
       thinkingBlock: async () => {
-        throw new Error("thinking-block boom");
+        throw new Error("thinking-block boom")
       },
       toolPair: async () => {
-        toolPairRan = true;
+        toolPairRan = true
       },
-    });
+    })
 
     //#when
-    await runHandler(hooks, []);
+    await runHandler(hooks, [])
 
     //#then
-    expect(toolPairRan).toBe(true);
-  });
+    expect(toolPairRan).toBe(true)
+  })
 
   it("repairs orphaned tool calls after upstream hook throws (regression for ses_22bd806)", async () => {
     //#given
     const messages: TestMessage[] = [
-      {
-        info: { role: "user" },
-        parts: [{ type: "text", text: "summary stand-in" }],
-      },
+      { info: { role: "user" }, parts: [{ type: "text", text: "summary stand-in" }] },
       {
         info: { role: "assistant" },
         parts: [createRunningToolPart("toolu_01SRMQs3DUtVKWoSxC8bxxVA")],
@@ -250,40 +226,40 @@ describe("createMessagesTransformHandler", () => {
         parts: [createRunningToolPart("toolu_01Lu5cHvRtEvzoifP1UVBVRb")],
       },
       { info: { role: "user" }, parts: [{ type: "text", text: "next" }] },
-    ];
+    ]
     const hooks = makeHooks({
       contextInjector: async () => {
-        throw new Error("simulating upstream hook failure");
+        throw new Error("simulating upstream hook failure")
       },
       toolPair: createRealToolPairValidator(),
-    });
+    })
 
     //#when
-    await runHandler(hooks, messages);
+    await runHandler(hooks, messages)
 
     //#then
-    expect(messages).toHaveLength(4);
-    expect(readToolStatus(messages[1])).toEqual("error");
-    expect(readToolStatus(messages[2])).toEqual("error");
-    expect(messages[3]?.parts).toEqual([{ type: "text", text: "next" }]);
-  });
+    expect(messages).toHaveLength(4)
+    expect(readToolStatus(messages[1])).toEqual("error")
+    expect(readToolStatus(messages[2])).toEqual("error")
+    expect(messages[3]?.parts).toEqual([{ type: "text", text: "next" }])
+  })
 
   it("keeps a tool-pair repair separate from reminder request identity", async () => {
     //#given
-    const sessionID = "ses_tool_pair_reminder";
-    const categorySkillReminder = createCategorySkillReminderHook({} as never);
-    updateSessionAgent(sessionID, "Sisyphus");
+    const sessionID = "ses_tool_pair_reminder"
+    const categorySkillReminder = createCategorySkillReminderHook({} as never)
+    updateSessionAgent(sessionID, "Sisyphus")
     for (const [index, tool] of ["read", "grep", "glob"].entries()) {
       await categorySkillReminder["tool.execute.after"](
         { tool, sessionID, callID: `call_${index}` },
         { title: tool, output: "unchanged", metadata: {} },
-      );
+      )
     }
     const hooks = {
       ...makeHooks({}),
       toolPairValidator: createToolPairValidatorHook(),
       categorySkillReminder,
-    } as CreatedHooks;
+    } as CreatedHooks
     const messages: TestMessage[] = [
       {
         info: { id: "msg_real_request", role: "user", sessionID },
@@ -293,59 +269,50 @@ describe("createMessagesTransformHandler", () => {
         info: { id: "msg_orphaned_tool", role: "assistant", sessionID },
         parts: [createRunningToolPart("toolu_missing_result")],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(hooks, messages);
+    await runHandler(hooks, messages)
 
     //#then
-    expect(messages).toHaveLength(2);
-    expect(readToolStatus(messages[1])).toEqual("error");
+    expect(messages).toHaveLength(2)
+    expect(readToolStatus(messages[1])).toEqual("error")
     expect(messages[0]?.parts[0]).toMatchObject({
       id: "prt_category_skill_reminder_msg_real_request",
       messageID: "msg_real_request",
       sessionID,
       synthetic: true,
       type: "text",
-    });
-    expect(messages[0]?.parts[1]).toEqual({
-      type: "text",
-      text: "continue the real request",
-    });
-  });
+    })
+    expect(messages[0]?.parts[1]).toEqual({ type: "text", text: "continue the real request" })
+  })
 
   it("does not throw when tool-pair-validator itself fails", async () => {
     //#given
     const hooks = makeHooks({
       toolPair: async () => {
-        throw new Error("validator boom");
+        throw new Error("validator boom")
       },
-    });
+    })
 
     //#when / #then
-    await runHandler(hooks, []);
-  });
+    await runHandler(hooks, [])
+  })
 
   it("#given a completed assistant response tail #when messages transform runs again #then it does not synthesize a continuation user turn", async () => {
     //#given
     const messages: TestMessage[] = [
-      {
-        info: { role: "user" },
-        parts: [{ type: "text", text: "work on this" }],
-      },
-      {
-        info: { role: "assistant" },
-        parts: [{ type: "text", text: "completed assistant answer" }],
-      },
-    ];
+      { info: { role: "user" }, parts: [{ type: "text", text: "work on this" }] },
+      { info: { role: "assistant" }, parts: [{ type: "text", text: "completed assistant answer" }] },
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(2);
-    expect(messages.at(-1)?.info.role).toBe("assistant");
-  });
+    expect(messages).toHaveLength(2)
+    expect(messages.at(-1)?.info.role).toBe("assistant")
+  })
 
   it("#given an Anthropic Opus 4.7 history ends with an ordinary assistant tail #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
@@ -370,13 +337,13 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "## 정리 — 완료" }],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(3);
+    expect(messages).toHaveLength(3)
     expect(messages.at(-1)?.info).toMatchObject({
       role: "user",
       sessionID: "ses_opus47_prefill",
@@ -384,13 +351,13 @@ describe("createMessagesTransformHandler", () => {
       model: { providerID: "anthropic", modelID: "claude-opus-4-7" },
       system: "system-prompt",
       tools: { bash: true },
-    });
+    })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given an Anthropic Opus 4.8 history ends with an ordinary assistant tail #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
@@ -415,13 +382,13 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "done" }],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(3);
+    expect(messages).toHaveLength(3)
     expect(messages.at(-1)?.info).toMatchObject({
       role: "user",
       sessionID: "ses_opus48_prefill",
@@ -429,13 +396,13 @@ describe("createMessagesTransformHandler", () => {
       model: { providerID: "anthropic", modelID: "claude-opus-4-8" },
       system: "system-prompt",
       tools: { bash: true },
-    });
+    })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given rejecting model metadata is only on the assistant tail #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
@@ -460,13 +427,13 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "done" }],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(3);
+    expect(messages).toHaveLength(3)
     expect(messages.at(-1)?.info).toMatchObject({
       role: "user",
       sessionID: "ses_assistant_model_fallback",
@@ -474,13 +441,13 @@ describe("createMessagesTransformHandler", () => {
       model: { providerID: "internal", modelID: "assistant-prefill-guard" },
       system: "system-prompt",
       tools: { bash: true },
-    });
+    })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given multiple user turns and a rejecting assistant tail #when messages transform runs #then recovery copies the last user turn metadata", async () => {
     //#given
@@ -516,13 +483,13 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "done" }],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(4);
+    expect(messages).toHaveLength(4)
     expect(messages.at(-1)?.info).toMatchObject({
       id: "msg_tail_without_session_prefill_recovery",
       role: "user",
@@ -531,15 +498,15 @@ describe("createMessagesTransformHandler", () => {
       model: { providerID: "anthropic", modelID: "claude-opus-4-8" },
       system: "new-system",
       tools: { bash: true },
-    });
+    })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       sessionID: "ses_last_user",
       messageID: "msg_tail_without_session_prefill_recovery",
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given an earlier compaction continuation but the last user turn is ordinary #when messages transform runs #then it does not recover the assistant tail", async () => {
     //#given
@@ -548,34 +515,26 @@ describe("createMessagesTransformHandler", () => {
         info: { role: "user" },
         parts: [{
           type: "text",
-          text:
-            `[session recovered - continuing previous task]\n${OMO_INTERNAL_INITIATOR_MARKER}`,
+          text: `[session recovered - continuing previous task]\n${OMO_INTERNAL_INITIATOR_MARKER}`,
           synthetic: true,
           metadata: { compaction_continue: true },
         }],
       },
-      {
-        info: { role: "user" },
-        parts: [{ type: "text", text: "ordinary follow-up" }],
-      },
-      {
-        info: { role: "assistant" },
-        parts: [{ type: "text", text: "completed assistant answer" }],
-      },
-    ];
+      { info: { role: "user" }, parts: [{ type: "text", text: "ordinary follow-up" }] },
+      { info: { role: "assistant" }, parts: [{ type: "text", text: "completed assistant answer" }] },
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(3);
-    expect(messages.at(-1)?.info.role).toBe("assistant");
-  });
+    expect(messages).toHaveLength(3)
+    expect(messages.at(-1)?.info.role).toBe("assistant")
+  })
 
   it("#given hooks leave an unsupported assistant tail #when messages transform runs #then recovery happens after hook validation", async () => {
     //#given
-    const observedTailRoles: Array<TestMessage["info"]["role"] | undefined> =
-      [];
+    const observedTailRoles: Array<TestMessage["info"]["role"] | undefined> = []
     const messages: TestMessage[] = [
       {
         info: {
@@ -595,25 +554,25 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "done" }],
       },
-    ];
+    ]
     const hooks = makeHooks({
       toolPair: async (_input, output) => {
-        observedTailRoles.push(output.messages.at(-1)?.info.role);
+        observedTailRoles.push(output.messages.at(-1)?.info.role)
       },
-    });
+    })
 
     //#when
-    await runHandler(hooks, messages);
+    await runHandler(hooks, messages)
 
     //#then
-    expect(observedTailRoles).toEqual(["assistant"]);
-    expect(messages.at(-1)?.info.role).toBe("user");
+    expect(observedTailRoles).toEqual(["assistant"])
+    expect(messages.at(-1)?.info.role).toBe("user")
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given the assistant tail identifies a rejecting Anthropic model after an allowed user model #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
@@ -637,25 +596,25 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "done" }],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(3);
+    expect(messages).toHaveLength(3)
     expect(messages.at(-1)?.info).toMatchObject({
       role: "user",
       sessionID: "ses_allowed_then_rejecting_assistant",
       agent: "sisyphus",
       model: { providerID: "openai", modelID: "gpt-5.4" },
-    });
+    })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given an Anthropic-family provider history ends with a rejecting assistant tail #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
@@ -666,10 +625,7 @@ describe("createMessagesTransformHandler", () => {
           role: "user",
           sessionID: "ses_vertex_anthropic",
           agent: "sisyphus",
-          model: {
-            providerID: "google-vertex-anthropic",
-            modelID: "claude-opus-4-7",
-          },
+          model: { providerID: "google-vertex-anthropic", modelID: "claude-opus-4-7" },
         },
         parts: [{ type: "text", text: "continue" }],
       },
@@ -681,28 +637,25 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "done" }],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(3);
+    expect(messages).toHaveLength(3)
     expect(messages.at(-1)?.info).toMatchObject({
       role: "user",
       sessionID: "ses_vertex_anthropic",
       agent: "sisyphus",
-      model: {
-        providerID: "google-vertex-anthropic",
-        modelID: "claude-opus-4-7",
-      },
-    });
+      model: { providerID: "google-vertex-anthropic", modelID: "claude-opus-4-7" },
+    })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given rejecting model metadata uses direct provider and model fields #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
@@ -728,13 +681,13 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{ type: "text", text: "done" }],
       },
-    ];
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages).toHaveLength(3);
+    expect(messages).toHaveLength(3)
     expect(messages.at(-1)?.info).toMatchObject({
       role: "user",
       sessionID: "ses_direct_model",
@@ -742,13 +695,13 @@ describe("createMessagesTransformHandler", () => {
       model: { providerID: "anthropic", modelID: "claude-sonnet-4.6" },
       system: "system-prompt",
       tools: { bash: true },
-    });
+    })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given models that still allow assistant prefill or missing model metadata #when messages transform runs #then it keeps the assistant tail unchanged", async () => {
     //#given
@@ -778,63 +731,50 @@ describe("createMessagesTransformHandler", () => {
           model: { providerID: "openai", modelID: "claude-opus-4-7" },
         },
       },
-    ];
+    ]
 
     for (const scenario of scenarios) {
       const messages: TestMessage[] = [
-        {
-          info: scenario.userInfo,
-          parts: [{ type: "text", text: scenario.name }],
-        },
-        {
-          info: { role: "assistant" },
-          parts: [{ type: "text", text: "completed assistant answer" }],
-        },
-      ];
+        { info: scenario.userInfo, parts: [{ type: "text", text: scenario.name }] },
+        { info: { role: "assistant" }, parts: [{ type: "text", text: "completed assistant answer" }] },
+      ]
 
       //#when
-      await runHandler(makeHooks({}), messages);
+      await runHandler(makeHooks({}), messages)
 
       //#then
-      expect(messages, scenario.name).toHaveLength(2);
-      expect(messages.at(-1)?.info.role, scenario.name).toBe("assistant");
+      expect(messages, scenario.name).toHaveLength(2)
+      expect(messages.at(-1)?.info.role, scenario.name).toBe("assistant")
     }
-  });
+  })
 
   it("#given an internal compaction continuation reaches an assistant prefill tail #when messages transform runs #then it appends a synthetic user recovery turn", async () => {
     //#given
     const messages: TestMessage[] = [
-      {
-        info: { role: "user" },
-        parts: [{ type: "text", text: "work on this" }],
-      },
+      { info: { role: "user" }, parts: [{ type: "text", text: "work on this" }] },
       {
         info: { role: "user" },
         parts: [{
           type: "text",
-          text:
-            `[session recovered - continuing previous task]\n${OMO_INTERNAL_INITIATOR_MARKER}`,
+          text: `[session recovered - continuing previous task]\n${OMO_INTERNAL_INITIATOR_MARKER}`,
           synthetic: true,
           metadata: { compaction_continue: true },
         }],
       },
-      {
-        info: { role: "assistant" },
-        parts: [{ type: "text", text: "partial assistant tail" }],
-      },
-    ];
+      { info: { role: "assistant" }, parts: [{ type: "text", text: "partial assistant tail" }] },
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages.at(-1)?.info).toMatchObject({ role: "user" });
+    expect(messages.at(-1)?.info).toMatchObject({ role: "user" })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
+    })
+  })
 
   it("#given an allowed model compaction continuation reaches an assistant tail #when messages transform runs #then it still appends a synthetic user recovery turn", async () => {
     //#given
@@ -846,36 +786,32 @@ describe("createMessagesTransformHandler", () => {
         },
         parts: [{
           type: "text",
-          text:
-            `[session recovered - continuing previous task]\n${OMO_INTERNAL_INITIATOR_MARKER}`,
+          text: `[session recovered - continuing previous task]\n${OMO_INTERNAL_INITIATOR_MARKER}`,
           synthetic: true,
           metadata: { compaction_continue: true },
         }],
       },
-      {
-        info: { role: "assistant" },
-        parts: [{ type: "text", text: "partial assistant tail" }],
-      },
-    ];
+      { info: { role: "assistant" }, parts: [{ type: "text", text: "partial assistant tail" }] },
+    ]
 
     //#when
-    await runHandler(makeHooks({}), messages);
+    await runHandler(makeHooks({}), messages)
 
     //#then
-    expect(messages.at(-1)?.info).toMatchObject({ role: "user" });
+    expect(messages.at(-1)?.info).toMatchObject({ role: "user" })
     expect(messages.at(-1)?.parts[0]).toMatchObject({
       type: "text",
       text: "[internal] Continue from the previous assistant state.",
       synthetic: true,
-    });
-  });
-});
+    })
+  })
+})
 
 function createRealToolPairValidator(): TransformHook {
-  const validator = createToolPairValidatorHook();
-  const handler = validator["experimental.chat.messages.transform"];
-  if (!handler) throw new Error("validator missing transform");
-  return handler as never;
+  const validator = createToolPairValidatorHook()
+  const handler = validator["experimental.chat.messages.transform"]
+  if (!handler) throw new Error("validator missing transform")
+  return handler as never
 }
 
 function createRunningToolPart(callID: string): TestPart {
@@ -885,10 +821,10 @@ function createRunningToolPart(callID: string): TestPart {
     callID,
     tool: "bash",
     state: { status: "running", input: {}, time: { start: 1_700_000_000_000 } },
-  };
+  }
 }
 
 function readToolStatus(message: TestMessage | undefined): string | undefined {
-  const state = message?.parts.find((part) => part.type === "tool")?.state;
-  return typeof state?.status === "string" ? state.status : undefined;
+  const state = message?.parts.find((part) => part.type === "tool")?.state
+  return typeof state?.status === "string" ? state.status : undefined
 }

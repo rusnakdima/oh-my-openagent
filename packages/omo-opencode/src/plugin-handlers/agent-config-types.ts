@@ -1,12 +1,10 @@
 import type { OhMyOpenCodeConfig } from "../config";
 import type { PluginComponents } from "./plugin-components-loader";
 
-export type AgentConfigRecord =
-  & Record<string, Record<string, unknown> | undefined>
-  & {
-    build?: Record<string, unknown>;
-    plan?: Record<string, unknown>;
-  };
+export type AgentConfigRecord = Record<string, Record<string, unknown> | undefined> & {
+  build?: Record<string, unknown>;
+  plan?: Record<string, unknown>;
+};
 
 export type ApplyAgentConfigParams = {
   config: Record<string, unknown>;
@@ -15,10 +13,7 @@ export type ApplyAgentConfigParams = {
   pluginComponents: PluginComponents;
 };
 
-export type AgentSourceMap = Record<
-  string,
-  Record<string, unknown> | undefined
->;
+export type AgentSourceMap = Record<string, Record<string, unknown> | undefined>;
 
 export type AgentSources = {
   userAgents: AgentSourceMap;

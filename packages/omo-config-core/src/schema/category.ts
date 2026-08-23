@@ -1,23 +1,22 @@
-import * as z from "zod";
+import * as z from "zod"
 
 import {
-  normalizeLegacyModelFields,
   OmoFallbackModelObjectSchema,
   OmoFallbackModelsSchema,
   OmoReasoningEffortSchema,
   OmoThinkingConfigSchema,
-} from "./fallback-models";
-import { OmoReasoningSchema } from "./model-ref";
+  normalizeLegacyModelFields,
+} from "./fallback-models"
+import { OmoReasoningSchema } from "./model-ref"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
 export const OmoCategoryConfigObjectSchema = z.object({
   description: z.string().optional(),
   model: z.string().optional(),
-  models: z.array(z.union([z.string(), OmoFallbackModelObjectSchema]))
-    .optional(),
+  models: z.array(z.union([z.string(), OmoFallbackModelObjectSchema])).optional(),
   reasoning: OmoReasoningSchema.optional(),
   temperature: z.number().min(0).max(2).optional(),
   top_p: z.number().min(0).max(1).optional(),
@@ -41,17 +40,14 @@ export const OmoCategoryConfigObjectSchema = z.object({
   is_unstable_agent: z.boolean().optional(),
   disable: z.boolean().optional(),
   warn_unavailable: z.boolean().optional(),
-}).strict();
+}).strict()
 
 export const OmoCategoryConfigSchema = z.preprocess(
   (value) => isRecord(value) ? normalizeLegacyModelFields(value) : value,
   OmoCategoryConfigObjectSchema,
-);
+)
 
-export const OmoCategoriesConfigSchema = z.record(
-  z.string(),
-  OmoCategoryConfigSchema,
-);
+export const OmoCategoriesConfigSchema = z.record(z.string(), OmoCategoryConfigSchema)
 
-export type OmoCategoryConfig = z.infer<typeof OmoCategoryConfigSchema>;
-export type OmoCategoriesConfig = z.infer<typeof OmoCategoriesConfigSchema>;
+export type OmoCategoryConfig = z.infer<typeof OmoCategoryConfigSchema>
+export type OmoCategoriesConfig = z.infer<typeof OmoCategoriesConfigSchema>

@@ -13,8 +13,8 @@ import {
   isGptModel,
   isGrok45Model,
   isGrok46Model,
-  isKimiK27Model,
   isKimiK2Model,
+  isKimiK27Model,
   isKimiK3Model,
   isMiniMaxModel,
 } from "@oh-my-opencode/model-core";
@@ -32,8 +32,8 @@ export {
   isGptModel,
   isGrok45Model,
   isGrok46Model,
-  isKimiK27Model,
   isKimiK2Model,
+  isKimiK27Model,
   isKimiK3Model,
   isMiniMaxModel,
 };
@@ -49,15 +49,11 @@ const CLAUDE_THINKING_BUDGET_TOKENS = 32000;
  */
 export function buildClaudeThinkingConfig(
   model: string,
-):
-  | { thinking: { type: "enabled"; budgetTokens: number } }
-  | Record<string, never> {
+): { thinking: { type: "enabled"; budgetTokens: number } } | Record<string, never> {
   if (isClaudeOpus47OrLaterModel(model) || isClaudeFableOrMythosModel(model)) {
     return {};
   }
-  return {
-    thinking: { type: "enabled", budgetTokens: CLAUDE_THINKING_BUDGET_TOKENS },
-  };
+  return { thinking: { type: "enabled", budgetTokens: CLAUDE_THINKING_BUDGET_TOKENS } };
 }
 
 /**
@@ -174,12 +170,7 @@ export type AgentOverrideConfig = Partial<AgentConfig> & {
   skills?: string[];
   tools?: Record<string, boolean>;
   variant?: string;
-  fallback_models?:
-    | string
-    | (
-      | string
-      | import("../config/schema/fallback-models").FallbackModelObject
-    )[];
+  fallback_models?: string | (string | import("../config/schema/fallback-models").FallbackModelObject)[];
 };
 
 export type AgentOverrides = Partial<

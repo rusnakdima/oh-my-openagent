@@ -2,21 +2,14 @@
 import type { Task } from "../../features/claude-tasks/types";
 import type { PluginInput } from "@opencode-ai/plugin";
 import {
+  syncTaskToTodo,
   syncAllTasksToTodos,
   syncTaskTodoUpdate,
-  syncTaskToTodo,
   type TodoInfo,
 } from "./todo-sync";
 
 type MockTodoCtx = PluginInput & {
-  client: {
-    session: {
-      todo: {
-        mockResolvedValue: (value: unknown) => void;
-        mockRejectedValue: (value: unknown) => void;
-      };
-    };
-  };
+  client: { session: { todo: { mockResolvedValue: (value: unknown) => void; mockRejectedValue: (value: unknown) => void } } };
 };
 
 describe("syncTaskToTodo", () => {
@@ -476,12 +469,8 @@ describe("syncAllTasksToTodos", () => {
     await syncAllTasksToTodos(mockCtx, tasks, "session-1", writer);
 
     // then
-    expect(writtenTodos.some((t: TodoInfo) => t.id === "T-existing")).toBe(
-      true,
-    );
-    expect(writtenTodos.some((t: TodoInfo) => t.content === "Task 1")).toBe(
-      true,
-    );
+    expect(writtenTodos.some((t: TodoInfo) => t.id === "T-existing")).toBe(true);
+    expect(writtenTodos.some((t: TodoInfo) => t.content === "Task 1")).toBe(true);
   });
 
   it("handles empty task list", async () => {
@@ -551,10 +540,8 @@ describe("syncAllTasksToTodos", () => {
     // when
     await syncAllTasksToTodos(mockCtx, tasks, "session-1", writer);
 
-    // then, no duplicates
-    const matching = writtenTodos.filter((t: TodoInfo) =>
-      t.content === "Task 1 (updated)"
-    );
+      // then, no duplicates
+    const matching = writtenTodos.filter((t: TodoInfo) => t.content === "Task 1 (updated)");
     expect(matching.length).toBe(1);
     expect(matching[0].status).toBe("in_progress");
   });

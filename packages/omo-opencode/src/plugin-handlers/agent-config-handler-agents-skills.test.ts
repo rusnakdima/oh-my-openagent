@@ -1,12 +1,12 @@
-import type { AgentConfig } from "@opencode-ai/sdk";
-import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
-import * as agents from "../agents";
-import * as shared from "../shared";
-import * as sisyphusJunior from "../agents/sisyphus-junior";
-import type { OhMyOpenCodeConfig } from "../config";
-import * as skillLoader from "../features/opencode-skill-loader";
-import { applyAgentConfig } from "./agent-config-handler";
-import type { PluginComponents } from "./plugin-components-loader";
+import type { AgentConfig } from "@opencode-ai/sdk"
+import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test"
+import * as agents from "../agents"
+import * as shared from "../shared"
+import * as sisyphusJunior from "../agents/sisyphus-junior"
+import type { OhMyOpenCodeConfig } from "../config"
+import * as skillLoader from "../features/opencode-skill-loader"
+import { applyAgentConfig } from "./agent-config-handler"
+import type { PluginComponents } from "./plugin-components-loader"
 
 function createPluginComponents(): PluginComponents {
   return {
@@ -17,7 +17,7 @@ function createPluginComponents(): PluginComponents {
     hooksConfigs: [],
     plugins: [],
     errors: [],
-  };
+  }
 }
 
 function createPluginConfig(): OhMyOpenCodeConfig {
@@ -25,85 +25,59 @@ function createPluginConfig(): OhMyOpenCodeConfig {
     sisyphus_agent: {
       planner_enabled: false,
     },
-  };
+  }
 }
 
 describe("applyAgentConfig .agents skills", () => {
-  let createBuiltinAgentsSpy: ReturnType<typeof spyOn>;
-  let createSisyphusJuniorAgentSpy: ReturnType<typeof spyOn>;
-  let discoverConfigSourceSkillsSpy: ReturnType<typeof spyOn>;
-  let discoverUserClaudeSkillsSpy: ReturnType<typeof spyOn>;
-  let discoverProjectClaudeSkillsSpy: ReturnType<typeof spyOn>;
-  let discoverOpencodeGlobalSkillsSpy: ReturnType<typeof spyOn>;
-  let discoverOpencodeProjectSkillsSpy: ReturnType<typeof spyOn>;
-  let discoverProjectAgentsSkillsSpy: ReturnType<typeof spyOn>;
-  let discoverGlobalAgentsSkillsSpy: ReturnType<typeof spyOn>;
-  let logSpy: ReturnType<typeof spyOn>;
+  let createBuiltinAgentsSpy: ReturnType<typeof spyOn>
+  let createSisyphusJuniorAgentSpy: ReturnType<typeof spyOn>
+  let discoverConfigSourceSkillsSpy: ReturnType<typeof spyOn>
+  let discoverUserClaudeSkillsSpy: ReturnType<typeof spyOn>
+  let discoverProjectClaudeSkillsSpy: ReturnType<typeof spyOn>
+  let discoverOpencodeGlobalSkillsSpy: ReturnType<typeof spyOn>
+  let discoverOpencodeProjectSkillsSpy: ReturnType<typeof spyOn>
+  let discoverProjectAgentsSkillsSpy: ReturnType<typeof spyOn>
+  let discoverGlobalAgentsSkillsSpy: ReturnType<typeof spyOn>
+  let logSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
-    createBuiltinAgentsSpy = spyOn(agents, "createBuiltinAgents")
-      .mockResolvedValue({
-        sisyphus: {
-          name: "sisyphus",
-          prompt: "builtin",
-          mode: "primary",
-        } satisfies AgentConfig,
-      });
+    createBuiltinAgentsSpy = spyOn(agents, "createBuiltinAgents").mockResolvedValue({
+      sisyphus: { name: "sisyphus", prompt: "builtin", mode: "primary" } satisfies AgentConfig,
+    })
     createSisyphusJuniorAgentSpy = spyOn(
       sisyphusJunior,
       "createSisyphusJuniorAgentWithOverrides",
-    ).mockReturnValue(
-      {
-        name: "sisyphus-junior",
-        prompt: "junior",
-        mode: "all",
-      } satisfies AgentConfig,
-    );
-    discoverConfigSourceSkillsSpy = spyOn(
-      skillLoader,
-      "discoverConfigSourceSkills",
-    ).mockResolvedValue([]);
-    discoverUserClaudeSkillsSpy = spyOn(skillLoader, "discoverUserClaudeSkills")
-      .mockResolvedValue([]);
-    discoverProjectClaudeSkillsSpy = spyOn(
-      skillLoader,
-      "discoverProjectClaudeSkills",
-    ).mockResolvedValue([]);
-    discoverOpencodeGlobalSkillsSpy = spyOn(
-      skillLoader,
-      "discoverOpencodeGlobalSkills",
-    ).mockResolvedValue([]);
-    discoverOpencodeProjectSkillsSpy = spyOn(
-      skillLoader,
-      "discoverOpencodeProjectSkills",
-    ).mockResolvedValue([]);
-    discoverProjectAgentsSkillsSpy = spyOn(
-      skillLoader,
-      "discoverProjectAgentsSkills",
-    ).mockResolvedValue([]);
-    discoverGlobalAgentsSkillsSpy = spyOn(
-      skillLoader,
-      "discoverGlobalAgentsSkills",
-    ).mockResolvedValue([]);
-    logSpy = spyOn(shared, "log").mockImplementation(() => {});
-  });
+    ).mockReturnValue({
+      name: "sisyphus-junior",
+      prompt: "junior",
+      mode: "all",
+    } satisfies AgentConfig)
+    discoverConfigSourceSkillsSpy = spyOn(skillLoader, "discoverConfigSourceSkills").mockResolvedValue([])
+    discoverUserClaudeSkillsSpy = spyOn(skillLoader, "discoverUserClaudeSkills").mockResolvedValue([])
+    discoverProjectClaudeSkillsSpy = spyOn(skillLoader, "discoverProjectClaudeSkills").mockResolvedValue([])
+    discoverOpencodeGlobalSkillsSpy = spyOn(skillLoader, "discoverOpencodeGlobalSkills").mockResolvedValue([])
+    discoverOpencodeProjectSkillsSpy = spyOn(skillLoader, "discoverOpencodeProjectSkills").mockResolvedValue([])
+    discoverProjectAgentsSkillsSpy = spyOn(skillLoader, "discoverProjectAgentsSkills").mockResolvedValue([])
+    discoverGlobalAgentsSkillsSpy = spyOn(skillLoader, "discoverGlobalAgentsSkills").mockResolvedValue([])
+    logSpy = spyOn(shared, "log").mockImplementation(() => {})
+  })
 
   afterEach(() => {
-    createBuiltinAgentsSpy.mockRestore();
-    createSisyphusJuniorAgentSpy.mockRestore();
-    discoverConfigSourceSkillsSpy.mockRestore();
-    discoverUserClaudeSkillsSpy.mockRestore();
-    discoverProjectClaudeSkillsSpy.mockRestore();
-    discoverOpencodeGlobalSkillsSpy.mockRestore();
-    discoverOpencodeProjectSkillsSpy.mockRestore();
-    discoverProjectAgentsSkillsSpy.mockRestore();
-    discoverGlobalAgentsSkillsSpy.mockRestore();
-    logSpy.mockRestore();
-  });
+    createBuiltinAgentsSpy.mockRestore()
+    createSisyphusJuniorAgentSpy.mockRestore()
+    discoverConfigSourceSkillsSpy.mockRestore()
+    discoverUserClaudeSkillsSpy.mockRestore()
+    discoverProjectClaudeSkillsSpy.mockRestore()
+    discoverOpencodeGlobalSkillsSpy.mockRestore()
+    discoverOpencodeProjectSkillsSpy.mockRestore()
+    discoverProjectAgentsSkillsSpy.mockRestore()
+    discoverGlobalAgentsSkillsSpy.mockRestore()
+    logSpy.mockRestore()
+  })
 
   test("calls .agents skill discovery during agent configuration", async () => {
     // given
-    const directory = "/tmp/project";
+    const directory = "/tmp/project"
 
     // when
     await applyAgentConfig({
@@ -111,32 +85,29 @@ describe("applyAgentConfig .agents skills", () => {
       pluginConfig: createPluginConfig(),
       ctx: { directory },
       pluginComponents: createPluginComponents(),
-    });
+    })
 
     // then
-    expect(discoverProjectAgentsSkillsSpy).toHaveBeenCalledWith(directory);
-    expect(discoverGlobalAgentsSkillsSpy).toHaveBeenCalled();
-  });
+    expect(discoverProjectAgentsSkillsSpy).toHaveBeenCalledWith(directory)
+    expect(discoverGlobalAgentsSkillsSpy).toHaveBeenCalled()
+  })
 
   test("passes discovered .agents skills to builtin agent creation", async () => {
     // given
     discoverProjectAgentsSkillsSpy.mockResolvedValue([
       {
         name: "project-agent-skill",
-        definition: {
-          name: "project-agent-skill",
-          template: "project-template",
-        },
+        definition: { name: "project-agent-skill", template: "project-template" },
         scope: "project",
       },
-    ]);
+    ])
     discoverGlobalAgentsSkillsSpy.mockResolvedValue([
       {
         name: "global-agent-skill",
         definition: { name: "global-agent-skill", template: "global-template" },
         scope: "user",
       },
-    ]);
+    ])
 
     // when
     await applyAgentConfig({
@@ -144,19 +115,13 @@ describe("applyAgentConfig .agents skills", () => {
       pluginConfig: createPluginConfig(),
       ctx: { directory: "/tmp/project" },
       pluginComponents: createPluginComponents(),
-    });
+    })
 
     // then
-    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<
-      { name: string }
-    >;
-    expect(discoveredSkills.map((skill) => skill.name)).toContain(
-      "project-agent-skill",
-    );
-    expect(discoveredSkills.map((skill) => skill.name)).toContain(
-      "global-agent-skill",
-    );
-  });
+    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<{ name: string }>
+    expect(discoveredSkills.map(skill => skill.name)).toContain("project-agent-skill")
+    expect(discoveredSkills.map(skill => skill.name)).toContain("global-agent-skill")
+  })
 
   test("discovers skills from host config.skills.paths set by other plugins", async () => {
     // given - second call to discoverConfigSourceSkills returns host config skills
@@ -168,7 +133,7 @@ describe("applyAgentConfig .agents skills", () => {
           definition: { name: "host-config-skill", template: "host-template" },
           scope: "config",
         },
-      ]);
+      ])
 
     // when
     await applyAgentConfig({
@@ -180,16 +145,12 @@ describe("applyAgentConfig .agents skills", () => {
       pluginConfig: createPluginConfig(),
       ctx: { directory: "/tmp/project" },
       pluginComponents: createPluginComponents(),
-    });
+    })
 
     // then
-    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<
-      { name: string }
-    >;
-    expect(discoveredSkills.map((skill) => skill.name)).toContain(
-      "host-config-skill",
-    );
-  });
+    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<{ name: string }>
+    expect(discoveredSkills.map(skill => skill.name)).toContain("host-config-skill")
+  })
 
   test("calls discoverConfigSourceSkills twice when host config has skills", async () => {
     // when
@@ -202,11 +163,11 @@ describe("applyAgentConfig .agents skills", () => {
       pluginConfig: createPluginConfig(),
       ctx: { directory: "/tmp/project" },
       pluginComponents: createPluginComponents(),
-    });
+    })
 
     // then - called twice: once for pluginConfig.skills, once for host config.skills
-    expect(discoverConfigSourceSkillsSpy).toHaveBeenCalledTimes(2);
-  });
+    expect(discoverConfigSourceSkillsSpy).toHaveBeenCalledTimes(2)
+  })
 
   test("deduplicates skills discovered from multiple paths before passing to builtin agents (#4573)", async () => {
     // given - same skill name reaches the agent prompt from two discovery paths,
@@ -218,14 +179,14 @@ describe("applyAgentConfig .agents skills", () => {
         definition: { name: "lark-mail", template: "claude-user" },
         scope: "user",
       },
-    ]);
+    ])
     discoverGlobalAgentsSkillsSpy.mockResolvedValue([
       {
         name: "lark-mail",
         definition: { name: "lark-mail", template: "agents-user" },
         scope: "user",
       },
-    ]);
+    ])
 
     // when
     await applyAgentConfig({
@@ -233,15 +194,13 @@ describe("applyAgentConfig .agents skills", () => {
       pluginConfig: createPluginConfig(),
       ctx: { directory: "/tmp/project" },
       pluginComponents: createPluginComponents(),
-    });
+    })
 
     // then - createBuiltinAgents must receive each skill name only once so the
     // **YOUR SKILLS (PRIORITY)** prompt line does not render duplicates
-    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<
-      { name: string }
-    >;
-    const names = discoveredSkills.map((skill) => skill.name);
-    const larkMailCount = names.filter((name) => name === "lark-mail").length;
-    expect(larkMailCount).toBe(1);
-  });
-});
+    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<{ name: string }>
+    const names = discoveredSkills.map((skill) => skill.name)
+    const larkMailCount = names.filter((name) => name === "lark-mail").length
+    expect(larkMailCount).toBe(1)
+  })
+})

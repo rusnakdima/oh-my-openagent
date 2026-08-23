@@ -1,16 +1,11 @@
 import {
   OPENAI_ONLY_AGENT_MODEL_RECOMMENDATIONS,
   OPENAI_ONLY_CATEGORY_MODEL_RECOMMENDATIONS,
-} from "@oh-my-opencode/omo-config-core";
+} from "@oh-my-opencode/omo-config-core"
 
-import type {
-  GeneratedOmoConfig,
-  ProviderAvailability,
-} from "./model-fallback-types";
+import type { GeneratedOmoConfig, ProviderAvailability } from "./model-fallback-types"
 
-export function isOpenAiOnlyAvailability(
-  availability: ProviderAvailability,
-): boolean {
+export function isOpenAiOnlyAvailability(availability: ProviderAvailability): boolean {
   return (
     availability.native.openai &&
     !availability.native.claude &&
@@ -24,12 +19,10 @@ export function isOpenAiOnlyAvailability(
     !availability.minimaxCnCodingPlan &&
     !availability.minimaxCodingPlan &&
     !availability.vercelAiGateway
-  );
+  )
 }
 
-export function applyOpenAiOnlyModelCatalog(
-  config: GeneratedOmoConfig,
-): GeneratedOmoConfig {
+export function applyOpenAiOnlyModelCatalog(config: GeneratedOmoConfig): GeneratedOmoConfig {
   return {
     ...config,
     agents: {
@@ -40,5 +33,5 @@ export function applyOpenAiOnlyModelCatalog(
       ...config.categories,
       ...OPENAI_ONLY_CATEGORY_MODEL_RECOMMENDATIONS,
     },
-  };
+  }
 }

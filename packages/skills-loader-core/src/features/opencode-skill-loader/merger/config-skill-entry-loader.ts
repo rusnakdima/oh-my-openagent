@@ -1,95 +1,85 @@
-import type { LoadedSkill, SkillMetadata } from "../types";
-import type { SkillDefinition } from "../../../types";
-import type { CommandDefinition } from "@oh-my-opencode/claude-code-compat-core/claude-code-command-loader/types";
-import { existsSync, readFileSync } from "fs";
-import { dirname, isAbsolute, resolve } from "path";
-import { homedir } from "os";
-import { isWithinProject, parseFrontmatter } from "@oh-my-opencode/utils";
-import { sanitizeModelField } from "@oh-my-opencode/model-core";
-import { log } from "../../../shared";
-import { resolveSkillPathReferences } from "../../../shared/skill-path-resolver";
-import { parseAllowedTools } from "../allowed-tools-parser";
+import type { LoadedSkill, SkillMetadata } from "../types"
+import type { SkillDefinition } from "../../../types"
+import type { CommandDefinition } from "@oh-my-opencode/claude-code-compat-core/claude-code-command-loader/types"
+import { existsSync, readFileSync } from "fs"
+import { dirname, isAbsolute, resolve } from "path"
+import { homedir } from "os"
+import { isWithinProject, parseFrontmatter } from "@oh-my-opencode/utils"
+import { sanitizeModelField } from "@oh-my-opencode/model-core"
+import { log } from "../../../shared"
+import { resolveSkillPathReferences } from "../../../shared/skill-path-resolver"
+import { parseAllowedTools } from "../allowed-tools-parser"
 
 function resolveFilePath(from: string, configDir?: string): string {
-  let filePath = from;
+  let filePath = from
 
   if (filePath.startsWith("{file:") && filePath.endsWith("}")) {
-    filePath = filePath.slice(6, -1);
+    filePath = filePath.slice(6, -1)
   }
 
   if (filePath.startsWith("~/")) {
-    return resolve(homedir(), filePath.slice(2));
+    return resolve(homedir(), filePath.slice(2))
   }
 
   if (isAbsolute(filePath)) {
-    return filePath;
+    return filePath
   }
 
-  const baseDir = configDir || process.cwd();
-  return resolve(baseDir, filePath);
+  const baseDir = configDir || process.cwd()
+  return resolve(baseDir, filePath)
 }
 
-function loadSkillFromFile(
-  filePath: string,
-): { template: string; metadata: SkillMetadata } | null {
+function loadSkillFromFile(filePath: string): { template: string; metadata: SkillMetadata } | null {
   try {
-    if (!existsSync(filePath)) return null;
-    const content = readFileSync(filePath, "utf-8");
-    const { data, body } = parseFrontmatter<SkillMetadata>(content);
-    return { template: body, metadata: data };
+    if (!existsSync(filePath)) return null
+    const content = readFileSync(filePath, "utf-8")
+    const { data, body } = parseFrontmatter<SkillMetadata>(content)
+    return { template: body, metadata: data }
   } catch (error) {
-    if (error instanceof Error) return null;
-    return null;
+    if (error instanceof Error) return null
+    return null
   }
 }
 
 export function configEntryToLoadedSkill(
   name: string,
   entry: SkillDefinition,
-  configDir?: string,
+  configDir?: string
 ): LoadedSkill | null {
-  let template = entry.template || "";
-  let fileMetadata: SkillMetadata = {};
-  let sourcePath: string | undefined;
+  let template = entry.template || ""
+  let fileMetadata: SkillMetadata = {}
+  let sourcePath: string | undefined
 
   if (entry.from) {
-    sourcePath = resolveFilePath(entry.from, configDir);
-    const projectRoot = configDir || process.cwd();
+    sourcePath = resolveFilePath(entry.from, configDir)
+    const projectRoot = configDir || process.cwd()
 
     if (!isWithinProject(sourcePath, projectRoot)) {
-      log(
-        "[config-skill-entry-loader] Rejected skill entry file outside project root",
-        {
-          from: entry.from,
-          filePath: sourcePath,
-          projectRoot,
-        },
-      );
-      return null;
+      log("[config-skill-entry-loader] Rejected skill entry file outside project root", {
+        from: entry.from,
+        filePath: sourcePath,
+        projectRoot,
+      })
+      return null
     }
 
-    const loaded = loadSkillFromFile(sourcePath);
+    const loaded = loadSkillFromFile(sourcePath)
     if (loaded) {
-      template = loaded.template;
-      fileMetadata = loaded.metadata;
+      template = loaded.template
+      fileMetadata = loaded.metadata
     } else {
-      return null;
+      return null
     }
   }
 
   if (!template && !entry.from) {
-    return null;
+    return null
   }
 
-  const description = entry.description || fileMetadata.description || "";
-  const resolvedPath = sourcePath
-    ? dirname(sourcePath)
-    : configDir || process.cwd();
+  const description = entry.description || fileMetadata.description || ""
+  const resolvedPath = sourcePath ? dirname(sourcePath) : configDir || process.cwd()
 
-  const resolvedTemplate = resolveSkillPathReferences(
-    template.trim(),
-    resolvedPath,
-  );
+  const resolvedTemplate = resolveSkillPathReferences(template.trim(), resolvedPath)
   const wrappedTemplate = `<skill-instruction>
 Base directory for this skill: ${resolvedPath}/
 File references (@path) in this skill are relative to this directory.
@@ -99,7 +89,7 @@ ${resolvedTemplate}
 
 <user-request>
 $ARGUMENTS
-</user-request>`;
+</user-request>`
 
   const definition: CommandDefinition = {
     name,
@@ -109,10 +99,9 @@ $ARGUMENTS
     agent: entry.agent || fileMetadata.agent,
     subtask: entry.subtask ?? fileMetadata.subtask,
     argumentHint: entry["argument-hint"] || fileMetadata["argument-hint"],
-  };
+  }
 
-  const allowedTools = entry["allowed-tools"] ||
-    parseAllowedTools(fileMetadata["allowed-tools"]);
+  const allowedTools = entry["allowed-tools"] || parseAllowedTools(fileMetadata["allowed-tools"])
 
   return {
     name,
@@ -122,8 +111,7 @@ $ARGUMENTS
     scope: "config",
     license: entry.license || fileMetadata.license,
     compatibility: entry.compatibility || fileMetadata.compatibility,
-    metadata: (entry.metadata as Record<string, string> | undefined) ||
-      fileMetadata.metadata,
+    metadata: (entry.metadata as Record<string, string> | undefined) || fileMetadata.metadata,
     allowedTools,
-  };
+  }
 }

@@ -1,28 +1,21 @@
-import { dirname } from "path";
-import { resolveCommandsInText } from "../../shared/command-executor/resolve-commands-in-text";
-import { resolveFileReferencesInText } from "../../shared/file-reference-resolver";
-import {
-  discoverAllSkills,
-  type LazyContentLoader,
-  type LoadedSkill,
-} from "../../features/opencode-skill-loader";
-import * as commandDiscovery from "../../tools/slashcommand/command-discovery";
-import type {
-  CommandInfo as DiscoveredCommandInfo,
-  CommandMetadata,
-} from "../../tools/slashcommand/types";
-import type { ParsedSlashCommand } from "./types";
+import { dirname } from "path"
+import { resolveCommandsInText } from "../../shared/command-executor/resolve-commands-in-text"
+import { resolveFileReferencesInText } from "../../shared/file-reference-resolver"
+import { discoverAllSkills, type LoadedSkill, type LazyContentLoader } from "../../features/opencode-skill-loader"
+import * as commandDiscovery from "../../tools/slashcommand/command-discovery"
+import type { CommandInfo as DiscoveredCommandInfo, CommandMetadata } from "../../tools/slashcommand/types"
+import type { ParsedSlashCommand } from "./types"
 
 interface SkillCommandInfo {
-  name: string;
-  path?: string;
-  metadata: CommandMetadata;
-  content?: string;
-  scope: "skill";
-  lazyContentLoader?: LazyContentLoader;
+  name: string
+  path?: string
+  metadata: CommandMetadata
+  content?: string
+  scope: "skill"
+  lazyContentLoader?: LazyContentLoader
 }
 
-type CommandInfo = DiscoveredCommandInfo | SkillCommandInfo;
+type CommandInfo = DiscoveredCommandInfo | SkillCommandInfo
 
 function skillToCommandInfo(skill: LoadedSkill): SkillCommandInfo {
   return {
@@ -39,166 +32,138 @@ function skillToCommandInfo(skill: LoadedSkill): SkillCommandInfo {
     content: skill.definition.template,
     scope: "skill",
     lazyContentLoader: skill.lazyContent,
-  };
+  }
 }
 
 export interface ExecutorOptions {
-  skills?: LoadedSkill[];
-  pluginsEnabled?: boolean;
-  enabledPluginsOverride?: Record<string, boolean>;
-  agent?: string;
-  directory?: string;
-  disabledCommands?: string[];
+  skills?: LoadedSkill[]
+  pluginsEnabled?: boolean
+  enabledPluginsOverride?: Record<string, boolean>
+  agent?: string
+  directory?: string
+  disabledCommands?: string[]
 }
 
-async function discoverAllCommands(
-  options?: ExecutorOptions,
-): Promise<CommandInfo[]> {
+
+async function discoverAllCommands(options?: ExecutorOptions): Promise<CommandInfo[]> {
   const disabledBuiltins = new Set(
     (options?.disabledCommands ?? []).map((name) => name.toLowerCase()),
-  );
-  const discoveredCommands = commandDiscovery.discoverCommandsSync(
-    options?.directory ?? process.cwd(),
-    {
-      pluginsEnabled: options?.pluginsEnabled,
-      enabledPluginsOverride: options?.enabledPluginsOverride,
-    },
-  ).filter((cmd) =>
-    cmd.scope !== "builtin" || !disabledBuiltins.has(cmd.name.toLowerCase())
-  );
+  )
+  const discoveredCommands = commandDiscovery.discoverCommandsSync(options?.directory ?? process.cwd(), {
+    pluginsEnabled: options?.pluginsEnabled,
+    enabledPluginsOverride: options?.enabledPluginsOverride,
+  }).filter((cmd) => cmd.scope !== "builtin" || !disabledBuiltins.has(cmd.name.toLowerCase()))
 
-  const skills = options?.skills ?? await discoverAllSkills();
-  const skillCommands = skills.map(skillToCommandInfo);
+  const skills = options?.skills ?? await discoverAllSkills()
+  const skillCommands = skills.map(skillToCommandInfo)
 
-  const scopeOrder: DiscoveredCommandInfo["scope"][] = [
-    "project",
-    "user",
-    "opencode-project",
-    "opencode",
-    "builtin",
-    "plugin",
-  ];
-  const grouped = new Map<string, DiscoveredCommandInfo[]>();
+  const scopeOrder: DiscoveredCommandInfo["scope"][] = ["project", "user", "opencode-project", "opencode", "builtin", "plugin"]
+  const grouped = new Map<string, DiscoveredCommandInfo[]>()
   for (const cmd of discoveredCommands) {
-    const list = grouped.get(cmd.scope) ?? [];
-    list.push(cmd);
-    grouped.set(cmd.scope, list);
+    const list = grouped.get(cmd.scope) ?? []
+    list.push(cmd)
+    grouped.set(cmd.scope, list)
   }
-  const orderedCommands = scopeOrder.flatMap((scope) =>
-    grouped.get(scope) ?? []
-  );
+  const orderedCommands = scopeOrder.flatMap((scope) => grouped.get(scope) ?? [])
 
   return [
     ...skillCommands,
     ...orderedCommands,
-  ];
+  ]
 }
 
-async function findCommand(
-  commandName: string,
-  options?: ExecutorOptions,
-): Promise<CommandInfo | null> {
-  const allCommands = await discoverAllCommands(options);
+async function findCommand(commandName: string, options?: ExecutorOptions): Promise<CommandInfo | null> {
+  const allCommands = await discoverAllCommands(options)
   return allCommands.find(
-    (cmd) => cmd.name.toLowerCase() === commandName.toLowerCase(),
-  ) ?? null;
+    (cmd) => cmd.name.toLowerCase() === commandName.toLowerCase()
+  ) ?? null
 }
 
-async function formatCommandTemplate(
-  cmd: CommandInfo,
-  args: string,
-): Promise<string> {
-  const sections: string[] = [];
+async function formatCommandTemplate(cmd: CommandInfo, args: string): Promise<string> {
+  const sections: string[] = []
 
-  sections.push(`# /${cmd.name} Command\n`);
+  sections.push(`# /${cmd.name} Command\n`)
 
   if (cmd.metadata.description) {
-    sections.push(`**Description**: ${cmd.metadata.description}\n`);
+    sections.push(`**Description**: ${cmd.metadata.description}\n`)
   }
 
   if (args) {
-    sections.push(`**User Arguments**: ${args}\n`);
+    sections.push(`**User Arguments**: ${args}\n`)
   }
 
   if (cmd.metadata.model) {
-    sections.push(`**Model**: ${cmd.metadata.model}\n`);
+    sections.push(`**Model**: ${cmd.metadata.model}\n`)
   }
 
   if (cmd.metadata.agent) {
-    sections.push(`**Agent**: ${cmd.metadata.agent}\n`);
+    sections.push(`**Agent**: ${cmd.metadata.agent}\n`)
   }
 
-  sections.push(`**Scope**: ${cmd.scope}\n`);
-  sections.push("---\n");
-  sections.push("## Command Instructions\n");
+  sections.push(`**Scope**: ${cmd.scope}\n`)
+  sections.push("---\n")
+  sections.push("## Command Instructions\n")
 
-  let content = cmd.content || "";
+  let content = cmd.content || ""
   if (!content && cmd.lazyContentLoader) {
-    content = await cmd.lazyContentLoader.load();
+    content = await cmd.lazyContentLoader.load()
   }
 
-  const commandDir = cmd.path ? dirname(cmd.path) : process.cwd();
-  const withFileRefs = await resolveFileReferencesInText(content, commandDir);
-  const resolvedContent = await resolveCommandsInText(withFileRefs);
-  const resolvedArguments = args;
+  const commandDir = cmd.path ? dirname(cmd.path) : process.cwd()
+  const withFileRefs = await resolveFileReferencesInText(content, commandDir)
+  const resolvedContent = await resolveCommandsInText(withFileRefs)
+  const resolvedArguments = args
   const substitutedContent = resolvedContent
     .replace(/\$\{user_message\}/g, resolvedArguments)
-    .replace(/\$ARGUMENTS/g, resolvedArguments);
-  sections.push(substitutedContent.trim());
+    .replace(/\$ARGUMENTS/g, resolvedArguments)
+  sections.push(substitutedContent.trim())
 
   if (args) {
-    sections.push("\n\n---\n");
-    sections.push("## User Request\n");
-    sections.push(args);
+    sections.push("\n\n---\n")
+    sections.push("## User Request\n")
+    sections.push(args)
   }
 
-  return sections.join("\n");
+  return sections.join("\n")
 }
 
 export interface ExecuteResult {
-  success: boolean;
-  replacementText?: string;
-  scope?: CommandInfo["scope"];
-  error?: string;
+  success: boolean
+  replacementText?: string
+  scope?: CommandInfo["scope"]
+  error?: string
 }
 
-export async function executeSlashCommand(
-  parsed: ParsedSlashCommand,
-  options?: ExecutorOptions,
-): Promise<ExecuteResult> {
-  const command = await findCommand(parsed.command, options);
+export async function executeSlashCommand(parsed: ParsedSlashCommand, options?: ExecutorOptions): Promise<ExecuteResult> {
+  const command = await findCommand(parsed.command, options)
 
   if (!command) {
     return {
       success: false,
-      error:
-        `Command "/${parsed.command}" not found. Use the skill tool to list available skills and commands.`,
-    };
+      error: `Command "/${parsed.command}" not found. Use the skill tool to list available skills and commands.`,
+    }
   }
 
   if (command.scope === "skill" && command.metadata.agent) {
     if (!options?.agent || command.metadata.agent !== options.agent) {
       return {
         success: false,
-        error:
-          `Skill "${command.name}" is restricted to agent "${command.metadata.agent}"`,
-      };
+        error: `Skill "${command.name}" is restricted to agent "${command.metadata.agent}"`,
+      }
     }
   }
 
   try {
-    const template = await formatCommandTemplate(command, parsed.args);
+    const template = await formatCommandTemplate(command, parsed.args)
     return {
       success: true,
       replacementText: template,
       scope: command.scope,
-    };
+    }
   } catch (err) {
     return {
       success: false,
-      error: `Failed to load command "/${parsed.command}": ${
-        err instanceof Error ? err.message : String(err)
-      }`,
-    };
+      error: `Failed to load command "/${parsed.command}": ${err instanceof Error ? err.message : String(err)}`,
+    }
   }
 }

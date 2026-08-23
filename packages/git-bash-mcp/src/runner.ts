@@ -1,11 +1,5 @@
 import { spawn } from "node:child_process";
-import {
-  closeSync,
-  mkdtempSync,
-  openSync,
-  readFileSync,
-  rmSync,
-} from "node:fs";
+import { closeSync, mkdtempSync, openSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -24,13 +18,9 @@ export interface GitBashRunResult {
   readonly timedOut: boolean;
 }
 
-export type RunGitBashCommand = (
-  input: GitBashRunInput,
-) => Promise<GitBashRunResult>;
+export type RunGitBashCommand = (input: GitBashRunInput) => Promise<GitBashRunResult>;
 
-export async function runGitBashCommand(
-  input: GitBashRunInput,
-): Promise<GitBashRunResult> {
+export async function runGitBashCommand(input: GitBashRunInput): Promise<GitBashRunResult> {
   return await new Promise<GitBashRunResult>((resolve, reject) => {
     const outputDirectory = mkdtempSync(join(tmpdir(), "omo-git-bash-run-"));
     const stdoutPath = join(outputDirectory, "stdout");
@@ -49,10 +39,7 @@ export async function runGitBashCommand(
       outputClosed = true;
     }
 
-    function readAndRemoveOutput(): Pick<
-      GitBashRunResult,
-      "stdout" | "stderr"
-    > {
+    function readAndRemoveOutput(): Pick<GitBashRunResult, "stdout" | "stderr"> {
       closeOutputFiles();
       const stdout = readFileSync(stdoutPath, "utf8");
       const stderr = readFileSync(stderrPath, "utf8");

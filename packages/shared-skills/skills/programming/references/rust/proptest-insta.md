@@ -1,19 +1,17 @@
 # Property Tests (proptest) + Snapshot Tests (insta)
 
-Two test types every Rust project should have alongside unit tests. Proptest
-hunts for inputs your unit tests forgot to try. Insta locks down output shapes
-you do not want to silently change.
+Two test types every Rust project should have alongside unit tests. Proptest hunts for inputs your unit tests forgot to try. Insta locks down output shapes you do not want to silently change.
 
 ## When to reach for each
 
-| Want to test…                                    | Use                                   |
-| ------------------------------------------------ | ------------------------------------- |
-| One specific behavior with a known input         | `#[test]` + `assert_eq!`              |
-| All inputs of a certain shape work               | `proptest!`                           |
-| Output structure stays stable across refactors   | `insta::assert_*_snapshot!`           |
-| Parser/serializer round-trips                    | `proptest!` (the round-trip property) |
-| CLI help text, JSON response shape, debug output | `insta::assert_snapshot!`             |
-| Concurrency under all interleavings              | `loom` (see `concurrency.md`)         |
+| Want to test… | Use |
+|---|---|
+| One specific behavior with a known input | `#[test]` + `assert_eq!` |
+| All inputs of a certain shape work | `proptest!` |
+| Output structure stays stable across refactors | `insta::assert_*_snapshot!` |
+| Parser/serializer round-trips | `proptest!` (the round-trip property) |
+| CLI help text, JSON response shape, debug output | `insta::assert_snapshot!` |
+| Concurrency under all interleavings | `loom` (see `concurrency.md`) |
 
 Use all three. They cover different bug classes.
 
@@ -39,9 +37,7 @@ failure_persistence = { source_file = "proptest-regressions/", file_name = "regr
 verbose = 0
 ```
 
-`failure_persistence` is the killer feature: every failure is written to a
-regression file. On the next run, those exact inputs are replayed first, so once
-a bug is found it never escapes again.
+`failure_persistence` is the killer feature: every failure is written to a regression file. On the next run, those exact inputs are replayed first, so once a bug is found it never escapes again.
 
 ## Basic property test
 
@@ -62,27 +58,25 @@ proptest! {
 }
 ```
 
-`proptest!` macro takes `(arg in strategy, ...)` pairs. Each strategy produces
-values; proptest runs the body with random samples, then shrinks failing cases
-to minimal forms.
+`proptest!` macro takes `(arg in strategy, ...)` pairs. Each strategy produces values; proptest runs the body with random samples, then shrinks failing cases to minimal forms.
 
 ## Strategies — the value-generation language
 
-| Strategy                                 | Produces                             |
-| ---------------------------------------- | ------------------------------------ |
-| `any::<T>()`                             | Any value of `T` (if `T: Arbitrary`) |
-| `0u32..100`                              | Integer ranges                       |
-| `prop::sample::select(slice)`            | Pick from a list                     |
-| `prop::collection::vec(elem, range)`     | Vec of length in range               |
-| `prop::collection::hash_map(k, v, n..m)` | HashMap                              |
-| `prop::option::of(strategy)`             | Option                               |
-| `prop::result::maybe_ok(ok, err)`        | Result                               |
-| `(s1, s2).prop_map(\|(a, b)\| ...)`      | Combine, transform                   |
-| `s.prop_filter("reason", \|v\| pred)`    | Reject values                        |
-| `s.prop_flat_map(\|v\| dependent)`       | Sequential dependency                |
-| `prop_oneof![strategy1, strategy2]`      | Union of strategies                  |
-| `r"[a-z]{3,10}"`                         | Regex-generated string               |
-| `"\\PC*"`                                | Any printable non-control string     |
+| Strategy | Produces |
+|---|---|
+| `any::<T>()` | Any value of `T` (if `T: Arbitrary`) |
+| `0u32..100` | Integer ranges |
+| `prop::sample::select(slice)` | Pick from a list |
+| `prop::collection::vec(elem, range)` | Vec of length in range |
+| `prop::collection::hash_map(k, v, n..m)` | HashMap |
+| `prop::option::of(strategy)` | Option |
+| `prop::result::maybe_ok(ok, err)` | Result |
+| `(s1, s2).prop_map(\|(a, b)\| ...)` | Combine, transform |
+| `s.prop_filter("reason", \|v\| pred)` | Reject values |
+| `s.prop_flat_map(\|v\| dependent)` | Sequential dependency |
+| `prop_oneof![strategy1, strategy2]` | Union of strategies |
+| `r"[a-z]{3,10}"` | Regex-generated string |
+| `"\\PC*"` | Any printable non-control string |
 
 Example combining several:
 
@@ -119,11 +113,9 @@ proptest! {
 ## Properties to write for every parser
 
 1. **Round-trip:** `parse(render(x)) == x` for all valid `x`.
-2. **No-panic:** `parse(arbitrary_string)` never panics, always returns
-   `Result`.
+2. **No-panic:** `parse(arbitrary_string)` never panics, always returns `Result`.
 3. **Idempotent:** `parse(parse(x).unwrap().render()) == parse(x).unwrap()`.
-4. **Whitespace insensitivity:** `parse(x) == parse(strip_whitespace(x))` (if
-   applicable).
+4. **Whitespace insensitivity:** `parse(x) == parse(strip_whitespace(x))` (if applicable).
 
 For every serializer:
 
@@ -132,8 +124,7 @@ For every serializer:
 
 For every collection operation:
 
-1. **Identity:** `op_identity(x) == x` (sort an already-sorted, dedupe a
-   unique).
+1. **Identity:** `op_identity(x) == x` (sort an already-sorted, dedupe a unique).
 2. **Idempotence:** `op(op(x)) == op(x)`.
 3. **Commutativity:** `op(a, b) == op(b, a)` (set union, etc).
 4. **Length:** `op(a, b).len() == known_relation(a.len(), b.len())`.
@@ -143,8 +134,7 @@ For every numeric op:
 1. **Monotonicity:** `a <= b => f(a) <= f(b)`.
 2. **Identity element:** `f(x, identity) == x`.
 
-Write these mechanically. The agent should reach for proptest the moment any of
-these properties is checkable.
+Write these mechanically. The agent should reach for proptest the moment any of these properties is checkable.
 
 ## Derive `Arbitrary`
 
@@ -169,13 +159,11 @@ proptest! {
 }
 ```
 
-`#[derive(Arbitrary)]` auto-implements the strategy. Per-field
-`#[proptest(strategy = "...")]` overrides.
+`#[derive(Arbitrary)]` auto-implements the strategy. Per-field `#[proptest(strategy = "...")]` overrides.
 
 ## Stateful / state machine tests
 
-For data structures with operations (queues, maps, trees), use
-`proptest-state-machine`:
+For data structures with operations (queues, maps, trees), use `proptest-state-machine`:
 
 ```rust
 use proptest_state_machine::{ReferenceStateMachine, StateMachineTest};
@@ -234,23 +222,15 @@ proptest_state_machine::prop_state_machine! {
 }
 ```
 
-You define a reference implementation (`VecDeque` here), proptest fuzzes
-operations against both, asserts invariants every step. This is the technique
-for finding bugs in lock-free or complex containers.
+You define a reference implementation (`VecDeque` here), proptest fuzzes operations against both, asserts invariants every step. This is the technique for finding bugs in lock-free or complex containers.
 
 ## Shrinking
 
-When a property fails, proptest reduces the input to a minimal counter-example.
-For built-in strategies this is automatic. For custom strategies built with
-`prop_map`, shrinking goes through the underlying strategy. Avoid breaking
-shrinking with `prop_filter` (rejection sampling) over wide spaces; prefer
-`prop_flat_map` or directly-shaped strategies.
+When a property fails, proptest reduces the input to a minimal counter-example. For built-in strategies this is automatic. For custom strategies built with `prop_map`, shrinking goes through the underlying strategy. Avoid breaking shrinking with `prop_filter` (rejection sampling) over wide spaces; prefer `prop_flat_map` or directly-shaped strategies.
 
 ## Regression corpus
 
-When a property test fails, proptest writes the failing input to
-`proptest-regressions/<test_name>.txt`. Commit this directory. Future runs
-replay these failing inputs first, so the bug stays fixed forever.
+When a property test fails, proptest writes the failing input to `proptest-regressions/<test_name>.txt`. Commit this directory. Future runs replay these failing inputs first, so the bug stays fixed forever.
 
 ```
 proptest-regressions/
@@ -286,9 +266,7 @@ fn renders_default_help() {
 }
 ```
 
-First run: creates `src/snapshots/mycrate__renders_default_help.snap.new`. Run
-`cargo insta review`, press `a` to accept, the `.new` extension is dropped.
-Subsequent runs diff against the committed snapshot; mismatches fail the test.
+First run: creates `src/snapshots/mycrate__renders_default_help.snap.new`. Run `cargo insta review`, press `a` to accept, the `.new` extension is dropped. Subsequent runs diff against the committed snapshot; mismatches fail the test.
 
 ## Insta — typed snapshots
 
@@ -318,9 +296,7 @@ fn debug_repr() {
 ```
 
 Choose:
-
-- `assert_snapshot!` for `String`/`Display` output (CLI help, error messages,
-  generated code).
+- `assert_snapshot!` for `String`/`Display` output (CLI help, error messages, generated code).
 - `assert_debug_snapshot!` for `{:?}` (Rust-internal data).
 - `assert_json_snapshot!` for structured data crossing process boundaries.
 - `assert_yaml_snapshot!` when YAML is easier to read in diffs.
@@ -367,8 +343,7 @@ fn with_filters() {
 2. `cargo insta review` → interactive UI. Show diff, accept/reject.
 3. Accepted snapshots commit to the repo.
 4. Refactor code. Tests run; mismatches show as diffs.
-5. If the new output is correct, `cargo insta accept` (or selective `review`).
-   If wrong, fix the code.
+5. If the new output is correct, `cargo insta accept` (or selective `review`). If wrong, fix the code.
 
 Pair with CI to fail builds when uncommitted `.snap.new` files exist:
 
@@ -390,9 +365,7 @@ fn small_output() {
 }
 ```
 
-The trailing `@"..."` string is the expected snapshot, stored in source. Useful
-when the value is short enough that pulling out a separate file is overkill.
-`cargo insta accept` updates them in-place.
+The trailing `@"..."` string is the expected snapshot, stored in source. Useful when the value is short enough that pulling out a separate file is overkill. `cargo insta accept` updates them in-place.
 
 ## Inline JSON snapshots
 
@@ -410,15 +383,10 @@ fn json_inline() {
 
 ## Anti-patterns
 
-1. **Snapshots of unstable output.** If `HashMap` iteration order changes per
-   run, snapshots will fail. Switch to `BTreeMap` or sort before snapshotting.
-2. **Massive snapshots.** A 10KB JSON dump where you really care about 3 fields.
-   Either narrow to the fields, or accept that any refactor will require
-   re-reviewing 10KB.
-3. **Snapshots that bake in implementation details.** "function called 3 times"
-   is not a snapshot - it's a behavior assertion. Use a real assertion.
-4. **Skipping `cargo insta review`.** Accepting blind via
-   `cargo insta accept --all` defeats the purpose. Always review.
+1. **Snapshots of unstable output.** If `HashMap` iteration order changes per run, snapshots will fail. Switch to `BTreeMap` or sort before snapshotting.
+2. **Massive snapshots.** A 10KB JSON dump where you really care about 3 fields. Either narrow to the fields, or accept that any refactor will require re-reviewing 10KB.
+3. **Snapshots that bake in implementation details.** "function called 3 times" is not a snapshot - it's a behavior assertion. Use a real assertion.
+4. **Skipping `cargo insta review`.** Accepting blind via `cargo insta accept --all` defeats the purpose. Always review.
 
 ## Combining proptest + insta
 
@@ -435,8 +403,7 @@ proptest! {
 }
 ```
 
-But honestly, this is rarely a fit. Proptest tests properties, insta tests
-output shape. Don't snapshot random inputs - that defeats both tools.
+But honestly, this is rarely a fit. Proptest tests properties, insta tests output shape. Don't snapshot random inputs - that defeats both tools.
 
 ## CI matrix recommendation
 
@@ -451,16 +418,12 @@ output shape. Don't snapshot random inputs - that defeats both tools.
     cargo nextest run --all-features --test-threads 1
 ```
 
-When a proptest finds a new failure, the regression file appears as a git diff -
-check it in.
+When a proptest finds a new failure, the regression file appears as a git diff - check it in.
 
 ## What proptest cannot do
 
-- Find bugs that require multi-process / multi-network coordination →
-  integration tests + fault injection.
+- Find bugs that require multi-process / multi-network coordination → integration tests + fault injection.
 - Find concurrency bugs → use `loom` (see `concurrency.md`).
 - Find performance regressions → use `criterion`.
 
-But for any function with a domain (inputs to outputs), proptest can find more
-bugs than your unit tests. **Write the property first, derive the unit test
-second.**
+But for any function with a domain (inputs to outputs), proptest can find more bugs than your unit tests. **Write the property first, derive the unit test second.**

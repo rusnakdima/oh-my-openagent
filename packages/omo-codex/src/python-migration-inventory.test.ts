@@ -1,13 +1,13 @@
-import { describe, expect, it } from "bun:test";
-import { existsSync, readdirSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { describe, expect, it } from "bun:test"
+import { existsSync, readdirSync, statSync } from "node:fs"
+import { join, relative, sep } from "node:path"
 
-const repoRoot = join(import.meta.dir, "..", "..", "..");
-const packageRoot = join(repoRoot, "packages", "omo-codex");
+const repoRoot = join(import.meta.dir, "..", "..", "..")
+const packageRoot = join(repoRoot, "packages", "omo-codex")
 
 const requiredRetainedPythonFiles = [
   "packages/omo-codex/plugin/components/lsp/test/fixtures/broken.py",
-] as const;
+] as const
 const optionalGeneratedPythonFiles = [
   "packages/omo-codex/plugin/skills/ast-grep/scripts/ast_grep_helper.py",
   "packages/omo-codex/plugin/skills/coding-agent-sessions/scripts/agent_sessions/__init__.py",
@@ -61,54 +61,50 @@ const optionalGeneratedPythonFiles = [
   "packages/omo-codex/plugin/skills/ultimate-browsing/scripts/extract_cookies.py",
   "packages/omo-codex/plugin/skills/ultimate-browsing/scripts/tests/test_cookie_domain_filter.py",
   "packages/omo-codex/plugin/skills/ultimate-browsing/scripts/tests/test_extract_cookies.py",
-] as const;
+] as const
 const retainedPythonFiles = [
   ...requiredRetainedPythonFiles,
   ...optionalGeneratedPythonFiles,
-] as const;
-const retainedPythonFileSet = new Set<string>(retainedPythonFiles);
+] as const
+const retainedPythonFileSet = new Set<string>(retainedPythonFiles)
 
 describe("omo-codex Python migration inventory", () => {
   it("classifies every Python file under packages/omo-codex", () => {
     // given
-    const pythonFiles = listPythonFiles(packageRoot);
+    const pythonFiles = listPythonFiles(packageRoot)
 
     // when
-    const unclassified = pythonFiles.filter((path) =>
-      !retainedPythonFileSet.has(path)
-    );
+    const unclassified = pythonFiles.filter((path) => !retainedPythonFileSet.has(path))
 
     // then
-    expect(unclassified).toEqual([]);
+    expect(unclassified).toEqual([])
     const expectedPythonFiles = [
       ...requiredRetainedPythonFiles,
-      ...optionalGeneratedPythonFiles.filter((path) =>
-        existsSync(join(repoRoot, path))
-      ),
-    ].sort();
-    expect(pythonFiles).toEqual(expectedPythonFiles);
-  });
-});
+      ...optionalGeneratedPythonFiles.filter((path) => existsSync(join(repoRoot, path))),
+    ].sort()
+    expect(pythonFiles).toEqual(expectedPythonFiles)
+  })
+})
 
 function listPythonFiles(root: string): readonly string[] {
-  const files: string[] = [];
-  collectPythonFiles(root, files);
-  return files.sort();
+  const files: string[] = []
+  collectPythonFiles(root, files)
+  return files.sort()
 }
 
 function collectPythonFiles(directory: string, files: string[]): void {
   for (const entry of readdirSync(directory)) {
-    if (entry === "node_modules" || entry === "dist") continue;
+    if (entry === "node_modules" || entry === "dist") continue
 
-    const absolutePath = join(directory, entry);
-    const stats = statSync(absolutePath);
+    const absolutePath = join(directory, entry)
+    const stats = statSync(absolutePath)
     if (stats.isDirectory()) {
-      collectPythonFiles(absolutePath, files);
-      continue;
+      collectPythonFiles(absolutePath, files)
+      continue
     }
 
     if (entry.endsWith(".py") || entry.endsWith(".pyi")) {
-      files.push(relative(repoRoot, absolutePath).split(sep).join("/"));
+      files.push(relative(repoRoot, absolutePath).split(sep).join("/"))
     }
   }
 }

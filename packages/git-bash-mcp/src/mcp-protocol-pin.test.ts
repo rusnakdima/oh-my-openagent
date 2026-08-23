@@ -9,11 +9,7 @@ describe("git_bash MCP protocol pins", () => {
         jsonrpc: "2.0",
         id: 1,
         method: "initialize",
-        params: {
-          protocolVersion: "2024-11-05",
-          capabilities: {},
-          clientInfo: { name: "todo-23", version: "0.0.0" },
-        },
+        params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "todo-23", version: "0.0.0" } },
       },
       windowsOptions(),
     );

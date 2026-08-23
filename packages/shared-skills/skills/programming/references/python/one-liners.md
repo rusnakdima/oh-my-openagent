@@ -1,12 +1,8 @@
 # One-liner Scripts (PEP 723 + uv)
 
-Self-contained Python scripts with declared dependencies, run with no
-environment setup. The combination eliminates the historical reason to write
-small tools in Go or Bash.
+Self-contained Python scripts with declared dependencies, run with no environment setup. The combination eliminates the historical reason to write small tools in Go or Bash.
 
-**Rule: EVERY `.py` script — even throwaway — MUST use PEP 723 inline metadata
-with the usage comment block.** No venv, no requirements.txt, no setup.py. The
-script IS the environment spec.
+**Rule: EVERY `.py` script — even throwaway — MUST use PEP 723 inline metadata with the usage comment block.** No venv, no requirements.txt, no setup.py. The script IS the environment spec.
 
 ## The two patterns
 
@@ -20,13 +16,11 @@ print(httpx2.get('https://api.github.com').json())
 "
 ```
 
-Use for terminal one-shots that you don't want to save. `--with PKG` may be
-repeated.
+Use for terminal one-shots that you don't want to save. `--with PKG` may be repeated.
 
 ### Pattern 2: PEP 723 script with shebang (THE CANONICAL PATTERN)
 
-A regular `.py` file with metadata in a comment block. uv reads the metadata,
-materialises a disposable venv (cached), and runs the script.
+A regular `.py` file with metadata in a comment block. uv reads the metadata, materialises a disposable venv (cached), and runs the script.
 
 ```python
 #!/usr/bin/env -S uv run --script
@@ -69,10 +63,8 @@ if __name__ == "__main__":
 Every PEP 723 script MUST include these, in order:
 
 1. **Shebang**: `#!/usr/bin/env -S uv run --script`
-2. **PEP 723 metadata block**: `# /// script` ... `# ///` with `requires-python`
-   and `dependencies`
-3. **Usage comment block**: How to install uv + how to run the script. Copy the
-   template above verbatim.
+2. **PEP 723 metadata block**: `# /// script` ... `# ///` with `requires-python` and `dependencies`
+3. **Usage comment block**: How to install uv + how to run the script. Copy the template above verbatim.
 4. **`from __future__ import annotations`**: Always first import.
 5. **`if __name__ == "__main__": main()`**: Entry point guard.
 
@@ -89,17 +81,13 @@ Every PEP 723 script MUST include these, in order:
 # ──────────────────
 ```
 
-Replace `<SCRIPT_NAME>` with the actual filename. Add argument descriptions if
-the script takes CLI args. This block goes immediately after the `# ///` closing
-line, before any imports.
+Replace `<SCRIPT_NAME>` with the actual filename. Add argument descriptions if the script takes CLI args. This block goes immediately after the `# ///` closing line, before any imports.
 
-**Why mandatory**: Anyone who receives this script — colleague, CI, future you —
-must know how to run it without reading docs. The comment IS the docs.
+**Why mandatory**: Anyone who receives this script — colleague, CI, future you — must know how to run it without reading docs. The comment IS the docs.
 
 ## Template generator
 
-Use `scripts/new-script.py` to scaffold a new PEP 723 script with all
-boilerplate pre-filled:
+Use `scripts/new-script.py` to scaffold a new PEP 723 script with all boilerplate pre-filled:
 
 ```bash
 # Generate to temp directory (default)
@@ -114,15 +102,15 @@ uv run scripts/new-script.py my_tool --deps "polars" "duckdb" "rich"
 
 ## Common dependency sets
 
-| Use case        | Dependencies line                              |
-| --------------- | ---------------------------------------------- |
-| API client      | `"httpx2[http2,brotli,zstd]"`                  |
-| Data processing | `"polars"`, `"duckdb"`                         |
-| CLI tool        | `"typer"`, `"rich"`                            |
-| Web scraping    | `"httpx2[http2,brotli,zstd]"`, `"selectolax"`  |
-| File watcher    | `"watchfiles"`                                 |
-| JSON pretty     | `"rich"`                                       |
-| AI / LLM        | `"pydantic-ai"`, `"httpx2[http2,brotli,zstd]"` |
+| Use case | Dependencies line |
+|---|---|
+| API client | `"httpx2[http2,brotli,zstd]"` |
+| Data processing | `"polars"`, `"duckdb"` |
+| CLI tool | `"typer"`, `"rich"` |
+| Web scraping | `"httpx2[http2,brotli,zstd]"`, `"selectolax"` |
+| File watcher | `"watchfiles"` |
+| JSON pretty | `"rich"` |
+| AI / LLM | `"pydantic-ai"`, `"httpx2[http2,brotli,zstd]"` |
 
 ## Real-world examples
 
@@ -263,20 +251,18 @@ if __name__ == "__main__":
 
 ## Anti-patterns
 
-| ❌ Don't                                 | ✅ Do                                                              |
-| ---------------------------------------- | ------------------------------------------------------------------ |
-| `pip install httpx2 && python script.py` | `uv run script.py`                                                 |
-| `requirements.txt` alongside script      | PEP 723 inline metadata                                            |
-| `python -m venv .venv && ...`            | `uv run --script` handles it                                       |
-| Script without usage comment             | Always include the "How to run" block                              |
-| `import asyncio; asyncio.run(main())`    | `import anyio; anyio.run(main)`                                    |
-| Bare `httpx2.AsyncClient()`              | Full production defaults (see `references/httpx2-optimization.md`) |
+| ❌ Don't | ✅ Do |
+|---|---|
+| `pip install httpx2 && python script.py` | `uv run script.py` |
+| `requirements.txt` alongside script | PEP 723 inline metadata |
+| `python -m venv .venv && ...` | `uv run --script` handles it |
+| Script without usage comment | Always include the "How to run" block |
+| `import asyncio; asyncio.run(main())` | `import anyio; anyio.run(main)` |
+| Bare `httpx2.AsyncClient()` | Full production defaults (see `references/httpx2-optimization.md`) |
 
 ## Sources
 
 - PEP 723 - Inline script metadata: <https://peps.python.org/pep-0723/>
 - uv `run --script` docs: <https://docs.astral.sh/uv/guides/scripts/>
-- Original article:
-  <https://www.cottongeeks.com/articles/2025-06-24-fun-with-uv-and-pep-723>
-- Simon Willison on one-shot Python tools:
-  <https://simonwillison.net/2024/Dec/19/one-shot-python-tools/>
+- Original article: <https://www.cottongeeks.com/articles/2025-06-24-fun-with-uv-and-pep-723>
+- Simon Willison on one-shot Python tools: <https://simonwillison.net/2024/Dec/19/one-shot-python-tools/>

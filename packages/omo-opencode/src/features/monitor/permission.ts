@@ -11,52 +11,47 @@
  * that callback is absent, it fails closed to monitor.allowed_commands.
  */
 
-import type { MonitorConfig as SchemaMonitorConfig } from "../../config/schema/monitor";
-import { tokenizeCommand } from "../../tools/interactive-bash/tools";
+import type { MonitorConfig as SchemaMonitorConfig } from "../../config/schema/monitor"
+import { tokenizeCommand } from "../../tools/interactive-bash/tools"
 
-export type MonitorConfig =
-  & Pick<SchemaMonitorConfig, "enabled" | "allowed_commands">
-  & Partial<SchemaMonitorConfig>;
+export type MonitorConfig = Pick<SchemaMonitorConfig, "enabled" | "allowed_commands"> & Partial<SchemaMonitorConfig>
 
-export type MonitorPermissionVia =
-  | "bash-equivalent"
-  | "allowlist"
-  | "feature-disabled";
+export type MonitorPermissionVia = "bash-equivalent" | "allowlist" | "feature-disabled"
 
 export type MonitorPermissionResult = {
-  allowed: boolean;
-  reason: string;
-  via: MonitorPermissionVia;
-};
+  allowed: boolean
+  reason: string
+  via: MonitorPermissionVia
+}
 
 export type BashPermissionAskInput = {
-  permission: "bash";
-  patterns: string[];
-  always: string[];
+  permission: "bash"
+  patterns: string[]
+  always: string[]
   metadata: {
-    command: string;
-  };
-};
+    command: string
+  }
+}
 
 export type MonitorPermissionContext = {
-  config: MonitorConfig;
-  bashPermissionAsk?: (input: BashPermissionAskInput) => Promise<void>;
-};
+  config: MonitorConfig
+  bashPermissionAsk?: (input: BashPermissionAskInput) => Promise<void>
+}
 
 function getErrorReason(error: unknown): string {
   if (error instanceof Error && error.message) {
-    return error.message;
+    return error.message
   }
 
   if (typeof error === "string" && error) {
-    return error;
+    return error
   }
 
-  return "bash permission denied";
+  return "bash permission denied"
 }
 
 function getProgram(command: string): string | undefined {
-  return tokenizeCommand(command)[0];
+  return tokenizeCommand(command)[0]
 }
 
 async function checkBashEquivalentPermission(
@@ -69,42 +64,39 @@ async function checkBashEquivalentPermission(
       patterns: [command],
       always: [command],
       metadata: { command },
-    });
+    })
   } catch (error) {
     return {
       allowed: false,
       reason: getErrorReason(error),
       via: "bash-equivalent",
-    };
+    }
   }
 
   return {
     allowed: true,
     reason: "command allowed by bash permission",
     via: "bash-equivalent",
-  };
+  }
 }
 
-function checkAllowlistPermission(
-  command: string,
-  config: MonitorConfig,
-): MonitorPermissionResult {
-  const program = getProgram(command);
-  const allowedCommands = config.allowed_commands ?? [];
+function checkAllowlistPermission(command: string, config: MonitorConfig): MonitorPermissionResult {
+  const program = getProgram(command)
+  const allowedCommands = config.allowed_commands ?? []
 
   if (program && allowedCommands.includes(program)) {
     return {
       allowed: true,
       reason: "command allowed by allowed_commands",
       via: "allowlist",
-    };
+    }
   }
 
   return {
     allowed: false,
     reason: "command not in allowed_commands",
     via: "allowlist",
-  };
+  }
 }
 
 export async function checkMonitorCommandPermission(
@@ -116,12 +108,12 @@ export async function checkMonitorCommandPermission(
       allowed: false,
       reason: "monitor feature disabled",
       via: "feature-disabled",
-    };
+    }
   }
 
   if (ctx.bashPermissionAsk) {
-    return checkBashEquivalentPermission(command, ctx.bashPermissionAsk);
+    return checkBashEquivalentPermission(command, ctx.bashPermissionAsk)
   }
 
-  return checkAllowlistPermission(command, ctx.config);
+  return checkAllowlistPermission(command, ctx.config)
 }

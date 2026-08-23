@@ -4,13 +4,9 @@
  * All downstream imports of this module keep working unchanged.
  */
 export {
+  selectZombieCodegraphProcesses,
   type CodegraphProcessMatchKind,
   type CodegraphZombieProcess,
-  selectZombieCodegraphProcesses,
   type SelectZombieCodegraphProcessesOptions,
-} from "../process-sweep/codegraph-family";
-export {
-  type CodegraphProcessInfo,
-  parsePosixProcessTable,
-  parseWindowsProcessTable,
-} from "../process-sweep/process-table";
+} from "../process-sweep/codegraph-family"
+export { parsePosixProcessTable, parseWindowsProcessTable, type CodegraphProcessInfo } from "../process-sweep/process-table"

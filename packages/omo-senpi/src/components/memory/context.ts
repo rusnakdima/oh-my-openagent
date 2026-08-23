@@ -1,33 +1,33 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir } from "node:fs/promises"
 
-import type { MemoryIdentityPaths } from "@oh-my-opencode/memory-core";
+import type { MemoryIdentityPaths } from "@oh-my-opencode/memory-core"
 
-import type { MemorySessionBinding } from "./binding";
+import type { MemorySessionBinding } from "./binding"
 
 export interface MemoryPendingLedger {
-  pendingCompaction: boolean;
-  configRestartNotified: boolean;
+  pendingCompaction: boolean
+  configRestartNotified: boolean
 }
 
 export interface MemoryRepoAccess {
-  readonly path: string;
-  ensureRuntimeDirs(): Promise<void>;
+  readonly path: string
+  ensureRuntimeDirs(): Promise<void>
 }
 
 export interface MemoryIdentityContext {
-  readonly identity: string;
-  readonly identityPaths: MemoryIdentityPaths;
-  readonly repoAccess: MemoryRepoAccess;
-  readonly binding: MemorySessionBinding;
-  readonly ledger: MemoryPendingLedger;
+  readonly identity: string
+  readonly identityPaths: MemoryIdentityPaths
+  readonly repoAccess: MemoryRepoAccess
+  readonly binding: MemorySessionBinding
+  readonly ledger: MemoryPendingLedger
 }
 
 export function createMemoryIdentityContext(input: {
-  readonly identity: string;
-  readonly identityPaths: MemoryIdentityPaths;
-  readonly binding: MemorySessionBinding;
+  readonly identity: string
+  readonly identityPaths: MemoryIdentityPaths
+  readonly binding: MemorySessionBinding
 }): MemoryIdentityContext {
-  let repoAccess: MemoryRepoAccess | undefined;
+  let repoAccess: MemoryRepoAccess | undefined
   return {
     identity: input.identity,
     identityPaths: input.identityPaths,
@@ -37,22 +37,18 @@ export function createMemoryIdentityContext(input: {
       repoAccess ??= {
         path: input.identityPaths.repo,
         ensureRuntimeDirs: () => ensureIdentityRuntimeDirs(input.identityPaths),
-      };
-      return repoAccess;
+      }
+      return repoAccess
     },
-  };
+  }
 }
 
-export function getMemoryRepo(
-  context: MemoryIdentityContext,
-): MemoryRepoAccess {
-  return context.repoAccess;
+export function getMemoryRepo(context: MemoryIdentityContext): MemoryRepoAccess {
+  return context.repoAccess
 }
 
 /** First-write seam: callers invoke this before mutation; reads must never create identity storage. */
-export async function ensureIdentityRuntimeDirs(
-  paths: MemoryIdentityPaths,
-): Promise<void> {
+export async function ensureIdentityRuntimeDirs(paths: MemoryIdentityPaths): Promise<void> {
   await Promise.all([
     paths.locks,
     paths.transcripts,
@@ -65,5 +61,5 @@ export async function ensureIdentityRuntimeDirs(
     paths.facts,
     paths.notices,
     paths.toolReceipts,
-  ].map((path) => mkdir(path, { recursive: true })));
+  ].map((path) => mkdir(path, { recursive: true })))
 }

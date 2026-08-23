@@ -7,13 +7,13 @@ description: "QA the omo Codex Light edition (lazycodex / packages/omo-codex) it
 
 QA the omo Codex Light edition (`packages/omo-codex/`, shipped as lazycodex). We
 exercise OUR plugin in a REAL Codex while touching nothing of the user's setup:
-an isolated `CODEX_HOME` + a local mock model means no real API call and the
-real `~/.codex` is never read or written. Each helper script ships a
-`--self-test` that asserts its scenario against the live machine, so the scripts
-are both the QA tools and their own regression checks.
+an isolated `CODEX_HOME` + a local mock model means no real API call and the real
+`~/.codex` is never read or written. Each helper script ships a `--self-test`
+that asserts its scenario against the live machine, so the scripts are both the
+QA tools and their own regression checks.
 
-Verified against `codex-cli 0.140.0` (node, jq, tmux, bun on macOS). Confirm
-with `codex --version`; check a flag with `codex <cmd> --help`.
+Verified against `codex-cli 0.140.0` (node, jq, tmux, bun on macOS). Confirm with
+`codex --version`; check a flag with `codex <cmd> --help`.
 
 ## Golden rules (read before running anything)
 
@@ -26,16 +26,14 @@ with `codex --version`; check a flag with `codex <cmd> --help`.
 - **Prove the real home stayed clean.** Every script shasums
   `~/.codex/config.toml` before and after and asserts it is unchanged. If you
   script by hand, do the same.
-- **The interactive `codex` is a shell function** that injects
-  `--profile quotio`. Bash scripts bypass it and get the real binary; never rely
-  on the interactive alias. See
-  [references/isolation.md](references/isolation.md).
+- **The interactive `codex` is a shell function** that injects `--profile quotio`.
+  Bash scripts bypass it and get the real binary; never rely on the interactive
+  alias. See [references/isolation.md](references/isolation.md).
 - **The first-party way to prove a hook fired is the app-server** notification
   stream (`hook/started` / `hook/completed`), not log scraping. See
   [references/app-server.md](references/app-server.md).
 - **The captured JSON / pane IS the evidence** — write it under
-  `.omo/evidence/<YYYYMMDD>-<slug>/` (no evidence file == the QA did not
-  happen).
+  `.omo/evidence/<YYYYMMDD>-<slug>/` (no evidence file == the QA did not happen).
 
 ## Setup
 
@@ -46,37 +44,32 @@ bash scripts/lib/common.sh --self-check    # confirm deps + isolation harness
 
 **Docker is the default QA surface.** Run this QA inside a disposable container
 that has the latest codex and a copy of your config, with the host `~/.codex`
-untouched: `script/agent/qa-docker.sh` (see
-[references/docker-qa.md](references/docker-qa.md)). The local scripts below are
-the fallback for when Docker is unavailable or on Windows.
+untouched: `script/agent/qa-docker.sh` (see [references/docker-qa.md](references/docker-qa.md)).
+The local scripts below are the fallback for when Docker is unavailable or on
+Windows.
 
 ## Router: pick your case
 
-| You need to…                                                     | Run                                                   | Deep dive                                             |
-| ---------------------------------------------------------------- | ----------------------------------------------------- | ----------------------------------------------------- |
-| Prove a plugin hook fires in a LIVE Codex turn (first-party)     | `scripts/app-server-drive.sh --plugin`                | [app-server.md](references/app-server.md)             |
-| Prove the app-server driver itself works (no plugin, fast)       | `scripts/app-server-drive.sh --self-test`             | [app-server.md](references/app-server.md)             |
-| Install the LOCAL build into an isolated home + assert it landed | `scripts/install-verify.sh --self-test`               | [install-verify.md](references/install-verify.md)     |
-| Pin ONE component's hook logic deterministically (no codex)      | `scripts/hook-unit-probe.sh --self-test`              | [components-hooks.md](references/components-hooks.md) |
-| Smoke the real TUI under tmux (boots, renders, survives)         | `scripts/tui-smoke.sh --self-test`                    | [logging-debug.md](references/logging-debug.md)       |
-| Watch runtime logs while QAing                                   | (see reference; RUST_LOG / logs DB / `/debug-config`) | [logging-debug.md](references/logging-debug.md)       |
+| You need to… | Run | Deep dive |
+|---|---|---|
+| Prove a plugin hook fires in a LIVE Codex turn (first-party) | `scripts/app-server-drive.sh --plugin` | [app-server.md](references/app-server.md) |
+| Prove the app-server driver itself works (no plugin, fast) | `scripts/app-server-drive.sh --self-test` | [app-server.md](references/app-server.md) |
+| Install the LOCAL build into an isolated home + assert it landed | `scripts/install-verify.sh --self-test` | [install-verify.md](references/install-verify.md) |
+| Pin ONE component's hook logic deterministically (no codex) | `scripts/hook-unit-probe.sh --self-test` | [components-hooks.md](references/components-hooks.md) |
+| Smoke the real TUI under tmux (boots, renders, survives) | `scripts/tui-smoke.sh --self-test` | [logging-debug.md](references/logging-debug.md) |
+| Watch runtime logs while QAing | (see reference; RUST_LOG / logs DB / `/debug-config`) | [logging-debug.md](references/logging-debug.md) |
 
 ## Scripts index (each is its own regression test)
 
-| Script                               | `--self-test` asserts                                                                                                                                                                        |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/lib/common.sh --self-check` | deps present; isolated `CODEX_HOME` is created inside a sandbox and auto-removed on exit; mock model serves the Responses SSE; real `~/.codex` unchanged                                     |
-| `scripts/app-server-drive.sh`        | `--self-test`: a bare turn completes and the mock assistant text comes back. `--plugin`: installs local omo, drives a turn, and asserts `hook/completed` for `sessionStart,userPromptSubmit` |
-| `scripts/install-verify.sh`          | local omo installs into the isolated home; `config.toml` enables `omo@sisyphuslabs`; component bins + agent TOMLs linked in the sandbox; real `~/.codex` unchanged                           |
-| `scripts/hook-unit-probe.sh`         | the `ultrawork` component injects `<ultrawork-mode>` on an `ulw` UserPromptSubmit (also a manual `--component/--event` mode)                                                                 |
-| `scripts/tui-smoke.sh`               | the real codex TUI boots in the isolated home, renders, and survives (no early exit); captures the pane                                                                                      |
+| Script | `--self-test` asserts |
+|---|---|
+| `scripts/lib/common.sh --self-check` | deps present; isolated `CODEX_HOME` is created inside a sandbox and auto-removed on exit; mock model serves the Responses SSE; real `~/.codex` unchanged |
+| `scripts/app-server-drive.sh` | `--self-test`: a bare turn completes and the mock assistant text comes back. `--plugin`: installs local omo, drives a turn, and asserts `hook/completed` for `sessionStart,userPromptSubmit` |
+| `scripts/install-verify.sh` | local omo installs into the isolated home; `config.toml` enables `omo@sisyphuslabs`; component bins + agent TOMLs linked in the sandbox; real `~/.codex` unchanged |
+| `scripts/hook-unit-probe.sh` | the `ultrawork` component injects `<ultrawork-mode>` on an `ulw` UserPromptSubmit (also a manual `--component/--event` mode) |
+| `scripts/tui-smoke.sh` | the real codex TUI boots in the isolated home, renders, and survives (no early exit); captures the pane |
 
-To tell a dev dogfood build apart from a published one on a REAL `~/.codex` (NOT
-the isolated QA home), the repo ships `bun run install:codex-dev`, which stamps
-the plugin version as `dev` — visible as the `(OmO dev)` hook-status prefix
-every turn and as a `[DEV]` badge in `omo get-local-version`. Use it to confirm
-which build is loaded during manual dogfooding; it writes to the real home, so
-it is NEVER part of the isolated QA flow above.
+To tell a dev dogfood build apart from a published one on a REAL `~/.codex` (NOT the isolated QA home), the repo ships `bun run install:codex-dev`, which stamps the plugin version as `dev` — visible as the `(OmO dev)` hook-status prefix every turn and as a `[DEV]` badge in `omo get-local-version`. Use it to confirm which build is loaded during manual dogfooding; it writes to the real home, so it is NEVER part of the isolated QA flow above.
 
 When TUI visual QA evidence is needed, follow
 `docs/reference/web-terminal-visual-qa.md`: render the TUI through the real
@@ -99,8 +92,7 @@ assertion-grade hook behavior.
 
 - **Component / hook logic** (`packages/omo-codex/plugin/components/*`):
   `hook-unit-probe.sh` for the exact stdout, THEN `app-server-drive.sh --plugin`
-  to prove the live wiring. See
-  [components-hooks.md](references/components-hooks.md).
+  to prove the live wiring. See [components-hooks.md](references/components-hooks.md).
 - **Installer / config.toml** (`packages/omo-codex/src/install/*`):
   `install-verify.sh`.
 - **Anything that affects a live session** (hooks, agents, MCP wiring):
@@ -120,5 +112,4 @@ bash scripts/install-verify.sh --self-test > "$ev/install-verify.txt" 2>&1
 There is no `/debugging` command in Codex. To observe a run: the app-server
 notification stream (above), `RUST_LOG=debug` on the app-server's stderr, the
 logs SQLite under `$CODEX_HOME`, the TUI's `/debug-config`, and the
-`codex debug …` subcommands. See
-[logging-debug.md](references/logging-debug.md).
+`codex debug …` subcommands. See [logging-debug.md](references/logging-debug.md).

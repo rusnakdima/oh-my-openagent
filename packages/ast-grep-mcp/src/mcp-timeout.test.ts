@@ -14,11 +14,7 @@ describe("ast_grep MCP hung-call abort", () => {
 
       const server = runMcpStdioServer(input, capture.stdout, {
         resolveSgPath: () => "/stub/sg",
-        parentWatchdog: {
-          parentPid: 4242,
-          pollIntervalMs: 1_000,
-          probeAlive: () => false,
-        },
+        parentWatchdog: { parentPid: 4242, pollIntervalMs: 1_000, probeAlive: () => false },
         executors: {
           search: async (_input, _sgPath, signal) => {
             const activeSignal = signal as AbortSignal;
@@ -30,18 +26,11 @@ describe("ast_grep MCP hung-call abort", () => {
             });
             started.resolve(activeSignal);
             await termination;
-            return {
-              schemaVersion: 1,
-              ok: false,
-              kind: "search",
-              error: { code: "ABORTED", message: "aborted" },
-            } as never;
+            return { schemaVersion: 1, ok: false, kind: "search", error: { code: "ABORTED", message: "aborted" } } as never;
           },
         },
       });
-      input.write(
-        '{"jsonrpc":"2.0","id":"hang","method":"tools/call","params":{"name":"search","arguments":{"pattern":"foo($$$ARGS)","language":"typescript","paths":["src"]}}}\n',
-      );
+      input.write('{"jsonrpc":"2.0","id":"hang","method":"tools/call","params":{"name":"search","arguments":{"pattern":"foo($$$ARGS)","language":"typescript","paths":["src"]}}}\n');
       const signal = await withTimeout(started.promise, "tool call start");
       expect(signal.aborted).toBe(false);
 
@@ -79,12 +68,8 @@ describe("ast_grep MCP hung-call abort", () => {
     });
 
     // when
-    input.write(
-      '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"pattern":"foo($$$ARGS)","language":"typescript","paths":["src"]}}}\n',
-    );
-    input.write(
-      '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"pattern":"foo($$$ARGS)","language":"typescript","paths":["src"]}}}\n',
-    );
+    input.write('{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search","arguments":{"pattern":"foo($$$ARGS)","language":"typescript","paths":["src"]}}}\n');
+    input.write('{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"search","arguments":{"pattern":"foo($$$ARGS)","language":"typescript","paths":["src"]}}}\n');
     input.end();
     await server;
 
@@ -95,40 +80,20 @@ describe("ast_grep MCP hung-call abort", () => {
   });
 });
 
-function withTimeout<T>(
-  promise: Promise<T>,
-  label: string,
-  timeoutMs = 2_000,
-): Promise<T> {
+function withTimeout<T>(promise: Promise<T>, label: string, timeoutMs = 2_000): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timeout = setTimeout(
-      () => reject(new Error(`Timed out waiting for ${label}`)),
-      timeoutMs,
-    );
+    const timeout = setTimeout(() => reject(new Error(`Timed out waiting for ${label}`)), timeoutMs);
     promise.then(
-      (value) => {
-        clearTimeout(timeout);
-        resolve(value);
-      },
-      (error: unknown) => {
-        clearTimeout(timeout);
-        reject(error);
-      },
+      (value) => { clearTimeout(timeout); resolve(value); },
+      (error: unknown) => { clearTimeout(timeout); reject(error); },
     );
   });
 }
 
-function captureStdout(): {
-  readonly stdout: Writable;
-  readonly read: () => string;
-} {
+function captureStdout(): { readonly stdout: Writable; readonly read: () => string } {
   let captured = "";
   const stdout = new Writable({
-    write(
-      chunk: unknown,
-      _encoding: BufferEncoding,
-      callback: (error?: Error | null) => void,
-    ): void {
+    write(chunk: unknown, _encoding: BufferEncoding, callback: (error?: Error | null) => void): void {
       captured += chunk instanceof Buffer ? chunk.toString() : String(chunk);
       callback();
     },

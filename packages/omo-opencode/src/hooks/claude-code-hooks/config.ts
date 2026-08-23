@@ -1,44 +1,39 @@
-import { join } from "path";
-import { existsSync } from "fs";
-import { getClaudeConfigDir } from "../../shared";
-import { bunFile } from "../../shared/bun-file-shim";
-import { getAllowedMcpEnvVars } from "../../features/claude-code-mcp-loader/configure-allowed-env-vars";
-import type {
-  ClaudeHooksConfig,
-  HookAction,
-  HookMatcher,
-  PluginHooksConfig,
-} from "./types";
-import { log } from "../../shared/logger";
+import { join } from "path"
+import { existsSync } from "fs"
+import { getClaudeConfigDir } from "../../shared"
+import { bunFile } from "../../shared/bun-file-shim"
+import { getAllowedMcpEnvVars } from "../../features/claude-code-mcp-loader/configure-allowed-env-vars"
+import type { ClaudeHooksConfig, HookMatcher, HookAction, PluginHooksConfig } from "./types"
+import { log } from "../../shared/logger"
 
-const CONFIG_CACHE_TTL_MS = 30_000;
+const CONFIG_CACHE_TTL_MS = 30_000
 
 interface ClaudeHooksConfigCacheEntry {
-  value: ClaudeHooksConfig | null;
-  cachedAt: number;
+  value: ClaudeHooksConfig | null
+  cachedAt: number
 }
 
-const configCache = new Map<string, ClaudeHooksConfigCacheEntry>();
+const configCache = new Map<string, ClaudeHooksConfigCacheEntry>()
 
 interface RawHookMatcher {
-  matcher?: string;
-  pattern?: string;
-  hooks: HookAction[];
+  matcher?: string
+  pattern?: string
+  hooks: HookAction[]
 }
 
 interface RawClaudeHooksConfig {
-  PreToolUse?: RawHookMatcher[];
-  PostToolUse?: RawHookMatcher[];
-  PostToolUseFailure?: RawHookMatcher[];
-  PermissionRequest?: RawHookMatcher[];
-  UserPromptSubmit?: RawHookMatcher[];
-  Notification?: RawHookMatcher[];
-  Stop?: RawHookMatcher[];
-  SubagentStart?: RawHookMatcher[];
-  SubagentStop?: RawHookMatcher[];
-  SessionStart?: RawHookMatcher[];
-  SessionEnd?: RawHookMatcher[];
-  PreCompact?: RawHookMatcher[];
+  PreToolUse?: RawHookMatcher[]
+  PostToolUse?: RawHookMatcher[]
+  PostToolUseFailure?: RawHookMatcher[]
+  PermissionRequest?: RawHookMatcher[]
+  UserPromptSubmit?: RawHookMatcher[]
+  Notification?: RawHookMatcher[]
+  Stop?: RawHookMatcher[]
+  SubagentStart?: RawHookMatcher[]
+  SubagentStop?: RawHookMatcher[]
+  SessionStart?: RawHookMatcher[]
+  SessionEnd?: RawHookMatcher[]
+  PreCompact?: RawHookMatcher[]
 }
 
 const ALL_HOOK_EVENT_TYPES: (keyof ClaudeHooksConfig)[] = [
@@ -54,83 +49,81 @@ const ALL_HOOK_EVENT_TYPES: (keyof ClaudeHooksConfig)[] = [
   "SessionStart",
   "SessionEnd",
   "PreCompact",
-];
+]
 
 function normalizeHookMatcher(raw: RawHookMatcher): HookMatcher {
   return {
     matcher: raw.matcher ?? raw.pattern ?? "*",
     hooks: Array.isArray(raw.hooks) ? raw.hooks : [],
-  };
+  }
 }
 
 function normalizeHooksConfig(raw: RawClaudeHooksConfig): ClaudeHooksConfig {
-  const result: ClaudeHooksConfig = {};
+  const result: ClaudeHooksConfig = {}
 
   for (const eventType of ALL_HOOK_EVENT_TYPES) {
     if (raw[eventType]) {
-      result[eventType] = raw[eventType].map(normalizeHookMatcher);
+      result[eventType] = raw[eventType].map(normalizeHookMatcher)
     }
   }
 
-  return result;
+  return result
 }
 
 export function getClaudeSettingsPaths(customPath?: string): string[] {
-  const claudeConfigDir = getClaudeConfigDir();
+  const claudeConfigDir = getClaudeConfigDir()
   const paths = [
     join(claudeConfigDir, "settings.json"),
     join(process.cwd(), ".claude", "settings.json"),
     join(process.cwd(), ".claude", "settings.local.json"),
-  ];
+  ]
 
   if (customPath && existsSync(customPath)) {
-    paths.unshift(customPath);
+    paths.unshift(customPath)
   }
 
   // Deduplicate paths to prevent loading the same file multiple times
   // (e.g., when cwd is the home directory)
-  return [...new Set(paths)];
+  return [...new Set(paths)]
 }
 
 function getCacheKey(customSettingsPath?: string): string {
-  return `${process.cwd()}::${customSettingsPath ?? ""}`;
+  return `${process.cwd()}::${customSettingsPath ?? ""}`
 }
 
-function getCachedConfig(
-  cacheKey: string,
-): ClaudeHooksConfig | null | undefined {
-  const cachedEntry = configCache.get(cacheKey);
+function getCachedConfig(cacheKey: string): ClaudeHooksConfig | null | undefined {
+  const cachedEntry = configCache.get(cacheKey)
   if (!cachedEntry) {
-    return undefined;
+    return undefined
   }
 
   if (Date.now() - cachedEntry.cachedAt >= CONFIG_CACHE_TTL_MS) {
-    configCache.delete(cacheKey);
-    return undefined;
+    configCache.delete(cacheKey)
+    return undefined
   }
 
-  return cachedEntry.value;
+  return cachedEntry.value
 }
 
 export function clearClaudeHooksConfigCache(): void {
-  configCache.clear();
+  configCache.clear()
 }
 
 export function resetPluginHooksState(): void {
-  pluginHooksState.clear();
+  pluginHooksState.clear()
 }
 
 function mergeHooksConfig(
   base: ClaudeHooksConfig,
-  override: ClaudeHooksConfig,
+  override: ClaudeHooksConfig
 ): ClaudeHooksConfig {
-  const result: ClaudeHooksConfig = { ...base };
+  const result: ClaudeHooksConfig = { ...base }
   for (const eventType of ALL_HOOK_EVENT_TYPES) {
     if (override[eventType]) {
-      result[eventType] = [...(base[eventType] || []), ...override[eventType]];
+      result[eventType] = [...(base[eventType] || []), ...override[eventType]]
     }
   }
-  return result;
+  return result
 }
 
 /**
@@ -138,48 +131,44 @@ function mergeHooksConfig(
  * Replaces module-level `let pendingPluginHooksConfigs`.
  */
 class PluginHooksState {
-  private configs = new Map<string, PluginHooksConfig[]>();
+  private configs = new Map<string, PluginHooksConfig[]>()
 
   setConfigs(directory: string, configs: PluginHooksConfig[]): void {
-    this.configs.set(directory, configs);
+    this.configs.set(directory, configs)
   }
 
   getConfigs(directory: string): PluginHooksConfig[] {
-    return this.configs.get(directory) ?? [];
+    return this.configs.get(directory) ?? []
   }
 
   clear(): void {
-    this.configs.clear();
+    this.configs.clear()
   }
 }
 
-const pluginHooksState = new PluginHooksState();
+const pluginHooksState = new PluginHooksState()
 
-export function setPluginHooksConfigs(
-  directory: string,
-  configs: PluginHooksConfig[],
-): void {
-  pluginHooksState.setConfigs(directory, configs);
-  configCache.clear();
+export function setPluginHooksConfigs(directory: string, configs: PluginHooksConfig[]): void {
+  pluginHooksState.setConfigs(directory, configs)
+  configCache.clear()
 }
 
 function isHookAction(h: unknown): h is HookAction {
-  if (typeof h !== "object" || h === null) return false;
-  const obj = h as Record<string, unknown>;
-  if (obj.type === "command" && typeof obj.command === "string") return true;
-  if (obj.type === "http" && typeof obj.url === "string") return true;
-  return false;
+  if (typeof h !== "object" || h === null) return false
+  const obj = h as Record<string, unknown>
+  if (obj.type === "command" && typeof obj.command === "string") return true
+  if (obj.type === "http" && typeof obj.url === "string") return true
+  return false
 }
 
 interface PluginHookMatcher {
-  matcher?: string;
-  pattern?: string;
-  hooks?: unknown[];
+  matcher?: string
+  pattern?: string
+  hooks?: unknown[]
 }
 
 function isPluginHookMatcher(m: unknown): m is PluginHookMatcher {
-  return typeof m === "object" && m !== null &&
-    Array.isArray((m as PluginHookMatcher).hooks);
+  return typeof m === "object" && m !== null && Array.isArray((m as PluginHookMatcher).hooks)
 }
 
 /**
@@ -188,36 +177,36 @@ function isPluginHookMatcher(m: unknown): m is PluginHookMatcher {
  * For command hooks: set allowedEnvVars to the full MCP allowlist.
  */
 function applyMcpEnvAllowlist(action: HookAction): HookAction {
-  const allowedVars = getAllowedMcpEnvVars();
+  const allowedVars = getAllowedMcpEnvVars()
 
   if (action.type === "http") {
     if (!action.allowedEnvVars || action.allowedEnvVars.length === 0) {
-      return action;
+      return action
     }
-    const filtered = action.allowedEnvVars.filter((v) => allowedVars.has(v));
-    return { ...action, allowedEnvVars: filtered };
+    const filtered = action.allowedEnvVars.filter((v) => allowedVars.has(v))
+    return { ...action, allowedEnvVars: filtered }
   }
 
   if (action.type === "command") {
-    return { ...action, allowedEnvVars: [...allowedVars] };
+    return { ...action, allowedEnvVars: [...allowedVars] }
   }
 
-  return action;
+  return action
 }
 
 export function mergePluginHooksConfigs(
   base: ClaudeHooksConfig,
-  pluginHooksConfigs: PluginHooksConfig[],
+  pluginHooksConfigs: PluginHooksConfig[]
 ): ClaudeHooksConfig {
-  let result = { ...base };
+  let result = { ...base }
 
   for (const pluginConfig of pluginHooksConfigs) {
-    if (!pluginConfig.hooks) continue;
+    if (!pluginConfig.hooks) continue
 
-    const pluginOverrides: ClaudeHooksConfig = {};
+    const pluginOverrides: ClaudeHooksConfig = {}
     for (const eventType of ALL_HOOK_EVENT_TYPES) {
-      const pluginMatchers = pluginConfig.hooks[eventType];
-      if (!Array.isArray(pluginMatchers)) continue;
+      const pluginMatchers = pluginConfig.hooks[eventType]
+      if (!Array.isArray(pluginMatchers)) continue
 
       const converted: HookMatcher[] = pluginMatchers
         .filter(isPluginHookMatcher)
@@ -227,67 +216,58 @@ export function mergePluginHooksConfigs(
             .filter(isHookAction)
             .map(applyMcpEnvAllowlist),
         }))
-        .filter((m) => m.hooks.length > 0);
+        .filter((m) => m.hooks.length > 0)
 
       if (converted.length > 0) {
-        pluginOverrides[eventType] = converted;
+        pluginOverrides[eventType] = converted
       }
     }
 
-    result = mergeHooksConfig(result, pluginOverrides);
+    result = mergeHooksConfig(result, pluginOverrides)
   }
 
-  return result;
+  return result
 }
 
 export async function loadClaudeHooksConfig(
-  customSettingsPath?: string,
+  customSettingsPath?: string
 ): Promise<ClaudeHooksConfig | null> {
-  const cacheKey = getCacheKey(customSettingsPath);
-  const cachedConfig = getCachedConfig(cacheKey);
+  const cacheKey = getCacheKey(customSettingsPath)
+  const cachedConfig = getCachedConfig(cacheKey)
   if (cachedConfig !== undefined) {
-    return cachedConfig;
+    return cachedConfig
   }
 
-  const paths = getClaudeSettingsPaths(customSettingsPath);
-  let mergedConfig: ClaudeHooksConfig = {};
+  const paths = getClaudeSettingsPaths(customSettingsPath)
+  let mergedConfig: ClaudeHooksConfig = {}
 
   for (const settingsPath of paths) {
     if (existsSync(settingsPath)) {
       try {
-        const content = await bunFile(settingsPath).text();
-        const settings = JSON.parse(content) as {
-          hooks?: RawClaudeHooksConfig;
-        };
+        const content = await bunFile(settingsPath).text()
+        const settings = JSON.parse(content) as { hooks?: RawClaudeHooksConfig }
         if (settings.hooks) {
-          const normalizedHooks = normalizeHooksConfig(settings.hooks);
-          mergedConfig = mergeHooksConfig(mergedConfig, normalizedHooks);
+          const normalizedHooks = normalizeHooksConfig(settings.hooks)
+          mergedConfig = mergeHooksConfig(mergedConfig, normalizedHooks)
         }
       } catch (error) {
-        const errorMessage = error instanceof Error
-          ? error.message
-          : String(error);
-        log("Failed to load Claude hooks settings", {
-          settingsPath,
-          error: errorMessage,
-        });
-        continue;
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        log("Failed to load Claude hooks settings", { settingsPath, error: errorMessage })
+        continue
       }
     }
   }
 
   // Merge plugin hooks configs for the current project directory
-  const projectConfigs = pluginHooksState.getConfigs(process.cwd());
+  const projectConfigs = pluginHooksState.getConfigs(process.cwd())
   if (projectConfigs.length > 0) {
-    mergedConfig = mergePluginHooksConfigs(mergedConfig, projectConfigs);
+    mergedConfig = mergePluginHooksConfigs(mergedConfig, projectConfigs)
   }
 
-  const resolvedConfig = Object.keys(mergedConfig).length > 0
-    ? mergedConfig
-    : null;
+  const resolvedConfig = Object.keys(mergedConfig).length > 0 ? mergedConfig : null
   configCache.set(cacheKey, {
     value: resolvedConfig,
     cachedAt: Date.now(),
-  });
-  return resolvedConfig;
+  })
+  return resolvedConfig
 }

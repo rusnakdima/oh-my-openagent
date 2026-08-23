@@ -1,8 +1,8 @@
 export type {
   ApplyPatchAccumulator,
   ApplyPatchFileMetadata,
-  CheckerEdit,
   CheckResult,
+  CheckerEdit,
   CommentFilter,
   CommentInfo,
   CommentType,
@@ -16,4 +16,4 @@ export type {
   SpawnFn,
   SpawnProcess,
   SpawnSignal,
-} from "@oh-my-opencode/comment-checker-core";
+} from "@oh-my-opencode/comment-checker-core"

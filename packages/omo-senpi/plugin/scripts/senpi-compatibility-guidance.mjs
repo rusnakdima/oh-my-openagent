@@ -7,11 +7,9 @@
  * If a banner already precedes the first example, it is left in place.
  */
 
-const opencodeOnlyOrchestrationPattern =
-  /\b(?:call_omo_agent|background_output|team_[a-z_]+|task)\s*\(/;
+const opencodeOnlyOrchestrationPattern = /\b(?:call_omo_agent|background_output|team_[a-z_]+|task)\s*\(/
 
-export const senpiHarnessToolCompatibility =
-  `## Senpi Harness Tool Compatibility
+export const senpiHarnessToolCompatibility = `## Senpi Harness Tool Compatibility
 
 This skill may include examples copied from the OpenCode harness. In Senpi, do not call OpenCode-only tools such as \`call_omo_agent(...)\`, \`task(...)\`, \`background_output(...)\`, or \`team_*(...)\` literally. Translate those examples to Senpi native tools:
 
@@ -27,77 +25,59 @@ This skill may include examples copied from the OpenCode harness. In Senpi, do n
 
 If a code block below conflicts with this section, this section wins.
 
-`;
+`
 
 const senpiCompatibilityEndMarkers = [
   "If a code block below conflicts with this section, this section wins.\n\n",
-];
+]
 
 function findSenpiCompatibilitySectionEnd(content, searchStart) {
-  const structuralEndPattern = /\n(?:---|export\s+const\s+|#{1,6}\s)/g;
-  structuralEndPattern.lastIndex = searchStart;
-  const structuralEnd = structuralEndPattern.exec(content);
-  if (structuralEnd) return structuralEnd.index + 1;
+  const structuralEndPattern = /\n(?:---|export\s+const\s+|#{1,6}\s)/g
+  structuralEndPattern.lastIndex = searchStart
+  const structuralEnd = structuralEndPattern.exec(content)
+  if (structuralEnd) return structuralEnd.index + 1
 
-  const knownEndMarker = senpiCompatibilityEndMarkers.find((marker) =>
-    content.indexOf(marker, searchStart) !== -1
-  );
-  if (knownEndMarker === undefined) return content.length;
+  const knownEndMarker = senpiCompatibilityEndMarkers.find((marker) => content.indexOf(marker, searchStart) !== -1)
+  if (knownEndMarker === undefined) return content.length
 
-  return content.indexOf(knownEndMarker, searchStart) + knownEndMarker.length;
+  return content.indexOf(knownEndMarker, searchStart) + knownEndMarker.length
 }
 
 function removeSenpiCompatibilityGuidance(content) {
-  const heading = "## Senpi Harness Tool Compatibility";
-  let withoutGuidance = content;
+  const heading = "## Senpi Harness Tool Compatibility"
+  let withoutGuidance = content
 
   while (true) {
-    const start = withoutGuidance.indexOf(heading);
-    if (start === -1) return withoutGuidance;
+    const start = withoutGuidance.indexOf(heading)
+    if (start === -1) return withoutGuidance
 
-    const end = findSenpiCompatibilitySectionEnd(
-      withoutGuidance,
-      start + heading.length,
-    );
-    withoutGuidance = `${withoutGuidance.slice(0, start)}${
-      withoutGuidance.slice(end)
-    }`;
+    const end = findSenpiCompatibilitySectionEnd(withoutGuidance, start + heading.length)
+    withoutGuidance = `${withoutGuidance.slice(0, start)}${withoutGuidance.slice(end)}`
   }
 }
 
-function hasKnownGeneratedSenpiCompatibilityGuidance(
-  content,
-  compatibilityIndex,
-) {
-  return senpiCompatibilityEndMarkers.some((marker) =>
-    content.indexOf(marker, compatibilityIndex) !== -1
-  );
+function hasKnownGeneratedSenpiCompatibilityGuidance(content, compatibilityIndex) {
+  return senpiCompatibilityEndMarkers.some((marker) => content.indexOf(marker, compatibilityIndex) !== -1)
 }
 
 export function insertSenpiCompatibilityGuidance(content) {
-  if (!opencodeOnlyOrchestrationPattern.test(content)) return content;
-  const firstExampleIndex = content.search(opencodeOnlyOrchestrationPattern);
-  const compatibilityIndex = content.indexOf(
-    "## Senpi Harness Tool Compatibility",
-  );
+  if (!opencodeOnlyOrchestrationPattern.test(content)) return content
+  const firstExampleIndex = content.search(opencodeOnlyOrchestrationPattern)
+  const compatibilityIndex = content.indexOf("## Senpi Harness Tool Compatibility")
   if (
     compatibilityIndex !== -1 &&
     compatibilityIndex < firstExampleIndex &&
     !hasKnownGeneratedSenpiCompatibilityGuidance(content, compatibilityIndex)
   ) {
-    return content;
+    return content
   }
 
-  const contentWithoutGuidance = removeSenpiCompatibilityGuidance(content);
+  const contentWithoutGuidance = removeSenpiCompatibilityGuidance(content)
 
-  const frontmatterMatch = contentWithoutGuidance.match(
-    /^---\n[\s\S]*?\n---\n+/,
-  );
+  const frontmatterMatch = contentWithoutGuidance.match(/^---\n[\s\S]*?\n---\n+/)
   if (!frontmatterMatch) {
-    return `${senpiHarnessToolCompatibility}${contentWithoutGuidance}`;
+    return `${senpiHarnessToolCompatibility}${contentWithoutGuidance}`
   }
 
-  return `${frontmatterMatch[0]}${senpiHarnessToolCompatibility}${
-    contentWithoutGuidance.slice(frontmatterMatch[0].length)
-  }`;
+  return `${frontmatterMatch[0]}${senpiHarnessToolCompatibility}${contentWithoutGuidance.slice(frontmatterMatch[0].length)}`
 }

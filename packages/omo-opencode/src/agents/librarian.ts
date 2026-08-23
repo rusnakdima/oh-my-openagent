@@ -1,8 +1,8 @@
-import type { AgentConfig } from "@opencode-ai/sdk";
-import type { AgentMode, AgentPromptMetadata } from "./types";
-import { createAgentToolRestrictions } from "../shared/permission-compat";
+import type { AgentConfig } from "@opencode-ai/sdk"
+import type { AgentMode, AgentPromptMetadata } from "./types"
+import { createAgentToolRestrictions } from "../shared/permission-compat"
 
-const MODE: AgentMode = "subagent";
+const MODE: AgentMode = "subagent"
 
 export const LIBRARIAN_PROMPT_METADATA: AgentPromptMetadata = {
   category: "exploration",
@@ -10,11 +10,7 @@ export const LIBRARIAN_PROMPT_METADATA: AgentPromptMetadata = {
   promptAlias: "Librarian",
   keyTrigger: "External library/source mentioned → fire `librarian` background",
   triggers: [
-    {
-      domain: "Librarian",
-      trigger:
-        "Unfamiliar packages / libraries, struggles at weird behaviour (to find existing implementation of opensource)",
-    },
+    { domain: "Librarian", trigger: "Unfamiliar packages / libraries, struggles at weird behaviour (to find existing implementation of opensource)" },
   ],
   useWhen: [
     "How do I use [library]?",
@@ -23,7 +19,7 @@ export const LIBRARIAN_PROMPT_METADATA: AgentPromptMetadata = {
     "Find examples of [library] usage",
     "Working with unfamiliar npm/pip/cargo packages",
   ],
-};
+}
 
 export function createLibrarianAgent(model: string): AgentConfig {
   const restrictions = createAgentToolRestrictions([
@@ -32,7 +28,7 @@ export function createLibrarianAgent(model: string): AgentConfig {
     "apply_patch",
     "task",
     "call_omo_agent",
-  ]);
+  ])
 
   return {
     description:
@@ -50,16 +46,10 @@ Your job: Answer questions about open-source libraries by finding **EVIDENCE** w
 ## CRITICAL: DATE AWARENESS
 
 **CURRENT YEAR CHECK**: Before ANY search, verify the current date from environment context.
-- **NEVER search for ${new Date().getFullYear() - 1}** - It is NOT ${
-      new Date().getFullYear() - 1
-    } anymore
+- **NEVER search for ${new Date().getFullYear() - 1}** - It is NOT ${new Date().getFullYear() - 1} anymore
 - **ALWAYS use current year** (${new Date().getFullYear()}+) in search queries
-- When searching: use "library-name topic ${new Date().getFullYear()}" NOT "${
-      new Date().getFullYear() - 1
-    }"
-- Filter out outdated ${
-      new Date().getFullYear() - 1
-    } results when they conflict with ${new Date().getFullYear()} information
+- When searching: use "library-name topic ${new Date().getFullYear()}" NOT "${new Date().getFullYear() - 1}"
+- Filter out outdated ${new Date().getFullYear() - 1} results when they conflict with ${new Date().getFullYear()} information
 
 ---
 
@@ -255,9 +245,7 @@ https://github.com/tanstack/query/blob/abc123def/packages/react-query/src/useQue
 - **Find Docs URL**: Use websearch_exa - \`websearch_web_search_exa("library official documentation")\`
 - **Sitemap Discovery**: Use webfetch - \`webfetch(docs_url + "/sitemap.xml")\` to understand doc structure
 - **Read Doc Page**: Use webfetch - \`webfetch(specific_doc_page)\` for targeted documentation
-- **Latest Info**: Use websearch_exa - \`websearch_web_search_exa("query ${
-      new Date().getFullYear()
-    }")\`
+- **Latest Info**: Use websearch_exa - \`websearch_web_search_exa("query ${new Date().getFullYear()}")\`
 - **Fast Code Search**: Use grep_app - \`grep_app_searchGitHub(query, language, useRegexp)\`
 - **Deep Code Search**: Use gh CLI - \`gh search code "query" --repo owner/repo\`
 - **Clone Repo**: Use gh CLI - \`gh repo clone owner/repo \${TMPDIR:-/tmp}/name -- --depth 1\`
@@ -327,6 +315,6 @@ grep_app_searchGitHub(query: "useQuery")
 5. **BE CONCISE**: Facts > opinions, evidence > speculation
 
 `,
-  };
+  }
 }
-createLibrarianAgent.mode = MODE;
+createLibrarianAgent.mode = MODE

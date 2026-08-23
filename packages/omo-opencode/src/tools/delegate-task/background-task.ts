@@ -1,72 +1,58 @@
-import type {
-  DelegatedModelConfig,
-  DelegateTaskArgs,
-  ToolContextWithMetadata,
-} from "./types";
-import type { ExecutorContext, ParentContext } from "./executor-types";
-import type { FallbackEntry } from "../../shared/model-requirements";
-import { getTimingConfig } from "./timing";
-import { buildTaskPrompt } from "./prompt-builder";
-import { publishToolMetadata } from "../../features/tool-metadata-store";
-import { formatDetailedError } from "./error-formatting";
-import { getSessionTools } from "../../shared/session-tools-store";
-import { SessionCategoryRegistry } from "../../shared/session-category-registry";
-import { migrateToolsToPermission } from "../../shared/permission-compat";
-import { QUESTION_DENIED_SESSION_PERMISSION } from "../../shared/question-denied-session-permission";
-import { stripAgentListSortPrefix } from "../../shared/agent-display-names";
-import { buildTaskMetadataBlock } from "../../features/tool-metadata-store/task-metadata-contract";
-import { resolveMetadataModel } from "./resolve-metadata-model";
-import { getPersistedBackgroundTaskDescription } from "./background-task-description";
+import type { DelegateTaskArgs, ToolContextWithMetadata, DelegatedModelConfig } from "./types"
+import type { ExecutorContext, ParentContext } from "./executor-types"
+import type { FallbackEntry } from "../../shared/model-requirements"
+import { getTimingConfig } from "./timing"
+import { buildTaskPrompt } from "./prompt-builder"
+import { publishToolMetadata } from "../../features/tool-metadata-store"
+import { formatDetailedError } from "./error-formatting"
+import { getSessionTools } from "../../shared/session-tools-store"
+import { SessionCategoryRegistry } from "../../shared/session-category-registry"
+import { migrateToolsToPermission } from "../../shared/permission-compat"
+import { QUESTION_DENIED_SESSION_PERMISSION } from "../../shared/question-denied-session-permission"
+import { stripAgentListSortPrefix } from "../../shared/agent-display-names"
+import { buildTaskMetadataBlock } from "../../features/tool-metadata-store/task-metadata-contract"
+import { resolveMetadataModel } from "./resolve-metadata-model"
+import { getPersistedBackgroundTaskDescription } from "./background-task-description"
 
 function registerBackgroundSessionContext(args: {
-  sessionId: string;
-  fallbackChain?: FallbackEntry[];
-  category?: string;
-  modelFallbackControllerAccessor?:
-    ExecutorContext["modelFallbackControllerAccessor"];
+  sessionId: string
+  fallbackChain?: FallbackEntry[]
+  category?: string
+  modelFallbackControllerAccessor?: ExecutorContext["modelFallbackControllerAccessor"]
 }): void {
-  args.modelFallbackControllerAccessor?.setSessionFallbackChain(
-    args.sessionId,
-    args.fallbackChain,
-  );
+  args.modelFallbackControllerAccessor?.setSessionFallbackChain(args.sessionId, args.fallbackChain)
   if (args.category) {
-    SessionCategoryRegistry.register(args.sessionId, args.category);
+    SessionCategoryRegistry.register(args.sessionId, args.category)
   }
 }
 
 function continueSessionSetup(args: {
-  taskID: string;
-  manager: ExecutorContext["manager"];
-  timing: ReturnType<typeof getTimingConfig>;
-  fallbackChain?: FallbackEntry[];
-  category?: string;
-  modelFallbackControllerAccessor?:
-    ExecutorContext["modelFallbackControllerAccessor"];
+  taskID: string
+  manager: ExecutorContext["manager"]
+  timing: ReturnType<typeof getTimingConfig>
+  fallbackChain?: FallbackEntry[]
+  category?: string
+  modelFallbackControllerAccessor?: ExecutorContext["modelFallbackControllerAccessor"]
 }): void {
   if (!args.fallbackChain && !args.category) {
-    return;
+    return
   }
 
   void (async () => {
-    const waitStart = Date.now();
+    const waitStart = Date.now()
     while (Date.now() - waitStart < args.timing.WAIT_FOR_SESSION_TIMEOUT_MS) {
-      await new Promise((resolve) =>
-        setTimeout(resolve, args.timing.WAIT_FOR_SESSION_INTERVAL_MS)
-      );
-      const updated = args.manager.getTask(args.taskID);
+      await new Promise(resolve => setTimeout(resolve, args.timing.WAIT_FOR_SESSION_INTERVAL_MS))
+      const updated = args.manager.getTask(args.taskID)
       if (!updated) {
-        return;
+        return
       }
-      if (
-        updated.status === "error" || updated.status === "cancelled" ||
-        updated.status === "interrupt"
-      ) {
-        return;
+      if (updated.status === "error" || updated.status === "cancelled" || updated.status === "interrupt") {
+        return
       }
 
-      const sessionId = updated.sessionId;
+      const sessionId = updated.sessionId
       if (!sessionId) {
-        continue;
+        continue
       }
 
       registerBackgroundSessionContext({
@@ -74,51 +60,43 @@ function continueSessionSetup(args: {
         fallbackChain: args.fallbackChain,
         category: args.category,
         modelFallbackControllerAccessor: args.modelFallbackControllerAccessor,
-      });
-      return;
+      })
+      return
     }
-  })();
+  })()
 }
 
 async function waitForBackgroundSessionStart(args: {
-  taskId: string;
-  initialSessionId?: string;
-  manager: ExecutorContext["manager"];
-  timing: ReturnType<typeof getTimingConfig>;
-  abortSignal?: AbortSignal;
-  onAbort: () => void;
+  taskId: string
+  initialSessionId?: string
+  manager: ExecutorContext["manager"]
+  timing: ReturnType<typeof getTimingConfig>
+  abortSignal?: AbortSignal
+  onAbort: () => void
 }): Promise<string | undefined> {
-  const waitStart = Date.now();
-  let sessionId = args.initialSessionId;
+  const waitStart = Date.now()
+  let sessionId = args.initialSessionId
 
-  while (
-    !sessionId &&
-    Date.now() - waitStart < args.timing.WAIT_FOR_SESSION_TIMEOUT_MS
-  ) {
-    const updated = args.manager.getTask(args.taskId);
-    if (
-      updated?.status === "error" || updated?.status === "cancelled" ||
-      updated?.status === "interrupt"
-    ) {
-      return undefined;
+  while (!sessionId && Date.now() - waitStart < args.timing.WAIT_FOR_SESSION_TIMEOUT_MS) {
+    const updated = args.manager.getTask(args.taskId)
+    if (updated?.status === "error" || updated?.status === "cancelled" || updated?.status === "interrupt") {
+      return undefined
     }
 
-    sessionId = updated?.sessionId;
+    sessionId = updated?.sessionId
     if (sessionId) {
-      return sessionId;
+      return sessionId
     }
 
     if (args.abortSignal?.aborted) {
-      args.onAbort();
-      return undefined;
+      args.onAbort()
+      return undefined
     }
 
-    await new Promise((resolve) =>
-      setTimeout(resolve, args.timing.WAIT_FOR_SESSION_INTERVAL_MS)
-    );
+    await new Promise(resolve => setTimeout(resolve, args.timing.WAIT_FOR_SESSION_INTERVAL_MS))
   }
 
-  return sessionId;
+  return sessionId
 }
 
 export async function executeBackgroundTask(
@@ -131,20 +109,13 @@ export async function executeBackgroundTask(
   systemContent: string | undefined,
   fallbackChain?: FallbackEntry[],
 ): Promise<string> {
-  const { manager } = executorCtx;
+  const { manager } = executorCtx
 
   try {
-    const tddEnabled = executorCtx.sisyphusAgentConfig?.tdd;
-    const normalizedAgent = stripAgentListSortPrefix(agentToUse);
-    const effectivePrompt = buildTaskPrompt(
-      args.prompt,
-      normalizedAgent,
-      tddEnabled,
-    );
-    const persistedDescription = getPersistedBackgroundTaskDescription(
-      args,
-      normalizedAgent,
-    );
+    const tddEnabled = executorCtx.sisyphusAgentConfig?.tdd
+    const normalizedAgent = stripAgentListSortPrefix(agentToUse)
+    const effectivePrompt = buildTaskPrompt(args.prompt, normalizedAgent, tddEnabled)
+    const persistedDescription = getPersistedBackgroundTaskDescription(args, normalizedAgent)
     const task = await manager.launch({
       description: persistedDescription,
       prompt: effectivePrompt,
@@ -163,13 +134,13 @@ export async function executeBackgroundTask(
       userPermission: categoryModel?.tools
         ? migrateToolsToPermission(categoryModel.tools)
         : undefined,
-    });
+    })
 
     // OpenCode TUI's `Task` tool UI calculates toolcalls by looking up
     // `props.metadata.sessionId` and then counting tool parts in that session.
     // BackgroundManager.launch() returns immediately (pending) before the session exists,
     // so we must wait briefly for the session to be created to set metadata correctly.
-    const timing = getTimingConfig();
+    const timing = getTimingConfig()
     let sessionId = await waitForBackgroundSessionStart({
       taskId: task.id,
       initialSessionId: task.sessionId,
@@ -183,21 +154,16 @@ export async function executeBackgroundTask(
           timing,
           fallbackChain,
           category: args.category,
-          modelFallbackControllerAccessor:
-            executorCtx.modelFallbackControllerAccessor,
-        });
+          modelFallbackControllerAccessor: executorCtx.modelFallbackControllerAccessor,
+        })
       },
-    });
+    })
 
     const updatedTask = typeof manager.getTask === "function"
       ? manager.getTask(task.id)
-      : undefined;
-    if (
-      !sessionId &&
-      (updatedTask?.status === "error" || updatedTask?.status === "cancelled" ||
-        updatedTask?.status === "interrupt")
-    ) {
-      return `Task failed to start (status: ${updatedTask.status}).\n\nTask ID: ${task.id}`;
+      : undefined
+    if (!sessionId && (updatedTask?.status === "error" || updatedTask?.status === "cancelled" || updatedTask?.status === "interrupt")) {
+      return `Task failed to start (status: ${updatedTask.status}).\n\nTask ID: ${task.id}`
     }
 
     // Capture late-arriving sessionId from the race window between wait-loop
@@ -206,7 +172,7 @@ export async function executeBackgroundTask(
     // which makes the OpenCode TUI render the subagent entry as a perpetual
     // spinner with no clickable navigation target (issue #4252).
     if (!sessionId && updatedTask?.sessionId) {
-      sessionId = updatedTask.sessionId;
+      sessionId = updatedTask.sessionId
     }
 
     if (sessionId) {
@@ -214,22 +180,16 @@ export async function executeBackgroundTask(
         sessionId,
         fallbackChain,
         category: args.category,
-        modelFallbackControllerAccessor:
-          executorCtx.modelFallbackControllerAccessor,
-      });
+        modelFallbackControllerAccessor: executorCtx.modelFallbackControllerAccessor,
+      })
     }
 
-    const resolvedModel = resolveMetadataModel(
-      categoryModel,
-      parentContext.model,
-    );
+    const resolvedModel = resolveMetadataModel(categoryModel, parentContext.model)
     const metadata = {
       prompt: args.prompt,
       agent: task.agent,
       category: args.category,
-      ...(args.requested_subagent_type !== undefined
-        ? { requested_subagent_type: args.requested_subagent_type }
-        : {}),
+      ...(args.requested_subagent_type !== undefined ? { requested_subagent_type: args.requested_subagent_type } : {}),
       load_skills: args.load_skills,
       description: args.description,
       run_in_background: args.run_in_background,
@@ -237,23 +197,21 @@ export async function executeBackgroundTask(
       ...(sessionId ? { taskId: sessionId, sessionId } : {}),
       backgroundTaskId: task.id,
       ...(resolvedModel ? { model: resolvedModel } : {}),
-    };
+    }
 
     await publishToolMetadata(ctx, {
       title: args.description,
       metadata,
-    });
+    })
 
     const taskMetadataBlock = sessionId
-      ? `\n\n${
-        buildTaskMetadataBlock({
-          sessionId,
-          backgroundTaskId: task.id,
-          agent: task.agent,
-          category: args.category,
-        })
-      }`
-      : "";
+      ? `\n\n${buildTaskMetadataBlock({
+        sessionId,
+        backgroundTaskId: task.id,
+        agent: task.agent,
+        category: args.category,
+      })}`
+      : ""
 
     return `Background task launched.
 
@@ -262,13 +220,13 @@ Description: ${task.description}
 Agent: ${task.agent}${args.category ? ` (category: ${args.category})` : ""}
 Status: ${task.status}
 
-Do NOT call background_output now. Wait for <system-reminder> notification first. The system will deliver the result when the task completes; you do not need to poll for it.${taskMetadataBlock}`;
+Do NOT call background_output now. Wait for <system-reminder> notification first. The system will deliver the result when the task completes; you do not need to poll for it.${taskMetadataBlock}`
   } catch (error) {
     return formatDetailedError(error, {
       operation: "Launch background task",
       args,
       agent: stripAgentListSortPrefix(agentToUse),
       category: args.category,
-    });
+    })
   }
 }

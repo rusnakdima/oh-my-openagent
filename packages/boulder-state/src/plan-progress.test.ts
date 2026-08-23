@@ -1,26 +1,26 @@
 /// <reference path="../../../bun-test.d.ts" />
 
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { afterEach, describe, expect, test } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { afterEach, describe, expect, test } from "bun:test"
 
-import { getPlanProgress } from "./index";
+import { getPlanProgress } from "./index"
 
-const cleanupRoots: string[] = [];
+const cleanupRoots: string[] = []
 
 afterEach(() => {
   for (const root of cleanupRoots.splice(0)) {
-    rmSync(root, { recursive: true, force: true });
+    rmSync(root, { recursive: true, force: true })
   }
-});
+})
 
 function writePlan(markdown: string): string {
-  const directory = mkdtempSync(join(tmpdir(), "boulder-plan-progress-"));
-  cleanupRoots.push(directory);
-  const planPath = join(directory, "plan.md");
-  writeFileSync(planPath, markdown, "utf-8");
-  return planPath;
+  const directory = mkdtempSync(join(tmpdir(), "boulder-plan-progress-"))
+  cleanupRoots.push(directory)
+  const planPath = join(directory, "plan.md")
+  writeFileSync(planPath, markdown, "utf-8")
+  return planPath
 }
 
 describe("getPlanProgress", () => {
@@ -39,14 +39,14 @@ describe("getPlanProgress", () => {
       "## Final Verification Wave",
       "- [X] F1. Verified task",
       "- [ ] F2. Remaining verification",
-    ].join("\n"));
+    ].join("\n"))
 
     // when
-    const progress = getPlanProgress(planPath);
+    const progress = getPlanProgress(planPath)
 
     // then
-    expect(progress).toEqual({ total: 4, completed: 2, isComplete: false });
-  });
+    expect(progress).toEqual({ total: 4, completed: 2, isComplete: false })
+  })
 
   test("#given simple plan without structured headings #when progress is read #then all top-level checkboxes count", () => {
     // given
@@ -55,12 +55,12 @@ describe("getPlanProgress", () => {
       "- [x] Completed",
       "- [ ] Remaining",
       "  - [ ] Nested ignored by simple fallback",
-    ].join("\n"));
+    ].join("\n"))
 
     // when
-    const progress = getPlanProgress(planPath);
+    const progress = getPlanProgress(planPath)
 
     // then
-    expect(progress).toEqual({ total: 2, completed: 1, isComplete: false });
-  });
-});
+    expect(progress).toEqual({ total: 2, completed: 1, isComplete: false })
+  })
+})

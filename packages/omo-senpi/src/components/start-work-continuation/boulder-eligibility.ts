@@ -1,24 +1,24 @@
 import {
-  type BoulderWorkState,
   getPlanChecklist,
   getWorkForSession,
-  type PlanChecklist,
   resolveBoulderPlanPathForWork,
-} from "@oh-my-opencode/boulder-state";
+  type BoulderWorkState,
+  type PlanChecklist,
+} from "@oh-my-opencode/boulder-state"
 
 export interface ContinuableWork {
-  readonly work: BoulderWorkState;
-  readonly planPath: string;
-  readonly checklist: PlanChecklist;
+  readonly work: BoulderWorkState
+  readonly planPath: string
+  readonly checklist: PlanChecklist
 }
 
 export function findContinuableBoulderWork(
   cwd: string,
   sessionId: string,
 ): ContinuableWork | null {
-  const work = getWorkForSession(cwd, `senpi:${sessionId}`);
+  const work = getWorkForSession(cwd, `senpi:${sessionId}`)
   if (!work) {
-    return null;
+    return null
   }
 
   // Only `active` work is continuable. `paused` (and every other non-active status:
@@ -26,14 +26,15 @@ export function findContinuableBoulderWork(
   // the `agent_end` continuation injection until the work is explicitly resumed.
   // Ports the OpenCode `stop-continuation-guard` semantics — see issue #6752.
   if (work.status !== "active") {
-    return null;
+    return null
   }
 
-  const planPath = resolveBoulderPlanPathForWork(cwd, work);
-  const checklist = getPlanChecklist(planPath);
+  const planPath = resolveBoulderPlanPathForWork(cwd, work)
+  const checklist = getPlanChecklist(planPath)
   if (checklist.total <= 0) {
-    return null;
+    return null
   }
 
-  return { work, planPath, checklist };
+  return { work, planPath, checklist }
 }
+

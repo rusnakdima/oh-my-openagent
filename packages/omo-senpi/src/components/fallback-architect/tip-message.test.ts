@@ -1,15 +1,15 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test"
 
 import {
   buildFallbackTipText,
   FALLBACK_ARCHITECT_TIP_TYPE,
   renderFallbackTip,
-} from "./tip-message";
-import { Theme } from "../../senpi-test-runtime";
+} from "./tip-message"
+import { Theme } from "../../senpi-test-runtime"
 
-const ANSI_ESCAPE_PATTERN = /\[/;
+const ANSI_ESCAPE_PATTERN = /\[/
 
 const TEST_FG_COLORS = {
   accent: "#000000",
@@ -58,7 +58,7 @@ const TEST_FG_COLORS = {
   toolTitle: "#000000",
   userMessageText: "#000000",
   warning: "#000000",
-} as const satisfies ConstructorParameters<typeof Theme>[0];
+} as const satisfies ConstructorParameters<typeof Theme>[0]
 const TEST_BG_COLORS = {
   customMessageBg: "#000000",
   selectedBg: "#000000",
@@ -66,85 +66,77 @@ const TEST_BG_COLORS = {
   toolPendingBg: "#000000",
   toolSuccessBg: "#000000",
   userMessageBg: "#000000",
-} as const satisfies ConstructorParameters<typeof Theme>[1];
-const TEST_THEME = new Theme(TEST_FG_COLORS, TEST_BG_COLORS, "truecolor");
+} as const satisfies ConstructorParameters<typeof Theme>[1]
+const TEST_THEME = new Theme(TEST_FG_COLORS, TEST_BG_COLORS, "truecolor")
 
 describe("fallback-architect tip message", () => {
   describe("#given the custom message type", () => {
     describe("#when a consumer reads it", () => {
       it("#then it is the wire value senpi persists", () => {
-        expect(FALLBACK_ARCHITECT_TIP_TYPE).toBe("omo-fallback-architect:tip");
-      });
-    });
-  });
+        expect(FALLBACK_ARCHITECT_TIP_TYPE).toBe("omo-fallback-architect:tip")
+      })
+    })
+  })
 
   describe("#given a refusal fallback from fable 5 to a weaker model", () => {
     describe("#when the tip text is built", () => {
       const text = buildFallbackTipText({
         from: "anthropic/claude-fable-5",
         to: "anthropic/claude-opus-5",
-      });
-      const lines = text.split("\n");
+      })
+      const lines = text.split("\n")
 
       it("#then it names the actual fallback model", () => {
-        expect(text).toContain("anthropic/claude-opus-5");
-      });
+        expect(text).toContain("anthropic/claude-opus-5")
+      })
 
       it("#then it says the refusal should not wear the user down because the essence is still reasoned through", () => {
-        expect(text).toContain("should not wear you down");
-        expect(text).toContain("reasons through its essence");
-      });
+        expect(text).toContain("should not wear you down")
+        expect(text).toContain("reasons through its essence")
+      })
 
       it("#then it points at the architect category for fable-5-grade depth", () => {
-        expect(text).toContain("architect");
-        expect(text).toContain("Fable-5-grade depth");
-      });
+        expect(text).toContain("architect")
+        expect(text).toContain("Fable-5-grade depth")
+      })
 
       it("#then it ends with a pointer line containing give-me-tips", () => {
-        expect(lines.at(-1)).toContain("give-me-tips");
-      });
-    });
-  });
+        expect(lines.at(-1)).toContain("give-me-tips")
+      })
+    })
+  })
 
   describe("#given a persisted tip message", () => {
     describe("#when the renderer draws it", () => {
       const text = buildFallbackTipText({
         from: "anthropic/claude-fable-5",
         to: "anthropic/claude-opus-5",
-      });
+      })
       const component = renderFallbackTip(
-        {
-          role: "custom",
-          customType: FALLBACK_ARCHITECT_TIP_TYPE,
-          content: text,
-          display: true,
-          timestamp: 0,
-        },
+        { role: "custom", customType: FALLBACK_ARCHITECT_TIP_TYPE, content: text, display: true, timestamp: 0 },
         { expanded: false, outputPad: 0 },
         TEST_THEME,
-      );
-      const rendered = component?.render(2_000) ?? [];
+      )
+      const rendered = component?.render(2_000) ?? []
 
       it("#then the notice carries the fallback architect title", () => {
-        expect(rendered.join("\n")).toContain("Fallback architect tip");
-      });
+        expect(rendered.join("\n")).toContain("Fallback architect tip")
+      })
 
       it("#then every line is dimmed through the theme", () => {
         for (const line of rendered) {
-          expect(line).toMatch(ANSI_ESCAPE_PATTERN);
+          expect(line).toMatch(ANSI_ESCAPE_PATTERN)
         }
-      });
+      })
 
       it("#then collapsed content keeps the explanation and gates the final detail", () => {
-        expect(rendered.join("\n")).toContain("anthropic/claude-opus-5");
-        expect(rendered.join("\n")).not.toContain("give-me-tips");
-      });
+        expect(rendered.join("\n")).toContain("anthropic/claude-opus-5")
+        expect(rendered.join("\n")).not.toContain("give-me-tips")
+      })
 
       it("#then every rendered line carries customMessageBg styling", () => {
-        for (const line of rendered) {
-          expect(line).toContain("\u001b[48;2;0;0;0m");
-        }
-      });
-    });
-  });
-});
+        for (const line of rendered) expect(line).toContain("\u001b[48;2;0;0;0m")
+      })
+    })
+  })
+})

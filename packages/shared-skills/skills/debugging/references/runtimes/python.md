@@ -1,7 +1,6 @@
 # Python Debugging
 
-Covers CPython 3.9+, pytest, asyncio, Django, FastAPI. Setup commands, attach
-mechanisms, state-query patterns, gotchas, silent-failure signatures.
+Covers CPython 3.9+, pytest, asyncio, Django, FastAPI. Setup commands, attach mechanisms, state-query patterns, gotchas, silent-failure signatures.
 
 ---
 
@@ -25,34 +24,27 @@ python -c 'import asyncio; print(asyncio.__version__)'
 
 **Wrapper gotchas** (these change how flags propagate):
 
-- `poetry run python ...` — args after `python` are fine; args before
-  `poetry run` go to poetry, not python
-- `uv run python ...` — similar; prefer `uv run -- python -X dev` if flags
-  collide
+- `poetry run python ...` — args after `python` are fine; args before `poetry run` go to poetry, not python
+- `uv run python ...` — similar; prefer `uv run -- python -X dev` if flags collide
 - `pipenv run` — same story
-- `./manage.py <cmd>` (Django) — shebang resolution; make sure it points to the
-  right venv
-- `pytest` — loads `conftest.py` at collection; breakpoints inside collection
-  need `pytest --pdb-trace` not `--pdb`
+- `./manage.py <cmd>` (Django) — shebang resolution; make sure it points to the right venv
+- `pytest` — loads `conftest.py` at collection; breakpoints inside collection need `pytest --pdb-trace` not `--pdb`
 
 ---
 
 ## The four ways to attach
 
-| Method                                  | When to use                                           | Command                                                                                          |
-| --------------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **`breakpoint()` inline** (Python 3.7+) | You can edit the source and restart. Most reliable.   | Add `breakpoint()` to source. Run normally. It invokes `pdb` by default.                         |
-| **`python -m pdb <script>`**            | No source edit desired. Breaks on entry.              | `python -m pdb script.py arg1`                                                                   |
-| **post-mortem `pdb.pm()`**              | Exception already happened, you want to inspect state | In an exception-caught REPL: `import pdb; pdb.pm()` after the exception propagates               |
-| **debugpy (remote / IDE)**              | IDE attach, remote host, containerized process        | `python -m debugpy --listen 5678 --wait-for-client script.py` then attach from VS Code / PyCharm |
+| Method | When to use | Command |
+|---|---|---|
+| **`breakpoint()` inline** (Python 3.7+) | You can edit the source and restart. Most reliable. | Add `breakpoint()` to source. Run normally. It invokes `pdb` by default. |
+| **`python -m pdb <script>`** | No source edit desired. Breaks on entry. | `python -m pdb script.py arg1` |
+| **post-mortem `pdb.pm()`** | Exception already happened, you want to inspect state | In an exception-caught REPL: `import pdb; pdb.pm()` after the exception propagates |
+| **debugpy (remote / IDE)** | IDE attach, remote host, containerized process | `python -m debugpy --listen 5678 --wait-for-client script.py` then attach from VS Code / PyCharm |
 
 ### Prefer `ipdb` or `pudb` over plain `pdb` when available
 
-- **ipdb** — drop-in replacement with tab completion, syntax highlighting.
-  `pip install ipdb`, then `PYTHONBREAKPOINT=ipdb.set_trace` or use
-  `import ipdb; ipdb.set_trace()`.
-- **pudb** — full-screen TUI debugger, much faster to navigate stack/locals.
-  `pip install pudb`, then `PYTHONBREAKPOINT=pudb.set_trace`.
+- **ipdb** — drop-in replacement with tab completion, syntax highlighting. `pip install ipdb`, then `PYTHONBREAKPOINT=ipdb.set_trace` or use `import ipdb; ipdb.set_trace()`.
+- **pudb** — full-screen TUI debugger, much faster to navigate stack/locals. `pip install pudb`, then `PYTHONBREAKPOINT=pudb.set_trace`.
 
 ### Control `breakpoint()` globally
 
@@ -93,8 +85,7 @@ interact    drop into a full Python REPL with current frame's locals
 q           quit (aborts the program)
 ```
 
-**`interact` is underused** — it gives you a full IPython-esque REPL with all
-locals available. Faster than typing `p` for 20 things.
+**`interact` is underused** — it gives you a full IPython-esque REPL with all locals available. Faster than typing `p` for 20 things.
 
 ---
 
@@ -117,21 +108,17 @@ pytest --pdb-trace
 pytest -s
 ```
 
-**Common failure**: `breakpoint()` hangs inside a pytest test — that's because
-pytest captures stdout/stderr by default. Always add `-s` when debugging with
-breakpoints inside pytest.
+**Common failure**: `breakpoint()` hangs inside a pytest test — that's because pytest captures stdout/stderr by default. Always add `-s` when debugging with breakpoints inside pytest.
 
 ---
 
 ## asyncio gotchas
 
-Async is where most Python debug sessions go sideways. Know these before
-attaching.
+Async is where most Python debug sessions go sideways. Know these before attaching.
 
 ### Breakpoints inside coroutines
 
-`breakpoint()` works inside an async function, but stepping into another
-coroutine from `pdb` is awkward. Two techniques:
+`breakpoint()` works inside an async function, but stepping into another coroutine from `pdb` is awkward. Two techniques:
 
 ```python
 async def handler():
@@ -141,7 +128,6 @@ async def handler():
 ```
 
 Inside the breakpoint, to inspect a coroutine without actually advancing time:
-
 ```
 !import asyncio
 !loop = asyncio.get_event_loop()
@@ -158,13 +144,11 @@ Enable before running the process:
 PYTHONASYNCIODEBUG=1 python script.py
 ```
 
-Surfaces: coroutines that were never awaited, slow callbacks, unhandled task
-exceptions. **Always turn this on** if the bug is timing- or async-related.
+Surfaces: coroutines that were never awaited, slow callbacks, unhandled task exceptions. **Always turn this on** if the bug is timing- or async-related.
 
 ### `asyncio.gather` swallows the first exception
 
-By default, `asyncio.gather(t1, t2)` raises the first exception and cancels the
-rest. If you need all exceptions, use `gather(..., return_exceptions=True)`.
+By default, `asyncio.gather(t1, t2)` raises the first exception and cancels the rest. If you need all exceptions, use `gather(..., return_exceptions=True)`.
 
 ### Unhandled task exceptions are silent
 
@@ -175,8 +159,7 @@ async def main():
     await asyncio.sleep(10)
 ```
 
-To catch these, set `loop.set_exception_handler(...)` or upgrade to Python 3.12+
-which warns louder by default.
+To catch these, set `loop.set_exception_handler(...)` or upgrade to Python 3.12+ which warns louder by default.
 
 ---
 
@@ -189,7 +172,6 @@ python -m debugpy --listen 0.0.0.0:5678 --wait-for-client script.py
 ```
 
 Attach from VS Code:
-
 ```json
 // .vscode/launch.json
 {
@@ -201,7 +183,6 @@ Attach from VS Code:
 ```
 
 Inside the code, programmatic attach point:
-
 ```python
 import debugpy
 debugpy.listen(5678)
@@ -215,8 +196,7 @@ debugpy.breakpoint()        # programmatic breakpoint
 
 ## Sampling profilers for "why is it slow / stuck"
 
-When the problem is performance or a hang (not a crash), don't attach pdb — it
-alters timing. Use a sampling profiler that attaches to the running process:
+When the problem is performance or a hang (not a crash), don't attach pdb — it alters timing. Use a sampling profiler that attaches to the running process:
 
 ```bash
 # py-spy — production-safe, zero code change, works on running process
@@ -230,8 +210,7 @@ memray flamegraph output.bin
 memray stats output.bin
 ```
 
-`py-spy dump` on a stuck process is often enough to find the hung call — no
-breakpoints needed.
+`py-spy dump` on a stuck process is often enough to find the hung call — no breakpoints needed.
 
 ---
 
@@ -239,16 +218,16 @@ breakpoints needed.
 
 Add these to Phase 8's silent-failure check:
 
-| Pattern                                                    | Why it's silent                                              |
-| ---------------------------------------------------------- | ------------------------------------------------------------ |
-| `except Exception: pass` or `except: pass`                 | Catches and discards every error including KeyboardInterrupt |
-| `logging.exception(...)` in a logger with no handlers      | "Logs" but actually writes nowhere                           |
-| `asyncio.create_task(coro)` without storing the task       | Task GC'd before completion, exception swallowed             |
-| `return x.get("key")` where key is missing                 | Returns None silently, caller often doesn't check            |
-| `subprocess.run(..., check=False)` with ignored returncode | Non-zero exit treated as success                             |
-| Django `transaction.atomic()` inside a broader `except`    | Rolls back silently                                          |
-| `contextlib.suppress(Exception)`                           | Explicit silencer; easy to leave wider than intended         |
-| `queue.get(block=False)` with `except queue.Empty: pass`   | Polling that silently drops the work                         |
+| Pattern | Why it's silent |
+|---|---|
+| `except Exception: pass` or `except: pass` | Catches and discards every error including KeyboardInterrupt |
+| `logging.exception(...)` in a logger with no handlers | "Logs" but actually writes nowhere |
+| `asyncio.create_task(coro)` without storing the task | Task GC'd before completion, exception swallowed |
+| `return x.get("key")` where key is missing | Returns None silently, caller often doesn't check |
+| `subprocess.run(..., check=False)` with ignored returncode | Non-zero exit treated as success |
+| Django `transaction.atomic()` inside a broader `except` | Rolls back silently |
+| `contextlib.suppress(Exception)` | Explicit silencer; easy to leave wider than intended |
+| `queue.get(block=False)` with `except queue.Empty: pass` | Polling that silently drops the work |
 
 ---
 

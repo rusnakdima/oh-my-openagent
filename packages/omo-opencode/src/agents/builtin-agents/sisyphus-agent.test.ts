@@ -195,10 +195,7 @@ describe("maybeCreateSisyphusConfig", () => {
       const config = maybeCreateSisyphusConfig({
         disabledAgents: [],
         agentOverrides,
-        availableModels: new Set([
-          "anthropic/claude-opus-4-7",
-          "openai/gpt-5.4",
-        ]),
+        availableModels: new Set(["anthropic/claude-opus-4-7", "openai/gpt-5.4"]),
         systemDefaultModel: "anthropic/claude-opus-4-7",
         isFirstRunNoCache: false,
         availableAgents: [],

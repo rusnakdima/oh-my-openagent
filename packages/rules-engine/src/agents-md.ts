@@ -10,9 +10,7 @@ export interface FindAgentsMdUpInput {
   readonly cache?: AgentsMdCache;
 }
 
-export async function findAgentsMdUp(
-  input: FindAgentsMdUpInput,
-): Promise<string[]> {
+export async function findAgentsMdUp(input: FindAgentsMdUpInput): Promise<string[]> {
   const startDir = canonicalizePath(input.startDir);
   const rootDir = canonicalizePath(input.rootDir);
   const skipRoot = input.skipRoot ?? true;
@@ -27,10 +25,7 @@ export async function findAgentsMdUp(
   while (true) {
     const isRootDir = current === rootDir;
     if (!(skipRoot && isRootDir)) {
-      const agentsPath = resolveAgentsFilePath(
-        join(current, AGENTS_FILENAME),
-        rootDir,
-      );
+      const agentsPath = resolveAgentsFilePath(join(current, AGENTS_FILENAME), rootDir);
       if (agentsPath) found.push(agentsPath);
     }
     if (isRootDir) break;
@@ -65,6 +60,5 @@ function resolveAgentsFilePath(path: string, rootDir: string): string | null {
 
 function isSameOrChildPath(childPath: string, parentPath: string): boolean {
   const relativePath = relative(parentPath, childPath);
-  return relativePath === "" ||
-    (!relativePath.startsWith("..") && !isAbsolute(relativePath));
+  return relativePath === "" || (!relativePath.startsWith("..") && !isAbsolute(relativePath));
 }

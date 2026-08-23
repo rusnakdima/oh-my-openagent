@@ -1,14 +1,9 @@
-export {
-  DEFAULT_RG_THREADS,
-  type GrepBackend,
-  resolveGrepCli,
-  resolveGrepCliWithAutoInstall,
-} from "../../shared/ripgrep-cli";
+export { resolveGrepCli, resolveGrepCliWithAutoInstall, type GrepBackend, DEFAULT_RG_THREADS } from "../../shared/ripgrep-cli"
 
-export const DEFAULT_TIMEOUT_MS = 60_000;
-export const DEFAULT_LIMIT = 100;
-export const DEFAULT_MAX_DEPTH = 20;
-export const DEFAULT_MAX_OUTPUT_BYTES = 10 * 1024 * 1024;
+export const DEFAULT_TIMEOUT_MS = 60_000
+export const DEFAULT_LIMIT = 100
+export const DEFAULT_MAX_DEPTH = 20
+export const DEFAULT_MAX_OUTPUT_BYTES = 10 * 1024 * 1024
 
 export const RG_FILES_FLAGS = [
   "--files",
@@ -18,4 +13,4 @@ export const RG_FILES_FLAGS = [
   // non-fatal I/O issues so they don't tip the tool into the error branch.
   // See #3726.
   "--no-messages",
-] as const;
+] as const

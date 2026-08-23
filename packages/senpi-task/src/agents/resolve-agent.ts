@@ -1,72 +1,66 @@
-import type { SenpiModelPort, SenpiModelRegistryPort } from "../category";
-import { buildRuntimeModelChain } from "../model-chain";
+import type { SenpiModelPort, SenpiModelRegistryPort } from "../category"
+import { buildRuntimeModelChain } from "../model-chain"
 import {
   filterAutomaticRuntimeModelIdentities,
   resolveRuntimeModelIdentities,
-} from "../openai-only-runtime-recommendations";
-import type { ResolvedModelRecord } from "../state";
-import {
-  type AgentModelCandidate,
-  agentModelCandidates,
-} from "./agent-model-entry";
+} from "../openai-only-runtime-recommendations"
+import type { ResolvedModelRecord } from "../state"
+import { agentModelCandidates, type AgentModelCandidate } from "./agent-model-entry"
 import {
   findExactAgentModel,
   parseAvailableAgentRegistryModels,
   type ParsedAgentModel,
-} from "./agent-model-registry";
-import { AGENT_FALLBACK_CHAINS } from "./builtin/fallback-chains";
-import type { AgentDefinition } from "./types";
+} from "./agent-model-registry"
+import { AGENT_FALLBACK_CHAINS } from "./builtin/fallback-chains"
+import type { AgentDefinition } from "./types"
 
 export type ResolveAgentOptions = {
-  readonly modelOverride?: string;
-  readonly hasExplicitUserConfig?: boolean;
-};
+  readonly modelOverride?: string
+  readonly hasExplicitUserConfig?: boolean
+}
 
 type AgentPersona = {
-  readonly agentType: string;
-  readonly instructions?: string;
-  readonly toolAllowlist?: readonly string[];
+  readonly agentType: string
+  readonly instructions?: string
+  readonly toolAllowlist?: readonly string[]
   // The definition's disallowedTools, carried so the record's tool_deny -> ChildSpec.toolDenylist
   // -> senpi excludeTools chain can actually deny (previously dropped here, leaking denied tools).
-  readonly toolDenylist?: readonly string[];
-  readonly agentExecutionMode?: "in-process" | "process";
-  readonly allowedSubagents?: readonly string[];
-  readonly maxDepth?: number;
-};
+  readonly toolDenylist?: readonly string[]
+  readonly agentExecutionMode?: "in-process" | "process"
+  readonly allowedSubagents?: readonly string[]
+  readonly maxDepth?: number
+}
 
 export type ResolvedAgentResult = AgentPersona & {
-  readonly kind: "resolved";
-  readonly agent: string;
-  readonly model: string;
-  readonly requested_model?: ResolvedModelRecord;
-  readonly fallback_models?: readonly ResolvedModelRecord[];
-  readonly resolved_model?: ResolvedModelRecord;
-  readonly availableAgents: readonly string[];
-};
+  readonly kind: "resolved"
+  readonly agent: string
+  readonly model: string
+  readonly requested_model?: ResolvedModelRecord
+  readonly fallback_models?: readonly ResolvedModelRecord[]
+  readonly resolved_model?: ResolvedModelRecord
+  readonly availableAgents: readonly string[]
+}
 
 export type AgentNotFoundResult = {
-  readonly kind: "not_found";
-  readonly agent: string;
-  readonly availableAgents: readonly string[];
-};
+  readonly kind: "not_found"
+  readonly agent: string
+  readonly availableAgents: readonly string[]
+}
 
 export type AgentModelUnavailableResult = {
-  readonly kind: "model_unavailable";
-  readonly agent: string;
-  readonly attemptedModel: string | undefined;
-  readonly availableAgents: readonly string[];
-};
+  readonly kind: "model_unavailable"
+  readonly agent: string
+  readonly attemptedModel: string | undefined
+  readonly availableAgents: readonly string[]
+}
 
-export type AgentResolutionResult =
-  | ResolvedAgentResult
-  | AgentNotFoundResult
-  | AgentModelUnavailableResult;
+export type AgentResolutionResult = ResolvedAgentResult | AgentNotFoundResult | AgentModelUnavailableResult
 
 type AgentResolutionContext = {
-  readonly name: string;
-  readonly persona: AgentPersona;
-  readonly availableAgents: readonly string[];
-};
+  readonly name: string
+  readonly persona: AgentPersona
+  readonly availableAgents: readonly string[]
+}
 
 export function resolveAgent<TModel extends SenpiModelPort>(
   name: string,
@@ -77,14 +71,14 @@ export function resolveAgent<TModel extends SenpiModelPort>(
   const availableAgents = Object.entries(agents)
     .filter(([, definition]) => definition.disable !== true)
     .map(([agentName]) => agentName)
-    .sort();
-  const definition = Object.hasOwn(agents, name) ? agents[name] : undefined;
+    .sort()
+  const definition = Object.hasOwn(agents, name) ? agents[name] : undefined
   if (definition === undefined || definition.disable === true) {
-    return { kind: "not_found", agent: name, availableAgents };
+    return { kind: "not_found", agent: name, availableAgents }
   }
 
-  const persona = agentPersona(name, definition);
-  const context: AgentResolutionContext = { name, persona, availableAgents };
+  const persona = agentPersona(name, definition)
+  const context: AgentResolutionContext = { name, persona, availableAgents }
   if (options.modelOverride !== undefined) {
     return {
       kind: "resolved",
@@ -92,71 +86,53 @@ export function resolveAgent<TModel extends SenpiModelPort>(
       model: options.modelOverride,
       availableAgents,
       ...persona,
-    };
+    }
   }
 
   const builtinFallbackChain = Object.hasOwn(AGENT_FALLBACK_CHAINS, name)
     ? AGENT_FALLBACK_CHAINS[name]
-    : undefined;
+    : undefined
   if (registry === undefined) {
-    const fallbackHead = builtinFallbackChain?.[0];
-    const fallbackProvider = fallbackHead?.providers[0];
-    const attemptedModel = definition.model ??
-      firstConfiguredModel(definition) ??
-      (fallbackHead !== undefined && fallbackProvider !== undefined
+    const fallbackHead = builtinFallbackChain?.[0]
+    const fallbackProvider = fallbackHead?.providers[0]
+    const attemptedModel = definition.model
+      ?? firstConfiguredModel(definition)
+      ?? (fallbackHead !== undefined && fallbackProvider !== undefined
         ? `${fallbackProvider}/${fallbackHead.model}`
-        : undefined);
-    return {
-      kind: "model_unavailable",
-      agent: name,
-      attemptedModel,
-      availableAgents,
-    };
+        : undefined)
+    return { kind: "model_unavailable", agent: name, attemptedModel, availableAgents }
   }
 
   // `find` answers from the whole catalog, so a configured model the machine has no credentials for
   // still resolves and the child dies on the first provider call. Gate every candidate on the
   // auth-filtered available set so `models[]` and the builtin chain can actually take over. An
   // unparseable available set keeps the find-only behavior rather than failing every resolution.
-  const rawAvailableModels = registry.getAvailable();
-  const availableRegistryModels = parseAvailableAgentRegistryModels<TModel>(
-    rawAvailableModels,
-  );
+  const rawAvailableModels = registry.getAvailable()
+  const availableRegistryModels = parseAvailableAgentRegistryModels<TModel>(rawAvailableModels)
   const runtimeModels = availableRegistryModels === undefined
     ? undefined
-    : resolveRuntimeModelIdentities(registry, availableRegistryModels);
+    : resolveRuntimeModelIdentities(registry, availableRegistryModels)
   const resolvableRuntimeModels = runtimeModels === undefined
     ? undefined
-    : filterAutomaticRuntimeModelIdentities(runtimeModels);
+    : filterAutomaticRuntimeModelIdentities(runtimeModels)
   const availableModels = resolvableRuntimeModels
     ?.map((model) => `${model.provider}/${model.modelId}`)
-    .sort();
+    .sort()
   const directAvailableModels = availableRegistryModels
-    ?.map((model) => `${model.provider}/${model.modelId}`);
-  const completeIdentityInventory = Array.isArray(rawAvailableModels) &&
-    availableRegistryModels?.length === rawAvailableModels.length;
-  let attemptedModel: string | undefined;
+    ?.map((model) => `${model.provider}/${model.modelId}`)
+  const completeIdentityInventory = Array.isArray(rawAvailableModels)
+    && availableRegistryModels?.length === rawAvailableModels.length
+  let attemptedModel: string | undefined
   const configuredTuning = {
-    ...(definition.variant === undefined
-      ? {}
-      : { variant: definition.variant }),
-    ...(definition.reasoningEffort === undefined
-      ? {}
-      : { reasoningEffort: definition.reasoningEffort }),
-  };
-  const directModels = agentModelCandidates(
-    definition.model,
-    definition.models,
-    configuredTuning,
-  );
+    ...(definition.variant === undefined ? {} : { variant: definition.variant }),
+    ...(definition.reasoningEffort === undefined ? {} : { reasoningEffort: definition.reasoningEffort }),
+  }
+  const directModels = agentModelCandidates(definition.model, definition.models, configuredTuning)
   for (const candidate of directModels) {
-    attemptedModel = candidate.model;
-    const found = findExactAgentModel(candidate.model, registry);
-    if (found === undefined) continue;
-    if (
-      directAvailableModels !== undefined &&
-      !directAvailableModels.includes(`${found.provider}/${found.modelId}`)
-    ) continue;
+    attemptedModel = candidate.model
+    const found = findExactAgentModel(candidate.model, registry)
+    if (found === undefined) continue
+    if (directAvailableModels !== undefined && !directAvailableModels.includes(`${found.provider}/${found.modelId}`)) continue
     return resolvedAgent(
       context,
       found,
@@ -165,50 +141,35 @@ export function resolveAgent<TModel extends SenpiModelPort>(
       buildRuntimeModelChain({
         candidates: directModels,
         selectedModel: candidate.model,
-        ...(directAvailableModels !== undefined
-          ? { availableModels: new Set(directAvailableModels) }
-          : {}),
+        ...(directAvailableModels !== undefined ? { availableModels: new Set(directAvailableModels) } : {}),
         source: "agent",
       }),
-    );
+    )
   }
 
-  return {
-    kind: "model_unavailable",
-    agent: name,
-    attemptedModel,
-    availableAgents,
-  };
+  return { kind: "model_unavailable", agent: name, attemptedModel, availableAgents }
 }
 
 function agentPersona(name: string, definition: AgentDefinition): AgentPersona {
   const toolAllowlist = definition.tools?.filter((rule) =>
     rule.allow && !rule.pattern.includes(" ") && !rule.pattern.includes("*")
-  ).map((rule) => rule.pattern);
-  const agentExecutionMode = toExecutionMode(definition.executionMode);
+  ).map((rule) => rule.pattern)
+  const agentExecutionMode = toExecutionMode(definition.executionMode)
   return {
     agentType: name,
-    ...(definition.prompt !== undefined
-      ? { instructions: definition.prompt }
-      : {}),
+    ...(definition.prompt !== undefined ? { instructions: definition.prompt } : {}),
     ...(toolAllowlist !== undefined ? { toolAllowlist } : {}),
-    ...(definition.disallowedTools !== undefined
-      ? { toolDenylist: definition.disallowedTools }
-      : {}),
+    ...(definition.disallowedTools !== undefined ? { toolDenylist: definition.disallowedTools } : {}),
     ...(agentExecutionMode !== undefined ? { agentExecutionMode } : {}),
-    ...(definition.allowedSubagents !== undefined
-      ? { allowedSubagents: definition.allowedSubagents }
-      : {}),
-    ...(definition.maxDepth !== undefined
-      ? { maxDepth: definition.maxDepth }
-      : {}),
-  };
+    ...(definition.allowedSubagents !== undefined ? { allowedSubagents: definition.allowedSubagents } : {}),
+    ...(definition.maxDepth !== undefined ? { maxDepth: definition.maxDepth } : {}),
+  }
 }
 
 function firstConfiguredModel(definition: AgentDefinition): string | undefined {
-  const entry = definition.models?.[0];
-  if (entry === undefined) return undefined;
-  return typeof entry === "string" ? entry : entry.model;
+  const entry = definition.models?.[0]
+  if (entry === undefined) return undefined
+  return typeof entry === "string" ? entry : entry.model
 }
 
 function resolvedAgent(
@@ -217,11 +178,11 @@ function resolvedAgent(
   variant?: string,
   reasoningEffort?: AgentModelCandidate["reasoningEffort"],
   runtimeModelChain: {
-    readonly requested_model?: ResolvedModelRecord;
-    readonly fallback_models?: readonly ResolvedModelRecord[];
+    readonly requested_model?: ResolvedModelRecord
+    readonly fallback_models?: readonly ResolvedModelRecord[]
   } = {},
 ): ResolvedAgentResult {
-  const display = `${model.provider}/${model.modelId}`;
+  const display = `${model.provider}/${model.modelId}`
   return {
     kind: "resolved",
     agent: context.name,
@@ -233,26 +194,20 @@ function resolvedAgent(
       model_id: model.modelId,
       display,
       ...(variant !== undefined ? { variant } : {}),
-      ...(reasoningEffort !== undefined
-        ? { reasoning_effort: reasoningEffort }
-        : {}),
-      ...((reasoningEffort ?? variant) !== undefined
-        ? { reasoning: reasoningEffort ?? variant }
-        : {}),
+      ...(reasoningEffort !== undefined ? { reasoning_effort: reasoningEffort } : {}),
+      ...((reasoningEffort ?? variant) !== undefined ? { reasoning: reasoningEffort ?? variant } : {}),
     },
     availableAgents: context.availableAgents,
     ...context.persona,
-  };
+  }
 }
 
-function toExecutionMode(
-  value: string | undefined,
-): AgentPersona["agentExecutionMode"] {
+function toExecutionMode(value: string | undefined): AgentPersona["agentExecutionMode"] {
   switch (value) {
     case "in-process":
     case "process":
-      return value;
+      return value
     default:
-      return undefined;
+      return undefined
   }
 }

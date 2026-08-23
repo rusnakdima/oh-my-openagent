@@ -1,11 +1,8 @@
 // The dag tool's wire contract: the result/error shapes every action returns, the injection seams
 // the runtime fills, and the two constructors that keep every action's envelope identical.
-import type { AgentToolResult } from "@code-yeongyu/senpi";
+import type { AgentToolResult } from "@code-yeongyu/senpi"
 
-import {
-  type TaskTargetErrorCode,
-  validateTaskTarget,
-} from "@oh-my-opencode/senpi-task";
+import { validateTaskTarget, type TaskTargetErrorCode } from "@oh-my-opencode/senpi-task"
 import type {
   DagCompileError,
   DagDefinition,
@@ -15,9 +12,9 @@ import type {
   DagRunId,
   DagRunResult,
   DagRunSnapshot,
-} from "@oh-my-opencode/senpi-task/dag";
+} from "@oh-my-opencode/senpi-task/dag"
 
-import type { DagToolDefinitionInput } from "./dag-tool-params";
+import type { DagToolDefinitionInput } from "./dag-tool-params"
 
 // Tool-level error vocabulary. Node target failures nest under invalid_definition and carry the
 // task-tool validation code verbatim, so the model sees one vocabulary across task and dag. The
@@ -35,123 +32,90 @@ export type DagToolErrorCode =
   | "node_has_no_task"
   | "amend_running_node"
   | "invalid_amendment"
-  | "run_still_active";
+  | "run_still_active"
 
 export type DagToolNodeError = {
-  readonly node_id: string;
-  readonly code: TaskTargetErrorCode;
-  readonly message: string;
-};
+  readonly node_id: string
+  readonly code: TaskTargetErrorCode
+  readonly message: string
+}
 
 export type DagToolError = {
-  readonly code: DagToolErrorCode;
-  readonly message: string;
-  readonly nodes: readonly DagToolNodeError[];
-  readonly errors: readonly DagCompileError[];
-  readonly diagnostics: readonly DagDiagnostic[];
+  readonly code: DagToolErrorCode
+  readonly message: string
+  readonly nodes: readonly DagToolNodeError[]
+  readonly errors: readonly DagCompileError[]
+  readonly diagnostics: readonly DagDiagnostic[]
   /** Nodes named by a control-verb refusal (retry/send/amend). Empty for definition failures. */
-  readonly node_ids: readonly string[];
-};
+  readonly node_ids: readonly string[]
+}
 
 /** How the engine delivered a send: steered into a live turn, revived a resident child, or queued. */
-export type DagToolSendDelivery = "steer" | "revive" | "queued";
+export type DagToolSendDelivery = "steer" | "revive" | "queued"
 
 export type DagToolSendOutcome = {
-  readonly nodeId: string;
-  readonly taskId: string;
-  readonly delivery: DagToolSendDelivery;
-  readonly queuePosition?: number;
-};
+  readonly nodeId: string
+  readonly taskId: string
+  readonly delivery: DagToolSendDelivery
+  readonly queuePosition?: number
+}
 
 export type DagToolDetails =
   | {
-    readonly kind: "started";
-    readonly run_id: string;
-    readonly reused: boolean;
-    readonly snapshot: DagRunSnapshot;
-    readonly warnings?: readonly string[];
-  }
+      readonly kind: "started"
+      readonly run_id: string
+      readonly reused: boolean
+      readonly snapshot: DagRunSnapshot
+      readonly warnings?: readonly string[]
+    }
+  | { readonly kind: "attached"; readonly run_id: string; readonly snapshot: DagRunSnapshot }
+  | { readonly kind: "snapshot"; readonly run_id: string; readonly snapshot: DagRunSnapshot }
+  | { readonly kind: "waited"; readonly run_id: string; readonly result: DagRunResult }
+  | { readonly kind: "cancelled"; readonly run_id: string; readonly snapshot: DagRunSnapshot }
   | {
-    readonly kind: "attached";
-    readonly run_id: string;
-    readonly snapshot: DagRunSnapshot;
-  }
+      readonly kind: "retried"
+      readonly run_id: string
+      readonly node_ids?: readonly string[]
+      readonly snapshot: DagRunSnapshot
+    }
   | {
-    readonly kind: "snapshot";
-    readonly run_id: string;
-    readonly snapshot: DagRunSnapshot;
-  }
-  | {
-    readonly kind: "waited";
-    readonly run_id: string;
-    readonly result: DagRunResult;
-  }
-  | {
-    readonly kind: "cancelled";
-    readonly run_id: string;
-    readonly snapshot: DagRunSnapshot;
-  }
-  | {
-    readonly kind: "retried";
-    readonly run_id: string;
-    readonly node_ids?: readonly string[];
-    readonly snapshot: DagRunSnapshot;
-  }
-  | {
-    readonly kind: "sent";
-    readonly run_id: string;
-    readonly node_id: string;
-    readonly task_id: string;
-    readonly delivery: DagToolSendDelivery;
-    readonly queue_position?: number;
-  }
-  | {
-    readonly kind: "amended";
-    readonly run_id: string;
-    readonly snapshot: DagRunSnapshot;
-  }
-  | { readonly kind: "error"; readonly error: DagToolError };
+      readonly kind: "sent"
+      readonly run_id: string
+      readonly node_id: string
+      readonly task_id: string
+      readonly delivery: DagToolSendDelivery
+      readonly queue_position?: number
+    }
+  | { readonly kind: "amended"; readonly run_id: string; readonly snapshot: DagRunSnapshot }
+  | { readonly kind: "error"; readonly error: DagToolError }
 
-export type DagToolResult = AgentToolResult<DagToolDetails>;
+export type DagToolResult = AgentToolResult<DagToolDetails>
 
 export type DagToolDeps = {
-  readonly manager: DagManager;
-  readonly parentSessionId: () => string;
-  readonly rootSessionId: () => string;
+  readonly manager: DagManager
+  readonly parentSessionId: () => string
+  readonly rootSessionId: () => string
   /**
    * Injection point for the scheduler-owned wait surface (createDagWaitSurface().wait). Absent until
    * the scheduler is wired; wait then reports the run's current state instead of blocking.
    */
-  readonly wait?: (
-    runId: DagRunId,
-    parentSessionId: string,
-  ) => Promise<DagRunResult>;
+  readonly wait?: (runId: DagRunId, parentSessionId: string) => Promise<DagRunResult>
   /** Injection point for the scheduler's run cancellation. */
-  readonly cancel?: (runId: DagRunId, reason?: string) => void | Promise<void>;
+  readonly cancel?: (runId: DagRunId, reason?: string) => void | Promise<void>
   /** Injection point for the runtime's retry entry point (fresh scheduler, run re-entered). */
   readonly retry?: (
     runId: DagRunId,
     nodeIds?: readonly string[],
     options?: { readonly prompt?: string },
-  ) => Promise<DagRunSnapshot>;
+  ) => Promise<DagRunSnapshot>
   /** Injection point for the runtime's per-node send (steer a running child, revive a resident one). */
-  readonly send?: (
-    runId: DagRunId,
-    nodeId: string,
-    message: string,
-  ) => Promise<DagToolSendOutcome>;
+  readonly send?: (runId: DagRunId, nodeId: string, message: string) => Promise<DagToolSendOutcome>
   /** Injection point for the runtime's amend entry point (edit the definition, re-enter the run). */
-  readonly amend?: (
-    runId: DagRunId,
-    definition: DagDefinition,
-  ) => Promise<DagRunSnapshot>;
-};
+  readonly amend?: (runId: DagRunId, definition: DagDefinition) => Promise<DagRunSnapshot>
+}
 
-export function toolResult(
-  text: string,
-  details: DagToolDetails,
-): DagToolResult {
-  return { content: [{ type: "text", text }], details };
+export function toolResult(text: string, details: DagToolDetails): DagToolResult {
+  return { content: [{ type: "text", text }], details }
 }
 
 export function failure(
@@ -169,7 +133,7 @@ export function failure(
       diagnostics: extra.diagnostics ?? [],
       node_ids: extra.node_ids ?? [],
     },
-  });
+  })
 }
 
 // The graph compiler types a node's target as category XOR subagent_type, but tool arguments arrive
@@ -178,36 +142,26 @@ export function failure(
 export function validateNodeTargets(
   nodes: readonly DagToolDefinitionInput["nodes"][number][],
 ): readonly DagToolNodeError[] {
-  const errors: DagToolNodeError[] = [];
+  const errors: DagToolNodeError[] = []
   for (const node of nodes) {
     const selection = validateTaskTarget({
       ...(node.category === undefined ? {} : { category: node.category }),
-      ...(node.subagent_type === undefined
-        ? {}
-        : { subagent_type: node.subagent_type }),
+      ...(node.subagent_type === undefined ? {} : { subagent_type: node.subagent_type }),
       ...(node.model === undefined ? {} : { model: node.model }),
-    });
+    })
     if (selection.kind === "error") {
-      errors.push({
-        node_id: node.id,
-        code: selection.error.code,
-        message: selection.error.message,
-      });
+      errors.push({ node_id: node.id, code: selection.error.code, message: selection.error.message })
     }
   }
-  return errors;
+  return errors
 }
 
-export function invalidNodeTargets(
-  nodeErrors: readonly DagToolNodeError[],
-): DagToolResult {
+export function invalidNodeTargets(nodeErrors: readonly DagToolNodeError[]): DagToolResult {
   return failure(
     "invalid_definition",
-    nodeErrors.map((error) => `Node "${error.node_id}": ${error.message}`).join(
-      " ",
-    ),
+    nodeErrors.map((error) => `Node "${error.node_id}": ${error.message}`).join(" "),
     { nodes: nodeErrors },
-  );
+  )
 }
 
 export function toDefinition(input: DagToolDefinitionInput): DagDefinition {
@@ -220,24 +174,14 @@ export function toDefinition(input: DagToolDefinitionInput): DagDefinition {
         prompt: node.prompt,
         ...(node.label === undefined ? {} : { label: node.label }),
         ...(node.dependsOn === undefined ? {} : { dependsOn: node.dependsOn }),
-        ...(node.task_summary === undefined
-          ? {}
-          : { task_summary: node.task_summary }),
-        ...(node.description === undefined
-          ? {}
-          : { description: node.description }),
-        ...(node.load_skills === undefined
-          ? {}
-          : { load_skills: node.load_skills }),
-      };
+        ...(node.task_summary === undefined ? {} : { task_summary: node.task_summary }),
+        ...(node.description === undefined ? {} : { description: node.description }),
+        ...(node.load_skills === undefined ? {} : { load_skills: node.load_skills }),
+      }
       // Target validation already proved exactly one of these is present.
       return node.category !== undefined
         ? { ...common, category: node.category }
-        : {
-          ...common,
-          subagent_type: node.subagent_type as string,
-          ...(node.model === undefined ? {} : { model: node.model }),
-        };
+        : { ...common, subagent_type: node.subagent_type as string, ...(node.model === undefined ? {} : { model: node.model }) }
     }),
-  };
+  }
 }

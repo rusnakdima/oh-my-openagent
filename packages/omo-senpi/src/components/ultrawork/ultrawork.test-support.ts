@@ -1,33 +1,30 @@
-import { expect } from "bun:test";
+import { expect } from "bun:test"
 
-import { FakeExtensionAPI } from "../../../test-support/fake-extension-api";
-import type { ComponentContext, ComponentLogger } from "../../extension/types";
-import { SENPI_ULTRAWORK_DIRECTIVE } from "./generated-directive";
-import { createSessionArming, createUltraworkComponent } from "./index";
+import { FakeExtensionAPI } from "../../../test-support/fake-extension-api"
+import type { ComponentContext, ComponentLogger } from "../../extension/types"
+import { SENPI_ULTRAWORK_DIRECTIVE } from "./generated-directive"
+import { createSessionArming, createUltraworkComponent } from "./index"
 
-const ULTRAWORK_CUSTOM_TYPE = "omo-ultrawork:directive";
-const ARMING_LEDGER_KEY = Symbol.for("omo.ultrawork.arming");
+const ULTRAWORK_CUSTOM_TYPE = "omo-ultrawork:directive"
+const ARMING_LEDGER_KEY = Symbol.for("omo.ultrawork.arming")
 
-export type InputDispatchResult = { action: "continue" } | {
-  action: "transform";
-  text: string;
-};
+export type InputDispatchResult = { action: "continue" } | { action: "transform"; text: string }
 
 export function createTestContext(pi: FakeExtensionAPI): ComponentContext {
   const logger: ComponentLogger = {
     info() {},
     warn() {},
     error() {},
-  };
+  }
 
   return {
     logger,
     config: {
       getFlag(name) {
-        return pi.getFlag(name);
+        return pi.getFlag(name)
       },
     },
-  };
+  }
 }
 
 export async function dispatchInput(
@@ -46,10 +43,10 @@ export async function dispatchInput(
       ...(streamingBehavior === undefined ? {} : { streamingBehavior }),
     },
     eventCtx,
-  );
+  )
   // The fake API types handler results as unknown; the ultrawork input handler
   // only ever returns this union, so the cast here is the typed boundary.
-  return result as InputDispatchResult;
+  return result as InputDispatchResult
 }
 
 /**
@@ -57,19 +54,12 @@ export async function dispatchInput(
  * sessions can never leak into another's through the process-shared default
  * ledger — which only the re-registration coverage may exercise directly.
  */
-export async function registerIsolatedUltrawork(
-  pi: FakeExtensionAPI,
-): Promise<void> {
-  await createUltraworkComponent(createSessionArming()).register(
-    pi,
-    createTestContext(pi),
-  );
+export async function registerIsolatedUltrawork(pi: FakeExtensionAPI): Promise<void> {
+  await createUltraworkComponent(createSessionArming()).register(pi, createTestContext(pi))
 }
 
-export function sessionEventCtx(
-  sessionId: string,
-): { sessionManager: { getSessionId(): string } } {
-  return { sessionManager: { getSessionId: () => sessionId } };
+export function sessionEventCtx(sessionId: string): { sessionManager: { getSessionId(): string } } {
+  return { sessionManager: { getSessionId: () => sessionId } }
 }
 
 /**
@@ -78,16 +68,16 @@ export function sessionEventCtx(
  * slot; every other test stays isolated through registerIsolatedUltrawork.
  */
 export function seedSharedArmingSlot(slot: unknown): () => void {
-  const registry = globalThis as unknown as Record<symbol, unknown>;
-  const previous = registry[ARMING_LEDGER_KEY];
-  registry[ARMING_LEDGER_KEY] = slot;
+  const registry = globalThis as unknown as Record<symbol, unknown>
+  const previous = registry[ARMING_LEDGER_KEY]
+  registry[ARMING_LEDGER_KEY] = slot
   return () => {
     if (previous === undefined) {
-      delete registry[ARMING_LEDGER_KEY];
-      return;
+      delete registry[ARMING_LEDGER_KEY]
+      return
     }
-    registry[ARMING_LEDGER_KEY] = previous;
-  };
+    registry[ARMING_LEDGER_KEY] = previous
+  }
 }
 
 /**
@@ -95,41 +85,34 @@ export function seedSharedArmingSlot(slot: unknown): () => void {
  * transcript already holds every rule, so the reminder stays under 400 chars and
  * carries no "<ultrawork-mode>" open tag that would read as a fresh block.
  */
-export function expectReminderMessage(
-  pi: FakeExtensionAPI,
-  index: number,
-): void {
-  const call = pi.messages[index];
-  expect(call?.message["customType"]).toBe(ULTRAWORK_CUSTOM_TYPE);
-  expect(call?.message["display"]).toBe(false);
-  const content = call?.message["content"];
+export function expectReminderMessage(pi: FakeExtensionAPI, index: number): void {
+  const call = pi.messages[index]
+  expect(call?.message["customType"]).toBe(ULTRAWORK_CUSTOM_TYPE)
+  expect(call?.message["display"]).toBe(false)
+  const content = call?.message["content"]
   if (typeof content !== "string") {
-    throw new Error("expected a string reminder message");
+    throw new Error("expected a string reminder message")
   }
-  expect(content.length).toBeLessThan(400);
-  expect(content).not.toContain("<ultrawork-mode>");
-  expect(content).not.toBe(SENPI_ULTRAWORK_DIRECTIVE);
+  expect(content.length).toBeLessThan(400)
+  expect(content).not.toContain("<ultrawork-mode>")
+  expect(content).not.toBe(SENPI_ULTRAWORK_DIRECTIVE)
 }
 
 /** The directive must ride in as ONE hidden custom message, never as rewritten user text. */
-export function expectHiddenInjection(
-  pi: FakeExtensionAPI,
-  result: unknown,
-  expectedDeliverAs?: "steer" | "followUp",
-): void {
-  expect(result).toEqual({ action: "continue" });
-  expect(pi.messages).toHaveLength(1);
+export function expectHiddenInjection(pi: FakeExtensionAPI, result: unknown, expectedDeliverAs?: "steer" | "followUp"): void {
+  expect(result).toEqual({ action: "continue" })
+  expect(pi.messages).toHaveLength(1)
 
-  const [call] = pi.messages;
-  expect(call?.message["customType"]).toBe(ULTRAWORK_CUSTOM_TYPE);
-  expect(call?.message["display"]).toBe(false);
-  expect(call?.message["content"]).toBe(SENPI_ULTRAWORK_DIRECTIVE);
-  expect(call?.options?.["deliverAs"]).toBe(expectedDeliverAs);
+  const [call] = pi.messages
+  expect(call?.message["customType"]).toBe(ULTRAWORK_CUSTOM_TYPE)
+  expect(call?.message["display"]).toBe(false)
+  expect(call?.message["content"]).toBe(SENPI_ULTRAWORK_DIRECTIVE)
+  expect(call?.options?.["deliverAs"]).toBe(expectedDeliverAs)
 }
 
 export function expectNoInjection(pi: FakeExtensionAPI, result: unknown): void {
-  expect(result).toEqual({ action: "continue" });
-  expect(pi.messages).toHaveLength(0);
+  expect(result).toEqual({ action: "continue" })
+  expect(pi.messages).toHaveLength(0)
 }
 
 /**
@@ -138,18 +121,11 @@ export function expectNoInjection(pi: FakeExtensionAPI, result: unknown): void {
  * runs an assistant turn per drained message, so a separate hidden message would
  * burn its own turn before the user's ask ever arrives.
  */
-export function expectAtomicQueuedInjection(
-  pi: FakeExtensionAPI,
-  result: unknown,
-  prompt: string,
-): void {
-  expect(result).toEqual({
-    action: "transform",
-    text: `${prompt}\n${SENPI_ULTRAWORK_DIRECTIVE}`,
-  });
-  expect(pi.messages).toHaveLength(0);
+export function expectAtomicQueuedInjection(pi: FakeExtensionAPI, result: unknown, prompt: string): void {
+  expect(result).toEqual({ action: "transform", text: `${prompt}\n${SENPI_ULTRAWORK_DIRECTIVE}` })
+  expect(pi.messages).toHaveLength(0)
 }
 
 export function markerCount(text: string): number {
-  return text.match(/<ultrawork-mode>/g)?.length ?? 0;
+  return text.match(/<ultrawork-mode>/g)?.length ?? 0
 }

@@ -1,7 +1,7 @@
 export {
   detectConfigFile,
-  type JsoncParseResult,
   parseJsonc,
   parseJsoncSafe,
   readJsoncFile,
-} from "@oh-my-opencode/utils";
+  type JsoncParseResult,
+} from "@oh-my-opencode/utils"

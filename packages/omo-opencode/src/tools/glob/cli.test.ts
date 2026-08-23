@@ -1,29 +1,20 @@
-import { describe, expect, it, mock } from "bun:test";
-import { Writable } from "node:stream";
-import type { SpawnedProcess, SpawnOptions } from "../../shared/bun-spawn-shim";
-import {
-  buildFindArgs,
-  buildPowerShellCommand,
-  buildRgArgs,
-  runRgFiles,
-} from "./cli";
+import { describe, it, expect, mock } from "bun:test"
+import { Writable } from "node:stream"
+import type { SpawnOptions, SpawnedProcess } from "../../shared/bun-spawn-shim"
+import { buildRgArgs, buildFindArgs, buildPowerShellCommand, runRgFiles } from "./cli"
 
 function createTextStream(text: string): ReadableStream<Uint8Array> {
   return new ReadableStream<Uint8Array>({
     start(controller) {
       if (text.length > 0) {
-        controller.enqueue(new TextEncoder().encode(text));
+        controller.enqueue(new TextEncoder().encode(text))
       }
-      controller.close();
+      controller.close()
     },
-  });
+  })
 }
 
-function createSpawnedProcess(
-  exitCode: number,
-  stdout = "",
-  stderr = "",
-): SpawnedProcess {
+function createSpawnedProcess(exitCode: number, stdout = "", stderr = ""): SpawnedProcess {
   return {
     exitCode,
     exited: Promise.resolve(exitCode),
@@ -31,14 +22,14 @@ function createSpawnedProcess(
     stderr: createTextStream(stderr),
     stdin: new Writable({
       write(_chunk, _encoding, callback) {
-        callback();
+        callback()
       },
     }),
     pid: 3919,
     kill() {},
     ref() {},
     unref() {},
-  };
+  }
 }
 
 describe("buildRgArgs", () => {
@@ -46,54 +37,54 @@ describe("buildRgArgs", () => {
   // when building ripgrep args
   // then should include --hidden and --follow by default
   it("includes --hidden by default when not explicitly set", () => {
-    const args = buildRgArgs({ pattern: "*.ts" });
-    expect(args).toContain("--hidden");
-  });
+    const args = buildRgArgs({ pattern: "*.ts" })
+    expect(args).toContain("--hidden")
+  })
 
   it("includes --follow by default when not explicitly set", () => {
-    const args = buildRgArgs({ pattern: "*.ts" });
-    expect(args).toContain("--follow");
-  });
+    const args = buildRgArgs({ pattern: "*.ts" })
+    expect(args).toContain("--follow")
+  })
 
   // given hidden=false explicitly set
   // when building ripgrep args
   // then should NOT include --hidden
   it("excludes --hidden when explicitly set to false", () => {
-    const args = buildRgArgs({ pattern: "*.ts", hidden: false });
-    expect(args).not.toContain("--hidden");
-  });
+    const args = buildRgArgs({ pattern: "*.ts", hidden: false })
+    expect(args).not.toContain("--hidden")
+  })
 
   // given follow=false explicitly set
   // when building ripgrep args
   // then should NOT include --follow
   it("excludes --follow when explicitly set to false", () => {
-    const args = buildRgArgs({ pattern: "*.ts", follow: false });
-    expect(args).not.toContain("--follow");
-  });
+    const args = buildRgArgs({ pattern: "*.ts", follow: false })
+    expect(args).not.toContain("--follow")
+  })
 
   // given hidden=true explicitly set
   // when building ripgrep args
   // then should include --hidden
   it("includes --hidden when explicitly set to true", () => {
-    const args = buildRgArgs({ pattern: "*.ts", hidden: true });
-    expect(args).toContain("--hidden");
-  });
+    const args = buildRgArgs({ pattern: "*.ts", hidden: true })
+    expect(args).toContain("--hidden")
+  })
 
   // given follow=true explicitly set
   // when building ripgrep args
   // then should include --follow
   it("includes --follow when explicitly set to true", () => {
-    const args = buildRgArgs({ pattern: "*.ts", follow: true });
-    expect(args).toContain("--follow");
-  });
+    const args = buildRgArgs({ pattern: "*.ts", follow: true })
+    expect(args).toContain("--follow")
+  })
 
   // given pattern with special characters
   // when building ripgrep args
   // then should include glob pattern correctly
   it("includes the glob pattern", () => {
-    const args = buildRgArgs({ pattern: "**/*.tsx" });
-    expect(args).toContain("--glob=**/*.tsx");
-  });
+    const args = buildRgArgs({ pattern: "**/*.tsx" })
+    expect(args).toContain("--glob=**/*.tsx")
+  })
 
   // Regression for #3726: broken/dangling symlinks should not surface as
   // tool errors. --no-messages silences ripgrep's non-fatal stderr warnings
@@ -102,140 +93,136 @@ describe("buildRgArgs", () => {
   // gate sees a clean stream for soft I/O issues but still triggers on real
   // fatal ripgrep errors.
   it("includes --no-messages so broken symlinks do not error the tool (#3726)", () => {
-    const args = buildRgArgs({ pattern: "*.ts" });
-    expect(args).toContain("--no-messages");
-  });
-});
+    const args = buildRgArgs({ pattern: "*.ts" })
+    expect(args).toContain("--no-messages")
+  })
+})
 
 describe("buildFindArgs", () => {
   // given default options (no hidden/follow specified)
   // when building find args
   // then should include hidden files by default (no exclusion filter)
   it("includes hidden files by default when not explicitly set", () => {
-    const args = buildFindArgs({ pattern: "*.ts" });
+    const args = buildFindArgs({ pattern: "*.ts" })
     // When hidden is enabled (default), should NOT have the exclusion filter
-    expect(args).not.toContain("-not");
-    expect(args.join(" ")).not.toContain("*/.*");
-  });
+    expect(args).not.toContain("-not")
+    expect(args.join(" ")).not.toContain("*/.*")
+  })
 
   // given default options (no follow specified)
   // when building find args
   // then should include -L flag for symlink following by default
   it("includes -L flag for symlink following by default", () => {
-    const args = buildFindArgs({ pattern: "*.ts" });
-    expect(args).toContain("-L");
-  });
+    const args = buildFindArgs({ pattern: "*.ts" })
+    expect(args).toContain("-L")
+  })
 
   // given hidden=false explicitly set
   // when building find args
   // then should exclude hidden files
   it("excludes hidden files when hidden is explicitly false", () => {
-    const args = buildFindArgs({ pattern: "*.ts", hidden: false });
-    expect(args).toContain("-not");
-    expect(args.join(" ")).toContain("*/.*");
-  });
+    const args = buildFindArgs({ pattern: "*.ts", hidden: false })
+    expect(args).toContain("-not")
+    expect(args.join(" ")).toContain("*/.*")
+  })
 
   // given follow=false explicitly set
   // when building find args
   // then should NOT include -L flag
   it("excludes -L flag when follow is explicitly false", () => {
-    const args = buildFindArgs({ pattern: "*.ts", follow: false });
-    expect(args).not.toContain("-L");
-  });
+    const args = buildFindArgs({ pattern: "*.ts", follow: false })
+    expect(args).not.toContain("-L")
+  })
 
   // given hidden=true explicitly set
   // when building find args
   // then should include hidden files
   it("includes hidden files when hidden is explicitly true", () => {
-    const args = buildFindArgs({ pattern: "*.ts", hidden: true });
-    expect(args).not.toContain("-not");
-    expect(args.join(" ")).not.toContain("*/.*");
-  });
+    const args = buildFindArgs({ pattern: "*.ts", hidden: true })
+    expect(args).not.toContain("-not")
+    expect(args.join(" ")).not.toContain("*/.*")
+  })
 
   // given follow=true explicitly set
   // when building find args
   // then should include -L flag
   it("includes -L flag when follow is explicitly true", () => {
-    const args = buildFindArgs({ pattern: "*.ts", follow: true });
-    expect(args).toContain("-L");
-  });
-});
+    const args = buildFindArgs({ pattern: "*.ts", follow: true })
+    expect(args).toContain("-L")
+  })
+})
 
 describe("buildPowerShellCommand", () => {
   // given default options (no hidden specified)
   // when building PowerShell command
   // then should include -Force by default
   it("includes -Force by default when not explicitly set", () => {
-    const args = buildPowerShellCommand({ pattern: "*.ts" });
-    const command = args.join(" ");
-    expect(command).toContain("-Force");
-  });
+    const args = buildPowerShellCommand({ pattern: "*.ts" })
+    const command = args.join(" ")
+    expect(command).toContain("-Force")
+  })
 
   // given hidden=false explicitly set
   // when building PowerShell command
   // then should NOT include -Force
   it("excludes -Force when hidden is explicitly false", () => {
-    const args = buildPowerShellCommand({ pattern: "*.ts", hidden: false });
-    const command = args.join(" ");
-    expect(command).not.toContain("-Force");
-  });
+    const args = buildPowerShellCommand({ pattern: "*.ts", hidden: false })
+    const command = args.join(" ")
+    expect(command).not.toContain("-Force")
+  })
 
   // given hidden=true explicitly set
   // when building PowerShell command
   // then should include -Force
   it("includes -Force when hidden is explicitly true", () => {
-    const args = buildPowerShellCommand({ pattern: "*.ts", hidden: true });
-    const command = args.join(" ");
-    expect(command).toContain("-Force");
-  });
+    const args = buildPowerShellCommand({ pattern: "*.ts", hidden: true })
+    const command = args.join(" ")
+    expect(command).toContain("-Force")
+  })
 
   // given default options (no follow specified)
   // when building PowerShell command
   // then should NOT include -FollowSymlink (unsupported in Windows PowerShell 5.1)
   it("does NOT include -FollowSymlink (unsupported in Windows PowerShell 5.1)", () => {
-    const args = buildPowerShellCommand({ pattern: "*.ts" });
-    const command = args.join(" ");
-    expect(command).not.toContain("-FollowSymlink");
-  });
+    const args = buildPowerShellCommand({ pattern: "*.ts" })
+    const command = args.join(" ")
+    expect(command).not.toContain("-FollowSymlink")
+  })
 
   // given pattern with special chars
   // when building PowerShell command
   // then should escape single quotes properly
   it("escapes single quotes in pattern", () => {
-    const args = buildPowerShellCommand({ pattern: "test's.ts" });
-    const command = args.join(" ");
-    expect(command).toContain("test''s.ts");
-  });
+    const args = buildPowerShellCommand({ pattern: "test's.ts" })
+    const command = args.join(" ")
+    expect(command).toContain("test''s.ts")
+  })
 
   it("uses LiteralPath so fallback paths are not wildcard-expanded (#3919)", () => {
-    const args = buildPowerShellCommand({
-      pattern: "*.ts",
-      paths: ["C:\\repo[1]"],
-    });
-    const command = args.join(" ");
-    expect(args[0]).toBe("powershell.exe");
-    expect(command).toContain("Get-ChildItem -LiteralPath 'C:\\repo[1]'");
-  });
-});
+    const args = buildPowerShellCommand({ pattern: "*.ts", paths: ["C:\\repo[1]"] })
+    const command = args.join(" ")
+    expect(args[0]).toBe("powershell.exe")
+    expect(command).toContain("Get-ChildItem -LiteralPath 'C:\\repo[1]'")
+  })
+})
 
 describe("runRgFiles", () => {
   it("#given empty stdout #when rg exits successfully #then returns an empty result", async () => {
-    const spawnMock = mock((
-      _command: string[],
-      _options?: SpawnOptions,
-    ): SpawnedProcess => createSpawnedProcess(0));
+    const spawnMock = mock((_command: string[], _options?: SpawnOptions): SpawnedProcess =>
+      createSpawnedProcess(0)
+    )
 
     const result = await runRgFiles(
       { pattern: "*.ts", paths: ["."], timeout: 1000 },
       { path: "rg", backend: "rg" },
-      spawnMock,
-    );
+      spawnMock
+    )
 
     expect(result).toEqual({
       files: [],
       totalFiles: 0,
       truncated: false,
-    });
-    expect(spawnMock).toHaveBeenCalled();
-  });
-});
+    })
+    expect(spawnMock).toHaveBeenCalled()
+  })
+})

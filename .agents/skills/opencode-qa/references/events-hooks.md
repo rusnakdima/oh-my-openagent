@@ -1,8 +1,6 @@
 # QAing opencode hooks, actions, and events (Case B)
 
-opencode publishes lifecycle events over Server-Sent Events. Plugins observe the
-SAME events via the `event` hook, so confirming an event on the wire proves a
-hook would fire. The bundled probe is `scripts/sse-hook-probe.sh`.
+opencode publishes lifecycle events over Server-Sent Events. Plugins observe the SAME events via the `event` hook, so confirming an event on the wire proves a hook would fire. The bundled probe is `scripts/sse-hook-probe.sh`.
 
 ## Table of Contents
 
@@ -15,12 +13,9 @@ hook would fire. The bundled probe is `scripts/sse-hook-probe.sh`.
 
 ## The two SSE endpoints
 
-- GET /event?directory=<dir> - per-instance stream; the FIRST event is
-  `server.connected`, a `server.heartbeat` arrives every 10s, and the stream
-  ends on `server.instance.disposed`.
+- GET /event?directory=<dir> - per-instance stream; the FIRST event is `server.connected`, a `server.heartbeat` arrives every 10s, and the stream ends on `server.instance.disposed`.
 - GET /global/event - all events, no instance filter.
-- Frames look like `data: {"type":"...","properties":{...}}` (one per line).
-  Consume with `curl -N`.
+- Frames look like `data: {"type":"...","properties":{...}}` (one per line). Consume with `curl -N`.
 
 ## Watch the stream
 
@@ -80,24 +75,14 @@ curl -X POST -u opencode:$PASS -H 'Content-Type: application/json' \
   "http://127.0.0.1:4096/session/<ses_id>/prompt_async?directory=$PWD"
 ```
 
-A `message.part.updated` (text/tool) confirms the prompt action drove the model
-and any tool/permission hook path. Note: a real prompt requires a configured
-provider/auth, so this runs against your real server, not the isolated sandbox
-(the sandbox only proves the SSE plumbing via server.connected).
+A `message.part.updated` (text/tool) confirms the prompt action drove the model and any tool/permission hook path. Note: a real prompt requires a configured provider/auth, so this runs against your real server, not the isolated sandbox (the sandbox only proves the SSE plumbing via server.connected).
 
 ## Plugin hooks (the 21 hook points a plugin can implement)
 
-`event`, `config`, `tool`, `auth`, `provider`, `chat.message`, `chat.params`,
-`chat.headers`, `permission.ask`, `command.execute.before`,
-`tool.execute.before`, `tool.execute.after`, `tool.definition`, `shell.env`,
-`experimental.chat.messages.transform`, `experimental.chat.system.transform`,
-`experimental.session.compacting`, `experimental.compaction.autocontinue`,
-`experimental.text.complete`.
+`event`, `config`, `tool`, `auth`, `provider`, `chat.message`, `chat.params`, `chat.headers`, `permission.ask`, `command.execute.before`, `tool.execute.before`, `tool.execute.after`, `tool.definition`, `shell.env`, `experimental.chat.messages.transform`, `experimental.chat.system.transform`, `experimental.session.compacting`, `experimental.compaction.autocontinue`, `experimental.text.complete`.
 
-- A plugin is a module default-exporting
-  `{ id?, server: (input, options) => Promise<Hooks> }`.
-- Minimal example implementing `event` and `tool.execute.before` that
-  console.log the activity:
+- A plugin is a module default-exporting `{ id?, server: (input, options) => Promise<Hooks> }`.
+- Minimal example implementing `event` and `tool.execute.before` that console.log the activity:
 
 ```typescript
 export default {
@@ -117,13 +102,9 @@ export default {
 
 ## Loading a local plugin for QA
 
-- Add an absolute path or npm spec to the opencode config `plugin` /
-  `plugin_origins` array (project `.opencode/` config or user config), then
-  restart opencode. On load it emits `plugin.added`.
-- To QA a hook: load the plugin, watch /event (or the plugin's own logging),
-  trigger the relevant action, and assert.
+- Add an absolute path or npm spec to the opencode config `plugin` / `plugin_origins` array (project `.opencode/` config or user config), then restart opencode. On load it emits `plugin.added`.
+- To QA a hook: load the plugin, watch /event (or the plugin's own logging), trigger the relevant action, and assert.
 
 ---
 
-Pair this with references/server-api.md (how to start the server, auth, prompt
-routes).
+Pair this with references/server-api.md (how to start the server, auth, prompt routes).

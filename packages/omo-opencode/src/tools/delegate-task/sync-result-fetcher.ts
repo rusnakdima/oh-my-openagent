@@ -1,9 +1,9 @@
-import type { OpencodeClient } from "./types";
-import type { SessionMessage } from "./executor-types";
-import { normalizeSDKResponse } from "../../shared";
+import type { OpencodeClient } from "./types"
+import type { SessionMessage } from "./executor-types"
+import { normalizeSDKResponse } from "../../shared"
 
 function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
 function messageText(msg: SessionMessage): string {
@@ -11,7 +11,7 @@ function messageText(msg: SessionMessage): string {
     .filter((p) => p.type === "text" || p.type === "reasoning")
     .map((p) => p.text ?? "")
     .filter(Boolean)
-    .join("\n");
+    .join("\n")
 }
 
 // Final text output only — excludes reasoning. The deliverable envelope applies
@@ -24,7 +24,7 @@ function messageFinalText(msg: SessionMessage): string {
     .filter((p) => p.type === "text")
     .map((p) => p.text ?? "")
     .filter(Boolean)
-    .join("\n");
+    .join("\n")
 }
 
 /**
@@ -35,87 +35,66 @@ function messageFinalText(msg: SessionMessage): string {
  * subagent launches its own background tasks. Returns the contents of the
  * newest message containing a complete tag block, or undefined to fall back.
  */
-function extractTaggedDeliverable(
-  assistantMessages: SessionMessage[],
-  tag: string,
-): string | undefined {
-  const escaped = escapeRegExp(tag);
+function extractTaggedDeliverable(assistantMessages: SessionMessage[], tag: string): string | undefined {
+  const escaped = escapeRegExp(tag)
   // Non-greedy + global so a message containing multiple complete envelopes
   // (e.g. a reasoning-part draft `<plan>...</plan>` followed by the final
   // text-part `<plan>...</plan>`) yields the LAST block rather than a greedy
   // span from the first opener to the last closer.
-  const pattern = new RegExp(`<${escaped}>([\\s\\S]*?)</${escaped}>`, "gi");
+  const pattern = new RegExp(`<${escaped}>([\\s\\S]*?)</${escaped}>`, "gi")
   for (const msg of assistantMessages) {
-    const text = messageFinalText(msg);
-    let last: string | undefined;
+    const text = messageFinalText(msg)
+    let last: string | undefined
     for (const match of text.matchAll(pattern)) {
-      const inner = match[1].trim();
-      if (inner) last = inner;
+      const inner = match[1].trim()
+      if (inner) last = inner
     }
-    if (last) return last;
+    if (last) return last
   }
-  return undefined;
+  return undefined
 }
 
 export async function fetchSyncResult(
   client: OpencodeClient,
   sessionID: string,
   anchorMessageCount?: number,
-  options?: { strictAbortRecovery?: boolean; deliverableTag?: string },
+  options?: { strictAbortRecovery?: boolean; deliverableTag?: string }
 ): Promise<{ ok: true; textContent: string } | { ok: false; error: string }> {
   const messagesResult = await client.session.messages({
     path: { id: sessionID },
-  });
+  })
 
   if ((messagesResult as { error?: unknown }).error) {
-    return {
-      ok: false,
-      error: `Error fetching result: ${
-        (messagesResult as { error: unknown }).error
-      }\n\nSession ID: ${sessionID}`,
-    };
+    return { ok: false, error: `Error fetching result: ${(messagesResult as { error: unknown }).error}\n\nSession ID: ${sessionID}` }
   }
 
-  const messages = normalizeSDKResponse(
-    messagesResult,
-    [] as SessionMessage[],
-    {
-      preferResponseOnMissingData: true,
-    },
-  );
+  const messages = normalizeSDKResponse(messagesResult, [] as SessionMessage[], {
+    preferResponseOnMissingData: true,
+  })
 
-  const messagesAfterAnchor = anchorMessageCount !== undefined
-    ? messages.slice(anchorMessageCount)
-    : messages;
+  const messagesAfterAnchor = anchorMessageCount !== undefined ? messages.slice(anchorMessageCount) : messages
 
   if (anchorMessageCount !== undefined && messagesAfterAnchor.length === 0) {
     return {
       ok: false,
-      error:
-        `Session completed but no new response was generated. The model may have failed silently.\n\nSession ID: ${sessionID}`,
-    };
+      error: `Session completed but no new response was generated. The model may have failed silently.\n\nSession ID: ${sessionID}`,
+    }
   }
 
   const assistantMessages = messagesAfterAnchor
     .filter((m) => m.info?.role === "assistant")
-    .sort((a, b) =>
-      (b.info?.time?.created ?? 0) - (a.info?.time?.created ?? 0)
-    );
-  const lastMessage = assistantMessages[0];
+    .sort((a, b) => (b.info?.time?.created ?? 0) - (a.info?.time?.created ?? 0))
+  const lastMessage = assistantMessages[0]
 
   if (anchorMessageCount !== undefined && !lastMessage) {
     return {
       ok: false,
-      error:
-        `Session completed but no new response was generated. The model may have failed silently.\n\nSession ID: ${sessionID}`,
-    };
+      error: `Session completed but no new response was generated. The model may have failed silently.\n\nSession ID: ${sessionID}`,
+    }
   }
 
   if (!lastMessage) {
-    return {
-      ok: false,
-      error: `No assistant response found.\n\nSession ID: ${sessionID}`,
-    };
+    return { ok: false, error: `No assistant response found.\n\nSession ID: ${sessionID}` }
   }
 
   // Abort recovery must validate the LATEST assistant message before accepting
@@ -127,36 +106,27 @@ export async function fetchSyncResult(
     if (lastMessage.info && "error" in lastMessage.info) {
       return {
         ok: false,
-        error:
-          `Latest assistant message is an error; refusing abort recovery.\n\nSession ID: ${sessionID}`,
-      };
-    }
-
-    const lastTextParts = lastMessage.parts?.filter((p) =>
-      p.type === "text" || p.type === "reasoning"
-    ) ?? [];
-    const lastContent = lastTextParts.map((p) =>
-      p.text ?? ""
-    ).filter(Boolean).join("\n");
-    if (!lastContent) {
-      return {
-        ok: false,
-        error:
-          `No assistant text output found in latest response.\n\nSession ID: ${sessionID}`,
-      };
-    }
-
-    if (options.deliverableTag) {
-      const tagged = extractTaggedDeliverable(
-        assistantMessages,
-        options.deliverableTag,
-      );
-      if (tagged) {
-        return { ok: true, textContent: tagged };
+        error: `Latest assistant message is an error; refusing abort recovery.\n\nSession ID: ${sessionID}`,
       }
     }
 
-    return { ok: true, textContent: lastContent };
+    const lastTextParts = lastMessage.parts?.filter((p) => p.type === "text" || p.type === "reasoning") ?? []
+    const lastContent = lastTextParts.map((p) => p.text ?? "").filter(Boolean).join("\n")
+    if (!lastContent) {
+      return {
+        ok: false,
+        error: `No assistant text output found in latest response.\n\nSession ID: ${sessionID}`,
+      }
+    }
+
+    if (options.deliverableTag) {
+      const tagged = extractTaggedDeliverable(assistantMessages, options.deliverableTag)
+      if (tagged) {
+        return { ok: true, textContent: tagged }
+      }
+    }
+
+    return { ok: true, textContent: lastContent }
   }
 
   // Prefer an explicit deliverable envelope (e.g. `<plan>...</plan>`) when the
@@ -165,38 +135,30 @@ export async function fetchSyncResult(
   // correct when post-completion (notification-triggered) turns exist. A missing
   // or unclosed envelope falls through to the recency-based behavior below.
   if (options?.deliverableTag) {
-    const tagged = extractTaggedDeliverable(
-      assistantMessages,
-      options.deliverableTag,
-    );
+    const tagged = extractTaggedDeliverable(assistantMessages, options.deliverableTag)
     if (tagged) {
-      return { ok: true, textContent: tagged };
+      return { ok: true, textContent: tagged }
     }
   }
 
   // Search assistant messages (newest first) for one with text/reasoning content.
   // The last assistant message may only contain tool calls with no text.
-  let textContent = "";
+  let textContent = ""
   for (const msg of assistantMessages) {
-    const textParts = msg.parts?.filter((p) =>
-      p.type === "text" || p.type === "reasoning"
-    ) ?? [];
-    const content = textParts.map((p) => p.text ?? "").filter(Boolean).join(
-      "\n",
-    );
+    const textParts = msg.parts?.filter((p) => p.type === "text" || p.type === "reasoning") ?? []
+    const content = textParts.map((p) => p.text ?? "").filter(Boolean).join("\n")
     if (content) {
-      textContent = content;
-      break;
+      textContent = content
+      break
     }
   }
 
   if (!textContent) {
     return {
       ok: false,
-      error:
-        `No assistant text output found in completed response.\n\nSession ID: ${sessionID}`,
-    };
+      error: `No assistant text output found in completed response.\n\nSession ID: ${sessionID}`,
+    }
   }
 
-  return { ok: true, textContent };
+  return { ok: true, textContent }
 }

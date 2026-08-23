@@ -14,10 +14,6 @@ async function main(): Promise<void> {
 }
 
 main().catch((error: unknown) => {
-  stderr.write(
-    `${
-      error instanceof Error ? (error.stack ?? error.message) : String(error)
-    }\n`,
-  );
+  stderr.write(`${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`);
   process.exitCode = 1;
 });

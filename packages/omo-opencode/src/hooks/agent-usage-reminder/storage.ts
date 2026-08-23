@@ -2,8 +2,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  unlinkSync,
   writeFileSync,
+  unlinkSync,
 } from "node:fs";
 import { join } from "node:path";
 import { AGENT_USAGE_REMINDER_STORAGE } from "./constants";

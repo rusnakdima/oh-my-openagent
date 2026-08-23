@@ -64,4 +64,4 @@ Re-read and update the synthesis to include new knowledge. Keep concise.
 Add: \`| {today} | ingest | Added [[slug]] from {source} |\`
 
 ### Step 11: Confirm
-Show: pages created, backlinks added, overview updates.`;
+Show: pages created, backlinks added, overview updates.`

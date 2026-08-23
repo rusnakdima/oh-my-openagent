@@ -1,9 +1,6 @@
 import type { CategoryConfig } from "../config/schema";
 import type { FallbackModels } from "../config/schema/fallback-models";
-import {
-  getPrometheusPrompt,
-  PROMETHEUS_PERMISSION,
-} from "../agents/prometheus";
+import { PROMETHEUS_PERMISSION, getPrometheusPrompt } from "../agents/prometheus";
 import { resolvePromptAppend } from "../agents/builtin-agents/resolve-file-uri";
 import { AGENT_MODEL_REQUIREMENTS } from "../shared/model-requirements";
 import type { FallbackEntry } from "../shared/model-requirements";
@@ -39,10 +36,7 @@ export async function buildPrometheusAgentConfig(params: {
   disabledTools?: readonly string[];
 }): Promise<Record<string, unknown>> {
   const categoryConfig = params.pluginPrometheusOverride?.category
-    ? resolveCategoryConfig(
-      params.pluginPrometheusOverride.category,
-      params.userCategories,
-    )
+    ? resolveCategoryConfig(params.pluginPrometheusOverride.category, params.userCategories)
     : undefined;
 
   const requirement = AGENT_MODEL_REQUIREMENTS["prometheus"];
@@ -51,15 +45,13 @@ export async function buildPrometheusAgentConfig(params: {
     connectedProviders: connectedProviders ?? undefined,
   });
 
-  const configuredPrometheusModel = params.pluginPrometheusOverride?.model ??
-    categoryConfig?.model;
+  const configuredPrometheusModel =
+    params.pluginPrometheusOverride?.model ?? categoryConfig?.model;
 
   const modelResolution = resolveModelPipeline({
     intent: {
       // No model restriction — any TUI model is accepted for Prometheus
-      uiSelectedModel: configuredPrometheusModel
-        ? undefined
-        : params.currentModel,
+      uiSelectedModel: configuredPrometheusModel ? undefined : params.currentModel,
       userModel: params.pluginPrometheusOverride?.model ?? params.defaultModel,
       categoryDefaultModel: categoryConfig?.model,
     },
@@ -76,33 +68,26 @@ export async function buildPrometheusAgentConfig(params: {
     const current = params.currentModel;
     if (!current) return undefined;
     const modelParts = current.split("/");
-    const modelName = modelParts.length >= 2
-      ? modelParts.slice(1).join("/")
-      : modelParts[0];
-    return requirement?.fallbackChain.find((entry) => entry.model === modelName)
-      ?.variant;
+    const modelName = modelParts.length >= 2 ? modelParts.slice(1).join("/") : modelParts[0];
+    return requirement?.fallbackChain.find((entry) => entry.model === modelName)?.variant;
   })();
 
-  const variantToUse = params.pluginPrometheusOverride?.variant ??
-    resolvedVariant ?? currentModelVariant;
-  const reasoningToUse = params.pluginPrometheusOverride?.reasoning ??
-    categoryConfig?.reasoning;
+  const variantToUse =
+    params.pluginPrometheusOverride?.variant ?? resolvedVariant ?? currentModelVariant;
+  const reasoningToUse =
+    params.pluginPrometheusOverride?.reasoning ?? categoryConfig?.reasoning;
   const reasoningEffortToUse =
-    params.pluginPrometheusOverride?.reasoningEffort ??
-      categoryConfig?.reasoningEffort;
-  const textVerbosityToUse = params.pluginPrometheusOverride?.textVerbosity ??
-    categoryConfig?.textVerbosity;
-  const thinkingToUse = params.pluginPrometheusOverride?.thinking ??
-    categoryConfig?.thinking;
-  const temperatureToUse = params.pluginPrometheusOverride?.temperature ??
-    categoryConfig?.temperature;
-  const topPToUse = params.pluginPrometheusOverride?.top_p ??
-    categoryConfig?.top_p;
-  const maxTokensToUse = params.pluginPrometheusOverride?.maxTokens ??
-    categoryConfig?.maxTokens;
+    params.pluginPrometheusOverride?.reasoningEffort ?? categoryConfig?.reasoningEffort;
+  const textVerbosityToUse =
+    params.pluginPrometheusOverride?.textVerbosity ?? categoryConfig?.textVerbosity;
+  const thinkingToUse = params.pluginPrometheusOverride?.thinking ?? categoryConfig?.thinking;
+  const temperatureToUse =
+    params.pluginPrometheusOverride?.temperature ?? categoryConfig?.temperature;
+  const topPToUse = params.pluginPrometheusOverride?.top_p ?? categoryConfig?.top_p;
+  const maxTokensToUse =
+    params.pluginPrometheusOverride?.maxTokens ?? categoryConfig?.maxTokens;
   const fallbackModelsToUse =
-    params.pluginPrometheusOverride?.fallback_models ??
-      categoryConfig?.fallback_models;
+    params.pluginPrometheusOverride?.fallback_models ?? categoryConfig?.fallback_models;
 
   const base: Record<string, unknown> = {
     ...(resolvedModel ? { model: resolvedModel } : {}),
@@ -111,18 +96,12 @@ export async function buildPrometheusAgentConfig(params: {
     mode: "primary",
     prompt: getPrometheusPrompt(resolvedModel, params.disabledTools),
     permission: PROMETHEUS_PERMISSION,
-    description: `${
-      (params.configAgentPlan?.description as string) ?? "Plan agent"
-    } (Prometheus - OhMyOpenCode)`,
+    description: `${(params.configAgentPlan?.description as string) ?? "Plan agent"} (Prometheus - OhMyOpenCode)`,
     color: (params.configAgentPlan?.color as string) ?? "#FF5722",
-    ...(temperatureToUse !== undefined
-      ? { temperature: temperatureToUse }
-      : {}),
+    ...(temperatureToUse !== undefined ? { temperature: temperatureToUse } : {}),
     ...(topPToUse !== undefined ? { top_p: topPToUse } : {}),
     ...(maxTokensToUse !== undefined ? { maxTokens: maxTokensToUse } : {}),
-    ...(fallbackModelsToUse !== undefined
-      ? { fallback_models: fallbackModelsToUse }
-      : {}),
+    ...(fallbackModelsToUse !== undefined ? { fallback_models: fallbackModelsToUse } : {}),
     ...(categoryConfig?.tools ? { tools: categoryConfig.tools } : {}),
     ...(thinkingToUse ? { thinking: thinkingToUse } : {}),
     ...(reasoningEffortToUse !== undefined
@@ -141,8 +120,7 @@ export async function buildPrometheusAgentConfig(params: {
   if (typeof merged.prompt === "string") {
     for (const promptAddition of [prompt, prompt_append]) {
       if (promptAddition) {
-        merged.prompt = merged.prompt + "\n" +
-          resolvePromptAppend(promptAddition);
+        merged.prompt = merged.prompt + "\n" + resolvePromptAppend(promptAddition);
       }
     }
   }

@@ -13,8 +13,6 @@ const EXCLUDED_DIR_NAMES = [
   ".vscode-test",
   "target",
   ".local-ignore",
-] as const;
+] as const
 
-export const EXCLUDED_DIRS: ReadonlySet<string> = Object.freeze(
-  new Set<string>(EXCLUDED_DIR_NAMES),
-);
+export const EXCLUDED_DIRS: ReadonlySet<string> = Object.freeze(new Set<string>(EXCLUDED_DIR_NAMES))

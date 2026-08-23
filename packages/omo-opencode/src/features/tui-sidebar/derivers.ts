@@ -1,5 +1,5 @@
-import { MAX_AGENTS, MAX_JOBS } from "./constants";
-import type { TuiRuntimeSnapshot } from "./snapshot-schema";
+import { MAX_AGENTS, MAX_JOBS } from "./constants"
+import type { TuiRuntimeSnapshot } from "./snapshot-schema"
 import type {
   AgentsState,
   ConfigState,
@@ -8,8 +8,8 @@ import type {
   LoopState,
   RosterRow,
   RosterState,
-} from "./state-types";
-import type { BackgroundTaskStatus } from "../background-agent/types";
+} from "./state-types"
+import type { BackgroundTaskStatus } from "../background-agent/types"
 
 const JOB_STATUS_PRIORITY: Record<BackgroundTaskStatus, number> = {
   running: 0,
@@ -18,78 +18,77 @@ const JOB_STATUS_PRIORITY: Record<BackgroundTaskStatus, number> = {
   error: 3,
   cancelled: 4,
   completed: 5,
-};
+}
 
 export function deriveConfig(v: {
-  readonly valid: boolean;
-  readonly messages: readonly string[];
+  readonly valid: boolean
+  readonly messages: readonly string[]
 }): ConfigState {
   if (v.valid) {
-    return { kind: "valid" };
+    return { kind: "valid" }
   }
 
-  return { kind: "invalid", messages: [...v.messages] };
+  return { kind: "invalid", messages: [...v.messages] }
 }
 
 export function deriveRoster(rows: readonly RosterRow[]): RosterState {
   if (rows.length === 0) {
-    return { kind: "empty" };
+    return { kind: "empty" }
   }
 
   return {
     kind: "rows",
     rows: [...rows].sort(compareRosterRows).slice(0, MAX_AGENTS),
-  };
+  }
 }
 
 export function deriveAgents(snap: TuiRuntimeSnapshot | null): AgentsState {
   if (!snap || snap.activeAgents.length === 0) {
-    return { kind: "none" };
+    return { kind: "none" }
   }
 
   return {
     kind: "list",
     agents: [...snap.activeAgents]
       .sort((left, right) => {
-        const nameCmp = left.name.localeCompare(right.name);
-        if (nameCmp !== 0) return nameCmp;
-        const modeCmp = (left.mode ?? "").localeCompare(right.mode ?? "");
-        if (modeCmp !== 0) return modeCmp;
-        return (left.model ?? "").localeCompare(right.model ?? "");
+        const nameCmp = left.name.localeCompare(right.name)
+        if (nameCmp !== 0) return nameCmp
+        const modeCmp = (left.mode ?? "").localeCompare(right.mode ?? "")
+        if (modeCmp !== 0) return modeCmp
+        return (left.model ?? "").localeCompare(right.model ?? "")
       })
       .slice(0, MAX_AGENTS),
-  };
+  }
 }
 
 export function deriveJobBoard(snap: TuiRuntimeSnapshot | null): JobBoardState {
   if (!snap || snap.jobBoard.length === 0) {
-    return { kind: "none" };
+    return { kind: "none" }
   }
 
   return {
     kind: "list",
     jobs: [...snap.jobBoard].sort(compareJobs).slice(0, MAX_JOBS),
-  };
+  }
 }
 
 export function deriveLoop(snap: TuiRuntimeSnapshot | null): LoopState {
-  return snap?.loop ?? { kind: "none" };
+  return snap?.loop ?? { kind: "none" }
 }
 
 function compareRosterRows(left: RosterRow, right: RosterRow): number {
-  const labelCmp = left.label.localeCompare(right.label);
-  if (labelCmp !== 0) return labelCmp;
-  const modeCmp = left.mode.localeCompare(right.mode);
-  if (modeCmp !== 0) return modeCmp;
-  return left.model.localeCompare(right.model);
+  const labelCmp = left.label.localeCompare(right.label)
+  if (labelCmp !== 0) return labelCmp
+  const modeCmp = left.mode.localeCompare(right.mode)
+  if (modeCmp !== 0) return modeCmp
+  return left.model.localeCompare(right.model)
 }
 
 function compareJobs(left: JobRow, right: JobRow): number {
-  const priority = JOB_STATUS_PRIORITY[left.status] -
-    JOB_STATUS_PRIORITY[right.status];
+  const priority = JOB_STATUS_PRIORITY[left.status] - JOB_STATUS_PRIORITY[right.status]
   if (priority !== 0) {
-    return priority;
+    return priority
   }
 
-  return left.title.localeCompare(right.title);
+  return left.title.localeCompare(right.title)
 }

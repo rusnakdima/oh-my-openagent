@@ -1,30 +1,28 @@
 import {
-  flattenToFallbackModelStrings,
-  normalizeFallbackModels,
-  resolveModel,
-  resolveModelWithFallback as resolveModelWithFallbackFromCore,
-} from "@oh-my-opencode/model-core";
+	resolveModel,
+	resolveModelWithFallback as resolveModelWithFallbackFromCore,
+	normalizeFallbackModels,
+	flattenToFallbackModelStrings,
+} from "@oh-my-opencode/model-core"
 import type {
-  ExtendedModelResolutionInput,
-  ModelResolutionInput,
-} from "@oh-my-opencode/model-core";
-import * as connectedProvidersCache from "./connected-providers-cache";
+	ModelResolutionInput,
+	ExtendedModelResolutionInput,
+} from "@oh-my-opencode/model-core"
+import * as connectedProvidersCache from "./connected-providers-cache"
 
-export { flattenToFallbackModelStrings, normalizeFallbackModels, resolveModel };
+export { resolveModel, normalizeFallbackModels, flattenToFallbackModelStrings }
 
-type CoreModelResolutionResult = ReturnType<
-  typeof resolveModelWithFallbackFromCore
->;
-export type ModelResolutionResult = Exclude<
-  CoreModelResolutionResult,
-  undefined
->;
-export type ModelSource = ModelResolutionResult["source"];
+type CoreModelResolutionResult = ReturnType<typeof resolveModelWithFallbackFromCore>
+export type ModelResolutionResult = Exclude<CoreModelResolutionResult, undefined>
+export type ModelSource = ModelResolutionResult["source"]
 
 export function resolveModelWithFallback(
-  input: ExtendedModelResolutionInput,
+	input: ExtendedModelResolutionInput,
 ): CoreModelResolutionResult {
-  return resolveModelWithFallbackFromCore(input, connectedProvidersCache);
+	return resolveModelWithFallbackFromCore(input, connectedProvidersCache)
 }
 
-export type { ExtendedModelResolutionInput, ModelResolutionInput };
+export type {
+	ModelResolutionInput,
+	ExtendedModelResolutionInput,
+}

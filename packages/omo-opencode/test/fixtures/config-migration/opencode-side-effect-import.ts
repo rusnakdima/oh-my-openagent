@@ -1,3 +1,3 @@
-import "@opencode-ai/sdk";
+import "@opencode-ai/sdk"
 
-export {};
+export {}

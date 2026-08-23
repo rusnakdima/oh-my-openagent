@@ -1,64 +1,51 @@
-import {
-  type PluginInput,
-  tool,
-  type ToolDefinition,
-} from "@opencode-ai/plugin";
-import type { BackgroundManager } from "../../features/background-agent";
-import type { BackgroundTaskArgs } from "./types";
-import { BACKGROUND_TASK_DESCRIPTION } from "./constants";
-import { resolveMessageContext } from "../../features/hook-message-injector";
-import { getSessionAgent } from "../../features/claude-code-session-state";
-import { publishToolMetadata } from "../../features/tool-metadata-store";
-import { log } from "../../shared/logger";
-import { delay } from "./delay";
-import { getMessageDir } from "./message-dir";
+import { tool, type PluginInput, type ToolDefinition } from "@opencode-ai/plugin"
+import type { BackgroundManager } from "../../features/background-agent"
+import type { BackgroundTaskArgs } from "./types"
+import { BACKGROUND_TASK_DESCRIPTION } from "./constants"
+import { resolveMessageContext } from "../../features/hook-message-injector"
+import { getSessionAgent } from "../../features/claude-code-session-state"
+import { publishToolMetadata } from "../../features/tool-metadata-store"
+import { log } from "../../shared/logger"
+import { delay } from "./delay"
+import { getMessageDir } from "./message-dir"
 
 type ToolContextWithMetadata = {
-  sessionID: string;
-  messageID: string;
-  agent: string;
-  abort: AbortSignal;
-  metadata?: (
-    input: { title?: string; metadata?: Record<string, unknown> },
-  ) => void;
-  callID?: string;
-};
+  sessionID: string
+  messageID: string
+  agent: string
+  abort: AbortSignal
+  metadata?: (input: { title?: string; metadata?: Record<string, unknown> }) => void
+  callID?: string
+}
 
 export function createBackgroundTask(
   manager: BackgroundManager,
-  client: PluginInput["client"],
+  client: PluginInput["client"]
 ): ToolDefinition {
   return tool({
     description: BACKGROUND_TASK_DESCRIPTION,
     args: {
-      description: tool.schema.string().describe(
-        "Short task description (shown in status)",
-      ),
-      prompt: tool.schema.string().describe(
-        "Full detailed prompt for the agent",
-      ),
-      agent: tool.schema.string().describe(
-        "Agent type to use (any registered agent)",
-      ),
+      description: tool.schema.string().describe("Short task description (shown in status)"),
+      prompt: tool.schema.string().describe("Full detailed prompt for the agent"),
+      agent: tool.schema.string().describe("Agent type to use (any registered agent)"),
     },
     async execute(args: BackgroundTaskArgs, toolContext) {
-      const ctx = toolContext as ToolContextWithMetadata;
+      const ctx = toolContext as ToolContextWithMetadata
 
       if (!args.agent || args.agent.trim() === "") {
-        return `[ERROR] Agent parameter is required. Please specify which agent to use (e.g., "explore", "librarian", "build", etc.)`;
+        return `[ERROR] Agent parameter is required. Please specify which agent to use (e.g., "explore", "librarian", "build", etc.)`
       }
 
       try {
-        const messageDir = getMessageDir(ctx.sessionID);
+        const messageDir = getMessageDir(ctx.sessionID)
         const { prevMessage, firstMessageAgent } = await resolveMessageContext(
           ctx.sessionID,
           client,
-          messageDir,
-        );
+          messageDir
+        )
 
-        const sessionAgent = getSessionAgent(ctx.sessionID);
-        const parentAgent = ctx.agent ?? sessionAgent ?? firstMessageAgent ??
-          prevMessage?.agent;
+        const sessionAgent = getSessionAgent(ctx.sessionID)
+        const parentAgent = ctx.agent ?? sessionAgent ?? firstMessageAgent ?? prevMessage?.agent
 
         log("[background_task] parentAgent resolution", {
           sessionID: ctx.sessionID,
@@ -67,18 +54,16 @@ export function createBackgroundTask(
           firstMessageAgent,
           prevMessageAgent: prevMessage?.agent,
           resolvedParentAgent: parentAgent,
-        });
+        })
 
         const parentModel =
           prevMessage?.model?.providerID && prevMessage?.model?.modelID
             ? {
-              providerID: prevMessage.model.providerID,
-              modelID: prevMessage.model.modelID,
-              ...(prevMessage.model.variant
-                ? { variant: prevMessage.model.variant }
-                : {}),
-            }
-            : undefined;
+                providerID: prevMessage.model.providerID,
+                modelID: prevMessage.model.modelID,
+                ...(prevMessage.model.variant ? { variant: prevMessage.model.variant } : {}),
+              }
+            : undefined
 
         const task = await manager.launch({
           description: args.description,
@@ -88,37 +73,32 @@ export function createBackgroundTask(
           parentMessageId: ctx.messageID,
           parentModel,
           parentAgent,
-        });
+        })
 
-        const WAIT_FOR_SESSION_INTERVAL_MS = 50;
-        const WAIT_FOR_SESSION_TIMEOUT_MS = 30000;
-        const waitStart = Date.now();
-        let sessionId = task.sessionId;
-        while (
-          !sessionId && Date.now() - waitStart < WAIT_FOR_SESSION_TIMEOUT_MS
-        ) {
-          const updated = manager.getTask(task.id);
-          if (
-            updated?.status === "error" || updated?.status === "cancelled" ||
-            updated?.status === "interrupt"
-          ) {
-            return `Task ${`entered error state`}\.\n\nTask ID: ${task.id}`;
+        const WAIT_FOR_SESSION_INTERVAL_MS = 50
+        const WAIT_FOR_SESSION_TIMEOUT_MS = 30000
+        const waitStart = Date.now()
+        let sessionId = task.sessionId
+        while (!sessionId && Date.now() - waitStart < WAIT_FOR_SESSION_TIMEOUT_MS) {
+          const updated = manager.getTask(task.id)
+          if (updated?.status === "error" || updated?.status === "cancelled" || updated?.status === "interrupt") {
+            return `Task ${`entered error state`}\.\n\nTask ID: ${task.id}`
           }
-          sessionId = updated?.sessionId;
+          sessionId = updated?.sessionId
           if (sessionId) {
-            break;
+            break
           }
           if (ctx.abort?.aborted) {
-            break;
+            break
           }
-          await delay(WAIT_FOR_SESSION_INTERVAL_MS);
+          await delay(WAIT_FOR_SESSION_INTERVAL_MS)
         }
 
         // Capture late-arriving sessionId between the wait-loop exit and
         // metadata publish so the OpenCode TUI subagent entry has a navigable
         // target (issue #4252).
         if (!sessionId) {
-          sessionId = manager.getTask(task.id)?.sessionId;
+          sessionId = manager.getTask(task.id)?.sessionId
         }
 
         const bgMeta = {
@@ -126,8 +106,8 @@ export function createBackgroundTask(
           metadata: {
             ...(sessionId ? { sessionId } : {}),
           },
-        };
-        await publishToolMetadata(ctx, bgMeta);
+        }
+        await publishToolMetadata(ctx, bgMeta)
 
         return `Background task launched successfully.
 
@@ -137,11 +117,11 @@ Description: ${task.description}
 Agent: ${task.agent}
 Status: ${task.status}
 
-Do NOT call background_output now. Wait for <system-reminder> notification first. The system will deliver the result when the task completes; you do not need to poll for it.`;
+Do NOT call background_output now. Wait for <system-reminder> notification first. The system will deliver the result when the task completes; you do not need to poll for it.`
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return `[ERROR] Failed to launch background task: ${message}`;
+        const message = error instanceof Error ? error.message : String(error)
+        return `[ERROR] Failed to launch background task: ${message}`
       }
     },
-  });
+  })
 }

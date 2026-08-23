@@ -1,6 +1,6 @@
-import type { ToolsRecord } from "./types";
+import type { ToolsRecord } from "./types"
 
-import { log } from "../shared";
+import { log } from "../shared"
 
 const LOW_PRIORITY_TOOL_ORDER = [
   "session_list",
@@ -28,40 +28,31 @@ const LOW_PRIORITY_TOOL_ORDER = [
   "lsp_goto_definition",
   "lsp_symbols",
   "lsp_diagnostics",
-] as const;
+] as const
 
-export function trimToolsToCap(
-  filteredTools: ToolsRecord,
-  maxTools: number,
-): void {
-  const toolNames = Object.keys(filteredTools);
-  if (toolNames.length <= maxTools) return;
+export function trimToolsToCap(filteredTools: ToolsRecord, maxTools: number): void {
+  const toolNames = Object.keys(filteredTools)
+  if (toolNames.length <= maxTools) return
 
   const removableToolNames = [
-    ...LOW_PRIORITY_TOOL_ORDER.filter((toolName) =>
-      toolNames.includes(toolName)
-    ),
+    ...LOW_PRIORITY_TOOL_ORDER.filter((toolName) => toolNames.includes(toolName)),
     ...toolNames
-      .filter((toolName) =>
-        !LOW_PRIORITY_TOOL_ORDER.includes(
-          toolName as (typeof LOW_PRIORITY_TOOL_ORDER)[number],
-        )
-      )
+      .filter((toolName) => !LOW_PRIORITY_TOOL_ORDER.includes(toolName as (typeof LOW_PRIORITY_TOOL_ORDER)[number]))
       .sort(),
-  ];
+  ]
 
-  let currentCount = toolNames.length;
-  let removed = 0;
+  let currentCount = toolNames.length
+  let removed = 0
 
   for (const toolName of removableToolNames) {
-    if (currentCount <= maxTools) break;
-    if (!filteredTools[toolName]) continue;
-    delete filteredTools[toolName];
-    currentCount -= 1;
-    removed += 1;
+    if (currentCount <= maxTools) break
+    if (!filteredTools[toolName]) continue
+    delete filteredTools[toolName]
+    currentCount -= 1
+    removed += 1
   }
 
   log(
     `[tool-registry] Trimmed ${removed} tools to satisfy max_tools=${maxTools}. Final plugin tool count=${currentCount}.`,
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import type { AgentDefinition } from "../types";
+import type { AgentDefinition } from "../types"
 
 // Ported and senpi-adapted from packages/omo-opencode/src/agents/explore.ts.
 // Adaptation: opencode file tools remapped to senpi builtins (glob -> find); lsp_* names kept verbatim.
@@ -8,8 +8,7 @@ export const EXPLORE_AGENT: AgentDefinition = {
     'Contextual grep for codebases. Answers "Where is X?", "Which file has Y?", "Find the code that does Z". Fire multiple in parallel for broad searches. Specify thoroughness: "quick" for basic, "medium" for moderate, "very thorough" for comprehensive analysis.',
   mode: "subagent",
   executionMode: "in-process",
-  prompt:
-    `You are a codebase search specialist. Your job: find files and code, return actionable results.
+  prompt: `You are a codebase search specialist. Your job: find files and code, return actionable results.
 
 ## Your Mission
 
@@ -97,4 +96,4 @@ Flood with parallel calls. Cross-validate findings across multiple tools.`,
     { pattern: "lsp_find_references", allow: true },
     { pattern: "lsp_symbols", allow: true },
   ],
-};
+}

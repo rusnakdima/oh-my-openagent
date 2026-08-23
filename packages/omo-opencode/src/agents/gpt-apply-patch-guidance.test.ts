@@ -1,12 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import {
-  createHephaestusAgent,
-  UnsupportedHephaestusModelError,
-} from "./hephaestus";
-import { maybeCreateHephaestusConfig } from "./builtin-agents/hephaestus-agent";
-import type { AgentOverrides } from "./types";
-import type { CategoryConfig } from "../config/schema";
+import { createHephaestusAgent, UnsupportedHephaestusModelError } from "./hephaestus"
+import { maybeCreateHephaestusConfig } from "./builtin-agents/hephaestus-agent"
+import type { AgentOverrides } from "./types"
+import type { CategoryConfig } from "../config/schema"
+
+
 
 describe("Hephaestus model eligibility", () => {
   test("#given non-GPT Hephaestus variants #when rendering prompts #then Hephaestus is rejected", () => {
@@ -18,16 +17,16 @@ describe("Hephaestus model eligibility", () => {
       "bailian-coding-plan/qwen3.7PLUS",
       "Qwen3.7PLUS",
       "opencode-go/qwen3.5-plus",
-    ];
+    ]
 
     for (const model of models) {
       // when
-      const createAgent = () => createHephaestusAgent(model);
+      const createAgent = () => createHephaestusAgent(model)
 
       // then
-      expect(createAgent).toThrow(UnsupportedHephaestusModelError);
+      expect(createAgent).toThrow(UnsupportedHephaestusModelError)
     }
-  });
+  })
 
   test("#given non-GPT Hephaestus override #when plugin config creates the agent #then Hephaestus is not registered", () => {
     // given
@@ -35,8 +34,8 @@ describe("Hephaestus model eligibility", () => {
       hephaestus: {
         model: "opencode-go/qwen3.7PLUS",
       },
-    };
-    const mergedCategories: Record<string, CategoryConfig> = {};
+    }
+    const mergedCategories: Record<string, CategoryConfig> = {}
 
     // when
     const config = maybeCreateHephaestusConfig({
@@ -50,9 +49,9 @@ describe("Hephaestus model eligibility", () => {
       availableCategories: [],
       mergedCategories,
       useTaskSystem: false,
-    });
+    })
 
     // then
-    expect(config).toBeUndefined();
-  });
-});
+    expect(config).toBeUndefined()
+  })
+})

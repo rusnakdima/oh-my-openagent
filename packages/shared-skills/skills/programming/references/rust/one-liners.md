@@ -1,8 +1,6 @@
 # One-Liners and Disposable Scripts
 
-Production hygiene with throwaway ergonomics. Rust scripts get the same strict
-lints, the same miri rule when `unsafe` is touched, the same type discipline.
-The difference is dependency declaration lives inline.
+Production hygiene with throwaway ergonomics. Rust scripts get the same strict lints, the same miri rule when `unsafe` is touched, the same type discipline. The difference is dependency declaration lives inline.
 
 ## `rust-script` — the recommended path
 
@@ -14,7 +12,7 @@ cargo install rust-script
 
 Write a script:
 
-````rust
+```rust
 #!/usr/bin/env rust-script
 //! Fetch a URL and print its body length.
 //!
@@ -35,16 +33,15 @@ fn main() -> anyhow::Result<()> {
     println!("{} bytes", body.len());
     Ok(())
 }
-````
+```
 
 Make executable: `chmod +x fetch.rs`. Run: `./fetch.rs https://example.com`.
 
-The `//! \`\`\`cargo`block is parsed as inline`Cargo.toml`. Everything else is
-normal Rust.
+The `//! \`\`\`cargo` block is parsed as inline `Cargo.toml`. Everything else is normal Rust.
 
 ## With async
 
-````rust
+```rust
 #!/usr/bin/env rust-script
 //! ```cargo
 //! [dependencies]
@@ -72,11 +69,11 @@ async fn main() -> anyhow::Result<()> {
     }
     Ok(())
 }
-````
+```
 
 ## With CLI parsing
 
-````rust
+```rust
 #!/usr/bin/env rust-script
 //! ```cargo
 //! [dependencies]
@@ -111,12 +108,11 @@ fn main() -> anyhow::Result<()> {
     }
     Ok(())
 }
-````
+```
 
 ## Caching
 
-`rust-script` caches the compiled binary in `~/.cache/rust-script/`. First run
-is slow (full compile), subsequent runs are instant.
+`rust-script` caches the compiled binary in `~/.cache/rust-script/`. First run is slow (full compile), subsequent runs are instant.
 
 To clear: `rust-script --clear-cache`.
 
@@ -130,8 +126,7 @@ This drops a `target/` next to the script with the prebuilt binary.
 
 ## `cargo-script` (RFC 3424, stable since Rust 1.85)
 
-The official replacement that landed in cargo proper. Same idea, slightly
-different syntax:
+The official replacement that landed in cargo proper. Same idea, slightly different syntax:
 
 ```rust
 #!/usr/bin/env -S cargo +nightly -Zscript
@@ -152,15 +147,13 @@ fn main() -> anyhow::Result<()> {
 }
 ```
 
-Status as of 2026-05: stabilization in progress. Use `rust-script` for
-production now, migrate when `cargo script` is stable everywhere your tools
-live.
+Status as of 2026-05: stabilization in progress. Use `rust-script` for production now, migrate when `cargo script` is stable everywhere your tools live.
 
 ## Strict mode for scripts
 
 Add a lints block in the inline `Cargo.toml`:
 
-````rust
+```rust
 //! ```cargo
 //! [dependencies]
 //! anyhow = "1"
@@ -175,11 +168,9 @@ Add a lints block in the inline `Cargo.toml`:
 //! expect_used = "deny"
 //! panic = "deny"
 //! ```
-````
+```
 
-Now the script gets the same strictness as the main project. If you need a
-one-line `unwrap()` for prototype velocity, switch the lint to `warn` for that
-one script - never blanket `allow`.
+Now the script gets the same strictness as the main project. If you need a one-line `unwrap()` for prototype velocity, switch the lint to `warn` for that one script - never blanket `allow`.
 
 Run with lints visible:
 
@@ -189,20 +180,16 @@ RUSTFLAGS="-D warnings" rust-script ./script.rs
 
 ## When NOT to use a script
 
-- It is going to live longer than a week → make it a real crate with
-  `cargo new --bin`.
+- It is going to live longer than a week → make it a real crate with `cargo new --bin`.
 - It needs custom build scripts (`build.rs`) → real crate.
 - It needs binary distribution to other machines → real crate with `cargo dist`.
-- It needs to be tested → real crate (scripts can technically run `#[test]`s
-  under `cargo test`, but the workflow is awkward).
+- It needs to be tested → real crate (scripts can technically run `#[test]`s under `cargo test`, but the workflow is awkward).
 
-A reasonable migration path: start as a script, when complexity grows past ~200
-lines or you reach for a second `.rs` file, run `rust-script --emit ./script.rs`
-to dump a regular Cargo project skeleton and continue from there.
+A reasonable migration path: start as a script, when complexity grows past ~200 lines or you reach for a second `.rs` file, run `rust-script --emit ./script.rs` to dump a regular Cargo project skeleton and continue from there.
 
 ## Inline tests in a script
 
-````rust
+```rust
 #!/usr/bin/env rust-script
 //! ```cargo
 //! [dependencies]
@@ -223,7 +210,7 @@ mod tests {
         assert_eq!(double(5), 10);
     }
 }
-````
+```
 
 Run tests: `rust-script --test ./script.rs`.
 
@@ -231,7 +218,7 @@ Run tests: `rust-script --test ./script.rs`.
 
 For ad-hoc data processing on stdin:
 
-````rust
+```rust
 #!/usr/bin/env rust-script
 //! ```cargo
 //! [dependencies]
@@ -255,10 +242,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     Ok(())
 }
-````
+```
 
-`cat logs.jsonl | ./filter-errors.rs` — filter JSON logs by `level == "error"`.
-Faster than `jq` for big files, type-safe.
+`cat logs.jsonl | ./filter-errors.rs` — filter JSON logs by `level == "error"`. Faster than `jq` for big files, type-safe.
 
 For numerics:
 
@@ -283,32 +269,23 @@ macOS does not support multi-arg shebangs without `env -S`. Use:
 #!/usr/bin/env -S rust-script --
 ```
 
-The `--` lets clap-style argument parsers see the user's args, not the
-rust-script arguments.
+The `--` lets clap-style argument parsers see the user's args, not the rust-script arguments.
 
 ## Editor support
 
-VS Code / Helix / Vim with `rust-analyzer`: open the script file as if it were
-`src/main.rs` of an inferred crate. Most editors auto-detect the inline
-manifest. If not, hand-create a `Cargo.toml` next to the script with matching
-deps for the duration of editing, then delete it.
+VS Code / Helix / Vim with `rust-analyzer`: open the script file as if it were `src/main.rs` of an inferred crate. Most editors auto-detect the inline manifest. If not, hand-create a `Cargo.toml` next to the script with matching deps for the duration of editing, then delete it.
 
 ## When `rust-script` is too heavy
 
-For absolutely throwaway "one expression on stdin" use cases, a Rust REPL like
-`evcxr_jupyter` (Jupyter kernel) or `irust` (terminal REPL) is more appropriate:
+For absolutely throwaway "one expression on stdin" use cases, a Rust REPL like `evcxr_jupyter` (Jupyter kernel) or `irust` (terminal REPL) is more appropriate:
 
 ```bash
 cargo install irust
 irust
 ```
 
-But these are interactive playgrounds, not scriptable. For shell pipelines, stay
-with `rust-script`.
+But these are interactive playgrounds, not scriptable. For shell pipelines, stay with `rust-script`.
 
 ## The Promise
 
-Same strict lints. Same `clippy::pedantic` enforcement. Same
-`unsafe`-requires-SAFETY rule. The agent does not get a free pass on a 30-line
-script. The whole point of strict scripts is that **production hygiene is cheap
-when the toolchain enforces it**.
+Same strict lints. Same `clippy::pedantic` enforcement. Same `unsafe`-requires-SAFETY rule. The agent does not get a free pass on a 30-line script. The whole point of strict scripts is that **production hygiene is cheap when the toolchain enforces it**.

@@ -16,8 +16,7 @@ Conventions for human contributors and AI agents working on this repository.
 - No `@ts-ignore` or `@ts-expect-error`.
 - No enums.
 - No non-null assertions.
-- No default exports. `vitest.config.ts` is exempt because the framework
-  requires that shape.
+- No default exports. `vitest.config.ts` is exempt because the framework requires that shape.
 
 ## File Ceiling
 
@@ -26,8 +25,7 @@ Conventions for human contributors and AI agents working on this repository.
 
 ## Test Discipline
 
-- Use Vitest with nested `describe` names in `#given`, `#when`, and `#then`
-  form, or inline `// given`, `// when`, and `// then` comments.
+- Use Vitest with nested `describe` names in `#given`, `#when`, and `#then` form, or inline `// given`, `// when`, and `// then` comments.
 - Never use Arrange-Act-Assert comments.
 - Keep fixtures in `test/fixtures/`.
 
@@ -47,6 +45,4 @@ Conventions for human contributors and AI agents working on this repository.
 ## Build and Hooks
 
 - Build output goes to `dist/`.
-- `hooks/hooks.json` wires `hook user-prompt-submit --with-ultrawork`
-  (UserPromptSubmit), `hook pre-tool-use` (create_goal budget),
-  `hook pre-tool-use-spawn` (spawn guards), and `hook stop` (auto-resume).
+- `hooks/hooks.json` wires `hook user-prompt-submit --with-ultrawork` (UserPromptSubmit), `hook pre-tool-use` (create_goal budget), `hook pre-tool-use-spawn` (spawn guards), and `hook stop` (auto-resume).

@@ -6,8 +6,7 @@ Typed errors, exhaustive matching, union returns, and resource safety.
 
 ## Typed errors — no bare strings
 
-Error types carry structured data. Pattern matching works. Callers know exactly
-what can go wrong.
+Error types carry structured data. Pattern matching works. Callers know exactly what can go wrong.
 
 ```python
 from dataclasses import dataclass
@@ -31,9 +30,7 @@ class PermissionDeniedError(Exception):
         return f"user {self.user_id} needs role {self.required_role}"
 ```
 
-**`__str__` is mandatory** on dataclass exceptions. `@dataclass` replaces
-`Exception.__init__`, so `self.args` is always `()`. Without `__str__`, `str(e)`
-returns an empty string and logging/monitoring breaks.
+**`__str__` is mandatory** on dataclass exceptions. `@dataclass` replaces `Exception.__init__`, so `self.args` is always `()`. Without `__str__`, `str(e)` returns an empty string and logging/monitoring breaks.
 
 ```python
 # BAD
@@ -49,9 +46,7 @@ raise PermissionDeniedError(user_id=uid, required_role="admin")
 
 ## Union returns — expected failures without exceptions
 
-For failures that are **expected** (not found, validation error, permission
-denied), return a union instead of raising. Exceptions are for **unexpected**
-failures (network down, OOM, corrupted data).
+For failures that are **expected** (not found, validation error, permission denied), return a union instead of raising. Exceptions are for **unexpected** failures (network down, OOM, corrupted data).
 
 ### Define the outcome types
 
@@ -90,25 +85,21 @@ def handle_result(result: GetUserResult) -> str:
             assert_never(unreachable)
 ```
 
-`assert_never` in the default case: if you add a new variant to `GetUserResult`
-without handling it here, the type checker errors. No silent fall-through.
+`assert_never` in the default case: if you add a new variant to `GetUserResult` without handling it here, the type checker errors. No silent fall-through.
 
 ### When to use which
 
-**The heuristic**: caller is 1-2 levels away and MUST handle it → union return.
-Error should propagate up many layers to a boundary → exception.
+**The heuristic**: caller is 1-2 levels away and MUST handle it → union return. Error should propagate up many layers to a boundary → exception.
 
-| Scenario                                 | Pattern                               | Why                                                           |
-| ---------------------------------------- | ------------------------------------- | ------------------------------------------------------------- |
-| Repository → service (caller handles it) | Union return (`User \| UserNotFound`) | Caller is right there, must handle both                       |
-| Validation at boundary (parsing input)   | Exception (typed, with fields)        | Propagates up to HTTP/CLI handler                             |
-| Infrastructure failure (network, OOM)    | Exception                             | Can't handle locally, must propagate                          |
-| Service → service (deep internal)        | Exception (typed)                     | Union boilerplate across many layers is worse than exceptions |
-| HTTP handler → response                  | Catch exceptions, convert to response | Boundary code catches and translates                          |
+| Scenario | Pattern | Why |
+|---|---|---|
+| Repository → service (caller handles it) | Union return (`User \| UserNotFound`) | Caller is right there, must handle both |
+| Validation at boundary (parsing input) | Exception (typed, with fields) | Propagates up to HTTP/CLI handler |
+| Infrastructure failure (network, OOM) | Exception | Can't handle locally, must propagate |
+| Service → service (deep internal) | Exception (typed) | Union boilerplate across many layers is worse than exceptions |
+| HTTP handler → response | Catch exceptions, convert to response | Boundary code catches and translates |
 
-**Practical tradeoff**: union returns are safest (type checker forces handling)
-but create boilerplate when every caller in a chain must `match`. If the error
-would just propagate through 3+ layers unchanged, use a typed exception instead.
+**Practical tradeoff**: union returns are safest (type checker forces handling) but create boilerplate when every caller in a chain must `match`. If the error would just propagate through 3+ layers unchanged, use a typed exception instead.
 
 ---
 
@@ -137,15 +128,13 @@ def describe(status: Status) -> str:
             assert_never(unreachable)
 ```
 
-Add a new enum member? The type checker tells you every `match` that needs
-updating.
+Add a new enum member? The type checker tells you every `match` that needs updating.
 
 ---
 
 ## Context managers — resource safety
 
-If it has `.close()`, `.shutdown()`, `.disconnect()`, or `.release()`, wrap it
-in `with`.
+If it has `.close()`, `.shutdown()`, `.disconnect()`, or `.release()`, wrap it in `with`.
 
 ```python
 # BAD
@@ -218,15 +207,12 @@ class ConflictError(AppError):
         return f"{self.entity}.{self.field} = {self.value!r} already exists"
 ```
 
-Callers catch `AppError` at the boundary, or specific subtypes where they can do
-something useful.
+Callers catch `AppError` at the boundary, or specific subtypes where they can do something useful.
 
 ---
 
 ## Sources
 
-- Python docs:
-  [typing — assert_never](https://docs.python.org/3/library/typing.html#typing.assert_never)
+- Python docs: [typing — assert_never](https://docs.python.org/3/library/typing.html#typing.assert_never)
 - Python docs: [contextlib](https://docs.python.org/3/library/contextlib.html)
-- Python docs:
-  [match statement](https://docs.python.org/3/reference/compound_stmts.html#the-match-statement)
+- Python docs: [match statement](https://docs.python.org/3/reference/compound_stmts.html#the-match-statement)

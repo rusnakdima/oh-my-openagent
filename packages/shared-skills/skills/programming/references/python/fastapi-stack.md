@@ -1,7 +1,6 @@
 # FastAPI + SQLAlchemy 2.x async + Postgres + Pydantic v2
 
-The canonical web API stack. Async end-to-end, type-safe end-to-end,
-OpenAPI-generated end-to-end.
+The canonical web API stack. Async end-to-end, type-safe end-to-end, OpenAPI-generated end-to-end.
 
 ## Project layout
 
@@ -34,11 +33,7 @@ uv add fastapi 'sqlalchemy[asyncio]>=2.0' asyncpg 'pydantic[email]>=2' pydantic-
 uv add --dev httpx pytest alembic
 ```
 
-`orjson` is mandatory: set `default_response_class=ORJSONResponse` on the
-FastAPI app. Pydantic-typed responses bypass it (Pydantic v2's `model_dump_json`
-is already Rust-backed); raw `dict` / `list` returns are accelerated. For SSE /
-NDJSON streams, call `orjson.dumps(...)` per chunk inside `StreamingResponse`.
-See `orjson-stack.md` for the decision tree, flag reference, and benchmarks.
+`orjson` is mandatory: set `default_response_class=ORJSONResponse` on the FastAPI app. Pydantic-typed responses bypass it (Pydantic v2's `model_dump_json` is already Rust-backed); raw `dict` / `list` returns are accelerated. For SSE / NDJSON streams, call `orjson.dumps(...)` per chunk inside `StreamingResponse`. See `orjson-stack.md` for the decision tree, flag reference, and benchmarks.
 
 ## Configuration (`config.py`)
 
@@ -62,8 +57,7 @@ def get_settings() -> Settings:
     return Settings()  # type: ignore[call-arg]  # pydantic populates from env
 ```
 
-Wait — that comment violates the no-excuse rule. Use proper field defaults
-instead. Real version:
+Wait — that comment violates the no-excuse rule. Use proper field defaults instead. Real version:
 
 ```python
 class Settings(BaseSettings):
@@ -73,8 +67,7 @@ class Settings(BaseSettings):
     cors_origins: list[str] = Field(default_factory=list)
 ```
 
-Construct via `Settings(_env_file=".env")` if needed in tests; in production it
-reads from env.
+Construct via `Settings(_env_file=".env")` if needed in tests; in production it reads from env.
 
 ## Database (`db.py`)
 
@@ -114,8 +107,7 @@ async def get_session() -> AsyncIterator[AsyncSession]:
 SessionDep = Annotated[AsyncSession, Depends(get_session)]
 ```
 
-`expire_on_commit=False` is essential for FastAPI - otherwise attribute access
-after commit triggers an implicit refresh and errors out under async.
+`expire_on_commit=False` is essential for FastAPI - otherwise attribute access after commit triggers an implicit refresh and errors out under async.
 
 ## Models (`models.py`)
 
@@ -147,9 +139,7 @@ class User(Base):
     )
 ```
 
-`MappedAsDataclass` makes `User(email=..., name=...)` work as a real dataclass
-constructor. `init=False` excludes the auto-generated columns (`id`,
-`created_at`) from `__init__`.
+`MappedAsDataclass` makes `User(email=..., name=...)` work as a real dataclass constructor. `init=False` excludes the auto-generated columns (`id`, `created_at`) from `__init__`.
 
 ## Schemas (`schemas.py`)
 
@@ -172,8 +162,7 @@ class UserRead(BaseModel):
     created_at: datetime
 ```
 
-Always have a separate `*Create` (input) and `*Read` (output) model. Never
-expose your ORM model as the API model.
+Always have a separate `*Create` (input) and `*Read` (output) model. Never expose your ORM model as the API model.
 
 ## Routers (`routers/users.py`)
 
@@ -266,8 +255,7 @@ from myapi.models import Base
 target_metadata = Base.metadata
 ```
 
-Set `sqlalchemy.url` in `alembic.ini` to your async URL or override via
-`env.py`:
+Set `sqlalchemy.url` in `alembic.ini` to your async URL or override via `env.py`:
 
 ```python
 from myapi.config import get_settings
@@ -305,30 +293,24 @@ async def test_create_and_get_user() -> None:
         assert get_response.json()["email"] == "alice@example.com"
 ```
 
-For database-backed tests, run a Postgres container in CI
-(`testcontainers-python` or `docker-compose`) and apply migrations against a
-test schema. SQLite-as-test-db breaks once you use Postgres-specific types
-(`JSONB`, `tsvector`, arrays).
+For database-backed tests, run a Postgres container in CI (`testcontainers-python` or `docker-compose`) and apply migrations against a test schema. SQLite-as-test-db breaks once you use Postgres-specific types (`JSONB`, `tsvector`, arrays).
 
 ## Common pitfalls
 
-| Pitfall                                                                                            | Fix                                                                                                          |
-| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `MissingGreenlet` exception when accessing relationships after commit                              | `expire_on_commit=False` on the session factory                                                              |
-| Connection pool exhausted under load                                                               | Set `pool_size`, `max_overflow` in `create_async_engine`                                                     |
-| Pydantic v1 syntax (`from pydantic import ...; class X(BaseModel): class Config: orm_mode = True`) | v2 uses `model_config = ConfigDict(from_attributes=True)`                                                    |
-| Returning ORM objects without `response_model`                                                     | FastAPI serialises with `from_attributes=True` automatically; declare `response_model` so OpenAPI is correct |
-| `await session.execute(...)` returning Sequence                                                    | Wrap with `list(result.scalars().all())` to satisfy strict types                                             |
-| `func.now()` returning naive datetime                                                              | Use `DateTime(timezone=True)` and `created_at: Mapped[datetime]` with `UTC`-aware default                    |
+| Pitfall | Fix |
+|---|---|
+| `MissingGreenlet` exception when accessing relationships after commit | `expire_on_commit=False` on the session factory |
+| Connection pool exhausted under load | Set `pool_size`, `max_overflow` in `create_async_engine` |
+| Pydantic v1 syntax (`from pydantic import ...; class X(BaseModel): class Config: orm_mode = True`) | v2 uses `model_config = ConfigDict(from_attributes=True)` |
+| Returning ORM objects without `response_model` | FastAPI serialises with `from_attributes=True` automatically; declare `response_model` so OpenAPI is correct |
+| `await session.execute(...)` returning Sequence | Wrap with `list(result.scalars().all())` to satisfy strict types |
+| `func.now()` returning naive datetime | Use `DateTime(timezone=True)` and `created_at: Mapped[datetime]` with `UTC`-aware default |
 
 ## Sources
 
 - FastAPI: <https://fastapi.tiangolo.com>
-- SQLAlchemy 2.x async:
-  <https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html>
-- SQLAlchemy MappedAsDataclass:
-  <https://docs.sqlalchemy.org/en/20/orm/dataclasses.html>
+- SQLAlchemy 2.x async: <https://docs.sqlalchemy.org/en/20/orm/extensions/asyncio.html>
+- SQLAlchemy MappedAsDataclass: <https://docs.sqlalchemy.org/en/20/orm/dataclasses.html>
 - asyncpg: <https://magicstack.github.io/asyncpg/current/>
 - Pydantic v2 migration: <https://docs.pydantic.dev/latest/migration/>
-- Alembic async:
-  <https://alembic.sqlalchemy.org/en/latest/cookbook.html#using-asyncio-with-alembic>
+- Alembic async: <https://alembic.sqlalchemy.org/en/latest/cookbook.html#using-asyncio-with-alembic>

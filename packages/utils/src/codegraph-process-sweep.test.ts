@@ -1,108 +1,89 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, it } from "bun:test"
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import {
-  discoverCodegraphOwnedRoots,
   parsePosixProcessTable,
   selectZombieCodegraphProcesses,
-} from "./codegraph/process-sweep";
+  discoverCodegraphOwnedRoots,
+} from "./codegraph/process-sweep"
 
 describe("CodeGraph zombie process selection", () => {
   it("#given orphaned OMO-owned CodeGraph commands #when selecting zombies #then ppid-one and dead-parent matches are returned", () => {
     // given
-    const omoRoot = "/tmp/omo-owned-plugin";
-    const orphanedServe =
-      `${process.execPath} ${omoRoot}/components/codegraph/dist/serve.js`;
-    const deadParentCodegraph =
-      `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`;
-    const liveParentCodegraph =
-      `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`;
-    const outsideRoot =
-      `${process.execPath} /tmp/not-omo/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`;
+    const omoRoot = "/tmp/omo-owned-plugin"
+    const orphanedServe = `${process.execPath} ${omoRoot}/components/codegraph/dist/serve.js`
+    const deadParentCodegraph = `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`
+    const liveParentCodegraph = `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`
+    const outsideRoot = `${process.execPath} /tmp/not-omo/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`
     const processes = [
       { command: "codex app-server", pid: 200, ppid: 1 },
       { command: orphanedServe, pid: 301, ppid: 1 },
       { command: deadParentCodegraph, pid: 302, ppid: 9999 },
       { command: liveParentCodegraph, pid: 303, ppid: 200 },
       { command: outsideRoot, pid: 304, ppid: 1 },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "linux" })
 
     // then
-    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([301, 302]);
-  });
+    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([301, 302])
+  })
 
   it("#given a Windows-shaped owned root #when selecting Windows zombies #then platform-specific root resolution is used", () => {
     // given
-    const omoRoot =
-      "C:\\Users\\runner\\.codex\\plugins\\cache\\sisyphuslabs\\omo\\4.15.1";
+    const omoRoot = "C:\\Users\\runner\\.codex\\plugins\\cache\\sisyphuslabs\\omo\\4.15.1"
     const processes = [
       {
-        command:
-          `${process.execPath} ${omoRoot}\\components\\codegraph\\dist\\serve.js`,
+        command: `${process.execPath} ${omoRoot}\\components\\codegraph\\dist\\serve.js`,
         pid: 305,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "win32",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "win32" })
 
     // then
-    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([305]);
-  });
+    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([305])
+  })
 
   it("#given a sibling path shares an OMO root prefix #when selecting zombies #then the sibling is ignored", () => {
     // given
-    const omoRoot = "/tmp/omo";
-    const siblingRoot = "/tmp/omo-evil";
-    const versionRoot = "/tmp/codex/plugins/cache/sisyphuslabs/omo/4.15.1";
-    const siblingVersionRoot =
-      "/tmp/codex/plugins/cache/sisyphuslabs/omo/4.15.10";
+    const omoRoot = "/tmp/omo"
+    const siblingRoot = "/tmp/omo-evil"
+    const versionRoot = "/tmp/codex/plugins/cache/sisyphuslabs/omo/4.15.1"
+    const siblingVersionRoot = "/tmp/codex/plugins/cache/sisyphuslabs/omo/4.15.10"
     const processes = [
       {
-        command:
-          `${process.execPath} ${siblingRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
+        command: `${process.execPath} ${siblingRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
         pid: 311,
         ppid: 1,
       },
       {
-        command:
-          `${process.execPath} ${siblingVersionRoot}/components/codegraph/dist/serve.js`,
+        command: `${process.execPath} ${siblingVersionRoot}/components/codegraph/dist/serve.js`,
         pid: 312,
         ppid: 1,
       },
       {
-        command:
-          `${process.execPath} ${versionRoot}/components/codegraph/dist/serve.js`,
+        command: `${process.execPath} ${versionRoot}/components/codegraph/dist/serve.js`,
         pid: 313,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot, versionRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot, versionRoot], platform: "linux" })
 
     // then
-    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([313]);
-  });
+    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([313])
+  })
 
   it("#given an owned root appears in a different argument #when the upstream binary is outside that root #then it is ignored", () => {
     // given
-    const omoRoot = "/tmp/omo";
+    const omoRoot = "/tmp/omo"
     const processes = [
       {
         command: [
@@ -117,28 +98,23 @@ describe("CodeGraph zombie process selection", () => {
         ppid: 1,
       },
       {
-        command:
-          `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
+        command: `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
         pid: 322,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "linux" })
 
     // then
-    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([322]);
-  });
+    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([322])
+  })
 
   it("#given an upstream package path is only a data argument #when selecting zombies #then it is ignored", () => {
     // given
-    const omoRoot = "/tmp/omo";
-    const upstreamPath =
-      `${omoRoot}/node_modules/@colbymchenry/codegraph/README.md`;
+    const omoRoot = "/tmp/omo"
+    const upstreamPath = `${omoRoot}/node_modules/@colbymchenry/codegraph/README.md`
     const processes = [
       {
         command: `/usr/bin/python3 /tmp/tool.py --template ${upstreamPath}`,
@@ -146,27 +122,23 @@ describe("CodeGraph zombie process selection", () => {
         ppid: 1,
       },
       {
-        command:
-          `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
+        command: `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
         pid: 324,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "linux" })
 
     // then
-    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([324]);
-  });
+    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([324])
+  })
 
   it("#given a command only mentions the serve wrapper path #when selecting zombies #then it is ignored", () => {
     // given
-    const omoRoot = "/tmp/omo";
-    const serveWrapper = `${omoRoot}/components/codegraph/dist/serve.js`;
+    const omoRoot = "/tmp/omo"
+    const serveWrapper = `${omoRoot}/components/codegraph/dist/serve.js`
     const processes = [
       {
         command: `/usr/bin/python3 /tmp/tool.py --template ${serveWrapper}`,
@@ -183,36 +155,29 @@ describe("CodeGraph zombie process selection", () => {
         pid: 333,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "linux" })
 
     // then
-    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([333]);
-  });
+    expect(zombies.map((processInfo) => processInfo.pid)).toEqual([333])
+  })
 
   it("#given a detached upstream daemon with a --path argument #when selecting zombies #then it is matched as daemon-shaped with the project root extracted", () => {
     // given
-    const omoRoot = "/tmp/omo";
-    const projectRoot = "/tmp/proj-a";
+    const omoRoot = "/tmp/omo"
+    const projectRoot = "/tmp/proj-a"
     const processes = [
       {
-        command:
-          `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp --path ${projectRoot}`,
+        command: `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp --path ${projectRoot}`,
         pid: 341,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "linux" })
 
     // then
     expect(zombies).toEqual([
@@ -224,118 +189,85 @@ describe("CodeGraph zombie process selection", () => {
         pid: 341,
         ppid: 1,
       },
-    ]);
-  });
+    ])
+  })
 
   it("#given provisioned standalone daemon shapes #when selecting zombies #then both launcher and post-exec bundle forms are daemon-shaped", () => {
     // given
-    const installDir = "/tmp/omo-install";
-    const projectRoot = "/tmp/proj-b";
-    const launcher =
-      `${installDir}/bin/codegraph serve --mcp --path ${projectRoot}`;
-    const bundle =
-      `${installDir}/node --liftoff-only ${installDir}/lib/dist/bin/codegraph.js serve --mcp --path ${projectRoot}`;
+    const installDir = "/tmp/omo-install"
+    const projectRoot = "/tmp/proj-b"
+    const launcher = `${installDir}/bin/codegraph serve --mcp --path ${projectRoot}`
+    const bundle = `${installDir}/node --liftoff-only ${installDir}/lib/dist/bin/codegraph.js serve --mcp --path ${projectRoot}`
     const processes = [
       { command: launcher, pid: 351, ppid: 1 },
       { command: bundle, pid: 352, ppid: 1 },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [installDir],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [installDir], platform: "linux" })
 
     // then
-    expect(
-      zombies.map((
-        processInfo,
-      ) => [
-        processInfo.pid,
-        processInfo.matchKind,
-        processInfo.daemonProjectRoot,
-      ]),
-    ).toEqual([
+    expect(zombies.map((processInfo) => [processInfo.pid, processInfo.matchKind, processInfo.daemonProjectRoot])).toEqual([
       [351, "upstream-daemon", projectRoot],
       [352, "upstream-daemon", projectRoot],
-    ]);
-  });
+    ])
+  })
 
   it("#given a Windows standalone daemon shape #when selecting zombies #then it is daemon-shaped with the raw --path value preserved", () => {
     // given
-    const installDir = "C:\\Users\\runner\\.omo\\codegraph";
+    const installDir = "C:\\Users\\runner\\.omo\\codegraph"
     const processes = [
       {
-        command:
-          `${installDir}\\bin\\codegraph.exe serve --mcp --path C:\\proj\\app`,
+        command: `${installDir}\\bin\\codegraph.exe serve --mcp --path C:\\proj\\app`,
         pid: 353,
         ppid: 1,
       },
       {
-        command:
-          `C:\\node\\node.exe ${installDir}\\lib\\dist\\bin\\codegraph.js serve --mcp --path C:\\proj\\app`,
+        command: `C:\\node\\node.exe ${installDir}\\lib\\dist\\bin\\codegraph.js serve --mcp --path C:\\proj\\app`,
         pid: 354,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [installDir],
-      platform: "win32",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [installDir], platform: "win32" })
 
     // then
-    expect(
-      zombies.map((
-        processInfo,
-      ) => [
-        processInfo.pid,
-        processInfo.matchKind,
-        processInfo.daemonProjectRoot,
-      ]),
-    ).toEqual([
+    expect(zombies.map((processInfo) => [processInfo.pid, processInfo.matchKind, processInfo.daemonProjectRoot])).toEqual([
       [353, "upstream-daemon", "C:\\proj\\app"],
       [354, "upstream-daemon", "C:\\proj\\app"],
-    ]);
-  });
+    ])
+  })
 
   it("#given an upstream serve process without --path #when selecting zombies #then it stays a plain upstream-codegraph zombie", () => {
     // given
-    const omoRoot = "/tmp/omo";
+    const omoRoot = "/tmp/omo"
     const processes = [
       {
-        command:
-          `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
+        command: `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp`,
         pid: 355,
         ppid: 1,
       },
       {
-        command:
-          `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp --path`,
+        command: `${process.execPath} ${omoRoot}/node_modules/@colbymchenry/codegraph/bin/codegraph.js serve --mcp --path`,
         pid: 356,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "linux" })
 
     // then
-    expect(
-      zombies.map((processInfo) => [processInfo.pid, processInfo.matchKind]),
-    ).toEqual([
+    expect(zombies.map((processInfo) => [processInfo.pid, processInfo.matchKind])).toEqual([
       [355, "upstream-codegraph"],
       [356, "upstream-codegraph"],
-    ]);
-  });
+    ])
+  })
 
   it("#given a daemon-shaped process with a live parent #when selecting zombies #then it is not a candidate", () => {
     // given
-    const installDir = "/tmp/omo-install";
+    const installDir = "/tmp/omo-install"
     const processes = [
       { command: "codex app-server", pid: 200, ppid: 1 },
       {
@@ -343,21 +275,18 @@ describe("CodeGraph zombie process selection", () => {
         pid: 357,
         ppid: 200,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [installDir],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [installDir], platform: "linux" })
 
     // then
-    expect(zombies).toEqual([]);
-  });
+    expect(zombies).toEqual([])
+  })
 
   it("#given a daemon-shaped command outside any owned root #when selecting zombies #then it is ignored", () => {
     // given
-    const omoRoot = "/tmp/omo";
+    const omoRoot = "/tmp/omo"
     const processes = [
       {
         command: `/opt/not-omo/bin/codegraph serve --mcp --path /tmp/proj-d`,
@@ -365,46 +294,36 @@ describe("CodeGraph zombie process selection", () => {
         ppid: 1,
       },
       {
-        command:
-          `/opt/not-omo/node /opt/not-omo/lib/dist/bin/codegraph.js serve --mcp --path /tmp/proj-d`,
+        command: `/opt/not-omo/node /opt/not-omo/lib/dist/bin/codegraph.js serve --mcp --path /tmp/proj-d`,
         pid: 359,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [omoRoot],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [omoRoot], platform: "linux" })
 
     // then
-    expect(zombies).toEqual([]);
-  });
+    expect(zombies).toEqual([])
+  })
 
   it("#given a quoted --path value with spaces #when selecting zombies #then the quoted project root is extracted", () => {
     // given
-    const installDir = "/tmp/omo-install";
+    const installDir = "/tmp/omo-install"
     const processes = [
       {
-        command:
-          `${installDir}/bin/codegraph serve --mcp --path "/tmp/proj with spaces"`,
+        command: `${installDir}/bin/codegraph serve --mcp --path "/tmp/proj with spaces"`,
         pid: 360,
         ppid: 1,
       },
-    ];
+    ]
 
     // when
-    const zombies = selectZombieCodegraphProcesses(processes, {
-      ownedRoots: [installDir],
-      platform: "linux",
-    });
+    const zombies = selectZombieCodegraphProcesses(processes, { ownedRoots: [installDir], platform: "linux" })
 
     // then
-    expect(zombies.map((processInfo) => processInfo.daemonProjectRoot)).toEqual(
-      ["/tmp/proj with spaces"],
-    );
-  });
+    expect(zombies.map((processInfo) => processInfo.daemonProjectRoot)).toEqual(["/tmp/proj with spaces"])
+  })
 
   it("#given a POSIX ps table #when parsing process rows #then pid ppid and full command are preserved", () => {
     // given
@@ -412,82 +331,57 @@ describe("CodeGraph zombie process selection", () => {
       "  101     1 /usr/bin/node /tmp/omo/components/codegraph/dist/serve.js",
       "  202   101 /bin/sh -lc echo still includes spaces",
       "not-a-pid line",
-    ].join("\n");
+    ].join("\n")
 
     // when
-    const parsed = parsePosixProcessTable(output);
+    const parsed = parsePosixProcessTable(output)
 
     // then
     expect(parsed).toEqual([
-      {
-        command: "/usr/bin/node /tmp/omo/components/codegraph/dist/serve.js",
-        pid: 101,
-        ppid: 1,
-      },
-      {
-        command: "/bin/sh -lc echo still includes spaces",
-        pid: 202,
-        ppid: 101,
-      },
-    ]);
-  });
-});
+      { command: "/usr/bin/node /tmp/omo/components/codegraph/dist/serve.js", pid: 101, ppid: 1 },
+      { command: "/bin/sh -lc echo still includes spaces", pid: 202, ppid: 101 },
+    ])
+  })
+})
 
 describe("CodeGraph owned root discovery", () => {
   it("#given Codex plugin cache has OMO under another publisher #when discovering roots #then only sisyphuslabs omo cache is trusted", () => {
     // given
-    const codexHome = mkdtempSync(join(tmpdir(), "omo-codegraph-roots-codex-"));
+    const codexHome = mkdtempSync(join(tmpdir(), "omo-codegraph-roots-codex-"))
     try {
-      const trustedRoot = join(
-        codexHome,
-        "plugins",
-        "cache",
-        "sisyphuslabs",
-        "omo",
-        "4.15.1",
-      );
-      const untrustedRoot = join(
-        codexHome,
-        "plugins",
-        "cache",
-        "evil",
-        "omo",
-        "1.0.0",
-      );
-      mkdirSync(trustedRoot, { recursive: true });
-      mkdirSync(untrustedRoot, { recursive: true });
+      const trustedRoot = join(codexHome, "plugins", "cache", "sisyphuslabs", "omo", "4.15.1")
+      const untrustedRoot = join(codexHome, "plugins", "cache", "evil", "omo", "1.0.0")
+      mkdirSync(trustedRoot, { recursive: true })
+      mkdirSync(untrustedRoot, { recursive: true })
 
       // when
-      const roots = discoverCodegraphOwnedRoots({
-        codexHome,
-        homeDir: join(codexHome, "home"),
-      });
+      const roots = discoverCodegraphOwnedRoots({ codexHome, homeDir: join(codexHome, "home") })
 
       // then
-      expect(roots).toContain(trustedRoot);
-      expect(roots).not.toContain(untrustedRoot);
+      expect(roots).toContain(trustedRoot)
+      expect(roots).not.toContain(untrustedRoot)
     } finally {
-      rmSync(codexHome, { force: true, recursive: true });
+      rmSync(codexHome, { force: true, recursive: true })
     }
-  });
+  })
 
   it("#given ambient CODEGRAPH_INSTALL_DIR points outside OMO state #when discovering roots #then it is not trusted", () => {
     // given
-    const homeDir = mkdtempSync(join(tmpdir(), "omo-codegraph-roots-home-"));
+    const homeDir = mkdtempSync(join(tmpdir(), "omo-codegraph-roots-home-"))
     try {
-      const inheritedInstallDir = "/opt/not-omo";
+      const inheritedInstallDir = "/opt/not-omo"
 
       // when
       const roots = discoverCodegraphOwnedRoots({
         env: { CODEGRAPH_INSTALL_DIR: inheritedInstallDir },
         homeDir,
-      });
+      })
 
       // then
-      expect(roots).not.toContain(inheritedInstallDir);
-      expect(roots).toContain(join(homeDir, ".omo", "codegraph"));
+      expect(roots).not.toContain(inheritedInstallDir)
+      expect(roots).toContain(join(homeDir, ".omo", "codegraph"))
     } finally {
-      rmSync(homeDir, { force: true, recursive: true });
+      rmSync(homeDir, { force: true, recursive: true })
     }
-  });
-});
+  })
+})

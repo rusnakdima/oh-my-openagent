@@ -1,7 +1,7 @@
-import { join } from "node:path";
-import { windowsNodeDiscoveryLines } from "./codex-cache-command-shim";
+import { join } from "node:path"
+import { windowsNodeDiscoveryLines } from "./codex-cache-command-shim"
 
-export const RUNTIME_WRAPPER_MARKER = "OMO_GENERATED_RUNTIME_WRAPPER";
+export const RUNTIME_WRAPPER_MARKER = "OMO_GENERATED_RUNTIME_WRAPPER"
 
 export function posixRuntimeWrapper(
   binName: string,
@@ -10,11 +10,11 @@ export function posixRuntimeWrapper(
   binDir: string,
   nodeCliPath: string,
 ): string {
-  const ulwLoopBin = toPosixPath(join(binDir, "omo-ulw-loop"));
-  const nodeCli = escapePosixDoubleQuoted(toPosixPath(nodeCliPath));
-  const escapedCliPath = escapePosixDoubleQuoted(toPosixPath(cliPath));
-  const escapedCodexHome = escapePosixDoubleQuoted(toPosixPath(codexHome));
-  const escapedUlwLoopBin = escapePosixDoubleQuoted(ulwLoopBin);
+  const ulwLoopBin = toPosixPath(join(binDir, "omo-ulw-loop"))
+  const nodeCli = escapePosixDoubleQuoted(toPosixPath(nodeCliPath))
+  const escapedCliPath = escapePosixDoubleQuoted(toPosixPath(cliPath))
+  const escapedCodexHome = escapePosixDoubleQuoted(toPosixPath(codexHome))
+  const escapedUlwLoopBin = escapePosixDoubleQuoted(ulwLoopBin)
   return [
     "#!/bin/sh",
     `# ${RUNTIME_WRAPPER_MARKER}`,
@@ -53,7 +53,7 @@ export function posixRuntimeWrapper(
     "fi",
     `exec "$BUN_BINARY" "${escapedCliPath}" "$@"`,
     "",
-  ].join("\n");
+  ].join("\n")
 }
 
 export function windowsRuntimeWrapper(
@@ -63,7 +63,7 @@ export function windowsRuntimeWrapper(
   binDir: string,
   nodeCliPath: string,
 ): string {
-  const ulwLoopBin = join(binDir, "omo-ulw-loop.cmd");
+  const ulwLoopBin = join(binDir, "omo-ulw-loop.cmd")
   return [
     "@echo off",
     `rem ${RUNTIME_WRAPPER_MARKER}`,
@@ -96,16 +96,13 @@ export function windowsRuntimeWrapper(
     ")",
     `"%BUN_BINARY%" "${cliPath}" %*`,
     "",
-  ].join("\r\n");
+  ].join("\r\n")
 }
 
 function toPosixPath(path: string): string {
-  return path.replaceAll("\\", "/");
+  return path.replaceAll("\\", "/")
 }
 
 function escapePosixDoubleQuoted(value: string): string {
-  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll(
-    "$",
-    "\\$",
-  ).replaceAll("`", "\\`");
+  return value.replaceAll("\\", "\\\\").replaceAll('"', '\\"').replaceAll("$", "\\$").replaceAll("`", "\\`")
 }

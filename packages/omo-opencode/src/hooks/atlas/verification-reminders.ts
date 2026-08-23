@@ -1,4 +1,4 @@
-import { VERIFICATION_REMINDER } from "./system-reminder-templates";
+import { VERIFICATION_REMINDER } from "./system-reminder-templates"
 
 function buildReuseHint(sessionId: string): string {
   return `
@@ -6,13 +6,10 @@ function buildReuseHint(sessionId: string): string {
 
 - Reuse \`${sessionId}\` first if verification fails or the result needs follow-up.
 - Start a fresh subagent session only when reuse is unavailable or would cross task boundaries.
-`;
+`
 }
 
-export function buildCompletionGate(
-  planName: string,
-  sessionId: string,
-): string {
+export function buildCompletionGate(planName: string, sessionId: string): string {
   return `
 **COMPLETION GATE - DO NOT PROCEED UNTIL THIS IS DONE**
 
@@ -38,7 +35,7 @@ task(task_id="${sessionId}", load_skills=[], prompt="fix: checkbox not recorded 
 **Your completion is NOT tracked until the checkbox is marked in the plan file.**
 
 **VERIFICATION_REMINDER**
-${buildReuseHint(sessionId)}`;
+${buildReuseHint(sessionId)}`
 }
 
 function buildVerificationReminder(sessionId: string): string {
@@ -53,7 +50,7 @@ ${VERIFICATION_REMINDER}
 task(task_id="${sessionId}", load_skills=[], prompt="fix: [describe the specific failure]")
 \`\`\`
 
-${buildReuseHint(sessionId)}`;
+${buildReuseHint(sessionId)}`
 }
 
 export function buildOrchestratorReminder(
@@ -61,9 +58,9 @@ export function buildOrchestratorReminder(
   progress: { total: number; completed: number },
   sessionId: string,
   autoCommit: boolean = true,
-  includeCompletionGate: boolean = true,
+  includeCompletionGate: boolean = true
 ): string {
-  const remaining = progress.total - progress.completed;
+  const remaining = progress.total - progress.completed
 
   const commitStep = autoCommit
     ? `
@@ -72,9 +69,9 @@ export function buildOrchestratorReminder(
 - Stage ONLY the verified changes
 - Commit with clear message describing what was done
 `
-    : "";
+    : ""
 
-  const nextStepNumber = autoCommit ? 8 : 7;
+  const nextStepNumber = autoCommit ? 8 : 7
 
   return `
 ---
@@ -83,13 +80,9 @@ export function buildOrchestratorReminder(
 
 ---
 
-${
-    includeCompletionGate
-      ? `${buildCompletionGate(planName, sessionId)}
+${includeCompletionGate ? `${buildCompletionGate(planName, sessionId)}
 
-`
-      : ""
-  }${buildVerificationReminder(sessionId)}
+` : ""}${buildVerificationReminder(sessionId)}
 
 **STEP 5: READ SUBAGENT NOTEPAD (LEARNINGS, ISSUES, PROBLEMS)**
 
@@ -124,15 +117,15 @@ ${commitStep}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**${remaining} tasks remain. Keep bouldering.**`;
+**${remaining} tasks remain. Keep bouldering.**`
 }
 
 export function buildFinalWaveApprovalReminder(
   planName: string,
   progress: { total: number; completed: number },
-  sessionId: string,
+  sessionId: string
 ): string {
-  const remaining = progress.total - progress.completed;
+  const remaining = progress.total - progress.completed
 
   return `
 ---
@@ -164,7 +157,7 @@ If the user rejects or requests changes:
 - present the updated results again
 - wait again for explicit user approval
 
-**DO NOT mark the final-wave checkbox complete until the user explicitly says okay.**`;
+**DO NOT mark the final-wave checkbox complete until the user explicitly says okay.**`
 }
 
 export function buildStandaloneVerificationReminder(sessionId: string): string {
@@ -200,14 +193,10 @@ If QA tasks exist in your todo list:
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**NO TODO = NO TRACKING = INCOMPLETE WORK. Use todowrite aggressively.**`;
+**NO TODO = NO TRACKING = INCOMPLETE WORK. Use todowrite aggressively.**`
 }
 
-export function buildMissingVerdictEscalation(
-  planName: string,
-  taskLabel: string,
-  sessionId: string,
-): string {
+export function buildMissingVerdictEscalation(planName: string, taskLabel: string, sessionId: string): string {
   return `
 **FINAL REVIEW INCOMPLETE - BOULDER PAUSED**
 
@@ -217,14 +206,10 @@ The boulder has paused. Please either:
 1. Confirm the work is acceptable and manually mark the task complete
 2. Re-run the review: \`task(task_id="${sessionId}", prompt="Re-run the final review and emit VERDICT: APPROVE or VERDICT: REJECT")\`
 
-Do NOT auto-continue until you have a clear verdict.`;
+Do NOT auto-continue until you have a clear verdict.`
 }
 
-export function buildRejectedVerdictEscalation(
-  planName: string,
-  taskLabel: string,
-  sessionId: string,
-): string {
+export function buildRejectedVerdictEscalation(planName: string, taskLabel: string, sessionId: string): string {
   return `
 **FINAL REVIEW REJECTED - BOULDER PAUSED**
 
@@ -235,7 +220,7 @@ The boulder has paused. Please either:
 2. Ask the user how to proceed if the rejection requires a product or scope decision
 3. Re-run the affected final-wave reviewer after fixes
 
-Do NOT mark any final-wave checkbox complete and do NOT auto-continue until the rejection is resolved.`;
+Do NOT mark any final-wave checkbox complete and do NOT auto-continue until the rejection is resolved.`
 }
 
 export function buildAdvanceDirective(planName: string): string {
@@ -246,5 +231,5 @@ This task is already verified and marked complete in \`.omo/plans/${planName}.md
 Do NOT re-verify finished work.
 
 Read the plan file now and proceed to the next unchecked \`- [ ]\` task.
-If no unchecked tasks remain, the plan is complete - run the Final Verification Wave.`;
+If no unchecked tasks remain, the plan is complete - run the Final Verification Wave.`
 }

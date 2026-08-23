@@ -22,22 +22,22 @@
       // Main orchestrator: handles delegation and drives tasks to completion
       // omit model -> uses TUI Global Model / default_model
       "sisyphus": {
-        "prompt_append": "Delegate to category-routed subagents for focused work."
+        "prompt_append": "Delegate to category-routed subagents for focused work.",
       },
 
       // Deep autonomous worker: end-to-end implementation
       "hephaestus": {
-        "prompt_append": "Explore thoroughly, then implement. Prefer small, testable changes."
+        "prompt_append": "Explore thoroughly, then implement. Prefer small, testable changes.",
       },
 
       // Strategic planner: interview mode before execution
       "prometheus": {
-        "prompt_append": "Always interview first. Validate scope before planning."
+        "prompt_append": "Always interview first. Validate scope before planning.",
       },
 
       // Architecture consultant: complex design and debugging
       "oracle": {
-        "reasoning": "high"
+        "reasoning": "high",
       },
 
       // Documentation and code search
@@ -59,7 +59,7 @@
       "atlas": {},
 
       // Lightweight task executor for simple jobs
-      "sisyphus-junior": {}
+      "sisyphus-junior": {},
     },
 
     "categories": {
@@ -69,7 +69,7 @@
       "writing": { "reasoning": "low" },
       "visual-engineering": { "reasoning": "max" },
       "deep": { "reasoning": "medium" },
-      "ultrabrain": { "reasoning": "xhigh" }
+      "ultrabrain": { "reasoning": "xhigh" },
     },
 
     // Conservative concurrency for cost control
@@ -78,10 +78,10 @@
         "anthropic": 3,
         "openai": 3,
         "google": 5,
-        "opencode": 10
-      }
+        "opencode": 10,
+      },
     },
 
-    "experimental": { "aggressive_truncation": true }
-  }
+    "experimental": { "aggressive_truncation": true },
+  },
 }

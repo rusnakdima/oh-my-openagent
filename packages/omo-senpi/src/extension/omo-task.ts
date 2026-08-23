@@ -1,1 +1,1 @@
-export { createTaskComponent } from "../components/task";
+export { createTaskComponent } from "../components/task"

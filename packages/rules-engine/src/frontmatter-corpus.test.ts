@@ -40,9 +40,7 @@ Malformed body`,
 describe("rule frontmatter corpus", () => {
   it("#given real skill and rule files #when parsed #then rule metadata matches utils rule-mode frontmatter", () => {
     // given
-    const contents = corpusPaths.map((relativePath) =>
-      readFileSync(join(process.cwd(), relativePath), "utf-8")
-    );
+    const contents = corpusPaths.map((relativePath) => readFileSync(join(process.cwd(), relativePath), "utf-8"));
 
     // when
     const parsed = contents.map((content) => ({
@@ -72,8 +70,6 @@ describe("rule frontmatter corpus", () => {
       { globs: ["*.md", "*.ts", "*.js"] },
       { globs: [] },
     ]);
-    expect(parsed.map((entry) => entry.utils.data)).toEqual(
-      parsed.map((entry) => entry.rule.metadata),
-    );
+    expect(parsed.map((entry) => entry.utils.data)).toEqual(parsed.map((entry) => entry.rule.metadata));
   });
 });

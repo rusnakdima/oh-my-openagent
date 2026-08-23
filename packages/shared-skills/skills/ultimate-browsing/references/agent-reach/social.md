@@ -34,20 +34,13 @@ xhs favorites              # 可能返回 API error
 
 ### 重要注意事项
 
-> **安装**: `pipx install xiaohongshu-cli`，然后 `xhs login`（自动从浏览器提取
-> Cookie）。
+> **安装**: `pipx install xiaohongshu-cli`，然后 `xhs login`（自动从浏览器提取 Cookie）。
 >
-> **签名令牌限制**: 小红书强制每个 note 携带一个签名令牌，**不能直接用裸 note_id
-> 去读**。正确流程是：先 `xhs search` 或 `xhs feed` 获取结果，再用结果中的
-> URL/ID 去 `xhs read`。直接构造 note_id 会被拦截。
+> **签名令牌限制**: 小红书强制每个 note 携带一个签名令牌，**不能直接用裸 note_id 去读**。正确流程是：先 `xhs search` 或 `xhs feed` 获取结果，再用结果中的 URL/ID 去 `xhs read`。直接构造 note_id 会被拦截。
 >
-> **频率控制**:
-> 高频请求（批量搜索、深翻评论）会触发验证码，这是平台限制无法绕过。建议每次操作间隔
-> 2-3 秒。
+> **频率控制**: 高频请求（批量搜索、深翻评论）会触发验证码，这是平台限制无法绕过。建议每次操作间隔 2-3 秒。
 >
-> **POST 操作**: 发帖(post)、评论(comment)、点赞(like) 等写操作在 v0.6.4
-> 已修复签名问题 (PR
-> [#19](https://github.com/jackwener/xiaohongshu-cli/pull/19))，可正常使用。
+> **POST 操作**: 发帖(post)、评论(comment)、点赞(like) 等写操作在 v0.6.4 已修复签名问题 (PR [#19](https://github.com/jackwener/xiaohongshu-cli/pull/19))，可正常使用。
 
 ## 抖音 / Douyin
 
@@ -100,16 +93,11 @@ twitter likes
 
 > **安装**: `pipx install twitter-cli`（确保 v0.8.5+）
 >
-> **认证**: 如果你有访问权限，导出 Twitter 会话 Cookie 后，把 auth-token 与 ct0
-> 两个值设置为 twitter-cli 文档所要求的认证环境变量。自动提取在
-> SSH/Docker/无头环境不可用。
+> **认证**: 如果你有访问权限，导出 Twitter 会话 Cookie 后，把 auth-token 与 ct0 两个值设置为 twitter-cli 文档所要求的认证环境变量。自动提取在 SSH/Docker/无头环境不可用。
 >
-> **IP 风控**: 不要在 VPS/数据中心 IP 上频繁调用，尤其是
-> followers/following，有封号风险。使用住宅代理或本地环境。
+> **IP 风控**: 不要在 VPS/数据中心 IP 上频繁调用，尤其是 followers/following，有封号风险。使用住宅代理或本地环境。
 >
-> **search 可能失效**: Twitter 频繁修改 GraphQL API，search 命令可能随时返回
-> 404。如遇到，先 `pipx upgrade twitter-cli`。如果最新版仍不行，说明上游还没跟上
-> Twitter 的改动，用 `twitter feed` 替代。
+> **search 可能失效**: Twitter 频繁修改 GraphQL API，search 命令可能随时返回 404。如遇到，先 `pipx upgrade twitter-cli`。如果最新版仍不行，说明上游还没跟上 Twitter 的改动，用 `twitter feed` 替代。
 >
 > **输出格式**: 建议用 `--yaml` 或 `--json` 获得结构化输出，对 AI agent 更友好。
 
@@ -132,8 +120,7 @@ yt-dlp --dump-json "https://www.bilibili.com/video/BVxxx"
 yt-dlp --write-sub --write-auto-sub --sub-lang "zh-Hans,zh,en" --convert-subs vtt --skip-download -o "/tmp/%(id)s" "URL"
 ```
 
-> **注意**: 服务器 IP 可能遇到 412 错误。使用 `--cookies-from-browser chrome`
-> 或配置代理。
+> **注意**: 服务器 IP 可能遇到 412 错误。使用 `--cookies-from-browser chrome` 或配置代理。
 
 ## V2EX (公开 API)
 

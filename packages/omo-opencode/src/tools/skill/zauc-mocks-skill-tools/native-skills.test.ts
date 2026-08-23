@@ -1,8 +1,8 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, it } from "bun:test";
-import type { LoadedSkill } from "../../../features/opencode-skill-loader/types";
-import { createMockSkill, createSkillTool, mockContext } from "./test-support";
+import { describe, expect, it } from "bun:test"
+import type { LoadedSkill } from "../../../features/opencode-skill-loader/types"
+import { createMockSkill, createSkillTool, mockContext } from "./test-support"
 
 describe("skill tool - nativeSkills integration", () => {
   it("includes native skills in the description even when skills are pre-seeded", async () => {
@@ -16,24 +16,20 @@ describe("skill tool - nativeSkills integration", () => {
             description: "Native skill exposed from config",
             location: "/external/skills/native-visible-skill/SKILL.md",
             content: "Native visible skill body",
-          }];
+          }]
         },
-        get() {
-          return undefined;
-        },
-        dirs() {
-          return [];
-        },
+        get() { return undefined },
+        dirs() { return [] },
       },
-    });
+    })
 
-    expect(tool.description).toContain("seeded-skill");
-    expect(tool.description).toContain("native-visible-skill");
-    await tool.execute({ name: "native-visible-skill" }, mockContext);
+    expect(tool.description).toContain("seeded-skill")
+    expect(tool.description).toContain("native-visible-skill")
+    await tool.execute({ name: "native-visible-skill" }, mockContext)
 
-    expect(tool.description).toContain("seeded-skill");
-    expect(tool.description).toContain("native-visible-skill");
-  });
+    expect(tool.description).toContain("seeded-skill")
+    expect(tool.description).toContain("native-visible-skill")
+  })
 
   it("keeps OpenCode-injected native skills in the description after the shared/ prefix cutover", () => {
     const tool = createSkillTool({
@@ -54,22 +50,18 @@ describe("skill tool - nativeSkills integration", () => {
               location: "<built-in>",
               content: "Customize body",
             },
-          ];
+          ]
         },
-        get() {
-          return undefined;
-        },
-        dirs() {
-          return [];
-        },
+        get() { return undefined },
+        dirs() { return [] },
       },
-    });
+    })
 
-    const description = tool.description;
+    const description = tool.description
 
-    expect(description).toContain("<name>/customize-opencode</name>");
-    expect(description).toContain("Customize OpenCode");
-  });
+    expect(description).toContain("<name>/customize-opencode</name>")
+    expect(description).toContain("Customize OpenCode")
+  })
 
   it("merges native skills exposed by PluginInput.skills.all()", async () => {
     const tool = createSkillTool({
@@ -81,25 +73,18 @@ describe("skill tool - nativeSkills integration", () => {
             description: "Skill from config.skills.paths",
             location: "/external/skills/external-plugin-skill/SKILL.md",
             content: "External plugin skill body",
-          }];
+          }]
         },
-        async get() {
-          return undefined;
-        },
-        async dirs() {
-          return [];
-        },
+        async get() { return undefined },
+        async dirs() { return [] },
       },
-    });
+    })
 
-    const result = await tool.execute(
-      { name: "external-plugin-skill" },
-      mockContext,
-    );
+    const result = await tool.execute({ name: "external-plugin-skill" }, mockContext)
 
-    expect(result).toContain("external-plugin-skill");
-    expect(result).toContain("External plugin skill body");
-  });
+    expect(result).toContain("external-plugin-skill")
+    expect(result).toContain("External plugin skill body")
+  })
 
   it("does not reintroduce disabled native skills from PluginInput.skills.all()", async () => {
     const tool = createSkillTool({
@@ -114,21 +99,16 @@ describe("skill tool - nativeSkills integration", () => {
             description: "Blocked native skill from config.skills.paths",
             location: "/external/skills/blocked-native-skill/SKILL.md",
             content: "BYPASS_CONFIRMED",
-          }];
+          }]
         },
-        get() {
-          return undefined;
-        },
-        dirs() {
-          return [];
-        },
+        get() { return undefined },
+        dirs() { return [] },
       },
-    });
+    })
 
-    expect(tool.description).not.toContain("blocked-native-skill");
-    await expect(tool.execute({ name: "blocked-native-skill" }, mockContext))
-      .rejects.toThrow(
-        'Skill or command "blocked-native-skill" not found',
-      );
-  });
-});
+    expect(tool.description).not.toContain("blocked-native-skill")
+    await expect(tool.execute({ name: "blocked-native-skill" }, mockContext)).rejects.toThrow(
+      'Skill or command "blocked-native-skill" not found',
+    )
+  })
+})

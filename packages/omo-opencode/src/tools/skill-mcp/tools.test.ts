@@ -1,13 +1,10 @@
-import { beforeEach, describe, expect, it, spyOn } from "bun:test";
-import type { ToolContext } from "@opencode-ai/plugin/tool";
-import { applyGrepFilter, createSkillMcpTool } from "./tools";
-import { SkillMcpManager } from "../../features/skill-mcp-manager";
-import type { LoadedSkill } from "../../features/opencode-skill-loader/types";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test"
+import type { ToolContext } from "@opencode-ai/plugin/tool"
+import { createSkillMcpTool, applyGrepFilter } from "./tools"
+import { SkillMcpManager } from "../../features/skill-mcp-manager"
+import type { LoadedSkill } from "../../features/opencode-skill-loader/types"
 
-function createMockSkillWithMcp(
-  name: string,
-  mcpServers: Record<string, unknown>,
-): LoadedSkill {
+function createMockSkillWithMcp(name: string, mcpServers: Record<string, unknown>): LoadedSkill {
   return {
     name,
     path: `/test/skills/${name}/SKILL.md`,
@@ -19,7 +16,7 @@ function createMockSkillWithMcp(
     },
     scope: "opencode-project",
     mcpConfig: mcpServers as LoadedSkill["mcpConfig"],
-  };
+  }
 }
 
 const mockContext: ToolContext = {
@@ -31,18 +28,18 @@ const mockContext: ToolContext = {
   abort: new AbortController().signal,
   metadata: () => {},
   ask: async () => {},
-};
+}
 
 describe("skill_mcp tool", () => {
-  let manager: SkillMcpManager;
-  let loadedSkills: LoadedSkill[];
-  let sessionID: string;
+  let manager: SkillMcpManager
+  let loadedSkills: LoadedSkill[]
+  let sessionID: string
 
   beforeEach(() => {
-    manager = new SkillMcpManager();
-    loadedSkills = [];
-    sessionID = "test-session-1";
-  });
+    manager = new SkillMcpManager()
+    loadedSkills = []
+    sessionID = "test-session-1"
+  })
 
   describe("parameter validation", () => {
     it("throws when no operation specified", async () => {
@@ -51,13 +48,13 @@ describe("skill_mcp tool", () => {
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => sessionID,
-      });
+      })
 
       // when / #then
       await expect(
-        tool.execute({ mcp_name: "test-server" }, mockContext),
-      ).rejects.toThrow(/Missing operation/);
-    });
+        tool.execute({ mcp_name: "test-server" }, mockContext)
+      ).rejects.toThrow(/Missing operation/)
+    })
 
     it("throws when multiple operations specified", async () => {
       // given
@@ -65,7 +62,7 @@ describe("skill_mcp tool", () => {
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => sessionID,
-      });
+      })
 
       // when / #then
       await expect(
@@ -73,9 +70,9 @@ describe("skill_mcp tool", () => {
           mcp_name: "test-server",
           tool_name: "some-tool",
           resource_name: "some://resource",
-        }, mockContext),
-      ).rejects.toThrow(/Multiple operations/);
-    });
+        }, mockContext)
+      ).rejects.toThrow(/Multiple operations/)
+    })
 
     it("throws when mcp_name not found in any skill", async () => {
       // given
@@ -83,21 +80,18 @@ describe("skill_mcp tool", () => {
         createMockSkillWithMcp("test-skill", {
           "known-server": { command: "echo", args: ["test"] },
         }),
-      ];
+      ]
       const tool = createSkillMcpTool({
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => sessionID,
-      });
+      })
 
       // when / #then
       await expect(
-        tool.execute(
-          { mcp_name: "unknown-server", tool_name: "some-tool" },
-          mockContext,
-        ),
-      ).rejects.toThrow(/not found/);
-    });
+        tool.execute({ mcp_name: "unknown-server", tool_name: "some-tool" }, mockContext)
+      ).rejects.toThrow(/not found/)
+    })
 
     it("includes available MCP servers in error message", async () => {
       // given
@@ -108,18 +102,18 @@ describe("skill_mcp tool", () => {
         createMockSkillWithMcp("api-skill", {
           "rest-api": { command: "node", args: ["server.js"] },
         }),
-      ];
+      ]
       const tool = createSkillMcpTool({
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => sessionID,
-      });
+      })
 
       // when / #then
       await expect(
-        tool.execute({ mcp_name: "missing", tool_name: "test" }, mockContext),
-      ).rejects.toThrow(/sqlite.*db-skill|rest-api.*api-skill/s);
-    });
+        tool.execute({ mcp_name: "missing", tool_name: "test" }, mockContext)
+      ).rejects.toThrow(/sqlite.*db-skill|rest-api.*api-skill/s)
+    })
 
     it("throws on invalid JSON arguments", async () => {
       // given
@@ -127,12 +121,12 @@ describe("skill_mcp tool", () => {
         createMockSkillWithMcp("test-skill", {
           "test-server": { command: "echo" },
         }),
-      ];
+      ]
       const tool = createSkillMcpTool({
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => sessionID,
-      });
+      })
 
       // when / #then
       await expect(
@@ -140,10 +134,10 @@ describe("skill_mcp tool", () => {
           mcp_name: "test-server",
           tool_name: "some-tool",
           arguments: "not valid json",
-        }, mockContext),
-      ).rejects.toThrow(/Invalid arguments JSON/);
-    });
-  });
+        }, mockContext)
+      ).rejects.toThrow(/Invalid arguments JSON/)
+    })
+  })
 
   describe("tool description", () => {
     it("has concise description", () => {
@@ -152,12 +146,12 @@ describe("skill_mcp tool", () => {
         manager,
         getLoadedSkills: () => [],
         getSessionID: () => "session",
-      });
+      })
 
       // then
-      expect(tool.description.length).toBeLessThan(200);
-      expect(tool.description).toContain("mcp_name");
-    });
+      expect(tool.description.length).toBeLessThan(200)
+      expect(tool.description).toContain("mcp_name")
+    })
 
     it("includes grep parameter in schema", () => {
       // given / #when
@@ -165,11 +159,11 @@ describe("skill_mcp tool", () => {
         manager,
         getLoadedSkills: () => [],
         getSessionID: () => "session",
-      });
+      })
 
       // then
-      expect(tool.description).toBeDefined();
-    });
+      expect(tool.description).toBeDefined()
+    })
 
     it("mentions cdp_url support", () => {
       // given / #when
@@ -177,11 +171,11 @@ describe("skill_mcp tool", () => {
         manager,
         getLoadedSkills: () => [],
         getSessionID: () => "session",
-      });
+      })
 
       // then
-      expect(tool.description).toContain("cdp_url");
-    });
+      expect(tool.description).toContain("cdp_url")
+    })
 
     it("includes cdp_url as an optional string in schema", () => {
       // given / #when
@@ -189,27 +183,24 @@ describe("skill_mcp tool", () => {
         manager,
         getLoadedSkills: () => [],
         getSessionID: () => "session",
-      });
-      const cdpUrlSchema = tool.args.cdp_url;
-      const cdpUrlDef =
-        typeof cdpUrlSchema === "object" && cdpUrlSchema !== null
-          ? Reflect.get(cdpUrlSchema, "def")
-          : undefined;
-      const cdpUrlInnerType =
-        typeof cdpUrlDef === "object" && cdpUrlDef !== null
-          ? Reflect.get(cdpUrlDef, "innerType")
-          : undefined;
-      const cdpUrlInnerDef =
-        typeof cdpUrlInnerType === "object" && cdpUrlInnerType !== null
-          ? Reflect.get(cdpUrlInnerType, "def")
-          : undefined;
+      })
+      const cdpUrlSchema = tool.args.cdp_url
+      const cdpUrlDef = typeof cdpUrlSchema === "object" && cdpUrlSchema !== null
+        ? Reflect.get(cdpUrlSchema, "def")
+        : undefined
+      const cdpUrlInnerType = typeof cdpUrlDef === "object" && cdpUrlDef !== null
+        ? Reflect.get(cdpUrlDef, "innerType")
+        : undefined
+      const cdpUrlInnerDef = typeof cdpUrlInnerType === "object" && cdpUrlInnerType !== null
+        ? Reflect.get(cdpUrlInnerType, "def")
+        : undefined
 
       // then
-      expect(cdpUrlSchema).toBeDefined();
-      expect(Reflect.get(cdpUrlDef as object, "type")).toBe("optional");
-      expect(Reflect.get(cdpUrlInnerDef as object, "type")).toBe("string");
-    });
-  });
+      expect(cdpUrlSchema).toBeDefined()
+      expect(Reflect.get(cdpUrlDef as object, "type")).toBe("optional")
+      expect(Reflect.get(cdpUrlInnerDef as object, "type")).toBe("string")
+    })
+  })
 
   describe("cdp_url execution", () => {
     it("passes cdpUrl options through to manager.callTool when provided", async () => {
@@ -218,15 +209,13 @@ describe("skill_mcp tool", () => {
         createMockSkillWithMcp("browser-skill", {
           playwright: { command: "npx", args: ["@playwright/mcp@latest"] },
         }),
-      ];
-      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue(
-        [{ type: "text", text: "ok" }] as never,
-      );
+      ]
+      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue([{ type: "text", text: "ok" }] as never)
       const tool = createSkillMcpTool({
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => sessionID,
-      });
+      })
 
       // when
       await tool.execute({
@@ -234,20 +223,17 @@ describe("skill_mcp tool", () => {
         tool_name: "browser_navigate",
         arguments: { url: "https://example.com" },
         cdp_url: "http://localhost:9222",
-      }, mockContext);
+      }, mockContext)
 
       // then
       expect(callToolSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          serverName: "playwright",
-          sessionID: mockContext.sessionID,
-        }),
+        expect.objectContaining({ serverName: "playwright", sessionID: mockContext.sessionID }),
         expect.any(Object),
         "browser_navigate",
         { url: "https://example.com" },
         { cdpUrl: "http://localhost:9222" },
-      );
-    });
+      )
+    })
 
     it("uses manager.callTool when cdp_url is omitted", async () => {
       // given
@@ -255,36 +241,31 @@ describe("skill_mcp tool", () => {
         createMockSkillWithMcp("browser-skill", {
           playwright: { command: "npx", args: ["@playwright/mcp@latest"] },
         }),
-      ];
-      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue(
-        [{ type: "text", text: "ok" }] as never,
-      );
+      ]
+      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue([{ type: "text", text: "ok" }] as never)
       const tool = createSkillMcpTool({
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => sessionID,
-      });
+      })
 
       // when
       await tool.execute({
         mcp_name: "playwright",
         tool_name: "browser_navigate",
         arguments: { url: "https://example.com" },
-      }, mockContext);
+      }, mockContext)
 
       // then
       expect(callToolSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          serverName: "playwright",
-          sessionID: mockContext.sessionID,
-        }),
+        expect.objectContaining({ serverName: "playwright", sessionID: mockContext.sessionID }),
         expect.any(Object),
         "browser_navigate",
         { url: "https://example.com" },
         undefined,
-      );
-    });
-  });
+      )
+    })
+  })
 
   describe("session resolution", () => {
     it("uses the tool context sessionID when the fallback getter is empty", async () => {
@@ -293,21 +274,16 @@ describe("skill_mcp tool", () => {
         createMockSkillWithMcp("test-skill", {
           "test-server": { command: "echo", args: ["test"] },
         }),
-      ];
-      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue(
-        { content: [] } as never,
-      );
+      ]
+      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue({ content: [] } as never)
       const tool = createSkillMcpTool({
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => "",
-      });
+      })
 
       // when
-      await tool.execute(
-        { mcp_name: "test-server", tool_name: "some-tool" },
-        mockContext,
-      );
+      await tool.execute({ mcp_name: "test-server", tool_name: "some-tool" }, mockContext)
 
       // then
       expect(callToolSpy).toHaveBeenCalledWith(
@@ -316,8 +292,8 @@ describe("skill_mcp tool", () => {
         "some-tool",
         {},
         undefined,
-      );
-    });
+      )
+    })
 
     it("passes toolContext.directory to the manager", async () => {
       // given
@@ -325,21 +301,16 @@ describe("skill_mcp tool", () => {
         createMockSkillWithMcp("test-skill", {
           "test-server": { command: "echo", args: ["test"] },
         }),
-      ];
-      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue(
-        { content: [] } as never,
-      );
+      ]
+      const callToolSpy = spyOn(manager, "callTool").mockResolvedValue({ content: [] } as never)
       const tool = createSkillMcpTool({
         manager,
         getLoadedSkills: () => loadedSkills,
         getSessionID: () => "session-1",
-      });
+      })
 
       // when
-      await tool.execute(
-        { mcp_name: "test-server", tool_name: "some-tool" },
-        mockContext,
-      );
+      await tool.execute({ mcp_name: "test-server", tool_name: "some-tool" }, mockContext)
 
       // then
       expect(callToolSpy).toHaveBeenCalledWith(
@@ -348,10 +319,10 @@ describe("skill_mcp tool", () => {
         "some-tool",
         {},
         undefined,
-      );
-    });
-  });
-});
+      )
+    })
+  })
+})
 
 describe("applyGrepFilter", () => {
   it("filters lines matching pattern", () => {
@@ -359,48 +330,48 @@ describe("applyGrepFilter", () => {
     const output = `line1: hello world
 line2: foo bar
 line3: hello again
-line4: baz qux`;
+line4: baz qux`
 
     // when
-    const result = applyGrepFilter(output, "hello");
+    const result = applyGrepFilter(output, "hello")
 
     // then
-    expect(result).toContain("line1: hello world");
-    expect(result).toContain("line3: hello again");
-    expect(result).not.toContain("foo bar");
-    expect(result).not.toContain("baz qux");
-  });
+    expect(result).toContain("line1: hello world")
+    expect(result).toContain("line3: hello again")
+    expect(result).not.toContain("foo bar")
+    expect(result).not.toContain("baz qux")
+  })
 
   it("returns original output when pattern is undefined", () => {
     // given
-    const output = "some output";
+    const output = "some output"
 
     // when
-    const result = applyGrepFilter(output, undefined);
+    const result = applyGrepFilter(output, undefined)
 
     // then
-    expect(result).toBe(output);
-  });
+    expect(result).toBe(output)
+  })
 
   it("returns message when no lines match", () => {
     // given
-    const output = "line1\nline2\nline3";
+    const output = "line1\nline2\nline3"
 
     // when
-    const result = applyGrepFilter(output, "xyz");
+    const result = applyGrepFilter(output, "xyz")
 
     // then
-    expect(result).toContain("[grep] No lines matched pattern");
-  });
+    expect(result).toContain("[grep] No lines matched pattern")
+  })
 
   it("handles invalid regex gracefully", () => {
     // given
-    const output = "some output";
+    const output = "some output"
 
     // when
-    const result = applyGrepFilter(output, "[invalid");
+    const result = applyGrepFilter(output, "[invalid")
 
     // then
-    expect(result).toBe(output);
-  });
-});
+    expect(result).toBe(output)
+  })
+})

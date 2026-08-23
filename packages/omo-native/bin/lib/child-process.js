@@ -1,12 +1,12 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync } from "node:child_process"
 
 export function propagateResult(result) {
-  if (result.error) throw result.error;
+  if (result.error) throw result.error
   if (result.signal) {
-    process.kill(process.pid, result.signal);
-    return;
+    process.kill(process.pid, result.signal)
+    return
   }
-  process.exitCode = result.status ?? 1;
+  process.exitCode = result.status ?? 1
 }
 
 export function spawnNode(scriptPath, args, options = {}) {
@@ -14,6 +14,6 @@ export function spawnNode(scriptPath, args, options = {}) {
     stdio: "inherit",
     windowsHide: true,
     ...options,
-  });
-  propagateResult(result);
+  })
+  propagateResult(result)
 }

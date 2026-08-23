@@ -1,53 +1,42 @@
 import {
   GIT_BASH_ENV_KEY,
-  type GitBashResolution as SharedGitBashResolution,
-  type GitBashResolverInput,
   resolveGitBash as resolveSharedGitBash,
   resolveGitBashForCurrentProcess as resolveSharedGitBashForCurrentProcess,
-} from "@oh-my-opencode/utils/runtime";
-import type { GitBashResolution } from "./types";
+  type GitBashResolution as SharedGitBashResolution,
+  type GitBashResolverInput,
+} from "@oh-my-opencode/utils/runtime"
+import type { GitBashResolution } from "./types"
 
-export type { GitBashResolution } from "./types";
-export type {
-  GitBashResolverInput,
-  GitBashSource,
-} from "@oh-my-opencode/utils/runtime";
+export type { GitBashResolution } from "./types"
+export type { GitBashResolverInput, GitBashSource } from "@oh-my-opencode/utils/runtime"
 
-export const resolveGitBash = (
-  input: GitBashResolverInput,
-): GitBashResolution => toCodexResolution(resolveSharedGitBash(input));
+export const resolveGitBash = (input: GitBashResolverInput): GitBashResolution =>
+  toCodexResolution(resolveSharedGitBash(input))
 
 export const resolveGitBashForCurrentProcess = (input: {
-  readonly platform?: string;
-  readonly env?: { readonly [key: string]: string | undefined };
+  readonly platform?: string
+  readonly env?: { readonly [key: string]: string | undefined }
 } = {}): GitBashResolution => {
-  return toCodexResolution(resolveSharedGitBashForCurrentProcess(input));
-};
-
-export async function prepareGitBashForInstall(input: {
-  readonly platform: string;
-  readonly env: { readonly [key: string]: string | undefined };
-  readonly resolveGitBash?: () => GitBashResolution;
-}): Promise<GitBashResolution> {
-  const resolve = input.resolveGitBash ??
-    (() =>
-      resolveGitBashForCurrentProcess({
-        platform: input.platform,
-        env: input.env,
-      }));
-  const initialResolution = resolve();
-  return initialResolution;
+  return toCodexResolution(resolveSharedGitBashForCurrentProcess(input))
 }
 
-function toCodexResolution(
-  resolution: SharedGitBashResolution,
-): GitBashResolution {
+export async function prepareGitBashForInstall(input: {
+  readonly platform: string
+  readonly env: { readonly [key: string]: string | undefined }
+  readonly resolveGitBash?: () => GitBashResolution
+}): Promise<GitBashResolution> {
+  const resolve = input.resolveGitBash ?? (() => resolveGitBashForCurrentProcess({ platform: input.platform, env: input.env }))
+  const initialResolution = resolve()
+  return initialResolution
+}
+
+function toCodexResolution(resolution: SharedGitBashResolution): GitBashResolution {
   if (resolution.found) {
     return {
       found: true,
       path: resolution.path,
       source: resolution.source,
-    };
+    }
   }
 
   return {
@@ -58,5 +47,5 @@ function toCodexResolution(
       `For a custom install, set ${GIT_BASH_ENV_KEY}=C:\\path\\to\\bash.exe`,
       "Then rerun `npx lazycodex-ai install`.",
     ].join("\n"),
-  };
+  }
 }

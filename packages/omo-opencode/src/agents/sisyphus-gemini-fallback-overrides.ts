@@ -8,10 +8,7 @@ import {
 } from "./sisyphus/gemini";
 import { isGeminiModel } from "./types";
 
-export function applyGeminiFallbackOverrides(
-  model: string,
-  prompt: string,
-): string {
+export function applyGeminiFallbackOverrides(model: string, prompt: string): string {
   if (!isGeminiModel(model)) {
     return prompt;
   }

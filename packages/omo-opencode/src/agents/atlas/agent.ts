@@ -14,51 +14,36 @@
  * 8. Default (Claude 4.6 family: opus-4-6, sonnet-4-6, haiku-4-5, etc.) → default.md
  */
 
-import type { AgentConfig } from "@opencode-ai/sdk";
+import type { AgentConfig } from "@opencode-ai/sdk"
 import {
   atlasPromptVariants,
   loadPromptSync,
   resolveVariant,
   type SyncRuntimeInjection,
-} from "@oh-my-opencode/prompts-core";
-import type { AgentMode, AgentPromptMetadata } from "../types";
-import type {
-  AvailableAgent,
-  AvailableCategory,
-  AvailableSkill,
-} from "../dynamic-agent-prompt-builder";
-import {
-  buildAgentIdentitySection,
-  buildCategorySkillsDelegationGuide,
-} from "../dynamic-agent-prompt-builder";
-import type { CategoryConfig } from "../../config/schema";
-import { mergeCategories } from "../../shared/merge-categories";
+} from "@oh-my-opencode/prompts-core"
+import type { AgentMode, AgentPromptMetadata } from "../types"
+import type { AvailableAgent, AvailableSkill, AvailableCategory } from "../dynamic-agent-prompt-builder"
+import { buildAgentIdentitySection, buildCategorySkillsDelegationGuide } from "../dynamic-agent-prompt-builder"
+import type { CategoryConfig } from "../../config/schema"
+import { mergeCategories } from "../../shared/merge-categories"
 
 import {
+  getCategoryDescription,
   buildAgentSelectionSection,
   buildCategorySection,
-  buildDecisionMatrix,
   buildSkillsSection,
-  getCategoryDescription,
-} from "./prompt-section-builder";
+  buildDecisionMatrix,
+} from "./prompt-section-builder"
 
-const MODE: AgentMode = "primary";
+const MODE: AgentMode = "primary"
 
-export type AtlasPromptSource =
-  | "default"
-  | "gpt"
-  | "gemini"
-  | "kimi"
-  | "kimi-k3"
-  | "kimi-k2-7"
-  | "opus-4-7"
-  | "glm";
+export type AtlasPromptSource = "default" | "gpt" | "gemini" | "kimi" | "kimi-k3" | "kimi-k2-7" | "opus-4-7" | "glm"
 
 class AtlasPromptVariantError extends Error {
-  readonly name = "AtlasPromptVariantError";
+  readonly name = "AtlasPromptVariantError"
 
   constructor(readonly variant: string) {
-    super(`Unknown Atlas prompt variant: ${variant}`);
+    super(`Unknown Atlas prompt variant: ${variant}`)
   }
 }
 
@@ -67,67 +52,60 @@ export function getAtlasPromptSource(model?: string): AtlasPromptSource {
     agentName: "atlas",
     modelID: model,
     variants: atlasPromptVariants,
-  });
-  if (isAtlasPromptSource(variant)) return variant;
-  throw new AtlasPromptVariantError(variant);
+  })
+  if (isAtlasPromptSource(variant)) return variant
+  throw new AtlasPromptVariantError(variant)
 }
 
 export interface OrchestratorContext {
-  model?: string;
-  availableAgents?: AvailableAgent[];
-  availableSkills?: AvailableSkill[];
-  userCategories?: Record<string, CategoryConfig>;
+  model?: string
+  availableAgents?: AvailableAgent[]
+  availableSkills?: AvailableSkill[]
+  userCategories?: Record<string, CategoryConfig>
 }
 
 function isAtlasPromptSource(variant: string): variant is AtlasPromptSource {
-  return Object.prototype.hasOwnProperty.call(atlasPromptVariants, variant);
+  return Object.prototype.hasOwnProperty.call(atlasPromptVariants, variant)
 }
 
 function buildDynamicOrchestratorPrompt(ctx?: OrchestratorContext): string {
-  const agents = ctx?.availableAgents ?? [];
-  const skills = ctx?.availableSkills ?? [];
-  const userCategories = ctx?.userCategories;
-  const model = ctx?.model;
+  const agents = ctx?.availableAgents ?? []
+  const skills = ctx?.availableSkills ?? []
+  const userCategories = ctx?.userCategories
+  const model = ctx?.model
 
-  const allCategories = mergeCategories(userCategories);
-  const availableCategories: AvailableCategory[] = Object.entries(allCategories)
-    .map(([name]) => ({
-      name,
-      description: getCategoryDescription(name, userCategories),
-    }));
+  const allCategories = mergeCategories(userCategories)
+  const availableCategories: AvailableCategory[] = Object.entries(allCategories).map(([name]) => ({
+    name,
+    description: getCategoryDescription(name, userCategories),
+  }))
 
-  const categorySection = buildCategorySection(userCategories);
-  const agentSection = buildAgentSelectionSection(agents);
-  const decisionMatrix = buildDecisionMatrix(agents, userCategories);
-  const skillsSection = buildSkillsSection(skills);
-  const categorySkillsGuide = buildCategorySkillsDelegationGuide(
-    availableCategories,
-    skills,
-  );
-  const source = getAtlasPromptSource(model);
+  const categorySection = buildCategorySection(userCategories)
+  const agentSection = buildAgentSelectionSection(agents)
+  const decisionMatrix = buildDecisionMatrix(agents, userCategories)
+  const skillsSection = buildSkillsSection(skills)
+  const categorySkillsGuide = buildCategorySkillsDelegationGuide(availableCategories, skills)
+  const source = getAtlasPromptSource(model)
   const runtimeInjections = [
     { placeholder: "{CATEGORY_SECTION}", resolver: () => categorySection },
     { placeholder: "{AGENT_SECTION}", resolver: () => agentSection },
     { placeholder: "{DECISION_MATRIX}", resolver: () => decisionMatrix },
     { placeholder: "{SKILLS_SECTION}", resolver: () => skillsSection },
-    {
-      placeholder: "{{CATEGORY_SKILLS_DELEGATION_GUIDE}}",
-      resolver: () => categorySkillsGuide,
-    },
-  ] satisfies readonly SyncRuntimeInjection[];
+    { placeholder: "{{CATEGORY_SKILLS_DELEGATION_GUIDE}}", resolver: () => categorySkillsGuide },
+  ] satisfies readonly SyncRuntimeInjection[]
 
   const agentIdentity = buildAgentIdentitySection(
     "Atlas",
     "Master Orchestrator agent from OhMyOpenCode that coordinates specialized agents to complete todo lists",
-  );
+  )
   const basePrompt = loadPromptSync({
     source: atlasPromptVariants[source],
     name: "atlas",
     variant: source,
     inject: runtimeInjections,
-  }).body;
+  }).body
 
-  return agentIdentity + "\n" + basePrompt;
+  return agentIdentity + "\n" + basePrompt
 }
 
 export function createAtlasAgent(ctx: OrchestratorContext): AgentConfig {
@@ -139,11 +117,11 @@ export function createAtlasAgent(ctx: OrchestratorContext): AgentConfig {
     temperature: 0.1,
     prompt: buildDynamicOrchestratorPrompt(ctx),
     color: "#10B981",
-  };
+  }
 
-  return baseConfig;
+  return baseConfig
 }
-createAtlasAgent.mode = MODE;
+createAtlasAgent.mode = MODE
 
 export const atlasPromptMetadata: AgentPromptMetadata = {
   category: "advisor",
@@ -171,4 +149,4 @@ export const atlasPromptMetadata: AgentPromptMetadata = {
   ],
   keyTrigger:
     "Todo list path provided OR multiple tasks requiring multi-agent orchestration",
-};
+}

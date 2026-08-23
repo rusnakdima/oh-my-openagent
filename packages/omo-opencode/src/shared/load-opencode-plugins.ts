@@ -1,17 +1,17 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
+import * as fs from "node:fs"
+import * as path from "node:path"
 
-import { parseJsoncSafe } from "./jsonc-parser";
-import { getOpenCodeConfigDirs } from "./opencode-config-dir";
+import { parseJsoncSafe } from "./jsonc-parser"
+import { getOpenCodeConfigDirs } from "./opencode-config-dir"
 
 interface OpencodeConfig {
-  plugin?: (string | [string, ...unknown[]])[];
+  plugin?: (string | [string, ...unknown[]])[]
 }
 
-const opencodePluginsCache = new Map<string, string[]>();
+const opencodePluginsCache = new Map<string, string[]>()
 
 function getConfigPaths(directory: string): string[] {
-  const configDirs = getOpenCodeConfigDirs({ binary: "opencode" });
+  const configDirs = getOpenCodeConfigDirs({ binary: "opencode" })
   return [
     path.join(directory, ".opencode", "opencode.json"),
     path.join(directory, ".opencode", "opencode.jsonc"),
@@ -19,50 +19,46 @@ function getConfigPaths(directory: string): string[] {
       path.join(dir, "opencode.json"),
       path.join(dir, "opencode.jsonc"),
     ]),
-  ];
+  ]
 }
 
 export function loadOpencodePlugins(directory: string): string[] {
-  const cachedPluginEntries = opencodePluginsCache.get(directory);
+  const cachedPluginEntries = opencodePluginsCache.get(directory)
   if (cachedPluginEntries) {
-    return cachedPluginEntries;
+    return cachedPluginEntries
   }
 
-  const pluginEntries: string[] = [];
-  const seenPluginEntries = new Set<string>();
+  const pluginEntries: string[] = []
+  const seenPluginEntries = new Set<string>()
 
   for (const configPath of getConfigPaths(directory)) {
     try {
-      if (!fs.existsSync(configPath)) continue;
+      if (!fs.existsSync(configPath)) continue
 
-      const content = fs.readFileSync(configPath, "utf-8");
-      const result = parseJsoncSafe<OpencodeConfig>(content);
-      const plugins = result.data?.plugin ?? [];
+      const content = fs.readFileSync(configPath, "utf-8")
+      const result = parseJsoncSafe<OpencodeConfig>(content)
+      const plugins = result.data?.plugin ?? []
 
       for (const plugin of plugins) {
-        const entry = typeof plugin === "string"
-          ? plugin
-          : Array.isArray(plugin)
-          ? plugin[0]
-          : null;
-        if (typeof entry !== "string") continue;
-        if (seenPluginEntries.has(entry)) continue;
-        seenPluginEntries.add(entry);
-        pluginEntries.push(entry);
+        const entry = typeof plugin === "string" ? plugin : Array.isArray(plugin) ? plugin[0] : null
+        if (typeof entry !== "string") continue
+        if (seenPluginEntries.has(entry)) continue
+        seenPluginEntries.add(entry)
+        pluginEntries.push(entry)
       }
     } catch (error) {
       if (error instanceof Error) {
-        continue;
+        continue
       }
 
-      continue;
+      continue
     }
   }
 
-  opencodePluginsCache.set(directory, pluginEntries);
-  return pluginEntries;
+  opencodePluginsCache.set(directory, pluginEntries)
+  return pluginEntries
 }
 
 export function clearOpencodePluginsCache(): void {
-  opencodePluginsCache.clear();
+  opencodePluginsCache.clear()
 }

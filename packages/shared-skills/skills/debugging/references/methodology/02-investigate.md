@@ -1,7 +1,6 @@
 # Phase 2 + 3 — Hypothesis Formation & Parallel Investigation
 
-One hypothesis is a hunch. Three hypotheses is a decision. Investigation is how
-you turn the decision into runtime evidence.
+One hypothesis is a hunch. Three hypotheses is a decision. Investigation is how you turn the decision into runtime evidence.
 
 ---
 
@@ -9,42 +8,32 @@ you turn the decision into runtime evidence.
 
 ### Why three, not one
 
-A single hypothesis creates confirmation bias: you'll read runtime state looking
-for evidence that confirms it and unconsciously discount contradictions. Three
-hypotheses force you to design queries that _distinguish_ between them, which is
-the only way runtime evidence becomes decisive.
+A single hypothesis creates confirmation bias: you'll read runtime state looking for evidence that confirms it and unconsciously discount contradictions. Three hypotheses force you to design queries that *distinguish* between them, which is the only way runtime evidence becomes decisive.
 
 ### Generate across orthogonal axes
 
-If your three hypotheses are all variations of "the handler has a bug", you
-don't actually have three hypotheses. Span the space:
+If your three hypotheses are all variations of "the handler has a bug", you don't actually have three hypotheses. Span the space:
 
-| Axis                               | Example framing                                                                                                            |
-| ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| **User-code logic**                | "The handler early-returns because condition X is unexpectedly true"                                                       |
-| **Library/SDK behavior**           | "The third-party client swallows the error and returns a stub"                                                             |
-| **Environment/config**             | "The env var is read at module-load time before it gets populated, so it's empty"                                          |
-| **Async/timing**                   | "The promise rejects (or goroutine panics) after the response is already sent"                                             |
-| **Silent side-effect**             | "An earlier turn mutated shared state that the current turn inherits"                                                      |
-| **Observability gap**              | "The error is raised but suppressed before logging; it only exists as an unawaited rejection / ignored signal"             |
-| **Binary-level** (when applicable) | "The function we think is running is actually jumped over by a patched thunk / a different version loaded"                 |
-| **Build-vs-runtime**               | "The code we're reading is not the code that's running — stale build, wrong symlink, cached wheel, or dist/ ahead of src/" |
+| Axis | Example framing |
+|---|---|
+| **User-code logic** | "The handler early-returns because condition X is unexpectedly true" |
+| **Library/SDK behavior** | "The third-party client swallows the error and returns a stub" |
+| **Environment/config** | "The env var is read at module-load time before it gets populated, so it's empty" |
+| **Async/timing** | "The promise rejects (or goroutine panics) after the response is already sent" |
+| **Silent side-effect** | "An earlier turn mutated shared state that the current turn inherits" |
+| **Observability gap** | "The error is raised but suppressed before logging; it only exists as an unawaited rejection / ignored signal" |
+| **Binary-level** (when applicable) | "The function we think is running is actually jumped over by a patched thunk / a different version loaded" |
+| **Build-vs-runtime** | "The code we're reading is not the code that's running — stale build, wrong symlink, cached wheel, or dist/ ahead of src/" |
 
 ### For each hypothesis, write in the journal
 
 1. **Claim** — one sentence.
-2. **Distinguishing evidence** — the exact value or state that confirms or
-   refutes it, AND where to read it (file:line, log source, breakpoint location,
-   memory address).
-3. **If true, the fix is** — two words. Forces you to think through fix cost
-   before committing to the hunt.
+2. **Distinguishing evidence** — the exact value or state that confirms or refutes it, AND where to read it (file:line, log source, breakpoint location, memory address).
+3. **If true, the fix is** — two words. Forces you to think through fix cost before committing to the hunt.
 
 ### Collapse rule
 
-If two hypotheses have identical distinguishing evidence, they aren't actually
-different — collapse them and find a real alternative. If you can't come up with
-a third distinct hypothesis, you don't understand the system well enough yet. Go
-read a little more code before investigating.
+If two hypotheses have identical distinguishing evidence, they aren't actually different — collapse them and find a real alternative. If you can't come up with a third distinct hypothesis, you don't understand the system well enough yet. Go read a little more code before investigating.
 
 ---
 
@@ -54,10 +43,7 @@ Branch depending on what's available.
 
 ### Path A: Team mode ENABLED
 
-When the `team_*` tools are present, create a **debug-squad** team and split
-investigation across members working on different evidence sources. This is the
-right default whenever you have ≥3 hypotheses and any of them would take >10
-minutes to investigate single-threaded.
+When the `team_*` tools are present, create a **debug-squad** team and split investigation across members working on different evidence sources. This is the right default whenever you have ≥3 hypotheses and any of them would take >10 minutes to investigate single-threaded.
 
 **Team spec** — write to `~/.omo/teams/debug-squad/config.json`:
 
@@ -90,27 +76,19 @@ minutes to investigate single-threaded.
 }
 ```
 
-**Assignment rule**: one hypothesis → one `team_task_create`. Give each
-hypothesis to the member whose evidence source is most likely to confirm or
-refute it. Broadcast the full hypothesis list once via
-`team_send_message(to="*")` so members know what the others are testing.
+**Assignment rule**: one hypothesis → one `team_task_create`. Give each hypothesis to the member whose evidence source is most likely to confirm or refute it. Broadcast the full hypothesis list once via `team_send_message(to="*")` so members know what the others are testing.
 
 **Lead responsibilities**:
-
 - Maintain the journal (members do not write to it).
-- Approve any source-code edits (including `debugger;` / `breakpoint()` / `dbg!`
-  statements).
+- Approve any source-code edits (including `debugger;` / `breakpoint()` / `dbg!` statements).
 - Synthesize member reports into updated hypothesis statuses.
-- Decide when to disband: `team_shutdown_request` → `team_approve_shutdown` →
-  `team_delete`.
+- Decide when to disband: `team_shutdown_request` → `team_approve_shutdown` → `team_delete`.
 
-**Team does NOT include Oracle** — Oracle is a hard-reject team member type.
-Oracle is used separately in Phase 4 (see `04-oracle-triple.md`).
+**Team does NOT include Oracle** — Oracle is a hard-reject team member type. Oracle is used separately in Phase 4 (see `04-oracle-triple.md`).
 
 ### Path B: Team mode DISABLED
 
-Fan out async explore/deep subagents instead. Same rule: one hypothesis per
-subagent.
+Fan out async explore/deep subagents instead. Same rule: one hypothesis per subagent.
 
 ```
 task(subagent_type="explore", load_skills=[], run_in_background=true,
@@ -132,7 +110,6 @@ For every piece of runtime state captured, record in the journal:
 
 ```markdown
 ### <ISO timestamp> — <what you looked at>
-
 - Source: <file:line | log source | curl command | breakpoint address>
 - Value: `<verbatim>`
 - Interpretation: <one line — why this matters>
@@ -142,8 +119,7 @@ For every piece of runtime state captured, record in the journal:
 **Verbatim values only. No paraphrasing.**
 
 - `messages.length=0` is evidence.
-- "messages seemed empty" is not evidence — it's a memory of an observation, and
-  memory of observations is where debug sessions go to die.
+- "messages seemed empty" is not evidence — it's a memory of an observation, and memory of observations is where debug sessions go to die.
 
 If you find yourself about to paraphrase, stop, go back, and copy the raw value.
 
@@ -151,8 +127,4 @@ If you find yourself about to paraphrase, stop, go back, and copy the raw value.
 
 ## Round completion
 
-A "round" is complete when every hypothesis has either confirming or refuting
-evidence — or when you have exhausted the evidence sources available without a
-decisive result. If the round ends inconclusively, that counts as a failed round
-for the counter in the journal. See `04-oracle-triple.md` for what to do at 2
-consecutive failed rounds.
+A "round" is complete when every hypothesis has either confirming or refuting evidence — or when you have exhausted the evidence sources available without a decisive result. If the round ends inconclusively, that counts as a failed round for the counter in the journal. See `04-oracle-triple.md` for what to do at 2 consecutive failed rounds.

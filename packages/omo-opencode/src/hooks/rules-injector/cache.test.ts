@@ -69,8 +69,6 @@ describe("createSessionCacheStore", () => {
     expect(existsSync(getStoragePath(retainedSessionID))).toBe(true);
     expect(reloadedRetainedCache).toBe(retainedCache);
     expect([...reloadedRetainedCache.contentHashes]).toEqual(["hash:retained"]);
-    expect([...reloadedRetainedCache.realPaths]).toEqual([
-      "/tmp/retained-rule.md",
-    ]);
+    expect([...reloadedRetainedCache.realPaths]).toEqual(["/tmp/retained-rule.md"]);
   });
 });

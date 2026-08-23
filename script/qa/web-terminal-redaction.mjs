@@ -21,10 +21,7 @@ export function compileRedactions({ redactions, redactRegexes }) {
   }));
   for (const literal of redactions) {
     if (literal.length > 0) {
-      rules.push({
-        regex: new RegExp(escapeRegex(literal), "g"),
-        preservePrefix: false,
-      });
+      rules.push({ regex: new RegExp(escapeRegex(literal), "g"), preservePrefix: false });
     }
   }
   for (const source of redactRegexes) {
@@ -36,12 +33,10 @@ export function compileRedactions({ redactions, redactRegexes }) {
 export function redactEvidence(text, rules) {
   return rules.reduce(
     (current, rule) =>
-      current.replace(
-        rule.regex,
-        (match, prefix, suffix) =>
-          rule.preservePrefix && typeof prefix === "string"
-            ? `${prefix}[REDACTED]${typeof suffix === "string" ? suffix : ""}`
-            : "[REDACTED]",
+      current.replace(rule.regex, (match, prefix, suffix) =>
+        rule.preservePrefix && typeof prefix === "string"
+          ? `${prefix}[REDACTED]${typeof suffix === "string" ? suffix : ""}`
+          : "[REDACTED]",
       ),
     text,
   );

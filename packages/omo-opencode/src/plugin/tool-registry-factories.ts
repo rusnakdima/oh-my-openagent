@@ -4,18 +4,15 @@ import {
   createTeamDeleteTool,
   createTeamRejectShutdownTool,
   createTeamShutdownRequestTool,
-} from "../features/team-mode/tools/lifecycle";
-import { createTeamSendMessageTool } from "../features/team-mode/tools/messaging";
-import {
-  createTeamListTool,
-  createTeamStatusTool,
-} from "../features/team-mode/tools/query";
+} from "../features/team-mode/tools/lifecycle"
+import { createTeamSendMessageTool } from "../features/team-mode/tools/messaging"
+import { createTeamListTool, createTeamStatusTool } from "../features/team-mode/tools/query"
 import {
   createTeamTaskCreateTool,
   createTeamTaskGetTool,
   createTeamTaskListTool,
   createTeamTaskUpdateTool,
-} from "../features/team-mode/tools/tasks";
+} from "../features/team-mode/tools/tasks"
 import {
   createBackgroundTools,
   createCallOmoAgent,
@@ -28,51 +25,51 @@ import {
   createSessionManagerTools,
   createSkillMcpTool,
   createSkillTool,
-  createSpeakTool,
   createTaskCreateTool,
   createTaskGetTool,
   createTaskList,
   createTaskUpdateTool,
   createVoiceTool,
+  createSpeakTool,
   discoverCommandsSync,
   interactive_bash,
   interactive_menu,
-} from "../tools";
+} from "../tools"
 
 export type ToolRegistryFactories = {
-  createBackgroundTools: typeof createBackgroundTools;
-  createCallOmoAgent: typeof createCallOmoAgent;
-  createLookAt: typeof createLookAt;
-  createMonitorTools: typeof createMonitorTools;
-  createSkillMcpTool: typeof createSkillMcpTool;
-  createSkillTool: typeof createSkillTool;
-  createGrepTools: typeof createGrepTools;
-  createGlobTools: typeof createGlobTools;
-  createSessionManagerTools: typeof createSessionManagerTools;
-  createDelegateTask: typeof createDelegateTask;
-  discoverCommandsSync: typeof discoverCommandsSync;
-  interactive_bash: typeof interactive_bash;
-  interactive_menu: typeof interactive_menu;
-  createTaskCreateTool: typeof createTaskCreateTool;
-  createTaskGetTool: typeof createTaskGetTool;
-  createTaskList: typeof createTaskList;
-  createTaskUpdateTool: typeof createTaskUpdateTool;
-  createHashlineEditTool: typeof createHashlineEditTool;
-  createVoiceTool: typeof createVoiceTool;
-  createSpeakTool: typeof createSpeakTool;
-  createTeamApproveShutdownTool: typeof createTeamApproveShutdownTool;
-  createTeamCreateTool: typeof createTeamCreateTool;
-  createTeamDeleteTool: typeof createTeamDeleteTool;
-  createTeamRejectShutdownTool: typeof createTeamRejectShutdownTool;
-  createTeamShutdownRequestTool: typeof createTeamShutdownRequestTool;
-  createTeamSendMessageTool: typeof createTeamSendMessageTool;
-  createTeamTaskCreateTool: typeof createTeamTaskCreateTool;
-  createTeamTaskGetTool: typeof createTeamTaskGetTool;
-  createTeamTaskListTool: typeof createTeamTaskListTool;
-  createTeamTaskUpdateTool: typeof createTeamTaskUpdateTool;
-  createTeamStatusTool: typeof createTeamStatusTool;
-  createTeamListTool: typeof createTeamListTool;
-};
+  createBackgroundTools: typeof createBackgroundTools
+  createCallOmoAgent: typeof createCallOmoAgent
+  createLookAt: typeof createLookAt
+  createMonitorTools: typeof createMonitorTools
+  createSkillMcpTool: typeof createSkillMcpTool
+  createSkillTool: typeof createSkillTool
+  createGrepTools: typeof createGrepTools
+  createGlobTools: typeof createGlobTools
+  createSessionManagerTools: typeof createSessionManagerTools
+  createDelegateTask: typeof createDelegateTask
+  discoverCommandsSync: typeof discoverCommandsSync
+  interactive_bash: typeof interactive_bash,
+  interactive_menu: typeof interactive_menu,
+  createTaskCreateTool: typeof createTaskCreateTool
+  createTaskGetTool: typeof createTaskGetTool
+  createTaskList: typeof createTaskList
+  createTaskUpdateTool: typeof createTaskUpdateTool
+  createHashlineEditTool: typeof createHashlineEditTool
+  createVoiceTool: typeof createVoiceTool
+  createSpeakTool: typeof createSpeakTool
+  createTeamApproveShutdownTool: typeof createTeamApproveShutdownTool
+  createTeamCreateTool: typeof createTeamCreateTool
+  createTeamDeleteTool: typeof createTeamDeleteTool
+  createTeamRejectShutdownTool: typeof createTeamRejectShutdownTool
+  createTeamShutdownRequestTool: typeof createTeamShutdownRequestTool
+  createTeamSendMessageTool: typeof createTeamSendMessageTool
+  createTeamTaskCreateTool: typeof createTeamTaskCreateTool
+  createTeamTaskGetTool: typeof createTeamTaskGetTool
+  createTeamTaskListTool: typeof createTeamTaskListTool
+  createTeamTaskUpdateTool: typeof createTeamTaskUpdateTool
+  createTeamStatusTool: typeof createTeamStatusTool
+  createTeamListTool: typeof createTeamListTool
+}
 
 export const defaultToolRegistryFactories: ToolRegistryFactories = {
   createBackgroundTools,
@@ -107,4 +104,4 @@ export const defaultToolRegistryFactories: ToolRegistryFactories = {
   createTeamTaskUpdateTool,
   createTeamStatusTool,
   createTeamListTool,
-};
+}

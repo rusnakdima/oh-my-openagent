@@ -4,7 +4,7 @@
 // and a two-pass apply (JSON preview, then a separate `--update-all` process) because
 // `sg` cannot combine JSON output with mutation.
 
-import { type NormalizedMatch, normalizeRecords } from "../normalize";
+import { normalizeRecords, type NormalizedMatch } from "../normalize";
 import { validateRewriteHints } from "../pattern-hints";
 import {
   DEFAULT_MATCHES,
@@ -37,31 +37,9 @@ const APPLY_PREVIEW_WARNING =
   "Mutation counts are based on the preview pass; sg update-all does not return equivalent JSON.";
 
 const LANGUAGES = [
-  "bash",
-  "c",
-  "cpp",
-  "csharp",
-  "css",
-  "elixir",
-  "go",
-  "haskell",
-  "html",
-  "java",
-  "javascript",
-  "json",
-  "kotlin",
-  "lua",
-  "nix",
-  "php",
-  "python",
-  "ruby",
-  "rust",
-  "scala",
-  "solidity",
-  "swift",
-  "typescript",
-  "tsx",
-  "yaml",
+  "bash", "c", "cpp", "csharp", "css", "elixir", "go", "haskell", "html",
+  "java", "javascript", "json", "kotlin", "lua", "nix", "php", "python",
+  "ruby", "rust", "scala", "solidity", "swift", "typescript", "tsx", "yaml",
 ] as const;
 
 const STRICTNESS = ["cst", "smart", "ast", "relaxed", "signature"] as const;
@@ -101,20 +79,8 @@ function codePointLength(value: string): number {
 }
 
 const KNOWN_KEYS = new Set([
-  "pattern",
-  "rewrite",
-  "language",
-  "paths",
-  "workdir",
-  "globs",
-  "selector",
-  "strictness",
-  "apply",
-  "maxMatches",
-  "timeoutMs",
-  "includeHidden",
-  "followSymlinks",
-  "force",
+  "pattern", "rewrite", "language", "paths", "workdir", "globs", "selector",
+  "strictness", "apply", "maxMatches", "timeoutMs", "includeHidden", "followSymlinks", "force",
 ]);
 
 function parseRewriteInput(input: unknown): RewriteInput {
@@ -127,36 +93,21 @@ function parseRewriteInput(input: unknown): RewriteInput {
     if (!KNOWN_KEYS.has(key)) throw new Error(`Unknown property: ${key}`);
   }
 
-  if (typeof obj.pattern !== "string" || obj.pattern.length === 0) {
-    throw new Error("pattern must be a non-empty string");
-  }
-  if (Buffer.byteLength(obj.pattern, "utf8") > MAX_PATTERN_BYTES) {
-    throw new Error("pattern must be at most 16KiB");
-  }
+  if (typeof obj.pattern !== "string" || obj.pattern.length === 0) throw new Error("pattern must be a non-empty string");
+  if (Buffer.byteLength(obj.pattern, "utf8") > MAX_PATTERN_BYTES) throw new Error("pattern must be at most 16KiB");
 
   // The rewrite template is required but MAY be empty: an empty string deletes the match.
-  if (typeof obj.rewrite !== "string") {
-    throw new Error("rewrite must be a string");
-  }
-  if (Buffer.byteLength(obj.rewrite, "utf8") > MAX_REWRITE_BYTES) {
-    throw new Error("rewrite must be at most 64KiB");
-  }
+  if (typeof obj.rewrite !== "string") throw new Error("rewrite must be a string");
+  if (Buffer.byteLength(obj.rewrite, "utf8") > MAX_REWRITE_BYTES) throw new Error("rewrite must be at most 64KiB");
 
-  if (
-    typeof obj.language !== "string" ||
-    !(LANGUAGES as readonly string[]).includes(obj.language)
-  ) {
+  if (typeof obj.language !== "string" || !(LANGUAGES as readonly string[]).includes(obj.language)) {
     throw new Error(`language must be one of: ${LANGUAGES.join(", ")}`);
   }
 
   if (!Array.isArray(obj.paths)) throw new Error("paths must be an array");
-  if (obj.paths.length < 1 || obj.paths.length > MAX_PATHS) {
-    throw new Error(`paths must have 1-${MAX_PATHS} entries`);
-  }
+  if (obj.paths.length < 1 || obj.paths.length > MAX_PATHS) throw new Error(`paths must have 1-${MAX_PATHS} entries`);
   for (const path of obj.paths) {
-    if (typeof path !== "string" || path.length === 0) {
-      throw new Error("each path must be a non-empty string");
-    }
+    if (typeof path !== "string" || path.length === 0) throw new Error("each path must be a non-empty string");
     if (codePointLength(path) > MAX_PATH_CHARS) {
       throw new Error(`each path must be at most ${MAX_PATH_CHARS} characters`);
     }
@@ -167,25 +118,17 @@ function parseRewriteInput(input: unknown): RewriteInput {
       throw new Error("workdir must be a non-empty string");
     }
     if (codePointLength(obj.workdir) > MAX_WORKDIR_CHARS) {
-      throw new Error(
-        `workdir must be at most ${MAX_WORKDIR_CHARS} characters`,
-      );
+      throw new Error(`workdir must be at most ${MAX_WORKDIR_CHARS} characters`);
     }
   }
 
   if (obj.globs !== undefined) {
     if (!Array.isArray(obj.globs)) throw new Error("globs must be an array");
-    if (obj.globs.length > MAX_GLOBS) {
-      throw new Error(`globs must have at most ${MAX_GLOBS} entries`);
-    }
+    if (obj.globs.length > MAX_GLOBS) throw new Error(`globs must have at most ${MAX_GLOBS} entries`);
     for (const glob of obj.globs) {
-      if (typeof glob !== "string" || glob.length === 0) {
-        throw new Error("each glob must be a non-empty string");
-      }
+      if (typeof glob !== "string" || glob.length === 0) throw new Error("each glob must be a non-empty string");
       if (codePointLength(glob) > MAX_GLOB_CHARS) {
-        throw new Error(
-          `each glob must be at most ${MAX_GLOB_CHARS} characters`,
-        );
+        throw new Error(`each glob must be at most ${MAX_GLOB_CHARS} characters`);
       }
     }
   }
@@ -195,26 +138,19 @@ function parseRewriteInput(input: unknown): RewriteInput {
       throw new Error("selector must be a non-empty string");
     }
     if (codePointLength(obj.selector) > MAX_SELECTOR_CHARS) {
-      throw new Error(
-        `selector must be at most ${MAX_SELECTOR_CHARS} characters`,
-      );
+      throw new Error(`selector must be at most ${MAX_SELECTOR_CHARS} characters`);
     }
   }
 
   let strictness: (typeof STRICTNESS)[number] = "smart";
   if (obj.strictness !== undefined) {
-    if (
-      typeof obj.strictness !== "string" ||
-      !(STRICTNESS as readonly string[]).includes(obj.strictness)
-    ) {
+    if (typeof obj.strictness !== "string" || !(STRICTNESS as readonly string[]).includes(obj.strictness)) {
       throw new Error(`strictness must be one of: ${STRICTNESS.join(", ")}`);
     }
     strictness = obj.strictness as (typeof STRICTNESS)[number];
   }
 
-  if (obj.apply !== undefined && typeof obj.apply !== "boolean") {
-    throw new Error("apply must be a boolean");
-  }
+  if (obj.apply !== undefined && typeof obj.apply !== "boolean") throw new Error("apply must be a boolean");
 
   let maxMatches = DEFAULT_MATCHES;
   if (obj.maxMatches !== undefined) {
@@ -224,9 +160,7 @@ function parseRewriteInput(input: unknown): RewriteInput {
       obj.maxMatches < 1 ||
       obj.maxMatches > MAX_MATCHES
     ) {
-      throw new Error(
-        `maxMatches must be an integer between 1 and ${MAX_MATCHES}`,
-      );
+      throw new Error(`maxMatches must be an integer between 1 and ${MAX_MATCHES}`);
     }
     maxMatches = obj.maxMatches;
   }
@@ -239,17 +173,13 @@ function parseRewriteInput(input: unknown): RewriteInput {
       obj.timeoutMs < MIN_TIMEOUT_MS ||
       obj.timeoutMs > MAX_TIMEOUT_MS
     ) {
-      throw new Error(
-        `timeoutMs must be an integer between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS}`,
-      );
+      throw new Error(`timeoutMs must be an integer between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS}`);
     }
     timeoutMs = obj.timeoutMs;
   }
 
   for (const flag of ["includeHidden", "followSymlinks", "force"] as const) {
-    if (obj[flag] !== undefined && typeof obj[flag] !== "boolean") {
-      throw new Error(`${flag} must be a boolean`);
-    }
+    if (obj[flag] !== undefined && typeof obj[flag] !== "boolean") throw new Error(`${flag} must be a boolean`);
   }
 
   return {
@@ -281,46 +211,24 @@ export const rewriteInputSchema = {
 function scopeArgs(input: RewriteInput): string[] {
   const args: string[] = ["--strictness", input.strictness];
   if (input.selector) args.push("--selector", input.selector);
-  if (input.globs) {
-    for (const glob of input.globs) {
-      args.push("--globs", glob);
-    }
-  }
+  if (input.globs) for (const glob of input.globs) args.push("--globs", glob);
   if (input.includeHidden) args.push("--no-ignore", "hidden");
   if (input.followSymlinks) args.push("--follow");
   return args;
 }
 
 function baseArgs(input: RewriteInput): string[] {
-  return [
-    "run",
-    "-p",
-    input.pattern,
-    "-r",
-    input.rewrite,
-    "--lang",
-    input.language,
-  ];
+  return ["run", "-p", input.pattern, "-r", input.rewrite, "--lang", input.language];
 }
 
 /** Pass 1: JSON preview. Never mutates — `sg` only writes with `--update-all`. */
 export function buildRewriteArgs(input: RewriteInput): string[] {
-  return [
-    ...baseArgs(input),
-    "--json=stream",
-    ...scopeArgs(input),
-    ...input.paths,
-  ];
+  return [...baseArgs(input), "--json=stream", ...scopeArgs(input), ...input.paths];
 }
 
 /** Pass 2: mutation. `--update-all` with NO `--json` (the combo previews without writing). */
 export function buildRewriteApplyArgs(input: RewriteInput): string[] {
-  return [
-    ...baseArgs(input),
-    "--update-all",
-    ...scopeArgs(input),
-    ...input.paths,
-  ];
+  return [...baseArgs(input), "--update-all", ...scopeArgs(input), ...input.paths];
 }
 
 // ---- output ----
@@ -354,17 +262,10 @@ export interface RewriteSuccessPayload {
   readonly workdir: string;
   readonly applied: boolean;
   readonly matches: readonly RewriteMatch[];
-  readonly counts: {
-    readonly plannedMatches: number;
-    readonly plannedFiles: number;
-  };
+  readonly counts: { readonly plannedMatches: number; readonly plannedFiles: number };
   readonly truncation: {
     readonly truncated: boolean;
-    readonly reason:
-      | "match_limit"
-      | "output_cap"
-      | "sg_output_truncated"
-      | null;
+    readonly reason: "match_limit" | "output_cap" | "sg_output_truncated" | null;
     readonly maxMatches: number;
     readonly maxPayloadBytes: number;
     readonly salvagedRecords: number;
@@ -390,10 +291,7 @@ export interface RewriteErrorPayload {
     readonly retryable: boolean;
     readonly phase: RewritePhase;
     readonly language: string;
-    readonly details: {
-      readonly stderr?: string;
-      readonly hints?: readonly string[];
-    };
+    readonly details: { readonly stderr?: string; readonly hints?: readonly string[] };
   };
   readonly durationMs: number;
 }
@@ -428,22 +326,12 @@ function failure(
     schemaVersion: 1,
     ok: false,
     kind: "rewrite",
-    error: {
-      code,
-      message,
-      retryable: RETRYABLE.has(code),
-      phase,
-      language,
-      details,
-    },
+    error: { code, message, retryable: RETRYABLE.has(code), phase, language, details },
     durationMs,
   };
 }
 
-function toRewriteMatches(
-  records: readonly Record<string, unknown>[],
-  workdir: string,
-): RewriteMatch[] {
+function toRewriteMatches(records: readonly Record<string, unknown>[], workdir: string): RewriteMatch[] {
   return normalizeRecords(records, workdir).map((match) => ({
     ...match,
     replacement: typeof match.replacement === "string" ? match.replacement : "",
@@ -491,21 +379,15 @@ export async function executeRewrite(
     );
   }
 
-  const workdir = input.workdir ?? process.env.OMO_AST_GREP_PROJECT_CWD ??
-    process.cwd();
+  const workdir = input.workdir ?? process.env.OMO_AST_GREP_PROJECT_CWD ?? process.cwd();
 
   // Preflight. Unbound and cardinality rejections are always-reject inside
   // validateRewriteHints, so `force` can never reach the spawn with them.
-  const validation = validateRewriteHints(
-    input.pattern,
-    input.rewrite,
-    input.language,
-    {
-      force: input.force,
-      paths: input.paths,
-      limit: input.maxMatches,
-    },
-  );
+  const validation = validateRewriteHints(input.pattern, input.rewrite, input.language, {
+    force: input.force,
+    paths: input.paths,
+    limit: input.maxMatches,
+  });
   if (validation.rejected) {
     const blocking = validation.hints.find(
       (hint) => hint.severity === "always-reject" || hint.severity === "reject",
@@ -534,16 +416,9 @@ export async function executeRewrite(
     });
   } catch (error) {
     if (error instanceof SgRunnerError) {
-      return failure(
-        error.code as RewriteErrorCode,
-        error.message,
-        "preview",
-        input.language,
-        error.durationMs,
-        {
-          stderr: error.stderr,
-        },
-      );
+      return failure(error.code as RewriteErrorCode, error.message, "preview", input.language, error.durationMs, {
+        stderr: error.stderr,
+      });
     }
     return failure(
       "SG_FAILED",
@@ -578,10 +453,7 @@ export async function executeRewrite(
     plannedFiles: new Set(matches.map((match) => match.path)).size,
   } as const;
 
-  const dryRun = (
-    secondPassExitCode: number | null,
-    extraWarnings: readonly string[] = [],
-  ): RewriteSuccessPayload => ({
+  const dryRun = (secondPassExitCode: number | null, extraWarnings: readonly string[] = []): RewriteSuccessPayload => ({
     schemaVersion: 1,
     ok: true,
     kind: "rewrite",
@@ -651,16 +523,9 @@ export async function executeRewrite(
     applyStderr = applied.stderr;
   } catch (error) {
     if (error instanceof SgRunnerError) {
-      return failure(
-        error.code as RewriteErrorCode,
-        error.message,
-        "apply",
-        input.language,
-        elapsed(),
-        {
-          stderr: error.stderr,
-        },
-      );
+      return failure(error.code as RewriteErrorCode, error.message, "apply", input.language, elapsed(), {
+        stderr: error.stderr,
+      });
     }
     return failure(
       "SG_FAILED",

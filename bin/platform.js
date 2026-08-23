@@ -27,68 +27,44 @@ export function resolvePlatformPackageBaseName(wrapperPackageName) {
  * @returns {string} Package name like "oh-my-opencode-darwin-arm64"
  * @throws {Error} If libc cannot be detected on Linux
  */
-export function getPlatformPackage(
-  { platform, arch, libcFamily, packageBaseName = "oh-my-opencode" },
-) {
+export function getPlatformPackage({ platform, arch, libcFamily, packageBaseName = "oh-my-opencode" }) {
   let suffix = "";
   if (platform === "linux") {
     if (libcFamily === null || libcFamily === undefined) {
       throw new Error(
         "Could not detect libc on Linux. " +
-          "Please ensure detect-libc is installed or report this issue.",
+        "Please ensure detect-libc is installed or report this issue."
       );
     }
     if (libcFamily === "musl") {
       suffix = "-musl";
     }
   }
-
+  
   // Map platform names: win32 -> windows (for package name)
   const os = platform === "win32" ? "windows" : platform;
   return `${packageBaseName}-${os}-${arch}${suffix}`;
 }
 
 /** @param {{ platform: string, arch: string, libcFamily?: string | null, preferBaseline?: boolean, packageBaseName?: string }} options */
-export function getPlatformPackageCandidates(
-  {
-    platform,
-    arch,
-    libcFamily,
-    preferBaseline = false,
-    packageBaseName = "oh-my-opencode",
-  },
-) {
-  const primaryPackage = getPlatformPackage({
-    platform,
-    arch,
-    libcFamily,
-    packageBaseName,
-  });
+export function getPlatformPackageCandidates({ platform, arch, libcFamily, preferBaseline = false, packageBaseName = "oh-my-opencode" }) {
+  const primaryPackage = getPlatformPackage({ platform, arch, libcFamily, packageBaseName });
 
   if (platform === "win32" && arch === "arm64") {
     return [primaryPackage, `${packageBaseName}-windows-x64-baseline`];
   }
 
-  const baselinePackage = getBaselinePlatformPackage({
-    platform,
-    arch,
-    libcFamily,
-    packageBaseName,
-  });
+  const baselinePackage = getBaselinePlatformPackage({ platform, arch, libcFamily, packageBaseName });
 
   if (!baselinePackage) {
     return [primaryPackage];
   }
 
-  return preferBaseline
-    ? [baselinePackage, primaryPackage]
-    : [primaryPackage, baselinePackage];
+  return preferBaseline ? [baselinePackage, primaryPackage] : [primaryPackage, baselinePackage];
 }
 
 /** @param {{ platform: string, arch: string, libcFamily?: string | null, packageBaseName?: string }} options */
-function getBaselinePlatformPackage(
-  { platform, arch, libcFamily, packageBaseName = "oh-my-opencode" },
-) {
+function getBaselinePlatformPackage({ platform, arch, libcFamily, packageBaseName = "oh-my-opencode" }) {
   if (arch !== "x64") {
     return null;
   }
@@ -105,7 +81,7 @@ function getBaselinePlatformPackage(
     if (libcFamily === null || libcFamily === undefined) {
       throw new Error(
         "Could not detect libc on Linux. " +
-          "Please ensure detect-libc is installed or report this issue.",
+        "Please ensure detect-libc is installed or report this issue."
       );
     }
 

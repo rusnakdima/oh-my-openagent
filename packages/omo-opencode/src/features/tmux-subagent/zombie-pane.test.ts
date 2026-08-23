@@ -1,77 +1,45 @@
 /// <reference path="../../../../../bun-test.d.ts" />
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  test,
-} from "bun:test";
-import type { TmuxConfig } from "../../config/schema";
-import type {
-  ActionResult,
-  ExecuteActionsResult,
-  ExecuteContext,
-} from "./action-executor";
-import type { TmuxUtilDeps } from "./manager";
-import type { TrackedSession, WindowState } from "./types";
-import * as sharedTmuxOriginal from "../../shared/tmux";
+import { afterEach, beforeEach, describe, expect, mock, test, afterAll } from "bun:test"
+import type { TmuxConfig } from "../../config/schema"
+import type { ActionResult, ExecuteContext, ExecuteActionsResult } from "./action-executor"
+import type { TmuxUtilDeps } from "./manager"
+import type { TrackedSession, WindowState } from "./types"
+import * as sharedTmuxOriginal from "../../shared/tmux"
 
-const sharedTmuxSnapshot = { ...sharedTmuxOriginal };
+const sharedTmuxSnapshot = { ...sharedTmuxOriginal }
 
-const mockQueryWindowState = mock<
-  (paneId: string) => Promise<WindowState | null>
->(async () => ({
+const mockQueryWindowState = mock<(paneId: string) => Promise<WindowState | null>>(async () => ({
   windowWidth: 220,
   windowHeight: 44,
-  mainPane: {
-    paneId: "%0",
-    width: 110,
-    height: 44,
-    left: 0,
-    top: 0,
-    title: "main",
-    isActive: true,
-  },
+  mainPane: { paneId: "%0", width: 110, height: 44, left: 0, top: 0, title: "main", isActive: true },
   agentPanes: [],
-}));
+}))
 
-const mockExecuteAction = mock<
-  (
-    action: { type: string },
-    ctx: ExecuteContext,
-  ) => Promise<ActionResult>
->(async () => ({ success: true }));
+const mockExecuteAction = mock<(
+  action: { type: string },
+  ctx: ExecuteContext,
+) => Promise<ActionResult>>(async () => ({ success: true }))
 
-const mockExecuteActions = mock<
-  (
-    actions: unknown[],
-    ctx: ExecuteContext,
-  ) => Promise<ExecuteActionsResult>
->(async () => ({
+const mockExecuteActions = mock<(
+  actions: unknown[],
+  ctx: ExecuteContext,
+) => Promise<ExecuteActionsResult>>(async () => ({
   success: true,
   spawnedPaneId: "%1",
   results: [],
-}));
+}))
 
-const mockSpawnTmuxWindow = mock(async () => ({
-  success: true,
-  paneId: "%window",
-}));
-const mockSpawnTmuxSession = mock(async () => ({
-  success: true,
-  paneId: "%session",
-}));
+const mockSpawnTmuxWindow = mock(async () => ({ success: true, paneId: "%window" }))
+const mockSpawnTmuxSession = mock(async () => ({ success: true, paneId: "%session" }))
 
-const mockIsInsideTmux = mock<() => boolean>(() => true);
-const mockGetCurrentPaneId = mock<() => string | undefined>(() => "%0");
+const mockIsInsideTmux = mock<() => boolean>(() => true)
+const mockGetCurrentPaneId = mock<() => string | undefined>(() => "%0")
 
 function registerModuleMocks(): void {
   mock.module("./action-executor", () => ({
     executeAction: mockExecuteAction,
     executeActions: mockExecuteActions,
-  }));
+  }))
 
   mock.module("../../shared/tmux", () => ({
     isInsideTmux: mockIsInsideTmux,
@@ -83,17 +51,15 @@ function registerModuleMocks(): void {
     spawnTmuxWindow: mockSpawnTmuxWindow,
     spawnTmuxSession: mockSpawnTmuxSession,
     SESSION_TIMEOUT_MS: 600_000,
-  }));
+  }))
 }
 
-afterAll(() => {
-  mock.restore();
-});
+afterAll(() => { mock.restore() })
 
 afterEach(() => {
-  mock.restore();
-  mock.module("../../shared/tmux", () => sharedTmuxSnapshot);
-});
+  mock.restore()
+  mock.module("../../shared/tmux", () => sharedTmuxSnapshot)
+})
 
 const mockTmuxDeps: TmuxUtilDeps = {
   isInsideTmux: mockIsInsideTmux,
@@ -103,7 +69,7 @@ const mockTmuxDeps: TmuxUtilDeps = {
   executeActions: mockExecuteActions,
   executeAction: mockExecuteAction,
   log: () => {},
-};
+}
 
 function createConfig(): TmuxConfig {
   return {
@@ -113,31 +79,31 @@ function createConfig(): TmuxConfig {
     main_pane_size: 60,
     main_pane_min_width: 80,
     agent_pane_min_width: 40,
-  };
+  }
 }
 
 function createContext() {
   const shell = Object.assign(
     () => {
-      throw new Error("shell should not be called in this test");
+      throw new Error("shell should not be called in this test")
     },
     {
       braces: () => [],
       escape: (input: string) => input,
       env() {
-        return shell;
+        return shell
       },
       cwd() {
-        return shell;
+        return shell
       },
       nothrow() {
-        return shell;
+        return shell
       },
       throws() {
-        return shell;
+        return shell
       },
     },
-  );
+  )
 
   return {
     project: {
@@ -155,12 +121,10 @@ function createContext() {
         messages: mock(async () => ({ data: [] })),
       },
     },
-  };
+  }
 }
 
-function createTrackedSession(
-  overrides?: Partial<TrackedSession>,
-): TrackedSession {
+function createTrackedSession(overrides?: Partial<TrackedSession>): TrackedSession {
   return {
     sessionId: "ses_pending",
     paneId: "%1",
@@ -170,234 +134,198 @@ function createTrackedSession(
     closePending: false,
     closeRetryCount: 0,
     ...overrides,
-  };
+  }
 }
 
 function getTrackedSessions(target: object): Map<string, TrackedSession> {
-  const sessions = Reflect.get(target, "sessions");
+  const sessions = Reflect.get(target, "sessions")
   if (!(sessions instanceof Map)) {
-    throw new Error("Expected sessions map");
+    throw new Error("Expected sessions map")
   }
 
-  return sessions;
+  return sessions
 }
 
 function getRetryPendingCloses(target: object): () => Promise<void> {
-  const retryPendingCloses = Reflect.get(target, "retryPendingCloses");
+  const retryPendingCloses = Reflect.get(target, "retryPendingCloses")
   if (typeof retryPendingCloses !== "function") {
-    throw new Error("Expected retryPendingCloses method");
+    throw new Error("Expected retryPendingCloses method")
   }
 
-  return retryPendingCloses.bind(target);
+  return retryPendingCloses.bind(target)
 }
 
-function getCloseSessionById(
-  target: object,
-): (sessionId: string) => Promise<void> {
-  const closeSessionById = Reflect.get(target, "closeSessionById");
+function getCloseSessionById(target: object): (sessionId: string) => Promise<void> {
+  const closeSessionById = Reflect.get(target, "closeSessionById")
   if (typeof closeSessionById !== "function") {
-    throw new Error("Expected closeSessionById method");
+    throw new Error("Expected closeSessionById method")
   }
 
-  return closeSessionById.bind(target);
+  return closeSessionById.bind(target)
 }
 
 function createManager(
   TmuxSessionManager: typeof import("./manager").TmuxSessionManager,
 ): import("./manager").TmuxSessionManager {
-  return Reflect.construct(TmuxSessionManager, [
-    createContext(),
-    createConfig(),
-    mockTmuxDeps,
-  ]);
+  return Reflect.construct(TmuxSessionManager, [createContext(), createConfig(), mockTmuxDeps])
 }
 
 describe("TmuxSessionManager zombie pane handling", () => {
   beforeEach(() => {
-    mock.restore();
-    registerModuleMocks();
-    mockQueryWindowState.mockClear();
-    mockExecuteAction.mockClear();
-    mockExecuteActions.mockClear();
-    mockSpawnTmuxWindow.mockClear();
-    mockSpawnTmuxSession.mockClear();
-    mockIsInsideTmux.mockClear();
-    mockGetCurrentPaneId.mockClear();
+    mock.restore()
+    registerModuleMocks()
+    mockQueryWindowState.mockClear()
+    mockExecuteAction.mockClear()
+    mockExecuteActions.mockClear()
+    mockSpawnTmuxWindow.mockClear()
+    mockSpawnTmuxSession.mockClear()
+    mockIsInsideTmux.mockClear()
+    mockGetCurrentPaneId.mockClear()
 
     mockQueryWindowState.mockImplementation(async () => ({
       windowWidth: 220,
       windowHeight: 44,
-      mainPane: {
-        paneId: "%0",
-        width: 110,
-        height: 44,
-        left: 0,
-        top: 0,
-        title: "main",
-        isActive: true,
-      },
+      mainPane: { paneId: "%0", width: 110, height: 44, left: 0, top: 0, title: "main", isActive: true },
       agentPanes: [],
-    }));
-    mockExecuteAction.mockImplementation(async () => ({ success: true }));
+    }))
+    mockExecuteAction.mockImplementation(async () => ({ success: true }))
     mockExecuteActions.mockImplementation(async () => ({
       success: true,
       spawnedPaneId: "%1",
       results: [],
-    }));
-    mockSpawnTmuxWindow.mockImplementation(async () => ({
-      success: true,
-      paneId: "%window",
-    }));
-    mockSpawnTmuxSession.mockImplementation(async () => ({
-      success: true,
-      paneId: "%session",
-    }));
-    mockIsInsideTmux.mockReturnValue(true);
-    mockGetCurrentPaneId.mockReturnValue("%0");
-  });
+    }))
+    mockSpawnTmuxWindow.mockImplementation(async () => ({ success: true, paneId: "%window" }))
+    mockSpawnTmuxSession.mockImplementation(async () => ({ success: true, paneId: "%session" }))
+    mockIsInsideTmux.mockReturnValue(true)
+    mockGetCurrentPaneId.mockReturnValue("%0")
+  })
 
   test("#given session in sessions Map #when onSessionDeleted called with null window state #then session stays in Map with closePending true", async () => {
     // given
-    mockQueryWindowState.mockImplementation(async () => null);
-    const { TmuxSessionManager } = await import("./manager");
-    const manager = createManager(TmuxSessionManager);
-    const sessions = getTrackedSessions(manager);
-    sessions.set("ses_pending", createTrackedSession());
+    mockQueryWindowState.mockImplementation(async () => null)
+    const { TmuxSessionManager } = await import("./manager")
+    const manager = createManager(TmuxSessionManager)
+    const sessions = getTrackedSessions(manager)
+    sessions.set("ses_pending", createTrackedSession())
 
     // when
-    await manager.onSessionDeleted({ sessionID: "ses_pending" });
+    await manager.onSessionDeleted({ sessionID: "ses_pending" })
 
     // then
-    const tracked = sessions.get("ses_pending");
-    expect(tracked).toBeDefined();
-    expect(tracked?.closePending).toBe(true);
-    expect(tracked?.closeRetryCount).toBe(0);
-    expect(mockExecuteAction).not.toHaveBeenCalled();
-  });
+    const tracked = sessions.get("ses_pending")
+    expect(tracked).toBeDefined()
+    expect(tracked?.closePending).toBe(true)
+    expect(tracked?.closeRetryCount).toBe(0)
+    expect(mockExecuteAction).not.toHaveBeenCalled()
+  })
 
   test("#given session with closePending true #when retryPendingCloses succeeds #then session is removed from Map", async () => {
     // given
-    const { TmuxSessionManager } = await import("./manager");
-    const manager = createManager(TmuxSessionManager);
-    const sessions = getTrackedSessions(manager);
+    const { TmuxSessionManager } = await import("./manager")
+    const manager = createManager(TmuxSessionManager)
+    const sessions = getTrackedSessions(manager)
     sessions.set(
       "ses_pending",
       createTrackedSession({ closePending: true, closeRetryCount: 0 }),
-    );
+    )
 
     // when
-    await getRetryPendingCloses(manager)();
+    await getRetryPendingCloses(manager)()
 
     // then
-    expect(sessions.has("ses_pending")).toBe(false);
-    expect(mockExecuteAction).toHaveBeenCalledTimes(1);
-  });
+    expect(sessions.has("ses_pending")).toBe(false)
+    expect(mockExecuteAction).toHaveBeenCalledTimes(1)
+  })
 
   test("#given session with closePending true and closeRetryCount >= 3 and missing pane #when retryPendingCloses called #then session is removed from Map", async () => {
     // given
-    const { TmuxSessionManager } = await import("./manager");
-    const manager = createManager(TmuxSessionManager);
-    const sessions = getTrackedSessions(manager);
+    const { TmuxSessionManager } = await import("./manager")
+    const manager = createManager(TmuxSessionManager)
+    const sessions = getTrackedSessions(manager)
     sessions.set(
       "ses_pending",
       createTrackedSession({ closePending: true, closeRetryCount: 3 }),
-    );
+    )
 
     // when
-    await getRetryPendingCloses(manager)();
+    await getRetryPendingCloses(manager)()
 
     // then
-    expect(sessions.has("ses_pending")).toBe(false);
-    expect(mockQueryWindowState).toHaveBeenCalledTimes(1);
-    expect(mockExecuteAction).not.toHaveBeenCalled();
-  });
+    expect(sessions.has("ses_pending")).toBe(false)
+    expect(mockQueryWindowState).toHaveBeenCalledTimes(1)
+    expect(mockExecuteAction).not.toHaveBeenCalled()
+  })
 
   test("#given session with closePending true and closeRetryCount >= 3 and missing pane #when closeSessionById called #then session is removed without retrying close", async () => {
     // given
-    const { TmuxSessionManager } = await import("./manager");
-    const manager = createManager(TmuxSessionManager);
-    const sessions = getTrackedSessions(manager);
+    const { TmuxSessionManager } = await import("./manager")
+    const manager = createManager(TmuxSessionManager)
+    const sessions = getTrackedSessions(manager)
     sessions.set(
       "ses_pending",
       createTrackedSession({ closePending: true, closeRetryCount: 3 }),
-    );
+    )
 
     // when
-    await getCloseSessionById(manager)("ses_pending");
+    await getCloseSessionById(manager)("ses_pending")
 
     // then
-    expect(sessions.has("ses_pending")).toBe(false);
-    expect(mockQueryWindowState).toHaveBeenCalledTimes(1);
-    expect(mockExecuteAction).not.toHaveBeenCalled();
-  });
+    expect(sessions.has("ses_pending")).toBe(false)
+    expect(mockQueryWindowState).toHaveBeenCalledTimes(1)
+    expect(mockExecuteAction).not.toHaveBeenCalled()
+  })
 
   test("#given session with closePending true and closeRetryCount >= 3 and pane still exists #when retryPendingCloses called #then session stays tracked for manual intervention", async () => {
     // given
     mockQueryWindowState.mockImplementation(async () => ({
       windowWidth: 220,
       windowHeight: 44,
-      mainPane: {
-        paneId: "%0",
-        width: 110,
-        height: 44,
-        left: 0,
-        top: 0,
-        title: "main",
-        isActive: true,
-      },
+      mainPane: { paneId: "%0", width: 110, height: 44, left: 0, top: 0, title: "main", isActive: true },
       agentPanes: [
-        {
-          paneId: "%1",
-          width: 40,
-          height: 44,
-          left: 110,
-          top: 0,
-          title: "Pending pane",
-          isActive: false,
-        },
+        { paneId: "%1", width: 40, height: 44, left: 110, top: 0, title: "Pending pane", isActive: false },
       ],
-    }));
-    const { TmuxSessionManager } = await import("./manager");
-    const manager = createManager(TmuxSessionManager);
-    const sessions = getTrackedSessions(manager);
+    }))
+    const { TmuxSessionManager } = await import("./manager")
+    const manager = createManager(TmuxSessionManager)
+    const sessions = getTrackedSessions(manager)
     sessions.set(
       "ses_pending",
       createTrackedSession({ closePending: true, closeRetryCount: 3 }),
-    );
+    )
 
     // when
-    await getRetryPendingCloses(manager)();
+    await getRetryPendingCloses(manager)()
 
     // then
-    expect(sessions.has("ses_pending")).toBe(true);
-    expect(mockQueryWindowState).toHaveBeenCalledTimes(1);
-    expect(mockExecuteAction).not.toHaveBeenCalled();
-  });
+    expect(sessions.has("ses_pending")).toBe(true)
+    expect(mockQueryWindowState).toHaveBeenCalledTimes(1)
+    expect(mockExecuteAction).not.toHaveBeenCalled()
+  })
 
   test("#given close-pending session removed during async close #when retryPendingCloses fails #then it does not resurrect stale session state", async () => {
     // given
-    const { TmuxSessionManager } = await import("./manager");
-    const manager = createManager(TmuxSessionManager);
-    const sessions = getTrackedSessions(manager);
+    const { TmuxSessionManager } = await import("./manager")
+    const manager = createManager(TmuxSessionManager)
+    const sessions = getTrackedSessions(manager)
     sessions.set(
       "ses_pending",
       createTrackedSession({ closePending: true, closeRetryCount: 0 }),
-    );
-    let shouldFailClose = true;
+    )
+    let shouldFailClose = true
     mockExecuteAction.mockImplementation(async () => {
       if (shouldFailClose) {
-        shouldFailClose = false;
-        sessions.delete("ses_pending");
-        return { success: false };
+        shouldFailClose = false
+        sessions.delete("ses_pending")
+        return { success: false }
       }
 
-      return { success: true };
-    });
+      return { success: true }
+    })
 
     // when
-    await getRetryPendingCloses(manager)();
+    await getRetryPendingCloses(manager)()
 
     // then
-    expect(sessions.has("ses_pending")).toBe(false);
-  });
-});
+    expect(sessions.has("ses_pending")).toBe(false)
+  })
+})

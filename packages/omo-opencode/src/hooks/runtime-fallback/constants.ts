@@ -4,8 +4,8 @@
  * Default values and configuration constants for the runtime fallback feature.
  */
 
-import { RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS } from "@oh-my-opencode/model-core";
-import type { RuntimeFallbackConfig } from "../../config";
+import { RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS } from "@oh-my-opencode/model-core"
+import type { RuntimeFallbackConfig } from "../../config"
 
 /**
  * Default configuration values for runtime fallback
@@ -19,19 +19,18 @@ export const DEFAULT_CONFIG: Required<RuntimeFallbackConfig> = {
   timeout_seconds: 30,
   notify_on_fallback: true,
   restore_primary_after_cooldown: false,
-};
+}
 
 /**
  * Error patterns that indicate rate limiting or temporary failures
  * These are checked in addition to HTTP status codes
  */
-export const RETRYABLE_ERROR_PATTERNS =
-  RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS;
+export const RETRYABLE_ERROR_PATTERNS = RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS
 
 /**
  * Hook name for identification and logging
  */
-export const HOOK_NAME = "runtime-fallback";
+export const HOOK_NAME = "runtime-fallback"
 
 /**
  * First-prompt watchdog: how long to wait for the first sign of progress
@@ -42,4 +41,4 @@ export const HOOK_NAME = "runtime-fallback";
  * practice) yet much shorter than the 30-minute outer poll timeout that
  * would otherwise be the only safety net.
  */
-export const DEFAULT_FIRST_PROMPT_WATCHDOG_MS = 90_000;
+export const DEFAULT_FIRST_PROMPT_WATCHDOG_MS = 90_000

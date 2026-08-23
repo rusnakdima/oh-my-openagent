@@ -2,8 +2,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  unlinkSync,
   writeFileSync,
+  unlinkSync,
 } from "node:fs";
 import { join } from "node:path";
 import { INTERACTIVE_BASH_SESSION_STORAGE } from "./constants";
@@ -24,9 +24,7 @@ export function loadInteractiveBashSessionState(
 
   try {
     const content = readFileSync(filePath, "utf-8");
-    const serialized = JSON.parse(
-      content,
-    ) as SerializedInteractiveBashSessionState;
+    const serialized = JSON.parse(content) as SerializedInteractiveBashSessionState;
     return {
       sessionID: serialized.sessionID,
       tmuxSessions: new Set(serialized.tmuxSessions),

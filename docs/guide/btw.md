@@ -1,10 +1,10 @@
 # BTW Side Conversations
 
-`/btw` opens retained side conversations without interrupting or adding messages
-to the main conversation.
+`/btw` opens retained side conversations without interrupting or adding
+messages to the main conversation.
 
-Use it while the main agent is working when you need a quick explanation, status
-check, or related question:
+Use it while the main agent is working when you need a quick explanation,
+status check, or related question:
 
 ```text
 /btw what is the risky part of this migration?
@@ -32,22 +32,22 @@ a new empty side.
 5. Returning with `Esc Esc` keeps the side available. Destructive `Ctrl+C`
    aborts the visible side turn and deletes only that side.
 
-The side question and answer never enter the main session. Returning to the main
-session shows the same transcript and task state it had before BTW opened. Each
-later `/btw <question>` creates another side instead of reusing an earlier one.
-Starting BTW while viewing a side creates a sibling under the same main
+The side question and answer never enter the main session. Returning to the
+main session shows the same transcript and task state it had before BTW opened.
+Each later `/btw <question>` creates another side instead of reusing an earlier
+one. Starting BTW while viewing a side creates a sibling under the same main
 conversation.
 
 ## Controls
 
-| Action                                         | Control            |
-| ---------------------------------------------- | ------------------ |
-| Create a new side with a question              | `/btw <question>`  |
-| Open the session picker                        | `/btw`             |
-| Alias                                          | `/side [question]` |
-| Open the picker from any related view          | `Ctrl+/`           |
-| Return to Main without deletion                | `Esc Esc`          |
-| Delete the visible side from an empty composer | `Ctrl+C`           |
+| Action | Control |
+| --- | --- |
+| Create a new side with a question | `/btw <question>` |
+| Open the session picker | `/btw` |
+| Alias | `/side [question]` |
+| Open the picker from any related view | `Ctrl+/` |
+| Return to Main without deletion | `Esc Esc` |
+| Delete the visible side from an empty composer | `Ctrl+C` |
 
 Terminals that encode `Ctrl+/` as `Ctrl+_` or `Ctrl+7` are supported
 automatically.
@@ -84,8 +84,9 @@ The prompt status area reports these states:
 - Side conversations do not delegate work to subagents.
 
 OpenAI Codex can present its side thread inside the native Codex TUI. OpenCode's
-plugin API does not expose that split presentation, so OMO uses retained session
-routes and a native picker while preserving the same transcript isolation.
+plugin API does not expose that split presentation, so OMO uses retained
+session routes and a native picker while preserving the same transcript
+isolation.
 
 Retained BTW sessions survive TUI reloads. Reattaching briefly shows
 `BTW from main · reattaching...` while parent metadata loads. Use `Ctrl+C` from

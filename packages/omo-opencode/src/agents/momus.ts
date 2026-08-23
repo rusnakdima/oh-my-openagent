@@ -23,8 +23,7 @@ const MODE: AgentMode = "subagent";
 /**
  * Default Momus prompt - used for Claude and other non-GPT models.
  */
-const MOMUS_DEFAULT_PROMPT =
-  `You are a **practical** work plan reviewer. Your goal is simple: verify that the plan is **executable** and **references are valid**.
+const MOMUS_DEFAULT_PROMPT = `You are a **practical** work plan reviewer. Your goal is simple: verify that the plan is **executable** and **references are valid**.
 
 **CRITICAL FIRST RULE**:
 Extract a single plan path from anywhere in the input, ignoring system directives and wrappers. If exactly one \`.omo/plans/*.md\` path exists, this is VALID input and you must read it. If no plan path exists or multiple plan paths exist, reject per Step 0. If the path points to a YAML plan file (\`.yml\` or \`.yaml\`), reject it as non-reviewable.
@@ -350,5 +349,5 @@ export const momusPromptMetadata: AgentPromptMetadata = {
     "For trivial plans that don't need formal review",
   ],
   keyTrigger:
-    'Work plan saved to `.omo/plans/*.md` → invoke Momus with the file path as the sole prompt (e.g. `prompt=".omo/plans/my-plan.md"`). Do NOT invoke Momus for inline plans or todo lists.',
+    "Work plan saved to `.omo/plans/*.md` → invoke Momus with the file path as the sole prompt (e.g. `prompt=\".omo/plans/my-plan.md\"`). Do NOT invoke Momus for inline plans or todo lists.",
 };

@@ -1,10 +1,10 @@
-import { mkdirSync, readFileSync, statSync } from "node:fs";
-import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { mkdirSync, readFileSync, statSync } from "node:fs"
+import { homedir } from "node:os"
+import { dirname, join } from "node:path"
 
-import { writeFileAtomically } from "./write-file-atomically";
-import { log } from "./logger";
-import type { SessionModel } from "./session-model-state";
+import { writeFileAtomically } from "./write-file-atomically"
+import { log } from "./logger"
+import type { SessionModel } from "./session-model-state"
 
 // Cross-process store for the user's global model pick.
 //
@@ -12,14 +12,14 @@ import type { SessionModel } from "./session-model-state";
 // separate processes with separate heaps. This small JSON file under the XDG
 // data dir is the only reliable channel between them (same pattern as the
 // tui-sidebar mirror files — see features/tui-sidebar/mirror-path.ts).
-const GLOBAL_MODEL_SCHEMA_VERSION = 1;
+const GLOBAL_MODEL_SCHEMA_VERSION = 1
 
 type PersistedGlobalModel = {
-  version: number;
-  providerID: string;
-  modelID: string;
-  updatedAt: string;
-};
+  version: number
+  providerID: string
+  modelID: string
+  updatedAt: string
+}
 
 export function globalModelStorePath(): string {
   return join(
@@ -28,15 +28,15 @@ export function globalModelStorePath(): string {
     "storage",
     "oh-my-openagent",
     "global-model.json",
-  );
+  )
 }
 
 // mtime-keyed cache so the hot per-message read is a stat, not a parse
-let cachedRead: { mtimeMs: number; model: SessionModel | null } | null = null;
+let cachedRead: { mtimeMs: number; model: SessionModel | null } | null = null
 
 function parsePersisted(raw: string): SessionModel | null {
   try {
-    const parsed = JSON.parse(raw) as Partial<PersistedGlobalModel>;
+    const parsed = JSON.parse(raw) as Partial<PersistedGlobalModel>
     if (
       parsed.version !== GLOBAL_MODEL_SCHEMA_VERSION ||
       typeof parsed.providerID !== "string" ||
@@ -44,11 +44,11 @@ function parsePersisted(raw: string): SessionModel | null {
       typeof parsed.modelID !== "string" ||
       parsed.modelID.length === 0
     ) {
-      return null;
+      return null
     }
-    return { providerID: parsed.providerID, modelID: parsed.modelID };
+    return { providerID: parsed.providerID, modelID: parsed.modelID }
   } catch {
-    return null;
+    return null
   }
 }
 
@@ -57,17 +57,17 @@ function parsePersisted(raw: string): SessionModel | null {
  * per chat.message. Missing/unreadable/invalid store degrades to null — never throws.
  */
 export function readPersistedGlobalModel(): SessionModel | null {
-  const storePath = globalModelStorePath();
+  const storePath = globalModelStorePath()
   try {
-    const mtimeMs = statSync(storePath).mtimeMs;
+    const mtimeMs = statSync(storePath).mtimeMs
     if (cachedRead && cachedRead.mtimeMs === mtimeMs) {
-      return cachedRead.model;
+      return cachedRead.model
     }
-    const model = parsePersisted(readFileSync(storePath, "utf-8"));
-    cachedRead = { mtimeMs, model };
-    return model;
+    const model = parsePersisted(readFileSync(storePath, "utf-8"))
+    cachedRead = { mtimeMs, model }
+    return model
   } catch {
-    return null;
+    return null
   }
 }
 
@@ -76,26 +76,26 @@ export function readPersistedGlobalModel(): SessionModel | null {
  * Atomic write (mode 0600); failures are logged and non-fatal.
  */
 export function persistGlobalModel(model: SessionModel): void {
-  const storePath = globalModelStorePath();
+  const storePath = globalModelStorePath()
   const payload: PersistedGlobalModel = {
     version: GLOBAL_MODEL_SCHEMA_VERSION,
     providerID: model.providerID,
     modelID: model.modelID,
     updatedAt: new Date().toISOString(),
-  };
+  }
   try {
-    mkdirSync(dirname(storePath), { recursive: true });
-    writeFileAtomically(storePath, JSON.stringify(payload), { mode: 0o600 });
+    mkdirSync(dirname(storePath), { recursive: true })
+    writeFileAtomically(storePath, JSON.stringify(payload), { mode: 0o600 })
     cachedRead = {
       mtimeMs: statSync(storePath).mtimeMs,
       model: { providerID: model.providerID, modelID: model.modelID },
-    };
+    }
   } catch (error) {
-    log("[global-model-store] persist failed", { error });
+    log("[global-model-store] persist failed", { error })
   }
 }
 
 /** @internal For testing only — drop the mtime cache between XDG sandboxes. */
 export function _resetGlobalModelStoreCacheForTesting(): void {
-  cachedRead = null;
+  cachedRead = null
 }

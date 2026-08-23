@@ -1,7 +1,7 @@
-import { describe, expect, it } from "bun:test";
-import { formatDefault } from "./framework/format-default";
-import { stripAnsi } from "./framework/format-shared";
-import type { DoctorResult } from "./framework/types";
+import { describe, expect, it } from "bun:test"
+import { formatDefault } from "./framework/format-default"
+import { stripAnsi } from "./framework/format-shared"
+import type { DoctorResult } from "./framework/types"
 
 function createBaseResult(): DoctorResult {
   return {
@@ -27,34 +27,27 @@ function createBaseResult(): DoctorResult {
       mcpBuiltin: [],
       mcpUser: [],
     },
-    summary: {
-      total: 2,
-      passed: 2,
-      failed: 0,
-      warnings: 0,
-      skipped: 0,
-      duration: 10,
-    },
+    summary: { total: 2, passed: 2, failed: 0, warnings: 0, skipped: 0, duration: 10 },
     exitCode: 0,
-  };
+  }
 }
 
 describe("formatDefault", () => {
   it("prints a single System OK line when no issues exist", () => {
     //#given
-    const result = createBaseResult();
+    const result = createBaseResult()
 
     //#when
-    const output = stripAnsi(formatDefault(result));
+    const output = stripAnsi(formatDefault(result))
 
     //#then
-    expect(output).toContain("System OK (opencode 1.0.200");
-    expect(output).not.toContain("found:");
-  });
+    expect(output).toContain("System OK (opencode 1.0.200")
+    expect(output).not.toContain("found:")
+  })
 
   it("prints numbered issue list when issues exist", () => {
     //#given
-    const result = createBaseResult();
+    const result = createBaseResult()
     result.results = [
       {
         name: "System",
@@ -74,21 +67,21 @@ describe("formatDefault", () => {
           },
         ],
       },
-    ];
+    ]
 
     //#when
-    const output = stripAnsi(formatDefault(result));
+    const output = stripAnsi(formatDefault(result))
 
     //#then
-    expect(output).toContain("2 issues found:");
-    expect(output).toContain("1. OpenCode binary not found");
-    expect(output).toContain("2. Loaded plugin is outdated");
-  });
+    expect(output).toContain("2 issues found:")
+    expect(output).toContain("1. OpenCode binary not found")
+    expect(output).toContain("2. Loaded plugin is outdated")
+  })
 
   it("prints LazyCodex OK line for Codex doctor results", () => {
     //#given
-    const result = createBaseResult();
-    result.target = "codex";
+    const result = createBaseResult()
+    result.target = "codex"
     result.codex = {
       codexPath: "/usr/local/bin/codex",
       codexSource: "cli",
@@ -113,15 +106,13 @@ describe("formatDefault", () => {
       },
       linkedBins: ["omo"],
       agents: ["plan"],
-    };
+    }
 
     //#when
-    const output = stripAnsi(formatDefault(result));
+    const output = stripAnsi(formatDefault(result))
 
     //#then
-    expect(output).toContain(
-      "LazyCodex OK (codex /usr/local/bin/codex · omo 4.7.5 · lazycodex-ai 4.7.5)",
-    );
-    expect(output).not.toContain("opencode");
-  });
-});
+    expect(output).toContain("LazyCodex OK (codex /usr/local/bin/codex · omo 4.7.5 · lazycodex-ai 4.7.5)")
+    expect(output).not.toContain("opencode")
+  })
+})

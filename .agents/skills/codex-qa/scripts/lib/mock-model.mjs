@@ -28,8 +28,7 @@ const server = createServer((req, res) => {
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
       });
-      const sse = (obj) =>
-        res.write(`event: ${obj.type}\ndata: ${JSON.stringify(obj)}\n\n`);
+      const sse = (obj) => res.write(`event: ${obj.type}\ndata: ${JSON.stringify(obj)}\n\n`);
       sse({ type: "response.created", response: { id: "resp-1" } });
       sse({
         type: "response.output_item.done",
@@ -42,10 +41,7 @@ const server = createServer((req, res) => {
       });
       sse({
         type: "response.completed",
-        response: {
-          id: "resp-1",
-          usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 },
-        },
+        response: { id: "resp-1", usage: { input_tokens: 0, output_tokens: 0, total_tokens: 0 } },
       });
       res.end();
     });

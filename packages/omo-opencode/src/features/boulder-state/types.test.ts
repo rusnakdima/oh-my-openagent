@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 import type {
   BoulderSessionOrigin,
   BoulderState,
@@ -8,7 +8,7 @@ import type {
   BoulderWorkStatus,
   PlanProgress,
   TaskSessionState,
-} from "./types";
+} from "./types"
 
 describe("boulder-state types", () => {
   test("keeps legacy BoulderState assignable while allowing v2 fields", () => {
@@ -18,20 +18,20 @@ describe("boulder-state types", () => {
       started_at: "2026-01-01T00:00:00.000Z",
       session_ids: ["ses_1"],
       plan_name: "plan",
-    };
+    }
 
     // when
-    const hasLegacyShape = legacyState.active_plan.length > 0;
+    const hasLegacyShape = legacyState.active_plan.length > 0
 
     // then
-    expect(hasLegacyShape).toBe(true);
-  });
+    expect(hasLegacyShape).toBe(true)
+  })
 
   test("supports multi-work and timer fields", () => {
     // given
-    const taskStatus: BoulderTaskStatus = "running";
-    const workStatus: BoulderWorkStatus = "active";
-    const origin: BoulderSessionOrigin = "direct";
+    const taskStatus: BoulderTaskStatus = "running"
+    const workStatus: BoulderWorkStatus = "active"
+    const origin: BoulderSessionOrigin = "direct"
 
     const taskSession: TaskSessionState = {
       task_key: "todo:1",
@@ -43,7 +43,7 @@ describe("boulder-state types", () => {
       elapsed_ms: 1000,
       status: taskStatus,
       updated_at: "2026-01-01T00:00:01.000Z",
-    };
+    }
 
     const work: BoulderWorkState = {
       work_id: "plan-abc12345",
@@ -54,13 +54,9 @@ describe("boulder-state types", () => {
       session_ids: ["ses_1"],
       session_origins: { ses_1: origin },
       task_sessions: { "todo:1": taskSession },
-    };
+    }
 
-    const progress: PlanProgress = {
-      total: 2,
-      completed: 1,
-      isComplete: false,
-    };
+    const progress: PlanProgress = { total: 2, completed: 1, isComplete: false }
     const resumeOption: BoulderWorkResumeOption = {
       work_id: work.work_id,
       plan_name: work.plan_name,
@@ -71,12 +67,12 @@ describe("boulder-state types", () => {
       session_count: 1,
       progress,
       is_current_mirror: false,
-    };
+    }
 
     // when
-    const combined = { taskSession, work, resumeOption };
+    const combined = { taskSession, work, resumeOption }
 
     // then
-    expect(combined.resumeOption.progress.total).toBe(2);
-  });
-});
+    expect(combined.resumeOption.progress.total).toBe(2)
+  })
+})

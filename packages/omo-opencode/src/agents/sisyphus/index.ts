@@ -16,21 +16,18 @@
  * - kimi-k3.ts: Kimi K3 native prompt with explicit anti-overthinking calibration
  */
 
-export {
-  buildDefaultSisyphusPrompt,
-  buildTaskManagementSection,
-} from "./default";
+export { buildDefaultSisyphusPrompt, buildTaskManagementSection } from "./default";
 export { buildClaudeOpus47SisyphusPrompt } from "./claude-opus-4-7";
 export { buildClaudeOpus48SisyphusPrompt } from "./claude-opus-4-8";
 export { buildClaudeOpus5SisyphusPrompt } from "./claude-opus-5";
 export { buildClaudeFable5SisyphusPrompt } from "./claude-fable-5";
 export {
-  buildGeminiDelegationOverride,
-  buildGeminiIntentGateEnforcement,
-  buildGeminiToolCallExamples,
-  buildGeminiToolGuide,
   buildGeminiToolMandate,
+  buildGeminiDelegationOverride,
   buildGeminiVerificationOverride,
+  buildGeminiIntentGateEnforcement,
+  buildGeminiToolGuide,
+  buildGeminiToolCallExamples,
 } from "./gemini";
 export { buildGpt54SisyphusPrompt } from "./gpt-5-4";
 export { buildGpt55SisyphusPrompt } from "./gpt-5-5";

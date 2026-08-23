@@ -5,17 +5,9 @@ description: "Full PR lifecycle in a fresh task-owned git worktree: implement vi
 
 # Work With PR — Full PR Lifecycle
 
-You are executing a complete PR lifecycle: from fresh task-owned worktree setup,
-through `ulw-loop`-driven implementation with evidence-bound manual QA, PR
-creation, and an unbounded verification loop until the PR is merged. The loop
-has two gates — CI and Cubic — and a failing gate sends you back into that PR's
-worktree to fix and re-QA. You keep cycling until every active gate passes at
-once.
+You are executing a complete PR lifecycle: from fresh task-owned worktree setup, through `ulw-loop`-driven implementation with evidence-bound manual QA, PR creation, and an unbounded verification loop until the PR is merged. The loop has two gates — CI and Cubic — and a failing gate sends you back into that PR's worktree to fix and re-QA. You keep cycling until every active gate passes at once.
 
-**The unit of delivery is the smallest PR that compiles, passes, and stands on
-its own — not "one task, one PR."** A single task routinely splits into several
-atomic PRs; the lifecycle below describes ONE of them, so apply it to each, and
-build the independent ones concurrently (Phase 0).
+**The unit of delivery is the smallest PR that compiles, passes, and stands on its own — not "one task, one PR."** A single task routinely splits into several atomic PRs; the lifecycle below describes ONE of them, so apply it to each, and build the independent ones concurrently (Phase 0).
 
 <architecture>
 
@@ -37,32 +29,19 @@ Phase 4: Merge         → Auto-merge by default; wait until actually merged, th
 
 ## Phase 0: Setup
 
-Create a fresh isolated worktree for each PR before implementation starts. The
-user's main working directory is read-only context — it may have uncommitted
-work, and a branch checkout would destroy it. Isolation also makes parallelism
-cheap: one worktree per PR, so several build at once without colliding.
+Create a fresh isolated worktree for each PR before implementation starts. The user's main working directory is read-only context — it may have uncommitted work, and a branch checkout would destroy it. Isolation also makes parallelism cheap: one worktree per PR, so several build at once without colliding.
 
 <setup>
 
 ### 1. Decide the PR split
 
-Before creating anything, decompose the task into the smallest atomic PRs that
-each compile, pass, and deliver one reviewable slice. Prefer more small PRs over
-one large one — a 200-line PR gets a real review; a 2000-line PR gets a rubber
-stamp. Sequence by dependency: independent slices branch off the base and run in
-parallel; dependent slices stack, each branched off the previous.
+Before creating anything, decompose the task into the smallest atomic PRs that each compile, pass, and deliver one reviewable slice. Prefer more small PRs over one large one — a 200-line PR gets a real review; a 2000-line PR gets a rubber stamp. Sequence by dependency: independent slices branch off the base and run in parallel; dependent slices stack, each branched off the previous.
 
-Building more than one independent PR concurrently is the recommended default,
-not an exotic option:
+Building more than one independent PR concurrently is the recommended default, not an exotic option:
+- **Subagents** — dispatch one background subagent per PR, each owning its own worktree, branch, and the full Phase 0→4 lifecycle.
+- **Team** — for larger fan-outs, form a team (`team_mode`) and assign one member per PR.
 
-- **Subagents** — dispatch one background subagent per PR, each owning its own
-  worktree, branch, and the full Phase 0→4 lifecycle.
-- **Team** — for larger fan-outs, form a team (`team_mode`) and assign one
-  member per PR.
-
-When the work is large enough to need a plan (`ulw-plan`), this decomposition is
-not optional polish: the plan MUST encode the atomic PRs, their dependency
-order, and which run in parallel as first-class structure.
+When the work is large enough to need a plan (`ulw-plan`), this decomposition is not optional polish: the plan MUST encode the atomic PRs, their dependency order, and which run in parallel as first-class structure.
 
 ### 2. Resolve repository context
 
@@ -85,8 +64,7 @@ git branch "$BRANCH_NAME" "origin/$BASE_BRANCH"
 
 ### 4. Create worktree
 
-Place worktrees as siblings to the repo — not inside it. This avoids git nested
-repo issues and keeps the working tree clean.
+Place worktrees as siblings to the repo — not inside it. This avoids git nested repo issues and keeps the working tree clean.
 
 ```bash
 WORKTREE_PATH="../${REPO_NAME}-wt/${BRANCH_NAME}"
@@ -110,33 +88,19 @@ cd "$WORKTREE_PATH"
 
 ## Phase 1: Implement
 
-Drive all implementation through the `ulw-loop` skill (your harness's native
-ultrawork loop) from inside the worktree. Do not free-hand the work: `ulw-loop`
-decomposes the brief into goals with binary success criteria, delegates code
-edits and QA to right-sized subagents, and — the reason it is mandatory here —
-forces every success criterion to be proven with evidence-bound **manual QA on a
-real surface**, not just a green test suite.
+Drive all implementation through the `ulw-loop` skill (your harness's native ultrawork loop) from inside the worktree. Do not free-hand the work: `ulw-loop` decomposes the brief into goals with binary success criteria, delegates code edits and QA to right-sized subagents, and — the reason it is mandatory here — forces every success criterion to be proven with evidence-bound **manual QA on a real surface**, not just a green test suite.
 
-**Manual QA is the gate, not the tests.** This repo's rule is absolute: a change
-that reaches OpenCode or Codex is not done until you have driven the real
-harness (tmux / HTTP / browser / GUI — use the manual-QA channel table in the
-`ulw-loop` skill) AND written the evidence to disk. No evidence file means the
-QA did not happen, and you may NOT commit or push. "It typechecks" and
-"`bun test` is green" are NOT QA.
+**Manual QA is the gate, not the tests.** This repo's rule is absolute: a change that reaches OpenCode or Codex is not done until you have driven the real harness (tmux / HTTP / browser / GUI — use the manual-QA channel table in the `ulw-loop` skill) AND written the evidence to disk. No evidence file means the QA did not happen, and you may NOT commit or push. "It typechecks" and "`bun test` is green" are NOT QA.
 
 <implementation>
 
 ### Scope discipline
 
-Within each PR, stay minimal: deliver its one slice, add the test, prove it,
-stop. Do not refactor surrounding code, add config options, or "improve" things
-that aren't broken — that work belongs in its own PR, and scope creep makes
-failures harder to isolate.
+Within each PR, stay minimal: deliver its one slice, add the test, prove it, stop. Do not refactor surrounding code, add config options, or "improve" things that aren't broken — that work belongs in its own PR, and scope creep makes failures harder to isolate.
 
 ### Commit strategy
 
-`ulw-loop` commits through `git-master`. Keep commits atomic so that if CI fails
-on one change you can isolate and fix it without unwinding everything:
+`ulw-loop` commits through `git-master`. Keep commits atomic so that if CI fails on one change you can isolate and fix it without unwinding everything:
 
 ```
 3+ files changed  → 2+ commits minimum
@@ -144,13 +108,11 @@ on one change you can isolate and fix it without unwinding everything:
 10+ files changed → 5+ commits minimum
 ```
 
-Each commit pairs implementation with its tests, and you commit a criterion only
-after its QA evidence is on disk.
+Each commit pairs implementation with its tests, and you commit a criterion only after its QA evidence is on disk.
 
 ### Pre-push local validation
 
-Before pushing, run the same checks CI will run — a cheap pre-filter that saves
-a ~3-5 min CI round-trip, NOT a substitute for the manual QA above:
+Before pushing, run the same checks CI will run — a cheap pre-filter that saves a ~3-5 min CI round-trip, NOT a substitute for the manual QA above:
 
 ```bash
 bun run typecheck
@@ -174,18 +136,9 @@ Fix any failure before pushing; each fix is its own atomic commit.
 git push -u origin "$BRANCH_NAME"
 ```
 
-Write the PR body in English for a human reviewer who has not followed the
-implementation thread. It must explain the work in plain terms, group changes by
-reviewer-relevant area instead of dumping files, and make QA evidence auditable
-without forcing the reviewer to guess what each log proves. Cite sanitized
-artifacts; do not paste raw secret-bearing logs, env dumps, tokens, auth
-headers, or private credentials into the PR.
+Write the PR body in English for a human reviewer who has not followed the implementation thread. It must explain the work in plain terms, group changes by reviewer-relevant area instead of dumping files, and make QA evidence auditable without forcing the reviewer to guess what each log proves. Cite sanitized artifacts; do not paste raw secret-bearing logs, env dumps, tokens, auth headers, or private credentials into the PR.
 
-If the PR body needs screenshots or terminal PNGs, follow
-`docs/reference/github-attachment-upload.md`: upload via GitHub user attachments
-from an authenticated web session, include only the final
-`https://github.com/user-attachments/assets/<uuid>` URLs, and never commit
-temporary images, use release assets, use external hosts, or log cookies/tokens.
+If the PR body needs screenshots or terminal PNGs, follow `docs/reference/github-attachment-upload.md`: upload via GitHub user attachments from an authenticated web session, include only the final `https://github.com/user-attachments/assets/<uuid>` URLs, and never commit temporary images, use release assets, use external hosts, or log cookies/tokens.
 
 ```bash
 gh pr create \
@@ -227,14 +180,7 @@ PR_NUMBER=$(gh pr view --json number -q .number)
 
 ## Phase 3: Verification Loop
 
-This is the core of the skill. Every active gate must pass for the PR to be
-ready. The loop has no iteration cap — keep going until done. Gate ordering is
-intentional: CI is cheapest/fastest; Cubic is external and asynchronous. Gate B
-(Cubic) is the one gate that can be SKIPPED rather than satisfied — only when
-its quota is exhausted; it is never skipped just because it found issues. A
-failing gate is not a patch-and-push: route back to Phase 1, where fixes get the
-same scope discipline and, if behavior changed, fresh manual-QA evidence before
-you re-enter the loop.
+This is the core of the skill. Every active gate must pass for the PR to be ready. The loop has no iteration cap — keep going until done. Gate ordering is intentional: CI is cheapest/fastest; Cubic is external and asynchronous. Gate B (Cubic) is the one gate that can be SKIPPED rather than satisfied — only when its quota is exhausted; it is never skipped just because it found issues. A failing gate is not a patch-and-push: route back to Phase 1, where fixes get the same scope discipline and, if behavior changed, fresh manual-QA evidence before you re-enter the loop.
 
 <verify_loop>
 
@@ -250,8 +196,7 @@ while true:
 
 ### Gate A: CI Checks
 
-CI is the fastest feedback loop. Subscribe to its completion via `monitor` —
-never block a model round-trip on `gh pr checks --watch`.
+CI is the fastest feedback loop. Subscribe to its completion via `monitor` — never block a model round-trip on `gh pr checks --watch`.
 
 ```
 # Subscribe to CI completion — the monitor event wakes the session when checks finish.
@@ -281,19 +226,13 @@ Read the logs, then fix per the iteration discipline below.
 
 ### Gate B: Cubic Approval
 
-Cubic (`cubic-dev-ai[bot]`) is an automated review bot that comments on PRs. It
-does NOT use GitHub's APPROVED review state — instead it posts comments with
-issue counts and confidence scores.
+Cubic (`cubic-dev-ai[bot]`) is an automated review bot that comments on PRs. It does NOT use GitHub's APPROVED review state — instead it posts comments with issue counts and confidence scores.
 
-**Approval signal**: The latest Cubic comment contains `**No issues found**` and
-confidence `**5/5**`.
+**Approval signal**: The latest Cubic comment contains `**No issues found**` and confidence `**5/5**`.
 
 **Issue signal**: The comment lists issues with file-level detail.
 
-**Quota-exhausted signal**: Cubic posts a usage/quota/limit message instead of a
-review, or no Cubic review appears within the bounded wait below. This is the
-ONLY case where you skip Gate B and proceed — record it as SKIPPED in the final
-report, never silently. Issues are never a reason to skip.
+**Quota-exhausted signal**: Cubic posts a usage/quota/limit message instead of a review, or no Cubic review appears within the bounded wait below. This is the ONLY case where you skip Gate B and proceed — record it as SKIPPED in the final report, never silently. Issues are never a reason to skip.
 
 ```bash
 # Get the latest Cubic review
@@ -310,13 +249,9 @@ else
 fi
 ```
 
-**On issues**: Cubic's review body contains structured issue descriptions. Parse
-them, determine which are valid (some may be false positives), and fix the valid
-ones per the iteration discipline below.
+**On issues**: Cubic's review body contains structured issue descriptions. Parse them, determine which are valid (some may be false positives), and fix the valid ones per the iteration discipline below.
 
-Cubic reviews are triggered automatically on PR updates. After pushing a fix,
-subscribe to the new review arriving — never spin a `for _ in $(seq 1 30)`
-polling loop that burns model round-trips.
+Cubic reviews are triggered automatically on PR updates. After pushing a fix, subscribe to the new review arriving — never spin a `for _ in $(seq 1 30)` polling loop that burns model round-trips.
 
 ```
 # Subscribe to a NEW Cubic review after push. The monitor exits when a review
@@ -336,16 +271,13 @@ monitor({
 ### Iteration discipline
 
 Each iteration through the loop:
-
 1. Fix ONLY the issues identified by the failing gate
-2. If the fix changes runtime behavior, capture fresh manual-QA evidence
-   (Phase 1)
+2. If the fix changes runtime behavior, capture fresh manual-QA evidence (Phase 1)
 3. Commit atomically (one logical fix per commit)
 4. Push
 5. Re-enter from Gate A (code changed → full re-verification)
 
-Avoid the temptation to "improve" unrelated code during fix iterations. Scope
-creep in the fix loop makes debugging harder and can introduce new failures.
+Avoid the temptation to "improve" unrelated code during fix iterations. Scope creep in the fix loop makes debugging harder and can introduce new failures.
 
 </verify_loop>
 
@@ -359,11 +291,7 @@ Once all active gates pass (Cubic may be SKIPPED on quota):
 
 ### Merge the PR (auto-merge by default)
 
-Enabling auto-merge is the default - do it unless the user explicitly told you
-not to merge. Auto-merge hands the merge to GitHub, which lands the PR the
-moment every required gate is green, so you never sit and babysit checks. It
-does NOT bypass the gates: if a gate fails, GitHub will not merge, which routes
-you back to Phase 1 to fix and re-QA like any other failing gate.
+Enabling auto-merge is the default - do it unless the user explicitly told you not to merge. Auto-merge hands the merge to GitHub, which lands the PR the moment every required gate is green, so you never sit and babysit checks. It does NOT bypass the gates: if a gate fails, GitHub will not merge, which routes you back to Phase 1 to fix and re-QA like any other failing gate.
 
 ```bash
 # This repository requires merge commits. Never use --squash or --rebase.
@@ -373,8 +301,7 @@ gh pr merge "$PR_NUMBER" --merge --auto --delete-branch
 # are green, fall back to a direct merge: gh pr merge "$PR_NUMBER" --merge --delete-branch
 ```
 
-Then subscribe to the merge completing — never block a model round-trip on an
-`until [ ... MERGED ]` polling loop:
+Then subscribe to the merge completing — never block a model round-trip on an `until [ ... MERGED ]` polling loop:
 
 ```
 # Subscribe to merge completion. The monitor exits when gh pr view returns MERGED.
@@ -388,14 +315,11 @@ monitor({
 # If the monitor times out, check merge state once: gh pr view "$PR_NUMBER" --json state -q .state
 ```
 
-If the user opted out of merging, skip the merge but STILL run the cleanup
-below: the worktree is removed either way.
+If the user opted out of merging, skip the merge but STILL run the cleanup below: the worktree is removed either way.
 
 ### Sync .omo state back to main repo
 
-Before removing the worktree, copy `.omo/` state back. When `.omo/` is
-gitignored, files written there during worktree execution are not committed or
-merged — they would be lost on worktree removal.
+Before removing the worktree, copy `.omo/` state back. When `.omo/` is gitignored, files written there during worktree execution are not committed or merged — they would be lost on worktree removal.
 
 ```bash
 # Sync .omo state from worktree to main repo (preserves task state, plans, notepads)
@@ -439,11 +363,9 @@ Summarize what happened:
 
 <failure_recovery>
 
-If you hit an unrecoverable error (e.g., merge conflict with base branch,
-infrastructure failure):
+If you hit an unrecoverable error (e.g., merge conflict with base branch, infrastructure failure):
 
-1. **Do NOT delete the worktree** — the user may want to inspect or continue
-   manually
+1. **Do NOT delete the worktree** — the user may want to inspect or continue manually
 2. Report what happened, what was attempted, and where things stand
 3. Include the worktree path so the user can resume
 
@@ -462,16 +384,16 @@ git rebase "origin/$BASE_BRANCH"
 
 ## Anti-Patterns
 
-| Violation                                                | Why it fails                                                                                                       | Severity |
-| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | -------- |
-| Working in main worktree instead of isolated worktree    | Pollutes user's working directory, may destroy uncommitted work                                                    | CRITICAL |
-| Committing or pushing without manual-QA evidence on disk | "Tests pass" never proves the feature works; the repo forbids it for OpenCode/Codex-touching changes               | CRITICAL |
-| Pushing directly to dev/master                           | Bypasses review entirely                                                                                           | CRITICAL |
-| Skipping CI gate after code changes                      | Cubic may pass on stale code                                                                                       | CRITICAL |
-| Skipping Cubic because it found issues                   | Only an exhausted quota justifies a skip; real issues must be fixed and re-pushed                                  | HIGH     |
-| Fixing unrelated code during verification loop           | Scope creep causes new failures                                                                                    | HIGH     |
-| Deleting worktree on failure                             | User loses ability to inspect/resume                                                                               | HIGH     |
-| Ignoring Cubic false positives without justification     | Cubic issues should be evaluated, not blindly dismissed                                                            | MEDIUM   |
-| Bundling independent slices into one big PR              | Atomic review dies — a 2000-line PR gets rubber-stamped, regressions hide, and one bad slice blocks all the others | HIGH     |
-| Giant single commits                                     | Harder to isolate failures, violates git-master principles                                                         | MEDIUM   |
-| Not running local checks before push                     | Wastes CI time on obvious failures                                                                                 | MEDIUM   |
+| Violation | Why it fails | Severity |
+|-----------|-------------|----------|
+| Working in main worktree instead of isolated worktree | Pollutes user's working directory, may destroy uncommitted work | CRITICAL |
+| Committing or pushing without manual-QA evidence on disk | "Tests pass" never proves the feature works; the repo forbids it for OpenCode/Codex-touching changes | CRITICAL |
+| Pushing directly to dev/master | Bypasses review entirely | CRITICAL |
+| Skipping CI gate after code changes | Cubic may pass on stale code | CRITICAL |
+| Skipping Cubic because it found issues | Only an exhausted quota justifies a skip; real issues must be fixed and re-pushed | HIGH |
+| Fixing unrelated code during verification loop | Scope creep causes new failures | HIGH |
+| Deleting worktree on failure | User loses ability to inspect/resume | HIGH |
+| Ignoring Cubic false positives without justification | Cubic issues should be evaluated, not blindly dismissed | MEDIUM |
+| Bundling independent slices into one big PR | Atomic review dies — a 2000-line PR gets rubber-stamped, regressions hide, and one bad slice blocks all the others | HIGH |
+| Giant single commits | Harder to isolate failures, violates git-master principles | MEDIUM |
+| Not running local checks before push | Wastes CI time on obvious failures | MEDIUM |

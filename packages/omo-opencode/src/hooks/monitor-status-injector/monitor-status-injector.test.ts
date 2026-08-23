@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test"
 
 import type {
   MonitorId,
@@ -10,15 +10,15 @@ import type {
   MonitorRecord,
   MonitorStartOpts,
   MonitorStatus,
-} from "../../features/monitor/types";
-import { createMonitorStatusInjectorHook } from ".";
+} from "../../features/monitor/types"
+import { createMonitorStatusInjectorHook } from "."
 
 type TransformOutput = {
   messages: Array<{
-    info: { role: string; sessionID: string };
-    parts: Array<{ type: string; text?: string; synthetic?: boolean }>;
-  }>;
-};
+    info: { role: string; sessionID: string }
+    parts: Array<{ type: string; text?: string; synthetic?: boolean }>
+  }>
+}
 
 function createCounters(matchedLines: number): MonitorRecord["counters"] {
   return {
@@ -29,17 +29,17 @@ function createCounters(matchedLines: number): MonitorRecord["counters"] {
     droppedUnmatched: 0,
     bytesDropped: 0,
     lastSequence: matchedLines,
-  };
+  }
 }
 
 function createRecord(args: {
-  id: MonitorId;
-  command: string;
-  label: string;
-  status: MonitorStatus;
-  matchedLines: number;
-  parentSessionId?: string;
-  mode?: MonitorMode;
+  id: MonitorId
+  command: string
+  label: string
+  status: MonitorStatus
+  matchedLines: number
+  parentSessionId?: string
+  mode?: MonitorMode
 }): MonitorRecord {
   return {
     id: args.id,
@@ -50,7 +50,7 @@ function createRecord(args: {
     startedAt: new Date("2026-06-15T00:00:00.000Z"),
     status: args.status,
     counters: createCounters(args.matchedLines),
-  };
+  }
 }
 
 function createFakeManager(records: MonitorRecord[]): MonitorManager {
@@ -65,20 +65,16 @@ function createFakeManager(records: MonitorRecord[]): MonitorManager {
         parentSessionId: opts.parentSessionId,
       }),
     stop: async (_id: MonitorId) => {},
-    list: (sessionId: string) =>
-      records.filter((record) => record.parentSessionId === sessionId),
+    list: (sessionId: string) => records.filter((record) => record.parentSessionId === sessionId),
     get: (id: MonitorId) => records.find((record) => record.id === id),
-    getOutput: (
-      _id: MonitorId,
-      _opts: MonitorOutputQuery,
-    ): MonitorOutputResult => ({
+    getOutput: (_id: MonitorId, _opts: MonitorOutputQuery): MonitorOutputResult => ({
       lines: [],
       counters: createCounters(0),
     }),
     stopSessionMonitors: async (_sessionId: string) => {},
     handleEvent: (_event: MonitorManagerEvent) => {},
     shutdown: async () => {},
-  };
+  }
 }
 
 function createOutput(sessionID = "ses_monitor"): TransformOutput {
@@ -89,18 +85,16 @@ function createOutput(sessionID = "ses_monitor"): TransformOutput {
         parts: [{ type: "text", text: "continue" }],
       },
     ],
-  };
+  }
 }
 
 function getInjectedText(output: TransformOutput): string {
   const injectedPart = output.messages
     .flatMap((message) => message.parts)
-    .find((part) =>
-      part.synthetic === true && part.text?.startsWith("Active monitors:")
-    );
+    .find((part) => part.synthetic === true && part.text?.startsWith("Active monitors:"))
 
-  expect(injectedPart?.text).toBeString();
-  return injectedPart?.text ?? "";
+  expect(injectedPart?.text).toBeString()
+  return injectedPart?.text ?? ""
 }
 
 describe("createMonitorStatusInjectorHook", () => {
@@ -128,29 +122,27 @@ describe("createMonitorStatusInjectorHook", () => {
         status: "stopped",
         matchedLines: 8,
       }),
-    ]);
-    const hook = createMonitorStatusInjectorHook(manager, { enabled: true });
-    const output = createOutput();
+    ])
+    const hook = createMonitorStatusInjectorHook(manager, { enabled: true })
+    const output = createOutput()
 
     // when
-    await hook["experimental.chat.messages.transform"]?.({
-      sessionID: "ses_monitor",
-    }, output);
+    await hook["experimental.chat.messages.transform"]?.({ sessionID: "ses_monitor" }, output)
 
     // then
-    const injectedText = getInjectedText(output);
-    expect(output.messages).toHaveLength(2);
-    expect(injectedText).toContain("mon_ab12");
-    expect(injectedText).toContain("bun test");
-    expect(injectedText).toContain("running");
-    expect(injectedText).toContain("3 matched");
-    expect(injectedText).toContain("mon_cd34");
-    expect(injectedText).toContain("tail -f");
-    expect(injectedText).toContain("starting");
-    expect(injectedText).toContain("0 matched");
-    expect(injectedText).toContain("monitor_stop");
-    expect(injectedText).not.toContain("mon_done");
-  });
+    const injectedText = getInjectedText(output)
+    expect(output.messages).toHaveLength(2)
+    expect(injectedText).toContain("mon_ab12")
+    expect(injectedText).toContain("bun test")
+    expect(injectedText).toContain("running")
+    expect(injectedText).toContain("3 matched")
+    expect(injectedText).toContain("mon_cd34")
+    expect(injectedText).toContain("tail -f")
+    expect(injectedText).toContain("starting")
+    expect(injectedText).toContain("0 matched")
+    expect(injectedText).toContain("monitor_stop")
+    expect(injectedText).not.toContain("mon_done")
+  })
 
   it("#given no active monitors #when messages transform runs #then output is unchanged", async () => {
     // given
@@ -162,19 +154,17 @@ describe("createMonitorStatusInjectorHook", () => {
         status: "stopped",
         matchedLines: 0,
       }),
-    ]);
-    const hook = createMonitorStatusInjectorHook(manager, { enabled: true });
-    const output = createOutput();
-    const originalOutput = structuredClone(output);
+    ])
+    const hook = createMonitorStatusInjectorHook(manager, { enabled: true })
+    const output = createOutput()
+    const originalOutput = structuredClone(output)
 
     // when
-    await hook["experimental.chat.messages.transform"]?.({
-      sessionID: "ses_monitor",
-    }, output);
+    await hook["experimental.chat.messages.transform"]?.({ sessionID: "ses_monitor" }, output)
 
     // then
-    expect(output).toEqual(originalOutput);
-  });
+    expect(output).toEqual(originalOutput)
+  })
 
   it("#given disabled config with active monitors #when messages transform runs #then output is unchanged", async () => {
     // given
@@ -186,19 +176,17 @@ describe("createMonitorStatusInjectorHook", () => {
         status: "running",
         matchedLines: 1,
       }),
-    ]);
-    const hook = createMonitorStatusInjectorHook(manager, { enabled: false });
-    const output = createOutput();
-    const originalOutput = structuredClone(output);
+    ])
+    const hook = createMonitorStatusInjectorHook(manager, { enabled: false })
+    const output = createOutput()
+    const originalOutput = structuredClone(output)
 
     // when
-    await hook["experimental.chat.messages.transform"]?.({
-      sessionID: "ses_monitor",
-    }, output);
+    await hook["experimental.chat.messages.transform"]?.({ sessionID: "ses_monitor" }, output)
 
     // then
-    expect(output).toEqual(originalOutput);
-  });
+    expect(output).toEqual(originalOutput)
+  })
 
   it("#given raw command differs from label #when status is injected #then label is shown and command is hidden", async () => {
     // given
@@ -210,21 +198,19 @@ describe("createMonitorStatusInjectorHook", () => {
         status: "running",
         matchedLines: 2,
       }),
-    ]);
-    const hook = createMonitorStatusInjectorHook(manager, { enabled: true });
-    const output = createOutput();
+    ])
+    const hook = createMonitorStatusInjectorHook(manager, { enabled: true })
+    const output = createOutput()
 
     // when
-    await hook["experimental.chat.messages.transform"]?.({
-      sessionID: "ses_monitor",
-    }, output);
+    await hook["experimental.chat.messages.transform"]?.({ sessionID: "ses_monitor" }, output)
 
     // then
-    const injectedText = getInjectedText(output);
-    expect(injectedText).toContain("safe test label");
-    expect(injectedText).not.toContain("super-secret-value");
-    expect(injectedText).not.toContain("--token");
-  });
+    const injectedText = getInjectedText(output)
+    expect(injectedText).toContain("safe test label")
+    expect(injectedText).not.toContain("super-secret-value")
+    expect(injectedText).not.toContain("--token")
+  })
 
   it("#given status already injected #when messages transform runs again #then status line does not stack", async () => {
     // given
@@ -236,25 +222,19 @@ describe("createMonitorStatusInjectorHook", () => {
         status: "running",
         matchedLines: 4,
       }),
-    ]);
-    const hook = createMonitorStatusInjectorHook(manager, { enabled: true });
-    const output = createOutput();
+    ])
+    const hook = createMonitorStatusInjectorHook(manager, { enabled: true })
+    const output = createOutput()
 
     // when
-    await hook["experimental.chat.messages.transform"]?.({
-      sessionID: "ses_monitor",
-    }, output);
-    await hook["experimental.chat.messages.transform"]?.({
-      sessionID: "ses_monitor",
-    }, output);
+    await hook["experimental.chat.messages.transform"]?.({ sessionID: "ses_monitor" }, output)
+    await hook["experimental.chat.messages.transform"]?.({ sessionID: "ses_monitor" }, output)
 
     // then
     const injectedMessages = output.messages.filter((message) =>
-      message.parts.some((part) =>
-        part.synthetic === true && part.text?.startsWith("Active monitors:")
-      )
-    );
-    expect(output.messages).toHaveLength(2);
-    expect(injectedMessages).toHaveLength(1);
-  });
-});
+      message.parts.some((part) => part.synthetic === true && part.text?.startsWith("Active monitors:")),
+    )
+    expect(output.messages).toHaveLength(2)
+    expect(injectedMessages).toHaveLength(1)
+  })
+})

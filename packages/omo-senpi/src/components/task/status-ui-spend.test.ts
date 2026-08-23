@@ -1,17 +1,11 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test"
 
-import type { TaskRecord, TaskStatus } from "@oh-my-opencode/senpi-task";
+import type { TaskRecord, TaskStatus } from "@oh-my-opencode/senpi-task"
 
-import type { CapturedUi } from "./runtime-context";
-import {
-  createTaskStatusUi,
-  type StatusUiManager,
-  type StatusUiTimers,
-} from "./status-ui";
+import type { CapturedUi } from "./runtime-context"
+import { createTaskStatusUi, type StatusUiManager, type StatusUiTimers } from "./status-ui"
 
-function record(
-  overrides: Partial<TaskRecord> & { task_id: string; status: TaskStatus },
-): TaskRecord {
+function record(overrides: Partial<TaskRecord> & { task_id: string; status: TaskStatus }): TaskRecord {
   return {
     parent_session_id: "session-a",
     root_session_id: "session-a",
@@ -24,7 +18,7 @@ function record(
     notify_on_terminal: false,
     notification: { run_epoch: 0, notified_epoch: -1 },
     ...overrides,
-  };
+  }
 }
 
 describe("createTaskStatusUi spend", () => {
@@ -33,13 +27,8 @@ describe("createTaskStatusUi spend", () => {
     const timers: StatusUiTimers = {
       set: () => 1,
       clear: () => undefined,
-    };
-    const solo = record({
-      task_id: "st_solo",
-      name: "Solo",
-      status: "running",
-      category: "quick",
-    });
+    }
+    const solo = record({ task_id: "st_solo", name: "Solo", status: "running", category: "quick" })
     const member = record({
       task_id: "st_member",
       name: "Member",
@@ -47,15 +36,15 @@ describe("createTaskStatusUi spend", () => {
       category: "quick",
       execution_mode: "process",
       pid: 4242,
-    });
-    const widgetCalls: Array<string[] | undefined> = [];
+    })
+    const widgetCalls: Array<string[] | undefined> = []
     const ui: CapturedUi = {
       notify: () => undefined,
       setStatus: () => undefined,
       setWidget: (_key, content) => widgetCalls.push(content),
       select: () => Promise.resolve(undefined),
       confirm: () => Promise.resolve(false),
-    };
+    }
     const manager: StatusUiManager = {
       list: () => [solo, member].map((task) => ({ record: task })),
       wasBackground: () => true,
@@ -63,42 +52,38 @@ describe("createTaskStatusUi spend", () => {
       runStatsSnapshot: (taskId) =>
         taskId === "st_solo"
           ? {
-            runtime_ms: 1_000,
-            turns: 2,
-            tool_calls: 1,
-            tokens_per_second: 40,
-            cost_usd: 0.4213,
-            cache_hit_rate_last: 0.8712,
-            cache_hit_rate_run: 0.4,
-          }
+              runtime_ms: 1_000,
+              turns: 2,
+              tool_calls: 1,
+              tokens_per_second: 40,
+              cost_usd: 0.4213,
+              cache_hit_rate_last: 0.8712,
+              cache_hit_rate_run: 0.4,
+            }
           : {
-            runtime_ms: 1_000,
-            turns: 1,
-            tool_calls: 0,
-            tokens_per_second: 12,
-            cost_usd: 0.017,
-            cache_hit_rate_last: 0.5,
-            cache_hit_rate_run: 0.1,
-          },
-    };
+              runtime_ms: 1_000,
+              turns: 1,
+              tool_calls: 0,
+              tokens_per_second: 12,
+              cost_usd: 0.017,
+              cache_hit_rate_last: 0.5,
+              cache_hit_rate_run: 0.1,
+            },
+    }
     const statusUi = createTaskStatusUi({
       manager,
-      runtime: {
-        ui: () => ui,
-        sessionId: () => "session-a",
-        mode: () => "tui",
-      },
+      runtime: { ui: () => ui, sessionId: () => "session-a", mode: () => "tui" },
       timers,
       now: () => Date.parse("2026-07-07T00:00:01.000Z"),
-    });
+    })
 
     // when
-    statusUi.syncNow();
+    statusUi.syncNow()
 
     // then
-    const rows = widgetCalls.at(-1) ?? [];
-    expect(rows[0]).toContain("$0.4213 · 40 tok/s");
-    expect(rows[1]).toContain("$0.0170 · 12 tok/s");
-    expect(rows.join("\n")).not.toContain("CH:");
-  });
-});
+    const rows = widgetCalls.at(-1) ?? []
+    expect(rows[0]).toContain("$0.4213 · 40 tok/s")
+    expect(rows[1]).toContain("$0.0170 · 12 tok/s")
+    expect(rows.join("\n")).not.toContain("CH:")
+  })
+})

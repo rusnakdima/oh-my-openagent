@@ -1,14 +1,14 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test"
 
 import {
-  type ListedTask,
   rendererVisibleWidth,
+  type ListedTask,
   type TaskRecord,
   type TaskRunStats,
-} from "@oh-my-opencode/senpi-task";
+} from "@oh-my-opencode/senpi-task"
 
-import type { CapturedUi } from "./runtime-context";
-import { createTaskStatusUi, type StatusUiManager } from "./status-ui";
+import type { CapturedUi } from "./runtime-context"
+import { createTaskStatusUi, type StatusUiManager } from "./status-ui"
 
 const task: TaskRecord = {
   task_id: "st_narrow",
@@ -32,7 +32,7 @@ const task: TaskRecord = {
   updated_at: "2026-07-07T00:01:00.000Z",
   notification: { run_epoch: 0, notified_epoch: -1 },
   notify_on_terminal: false,
-};
+}
 
 const stats: TaskRunStats = {
   turns: 2,
@@ -41,49 +41,45 @@ const stats: TaskRunStats = {
   cost_usd: 0.1303,
   cache_hit_rate_last: 0.89,
   tokens_per_second: 97,
-};
+}
 
 function fakeUi(): CapturedUi & { readonly rows: string[][] } {
-  const rows: string[][] = [];
+  const rows: string[][] = []
   return {
     rows,
     notify: () => undefined,
     setStatus: () => undefined,
     setWidget: (_key, content) => {
-      if (content !== undefined) rows.push(content);
+      if (content !== undefined) rows.push(content)
     },
     select: () => Promise.resolve(undefined),
     confirm: () => Promise.resolve(false),
-  };
+  }
 }
 
 function manager(): StatusUiManager {
-  const listed: ListedTask = { record: task };
+  const listed: ListedTask = { record: task }
   return {
     list: () => [listed],
     wasBackground: () => true,
     runStatsSnapshot: () => stats,
-  };
+  }
 }
 
 describe("createTaskStatusUi terminal width", () => {
   it("#given a 120-column terminal #when the production widget renders #then the row is bounded and keeps activity plus elapsed", () => {
-    const ui = fakeUi();
+    const ui = fakeUi()
     createTaskStatusUi({
       manager: manager(),
-      runtime: {
-        ui: () => ui,
-        sessionId: () => "session-a",
-        mode: () => "tui",
-      },
+      runtime: { ui: () => ui, sessionId: () => "session-a", mode: () => "tui" },
       terminalWidth: () => 120,
       now: () => Date.parse("2026-07-07T00:01:00.000Z"),
-    }).syncNow();
+    }).syncNow()
 
-    const row = ui.rows.at(-1)?.[0] ?? "";
-    expect(rendererVisibleWidth(row)).toBeLessThanOrEqual(120);
-    expect(row).toContain("Plan the");
-    expect(row).toContain("running");
-    expect(row).toEndWith("1m 0s");
-  });
-});
+    const row = ui.rows.at(-1)?.[0] ?? ""
+    expect(rendererVisibleWidth(row)).toBeLessThanOrEqual(120)
+    expect(row).toContain("Plan the")
+    expect(row).toContain("running")
+    expect(row).toEndWith("1m 0s")
+  })
+})

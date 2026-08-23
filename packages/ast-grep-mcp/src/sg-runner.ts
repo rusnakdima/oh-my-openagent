@@ -16,11 +16,7 @@ export type SgRunnerErrorCode =
   | "SG_FAILED"
   | "TIMEOUT";
 
-export type SgTruncationReason =
-  | "match_limit"
-  | "output_cap"
-  | "sg_output_truncated"
-  | null;
+export type SgTruncationReason = "match_limit" | "output_cap" | "sg_output_truncated" | null;
 
 export interface SgRunnerInput {
   readonly sgPath: string;
@@ -49,12 +45,7 @@ export class SgRunnerError extends Error {
   readonly stderr: string;
   readonly durationMs: number;
 
-  constructor(
-    code: SgRunnerErrorCode,
-    message: string,
-    stderr = "",
-    durationMs = 0,
-  ) {
+  constructor(code: SgRunnerErrorCode, message: string, stderr = "", durationMs = 0) {
     super(message);
     this.name = "SgRunnerError";
     this.code = code;
@@ -77,30 +68,16 @@ function truncateUtf8(value: string, maxBytes: number): string {
 
 function decodeStderr(bytes: Buffer): string {
   let start = bytes.length - 1;
-  while (
-    start >= 0 && (bytes[start] & 0xc0) === 0x80 && bytes.length - start <= 3
-  ) start -= 1;
+  while (start >= 0 && (bytes[start] & 0xc0) === 0x80 && bytes.length - start <= 3) start -= 1;
   const lead = bytes[start];
-  const width = lead >= 0xc2 && lead <= 0xdf
-    ? 2
-    : lead >= 0xe0 && lead <= 0xef
-    ? 3
-    : lead >= 0xf0 && lead <= 0xf4
-    ? 4
-    : 1;
-  const complete = start >= 0 && width > bytes.length - start
-    ? bytes.subarray(0, start)
-    : bytes;
+  const width = lead >= 0xc2 && lead <= 0xdf ? 2 : lead >= 0xe0 && lead <= 0xef ? 3 : lead >= 0xf0 && lead <= 0xf4 ? 4 : 1;
+  const complete = start >= 0 && width > bytes.length - start ? bytes.subarray(0, start) : bytes;
   return truncateUtf8(new TextDecoder().decode(complete), MAX_STDERR_BYTES);
 }
 
-export async function spawnSgRunner(
-  input: SgRunnerInput,
-): Promise<SgRunnerResult> {
+export async function spawnSgRunner(input: SgRunnerInput): Promise<SgRunnerResult> {
   const startedAt = performance.now();
-  if (input.signal?.aborted) {
-    throw new SgRunnerError("ABORTED", "ast-grep request was aborted");
-  }
+  if (input.signal?.aborted) throw new SgRunnerError("ABORTED", "ast-grep request was aborted");
 
   return await new Promise<SgRunnerResult>((resolve, reject) => {
     const maxMatches = input.maxMatches ?? DEFAULT_MATCHES;
@@ -121,14 +98,11 @@ export async function spawnSgRunner(
     let malformed = false;
     let fatalError: SgRunnerErrorCode | null = null;
     let stopReason: "abort" | "limit" | "timeout" | null = null;
-    let truncationReason:
-      | Exclude<SgTruncationReason, "sg_output_truncated" | null>
-      | null = null;
+    let truncationReason: Exclude<SgTruncationReason, "sg_output_truncated" | null> | null = null;
     let killTimer: ReturnType<typeof setTimeout> | undefined;
     let settled = false;
 
-    const duration = () =>
-      Math.max(0, Math.round(performance.now() - startedAt));
+    const duration = () => Math.max(0, Math.round(performance.now() - startedAt));
     const stderrText = () => decodeStderr(Buffer.concat(stderrChunks));
     const stop = (reason: Exclude<typeof stopReason, null>) => {
       if (stopReason === null) stopReason = reason;
@@ -139,9 +113,7 @@ export async function spawnSgRunner(
       }
       child.kill("SIGTERM");
       killTimer = setTimeout(() => {
-        if (child.exitCode === null && child.signalCode === null) {
-          child.kill("SIGKILL");
-        }
+        if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
       }, 1_000);
       killTimer.unref();
     };
@@ -150,9 +122,7 @@ export async function spawnSgRunner(
       stop("limit");
     };
     const parseLine = (line: Buffer): boolean => {
-      const value = line.length > 0 && line[line.length - 1] === 13
-        ? line.subarray(0, -1)
-        : line;
+      const value = line.length > 0 && line[line.length - 1] === 13 ? line.subarray(0, -1) : line;
       if (value.length === 0) return true;
       if (value.length > MAX_JSON_RECORD_BYTES) {
         failOutput("OUTPUT_TOO_LARGE");
@@ -168,12 +138,8 @@ export async function spawnSgRunner(
       try {
         const parsed: unknown = JSON.parse(text);
         if (!isRecord(parsed)) throw new Error("record is not an object");
-        const serializedBytes = Buffer.byteLength(
-          JSON.stringify(parsed),
-          "utf8",
-        );
-        const nextAggregateBytes = serializedRecordsBytes + serializedBytes +
-          (records.length > 0 ? 1 : 0);
+        const serializedBytes = Buffer.byteLength(JSON.stringify(parsed), "utf8");
+        const nextAggregateBytes = serializedRecordsBytes + serializedBytes + (records.length > 0 ? 1 : 0);
         if (nextAggregateBytes > MAX_MCP_PAYLOAD_BYTES) {
           truncationReason = "output_cap";
           stop("limit");
@@ -195,10 +161,7 @@ export async function spawnSgRunner(
       return true;
     };
 
-    const timeout = setTimeout(
-      () => stop("timeout"),
-      input.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-    );
+    const timeout = setTimeout(() => stop("timeout"), input.timeoutMs ?? DEFAULT_TIMEOUT_MS);
     timeout.unref();
     const onAbort = () => stop("abort");
     input.signal?.addEventListener("abort", onAbort, { once: true });
@@ -213,9 +176,7 @@ export async function spawnSgRunner(
         if (!parseLine(line)) return;
         newline = pending.indexOf(10);
       }
-      if (pending.length > MAX_JSON_RECORD_BYTES) {
-        failOutput("OUTPUT_TOO_LARGE");
-      }
+      if (pending.length > MAX_JSON_RECORD_BYTES) failOutput("OUTPUT_TOO_LARGE");
     });
     child.stderr.on("data", (chunk: Buffer) => {
       if (!hasSgErrorDiagnostic) {
@@ -224,9 +185,7 @@ export async function spawnSgRunner(
             stderrLinePrefix = "";
           } else if (stderrLinePrefix.length < 80) {
             stderrLinePrefix += String.fromCharCode(byte);
-            if (/^[\t ]*(?:ERROR\b|error:)/.test(stderrLinePrefix)) {
-              hasSgErrorDiagnostic = true;
-            }
+            if (/^[\t ]*(?:ERROR\b|error:)/.test(stderrLinePrefix)) hasSgErrorDiagnostic = true;
           }
         }
       }
@@ -242,9 +201,7 @@ export async function spawnSgRunner(
       clearTimeout(timeout);
       if (killTimer) clearTimeout(killTimer);
       input.signal?.removeEventListener("abort", onAbort);
-      reject(
-        new SgRunnerError("SG_FAILED", error.message, stderrText(), duration()),
-      );
+      reject(new SgRunnerError("SG_FAILED", error.message, stderrText(), duration()));
     });
     child.once("close", (exitCode) => {
       if (settled) return;
@@ -253,79 +210,23 @@ export async function spawnSgRunner(
       if (killTimer) clearTimeout(killTimer);
       input.signal?.removeEventListener("abort", onAbort);
       const stderr = stderrText();
-      if (stopReason === "abort") {
-        return reject(
-          new SgRunnerError(
-            "ABORTED",
-            "ast-grep request was aborted",
-            stderr,
-            duration(),
-          ),
-        );
-      }
-      if (stopReason === "timeout") {
-        return reject(
-          new SgRunnerError(
-            "TIMEOUT",
-            "ast-grep request timed out",
-            stderr,
-            duration(),
-          ),
-        );
-      }
-      if (fatalError) {
-        return reject(
-          new SgRunnerError(
-            fatalError,
-            "ast-grep output could not be read safely",
-            stderr,
-            duration(),
-          ),
-        );
-      }
+      if (stopReason === "abort") return reject(new SgRunnerError("ABORTED", "ast-grep request was aborted", stderr, duration()));
+      if (stopReason === "timeout") return reject(new SgRunnerError("TIMEOUT", "ast-grep request timed out", stderr, duration()));
+      if (fatalError) return reject(new SgRunnerError(fatalError, "ast-grep output could not be read safely", stderr, duration()));
       if (stopReason !== "limit" && pending.length > 0) parseLine(pending);
-      if (fatalError) {
-        return reject(
-          new SgRunnerError(
-            fatalError,
-            "ast-grep output could not be read safely",
-            stderr,
-            duration(),
-          ),
-        );
-      }
+      if (fatalError) return reject(new SgRunnerError(fatalError, "ast-grep output could not be read safely", stderr, duration()));
       const failedExit = exitCode !== 0 && exitCode !== 1;
       const diagnosedExitOne = exitCode === 1 && hasSgErrorDiagnostic;
       if (stopReason === null && (failedExit || diagnosedExitOne)) {
-        return reject(
-          new SgRunnerError(
-            "SG_FAILED",
-            `ast-grep exited with code ${exitCode ?? "unknown"}`,
-            stderr,
-            duration(),
-          ),
-        );
+        return reject(new SgRunnerError("SG_FAILED", `ast-grep exited with code ${exitCode ?? "unknown"}`, stderr, duration()));
       }
-      if (malformed && records.length === 0) {
-        return reject(
-          new SgRunnerError(
-            "OUTPUT_PARSE_FAILED",
-            "ast-grep produced no parseable JSON records",
-            stderr,
-            duration(),
-          ),
-        );
-      }
+      if (malformed && records.length === 0) return reject(new SgRunnerError("OUTPUT_PARSE_FAILED", "ast-grep produced no parseable JSON records", stderr, duration()));
       const limited = stopReason === "limit" && truncationReason !== null;
       const salvaged = malformed && records.length > 0;
       resolve({
         records,
         truncated: limited || salvaged,
-        reason: limited
-          ? truncationReason
-          : salvaged
-          ? "sg_output_truncated"
-          : null,
+        reason: limited ? truncationReason : salvaged ? "sg_output_truncated" : null,
         salvagedRecords: salvaged ? records.length : 0,
         stderr,
         durationMs: duration(),

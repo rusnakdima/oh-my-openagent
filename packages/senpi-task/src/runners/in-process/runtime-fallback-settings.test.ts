@@ -1,19 +1,19 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import type { ResolvedModelRecord } from "../../state";
-import { createRuntimeFallbackSettings } from "./runtime-fallback-settings";
+import type { ResolvedModelRecord } from "../../state"
+import { createRuntimeFallbackSettings } from "./runtime-fallback-settings"
 
 describe("createRuntimeFallbackSettings", () => {
   test("#given no child fallback chain #when settings are created #then global model fallback is disabled", () => {
     // given / when
-    const settings = createRuntimeFallbackSettings("vendor/primary", undefined);
+    const settings = createRuntimeFallbackSettings("vendor/primary", undefined)
 
     // then
     expect(settings.getRetryFallbackSettings()).toMatchObject({
       modelFallback: false,
       chains: {},
-    });
-  });
+    })
+  })
 
   test("#given an explicit child fallback chain #when settings are created #then only that chain is enabled", () => {
     // given / when
@@ -22,10 +22,8 @@ describe("createRuntimeFallbackSettings", () => {
       model_id: "fallback",
       display: "vendor/fallback",
       source: "category",
-    };
-    const settings = createRuntimeFallbackSettings("vendor/primary", [
-      fallback,
-    ]);
+    }
+    const settings = createRuntimeFallbackSettings("vendor/primary", [fallback])
 
     // then
     expect(settings.getRetryFallbackSettings()).toMatchObject({
@@ -33,6 +31,6 @@ describe("createRuntimeFallbackSettings", () => {
       chains: {
         "vendor/primary": ["vendor/fallback"],
       },
-    });
-  });
-});
+    })
+  })
+})

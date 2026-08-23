@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import { buildCompletionDetails, buildCompletionMessage } from "./completion";
+import { buildCompletionDetails, buildCompletionMessage } from "./completion"
 
 function completedFallbackRecord() {
   return {
@@ -38,25 +38,25 @@ function completedFallbackRecord() {
     updated_at: "2026-07-28T08:00:03.000Z",
     final_response: "completed on the fallback model",
     notification: { run_epoch: 0, notified_epoch: -1 },
-  } as const;
+  } as const
 }
 
 describe("task completion fallback reporting", () => {
   test("#given a rerouted task #when terminal completion renders #then it reports model fallback once at terminal completion", () => {
     // given
-    const record = completedFallbackRecord();
+    const record = completedFallbackRecord()
 
     // when
-    const message = buildCompletionMessage([buildCompletionDetails(record)]);
+    const message = buildCompletionMessage([buildCompletionDetails(record)])
 
     // then
     expect(message.content).toContain(
       "fallback:vendor-a/primary-model->vendor-b/fallback-model",
-    );
-    expect(message.content.match(/fallback:/gu)).toHaveLength(1);
-    expect(message.content).not.toContain("quota");
-    expect(message.content).not.toContain("403");
-  });
+    )
+    expect(message.content.match(/fallback:/gu)).toHaveLength(1)
+    expect(message.content).not.toContain("quota")
+    expect(message.content).not.toContain("403")
+  })
 
   test("#given no model reroute #when fallback notification rendering runs #then existing completion output stays unchanged", () => {
     // given
@@ -75,13 +75,13 @@ describe("task completion fallback reporting", () => {
         display: "vendor-a/primary-model",
       },
       model: "vendor-a/primary-model",
-    };
+    }
 
     // when
-    const message = buildCompletionMessage([buildCompletionDetails(record)]);
+    const message = buildCompletionMessage([buildCompletionDetails(record)])
 
     // then
-    expect(message.content).toContain("model:vendor-a/primary-model");
-    expect(message.content).not.toContain("fallback:");
-  });
-});
+    expect(message.content).toContain("model:vendor-a/primary-model")
+    expect(message.content).not.toContain("fallback:")
+  })
+})

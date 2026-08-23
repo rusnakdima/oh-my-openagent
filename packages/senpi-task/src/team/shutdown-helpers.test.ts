@@ -1,11 +1,8 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import type { RuntimeStateMember } from "@oh-my-opencode/team-core/types";
+import type { RuntimeStateMember } from "@oh-my-opencode/team-core/types"
 
-import {
-  DELETABLE_MEMBER_STATUSES,
-  isMemberDeletable,
-} from "./shutdown-helpers";
+import { DELETABLE_MEMBER_STATUSES, isMemberDeletable } from "./shutdown-helpers"
 
 const MEMBER_STATUSES: readonly RuntimeStateMember["status"][] = [
   "pending",
@@ -14,22 +11,20 @@ const MEMBER_STATUSES: readonly RuntimeStateMember["status"][] = [
   "errored",
   "completed",
   "shutdown_approved",
-];
+]
 
 describe("shutdown helpers", () => {
   test("#given the omo shutdown-helpers parity set #when DELETABLE_MEMBER_STATUSES is read #then it is exactly completed/shutdown_approved/errored", () => {
     // given / when
-    const deletable = [...DELETABLE_MEMBER_STATUSES].sort();
+    const deletable = [...DELETABLE_MEMBER_STATUSES].sort()
 
     // then
-    expect(deletable).toEqual(["completed", "errored", "shutdown_approved"]);
-  });
+    expect(deletable).toEqual(["completed", "errored", "shutdown_approved"])
+  })
 
   test("#given each member status #when isMemberDeletable is applied #then only terminal-safe statuses are deletable", () => {
     // given / when
-    const verdicts = MEMBER_STATUSES.map((status) =>
-      [status, isMemberDeletable(status)] as const
-    );
+    const verdicts = MEMBER_STATUSES.map((status) => [status, isMemberDeletable(status)] as const)
 
     // then
     expect(verdicts).toEqual([
@@ -39,6 +34,6 @@ describe("shutdown helpers", () => {
       ["errored", true],
       ["completed", true],
       ["shutdown_approved", true],
-    ]);
-  });
-});
+    ])
+  })
+})

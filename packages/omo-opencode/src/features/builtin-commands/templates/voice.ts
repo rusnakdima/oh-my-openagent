@@ -1,5 +1,4 @@
-export const VOICE_TEMPLATE =
-  `You are activating voice input — capture microphone audio and transcribe it to text.
+export const VOICE_TEMPLATE = `You are activating voice input — capture microphone audio and transcribe it to text.
 
 ## How Voice Input Works
 
@@ -28,4 +27,4 @@ Then call \`voice()\` or \`voice(backend: "openai")\` to start recording.
 - \`voice.enabled: true\` must be set in your oh-my-openagent config
 - Required env var for your chosen backend:
   - OpenAI: \`OPENAI_API_KEY\`
-  - Cloudflare: \`CF_API_TOKEN\` (Cloudflare API token with Workers AI access)`;
+  - Cloudflare: \`CF_API_TOKEN\` (Cloudflare API token with Workers AI access)`

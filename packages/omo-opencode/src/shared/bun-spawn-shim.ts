@@ -2,8 +2,8 @@ export {
   createNodeSpawnOptions,
   createNodeSpawnSyncOptions,
   spawn,
+  spawnSync,
   type SpawnedProcess,
   type SpawnOptions,
-  spawnSync,
   type SpawnSyncResult,
-} from "@oh-my-opencode/utils/runtime";
+} from "@oh-my-opencode/utils/runtime"

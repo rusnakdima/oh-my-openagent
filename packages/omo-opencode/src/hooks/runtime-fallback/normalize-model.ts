@@ -1,5 +1,5 @@
-import { isRecord } from "../../shared/record-type-guard";
-import { stringifyRuntimeModelWithVariant } from "./fallback-state";
+import { isRecord } from "../../shared/record-type-guard"
+import { stringifyRuntimeModelWithVariant } from "./fallback-state"
 
 /**
  * Normalize a session model value into a canonical "<providerID>/<id>" string.
@@ -12,31 +12,25 @@ import { stringifyRuntimeModelWithVariant } from "./fallback-state";
  * single canonical string at the hook boundary. Returns undefined when no
  * usable provider/model pair can be derived.
  */
-export function normalizeModelToCanonicalString(
-  model: unknown,
-): string | undefined {
+export function normalizeModelToCanonicalString(model: unknown): string | undefined {
   if (typeof model === "string") {
-    const trimmed = model.trim();
-    return trimmed ? trimmed : undefined;
+    const trimmed = model.trim()
+    return trimmed ? trimmed : undefined
   }
 
   if (isRecord(model)) {
-    const providerID = typeof model.providerID === "string"
-      ? model.providerID.trim()
-      : undefined;
+    const providerID = typeof model.providerID === "string" ? model.providerID.trim() : undefined
     const rawModelID = typeof model.id === "string"
       ? model.id
       : typeof model.modelID === "string"
-      ? model.modelID
-      : undefined;
-    const modelID = rawModelID?.trim();
+        ? model.modelID
+        : undefined
+    const modelID = rawModelID?.trim()
     if (providerID && modelID) {
-      const variant = typeof model.variant === "string"
-        ? model.variant.trim()
-        : undefined;
-      return stringifyRuntimeModelWithVariant({ providerID, modelID }, variant);
+      const variant = typeof model.variant === "string" ? model.variant.trim() : undefined
+      return stringifyRuntimeModelWithVariant({ providerID, modelID }, variant)
     }
   }
 
-  return undefined;
+  return undefined
 }

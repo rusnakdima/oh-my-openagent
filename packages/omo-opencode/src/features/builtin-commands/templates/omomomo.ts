@@ -27,4 +27,4 @@ Created with ❤️ by **[code-yeongyu](https://github.com/code-yeongyu)**
 
 ---
 
-*Enjoy coding on steroids!* 🚀`;
+*Enjoy coding on steroids!* 🚀`

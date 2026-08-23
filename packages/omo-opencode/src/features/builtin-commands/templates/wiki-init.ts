@@ -51,4 +51,4 @@ Document conventions:
 ### pages/.gitkeep
 Create empty file to ensure directory exists.
 
-After creating all files, confirm what was created and suggest: "Use /wiki-ingest to add your first source."`;
+After creating all files, confirm what was created and suggest: "Use /wiki-ingest to add your first source."`

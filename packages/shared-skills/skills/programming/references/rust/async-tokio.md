@@ -1,7 +1,6 @@
 # Async with Tokio
 
-Structured concurrency, cancellation, blocking-work isolation, channel
-selection. The patterns the agent should reach for by default.
+Structured concurrency, cancellation, blocking-work isolation, channel selection. The patterns the agent should reach for by default.
 
 ## Runtime selection
 
@@ -15,14 +14,11 @@ async fn main() -> anyhow::Result<()> { ... }
 async fn main() -> anyhow::Result<()> { ... }
 ```
 
-Pick worker count explicitly. The default (`num_cpus`) is fine for servers; for
-desktop tools you usually want 2-4.
+Pick worker count explicitly. The default (`num_cpus`) is fine for servers; for desktop tools you usually want 2-4.
 
 ## Spawning
 
-`tokio::spawn` returns a `JoinHandle<T>`. The future runs to completion even if
-the handle is dropped (detached). To enforce structured concurrency, use
-`JoinSet`:
+`tokio::spawn` returns a `JoinHandle<T>`. The future runs to completion even if the handle is dropped (detached). To enforce structured concurrency, use `JoinSet`:
 
 ```rust
 use tokio::task::JoinSet;
@@ -48,7 +44,6 @@ while let Some(joined) = set.join_next().await {
 ```
 
 `JoinSet`:
-
 - Knows when all spawned tasks finish.
 - Dropping the set aborts every still-running task.
 - Lets you handle failures one by one rather than all-or-nothing.
@@ -75,34 +70,25 @@ tokio::select! {
 }
 ```
 
-Without `biased`, branches are polled in random order each iteration (good for
-fairness). Use `biased` only when you need deterministic priority (shutdown
-signal first, etc).
+Without `biased`, branches are polled in random order each iteration (good for fairness). Use `biased` only when you need deterministic priority (shutdown signal first, etc).
 
 ## Cancellation
 
-A future is cancelled when it is dropped (e.g., the `select!` arm wins another
-branch). **Always think: if this future is dropped mid-await, what state is left
-behind?**
+A future is cancelled when it is dropped (e.g., the `select!` arm wins another branch). **Always think: if this future is dropped mid-await, what state is left behind?**
 
 Cancel-safe futures (you can drop without lasting effect):
-
 - `recv()` on channels
 - `accept()` on listeners
 - `wait_for` on `watch::Receiver`
-- `read_buf`/`write_all` on streams **only when buffers are owned by the
-  future**, otherwise no
+- `read_buf`/`write_all` on streams **only when buffers are owned by the future**, otherwise no
 
 Cancel-unsafe futures (dropping mid-way leaves partial state):
-
 - Manual `read_exact` into an external buffer
 - Custom futures that perform partial side effects before suspending
 
-If a function is cancel-unsafe, document it in a rustdoc `# Cancel Safety`
-section.
+If a function is cancel-unsafe, document it in a rustdoc `# Cancel Safety` section.
 
-To explicitly opt out of cancellation, use
-`tokio_util::sync::CancellationToken`:
+To explicitly opt out of cancellation, use `tokio_util::sync::CancellationToken`:
 
 ```rust
 use tokio_util::sync::CancellationToken;
@@ -119,8 +105,7 @@ tokio::spawn(async move {
 token.cancel();
 ```
 
-Pass child tokens down the call tree so the whole tree can be cancelled
-together.
+Pass child tokens down the call tree so the whole tree can be cancelled together.
 
 ## Timeouts
 
@@ -134,13 +119,11 @@ match timeout(Duration::from_secs(5), fetch(url)).await {
 }
 ```
 
-Set timeouts on every external I/O boundary. Defaults of "wait forever" are
-bugs.
+Set timeouts on every external I/O boundary. Defaults of "wait forever" are bugs.
 
 ## Blocking work
 
-NEVER block inside an async task. Symptoms: deadlock, every future stalled,
-latency cliffs.
+NEVER block inside an async task. Symptoms: deadlock, every future stalled, latency cliffs.
 
 Heavy CPU or sync I/O → `spawn_blocking`:
 
@@ -152,19 +135,18 @@ let result = tokio::task::spawn_blocking(|| {
 }).await?;
 ```
 
-Long-running blocking jobs (more than ~1 second of CPU) → use a dedicated thread
-pool (`rayon`), not tokio's blocking pool which is sized for short bursts.
+Long-running blocking jobs (more than ~1 second of CPU) → use a dedicated thread pool (`rayon`), not tokio's blocking pool which is sized for short bursts.
 
 ## Channels
 
-| Need                                     | Use                                              |
-| ---------------------------------------- | ------------------------------------------------ |
-| 1-many producers → 1 consumer, async     | `tokio::sync::mpsc::channel(cap)`                |
-| Same as above, both sync + async         | `flume::bounded(cap)`                            |
-| 1 → many fan-out, latest-value semantics | `tokio::sync::watch::channel(initial)`           |
-| 1 → many fan-out, queued                 | `tokio::sync::broadcast::channel(cap)`           |
-| One-shot reply                           | `tokio::sync::oneshot::channel()`                |
-| Backpressure-driven stream of items      | `tokio::sync::mpsc::Receiver` + `ReceiverStream` |
+| Need | Use |
+|---|---|
+| 1-many producers → 1 consumer, async | `tokio::sync::mpsc::channel(cap)` |
+| Same as above, both sync + async | `flume::bounded(cap)` |
+| 1 → many fan-out, latest-value semantics | `tokio::sync::watch::channel(initial)` |
+| 1 → many fan-out, queued | `tokio::sync::broadcast::channel(cap)` |
+| One-shot reply | `tokio::sync::oneshot::channel()` |
+| Backpressure-driven stream of items | `tokio::sync::mpsc::Receiver` + `ReceiverStream` |
 
 Mpsc pattern:
 
@@ -187,8 +169,7 @@ Always bound channels. Unbounded channels are a memory leak waiting to happen.
 
 ## Streams
 
-`futures::Stream` is the async analogue of `Iterator`. Use it for paginated
-fetches, long-poll responses, file lines.
+`futures::Stream` is the async analogue of `Iterator`. Use it for paginated fetches, long-poll responses, file lines.
 
 ```rust
 use futures::stream::{StreamExt, TryStreamExt};
@@ -201,8 +182,7 @@ let bodies: Vec<String> = futures::stream::iter(urls)
     .await?;
 ```
 
-`buffer_unordered(n)` is the throttle. Use it instead of spawning N tasks
-manually.
+`buffer_unordered(n)` is the throttle. Use it instead of spawning N tasks manually.
 
 For producing a stream from a channel:
 
@@ -249,21 +229,14 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-Pattern: catch signal → cancel a token shared with the server → server's
-`select!` arms see the cancel and exit cleanly → wait with a timeout so a hung
-worker can't deadlock shutdown.
+Pattern: catch signal → cancel a token shared with the server → server's `select!` arms see the cancel and exit cleanly → wait with a timeout so a hung worker can't deadlock shutdown.
 
 ## Concurrency primitives
 
-- `tokio::sync::Mutex` — async mutex. Use for state shared between async tasks.
-  **Do not hold across `.await` without thinking** (you'll serialize the whole
-  system).
+- `tokio::sync::Mutex` — async mutex. Use for state shared between async tasks. **Do not hold across `.await` without thinking** (you'll serialize the whole system).
 - `tokio::sync::RwLock` — async read-write lock. Same caveat.
-- `parking_lot::Mutex` — sync mutex, faster than `std::sync::Mutex`, no
-  poisoning. Use when the lock is held briefly and you do not need to `.await`
-  while holding it.
-- `tokio::sync::Semaphore` — bound concurrent operations. Perfect for "max 10
-  in-flight HTTP requests" or "max 3 DB writers".
+- `parking_lot::Mutex` — sync mutex, faster than `std::sync::Mutex`, no poisoning. Use when the lock is held briefly and you do not need to `.await` while holding it.
+- `tokio::sync::Semaphore` — bound concurrent operations. Perfect for "max 10 in-flight HTTP requests" or "max 3 DB writers".
 
 ```rust
 let sem = Arc::new(tokio::sync::Semaphore::new(10));
@@ -278,19 +251,13 @@ for url in urls {
 
 ## Common mistakes
 
-1. **Holding a sync mutex across `.await`.** Compiles and runs, deadlocks at
-   scale. Solution: refactor to release before await, or use
-   `tokio::sync::Mutex`.
-2. **Forgetting `?` on `JoinHandle`.** A panicked task returns `Err(JoinError)`;
-   if you `.await` and ignore, panics are silently swallowed.
-3. **`tokio::spawn` instead of `JoinSet`.** Detached tasks survive past their
-   parent, causing leaks. Default to `JoinSet` for structured concurrency.
+1. **Holding a sync mutex across `.await`.** Compiles and runs, deadlocks at scale. Solution: refactor to release before await, or use `tokio::sync::Mutex`.
+2. **Forgetting `?` on `JoinHandle`.** A panicked task returns `Err(JoinError)`; if you `.await` and ignore, panics are silently swallowed.
+3. **`tokio::spawn` instead of `JoinSet`.** Detached tasks survive past their parent, causing leaks. Default to `JoinSet` for structured concurrency.
 4. **Unbounded channels.** Always set a capacity.
-5. **`block_on` inside an async context.** Causes deadlock under
-   `current_thread` runtime, performance cliff under `multi_thread`.
+5. **`block_on` inside an async context.** Causes deadlock under `current_thread` runtime, performance cliff under `multi_thread`.
 6. **CPU-heavy work in async fn.** Move to `spawn_blocking` or `rayon`.
-7. **No timeout on external I/O.** Every `await` that touches the network or
-   filesystem needs `tokio::time::timeout` wrapping.
+7. **No timeout on external I/O.** Every `await` that touches the network or filesystem needs `tokio::time::timeout` wrapping.
 
 ## Testing async code
 
@@ -325,10 +292,8 @@ async fn time_travel() {
 
 ## When NOT to use async
 
-- Single-threaded CPU-heavy code that does no I/O — plain `fn` + `rayon` is
-  simpler and often faster.
+- Single-threaded CPU-heavy code that does no I/O — plain `fn` + `rayon` is simpler and often faster.
 - Trivial scripts that do one HTTP call — `ureq` (sync) is simpler.
 - FFI heavy code where the FFI side is sync.
 
-Async pays off when you have many concurrent I/O operations or need cancellation
-as a first-class primitive.
+Async pays off when you have many concurrent I/O operations or need cancellation as a first-class primitive.

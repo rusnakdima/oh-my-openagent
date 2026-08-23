@@ -1,16 +1,16 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import type { StartResult } from "../../manager";
-import { createFakeManager, CTX } from "./__fixtures__/task-tool-fakes";
-import { executeBatch } from "./execute-batch";
-import { taskResultLines } from "./renderers";
+import type { StartResult } from "../../manager"
+import { CTX, createFakeManager } from "./__fixtures__/task-tool-fakes"
+import { executeBatch } from "./execute-batch"
+import { taskResultLines } from "./renderers"
 
 const RESOLVED_MODEL = {
   source: "category" as const,
   provider: "quotio-openai",
   model_id: "gpt-5.6-luna-fast",
   display: "quotio-openai/gpt-5.6-luna-fast",
-};
+}
 
 describe("batch task model visibility", () => {
   test("#given a category task resolves to a model #when batch spawn renders #then the item names both", async () => {
@@ -21,8 +21,8 @@ describe("batch task model visibility", () => {
       status: "running",
       name: "model-audit",
       resolved_model: RESOLVED_MODEL,
-    };
-    const manager = createFakeManager({});
+    }
+    const manager = createFakeManager({})
 
     // when
     const output = await executeBatch({
@@ -40,13 +40,11 @@ describe("batch task model visibility", () => {
       ctx: CTX,
       runInBackground: true,
       startItem: async () => started,
-    });
-    const itemLine = taskResultLines(output.details)[1];
+    })
+    const itemLine = taskResultLines(output.details)[1]
 
     // then
-    expect(itemLine).toContain(
-      "category:quick(quotio-openai/gpt-5.6-luna-fast)",
-    );
-    expect(itemLine).not.toContain("requested/model");
-  });
-});
+    expect(itemLine).toContain("category:quick(quotio-openai/gpt-5.6-luna-fast)")
+    expect(itemLine).not.toContain("requested/model")
+  })
+})

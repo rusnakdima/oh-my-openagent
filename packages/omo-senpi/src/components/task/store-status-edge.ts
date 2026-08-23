@@ -1,21 +1,11 @@
-import type {
-  TaskRecord,
-  TaskRecordStore,
-  TaskStatus,
-} from "@oh-my-opencode/senpi-task";
+import type { TaskRecord, TaskRecordStore, TaskStatus } from "@oh-my-opencode/senpi-task"
 
-import type { TaskTerminalObservers } from "./terminal-observers";
+import type { TaskTerminalObservers } from "./terminal-observers"
 
-const TERMINAL_STATUSES: ReadonlySet<TaskStatus> = new Set([
-  "completed",
-  "error",
-  "cancelled",
-  "interrupted",
-  "lost",
-]);
+const TERMINAL_STATUSES: ReadonlySet<TaskStatus> = new Set(["completed", "error", "cancelled", "interrupted", "lost"])
 
 export function isTerminalStatus(status: TaskStatus): boolean {
-  return TERMINAL_STATUSES.has(status);
+  return TERMINAL_STATUSES.has(status)
 }
 
 /**
@@ -26,41 +16,33 @@ export function isTerminalStatus(status: TaskStatus): boolean {
  */
 export interface StatusEdgeWatch {
   /** Report the record the write produced (or nothing when the write changed no record). */
-  readonly settle: (record: TaskRecord | null | undefined) => void;
+  readonly settle: (record: TaskRecord | null | undefined) => void
 }
 
 export function watchStatusEdge(input: {
-  readonly backing: TaskRecordStore;
-  readonly observers: TaskTerminalObservers | undefined;
-  readonly taskId: string;
+  readonly backing: TaskRecordStore
+  readonly observers: TaskTerminalObservers | undefined
+  readonly taskId: string
 }): StatusEdgeWatch {
-  const { backing, observers, taskId } = input;
-  if (observers === undefined) return { settle: () => undefined };
-  const previousStatus = readStatus(backing, taskId);
+  const { backing, observers, taskId } = input
+  if (observers === undefined) return { settle: () => undefined }
+  const previousStatus = readStatus(backing, taskId)
   return {
     settle: (record) => {
-      if (record === null || record === undefined) return;
-      if (!isTerminalStatus(record.status)) return;
-      if (previousStatus !== undefined && isTerminalStatus(previousStatus)) {
-        return;
-      }
-      observers.notify({
-        record,
-        ...(previousStatus === undefined ? {} : { previousStatus }),
-      });
+      if (record === null || record === undefined) return
+      if (!isTerminalStatus(record.status)) return
+      if (previousStatus !== undefined && isTerminalStatus(previousStatus)) return
+      observers.notify({ record, ...(previousStatus === undefined ? {} : { previousStatus }) })
     },
-  };
+  }
 }
 
 // A store read must never break the write it precedes: an unreadable or half-written record simply
 // leaves the prior status unknown, which the edge rule treats as "was not terminal".
-function readStatus(
-  backing: TaskRecordStore,
-  taskId: string,
-): TaskStatus | undefined {
+function readStatus(backing: TaskRecordStore, taskId: string): TaskStatus | undefined {
   try {
-    return backing.load(taskId)?.status;
+    return backing.load(taskId)?.status
   } catch {
-    return undefined;
+    return undefined
   }
 }

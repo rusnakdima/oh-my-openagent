@@ -1,93 +1,87 @@
-import type { ModelCapabilitiesSnapshot } from "./model-capabilities";
+import type { ModelCapabilitiesSnapshot } from "./model-capabilities"
 import {
   getExactModelIDAliasRules,
   getPatternModelIDAliasRules,
   resolveModelIDAlias,
-} from "./model-capability-aliases";
-import {
-  AGENT_MODEL_REQUIREMENTS,
-  CATEGORY_MODEL_REQUIREMENTS,
-} from "./model-requirements";
+} from "./model-capability-aliases"
+import { AGENT_MODEL_REQUIREMENTS, CATEGORY_MODEL_REQUIREMENTS } from "./model-requirements"
 
 export type ModelCapabilityGuardrailIssue =
   | {
-    kind: "alias-target-missing-from-snapshot";
-    ruleID: string;
-    aliasModelID: string;
-    canonicalModelID: string;
-    message: string;
-  }
+      kind: "alias-target-missing-from-snapshot"
+      ruleID: string
+      aliasModelID: string
+      canonicalModelID: string
+      message: string
+    }
   | {
-    kind: "exact-alias-collides-with-snapshot";
-    ruleID: string;
-    aliasModelID: string;
-    canonicalModelID: string;
-    message: string;
-  }
+      kind: "exact-alias-collides-with-snapshot"
+      ruleID: string
+      aliasModelID: string
+      canonicalModelID: string
+      message: string
+    }
   | {
-    kind: "pattern-alias-collides-with-snapshot";
-    ruleID: string;
-    modelID: string;
-    canonicalModelID: string;
-    message: string;
-  }
+      kind: "pattern-alias-collides-with-snapshot"
+      ruleID: string
+      modelID: string
+      canonicalModelID: string
+      message: string
+    }
   | {
-    kind: "built-in-model-relies-on-alias";
-    modelID: string;
-    canonicalModelID: string;
-    ruleID: string;
-    message: string;
-  }
+      kind: "built-in-model-relies-on-alias"
+      modelID: string
+      canonicalModelID: string
+      ruleID: string
+      message: string
+    }
   | {
-    kind: "built-in-model-missing-from-snapshot";
-    modelID: string;
-    canonicalModelID: string;
-    message: string;
-  };
+      kind: "built-in-model-missing-from-snapshot"
+      modelID: string
+      canonicalModelID: string
+      message: string
+    }
 
 type CollectModelCapabilityGuardrailIssuesInput = {
-  snapshot?: ModelCapabilitiesSnapshot;
-  loadBundledSnapshot?: () => ModelCapabilitiesSnapshot;
-  requirementModelIDs?: Iterable<string>;
-};
+  snapshot?: ModelCapabilitiesSnapshot
+  loadBundledSnapshot?: () => ModelCapabilitiesSnapshot
+  requirementModelIDs?: Iterable<string>
+}
 
 function normalizeLookupModelID(modelID: string): string {
-  return modelID.trim().toLowerCase();
+  return modelID.trim().toLowerCase()
 }
 
 export function getBuiltInRequirementModelIDs(): string[] {
-  const modelIDs = new Set<string>();
+  const modelIDs = new Set<string>()
 
   for (const requirement of Object.values(AGENT_MODEL_REQUIREMENTS)) {
     for (const entry of requirement.fallbackChain) {
-      modelIDs.add(entry.model);
+      modelIDs.add(entry.model)
     }
   }
 
   for (const requirement of Object.values(CATEGORY_MODEL_REQUIREMENTS)) {
     for (const entry of requirement.fallbackChain) {
-      modelIDs.add(entry.model);
+      modelIDs.add(entry.model)
     }
   }
 
-  return [...modelIDs].sort();
+  return [...modelIDs].sort()
 }
 
 export function collectModelCapabilityGuardrailIssues(
   input: CollectModelCapabilityGuardrailIssuesInput = {},
 ): ModelCapabilityGuardrailIssue[] {
-  const snapshot = input.snapshot ?? input.loadBundledSnapshot?.();
+  const snapshot = input.snapshot ?? input.loadBundledSnapshot?.()
   if (!snapshot) {
-    return [];
+    return []
   }
   const snapshotModelIDs = new Set(
-    Object.keys(snapshot.models).map((modelID) =>
-      normalizeLookupModelID(modelID)
-    ),
-  );
-  const requirementModelIDs = input.requirementModelIDs ??
-    getBuiltInRequirementModelIDs();
-  const issues: ModelCapabilityGuardrailIssue[] = [];
+    Object.keys(snapshot.models).map((modelID) => normalizeLookupModelID(modelID)),
+  )
+  const requirementModelIDs = input.requirementModelIDs ?? getBuiltInRequirementModelIDs()
+  const issues: ModelCapabilityGuardrailIssue[] = []
 
   for (const rule of getExactModelIDAliasRules()) {
     if (!snapshotModelIDs.has(rule.canonicalModelID)) {
@@ -96,9 +90,8 @@ export function collectModelCapabilityGuardrailIssues(
         ruleID: rule.ruleID,
         aliasModelID: rule.aliasModelID,
         canonicalModelID: rule.canonicalModelID,
-        message:
-          `Alias ${rule.aliasModelID} points to missing snapshot model ${rule.canonicalModelID}.`,
-      });
+        message: `Alias ${rule.aliasModelID} points to missing snapshot model ${rule.canonicalModelID}.`,
+      })
     }
 
     if (snapshotModelIDs.has(rule.aliasModelID)) {
@@ -107,21 +100,20 @@ export function collectModelCapabilityGuardrailIssues(
         ruleID: rule.ruleID,
         aliasModelID: rule.aliasModelID,
         canonicalModelID: rule.canonicalModelID,
-        message:
-          `Alias ${rule.aliasModelID} now exists in models.dev and should be reviewed instead of force-mapping to ${rule.canonicalModelID}.`,
-      });
+        message: `Alias ${rule.aliasModelID} now exists in models.dev and should be reviewed instead of force-mapping to ${rule.canonicalModelID}.`,
+      })
     }
   }
 
   for (const rule of getPatternModelIDAliasRules()) {
     for (const modelID of snapshotModelIDs) {
       if (!rule.match(modelID)) {
-        continue;
+        continue
       }
 
-      const canonicalModelID = rule.canonicalize(modelID);
+      const canonicalModelID = rule.canonicalize(modelID)
       if (canonicalModelID === modelID) {
-        continue;
+        continue
       }
 
       issues.push({
@@ -129,23 +121,21 @@ export function collectModelCapabilityGuardrailIssues(
         ruleID: rule.ruleID,
         modelID,
         canonicalModelID,
-        message:
-          `Pattern alias ${rule.ruleID} would rewrite canonical snapshot model ${modelID} to ${canonicalModelID}.`,
-      });
+        message: `Pattern alias ${rule.ruleID} would rewrite canonical snapshot model ${modelID} to ${canonicalModelID}.`,
+      })
     }
   }
 
   for (const modelID of requirementModelIDs) {
-    const aliasResolution = resolveModelIDAlias(modelID);
+    const aliasResolution = resolveModelIDAlias(modelID)
     if (aliasResolution.source !== "canonical") {
       issues.push({
         kind: "built-in-model-relies-on-alias",
         modelID: aliasResolution.requestedModelID,
         canonicalModelID: aliasResolution.canonicalModelID,
         ruleID: aliasResolution.ruleID ?? "unknown-alias-rule",
-        message:
-          `Built-in requirement model ${aliasResolution.requestedModelID} should be canonical and not rely on alias rule ${aliasResolution.ruleID}.`,
-      });
+        message: `Built-in requirement model ${aliasResolution.requestedModelID} should be canonical and not rely on alias rule ${aliasResolution.ruleID}.`,
+      })
     }
 
     if (!snapshotModelIDs.has(aliasResolution.canonicalModelID)) {
@@ -153,11 +143,10 @@ export function collectModelCapabilityGuardrailIssues(
         kind: "built-in-model-missing-from-snapshot",
         modelID: aliasResolution.requestedModelID,
         canonicalModelID: aliasResolution.canonicalModelID,
-        message:
-          `Built-in requirement model ${aliasResolution.requestedModelID} resolves to ${aliasResolution.canonicalModelID}, which is missing from the bundled snapshot.`,
-      });
+        message: `Built-in requirement model ${aliasResolution.requestedModelID} resolves to ${aliasResolution.canonicalModelID}, which is missing from the bundled snapshot.`,
+      })
     }
   }
 
-  return issues;
+  return issues
 }

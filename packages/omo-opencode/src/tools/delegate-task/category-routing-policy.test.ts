@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import { DEFAULT_CATEGORIES } from "./constants";
+import { DEFAULT_CATEGORIES } from "./constants"
 
 describe("OpenCode task category routing policy", () => {
   test.skip("uses the requested primary model and effort for routed categories", () => {
@@ -9,13 +9,13 @@ describe("OpenCode task category routing policy", () => {
       visualEngineering: DEFAULT_CATEGORIES["visual-engineering"],
       quick: DEFAULT_CATEGORIES["quick"],
       unspecifiedHigh: DEFAULT_CATEGORIES["unspecified-high"],
-    };
+    }
 
     // then
     expect(routing).toEqual({
       visualEngineering: { model: "anthropic/claude-opus-5", variant: "max" },
       quick: { model: "kimi-for-coding/kimi-for-coding-highspeed" },
       unspecifiedHigh: { model: "kimi-for-coding/k3", variant: "max" },
-    });
-  });
-});
+    })
+  })
+})

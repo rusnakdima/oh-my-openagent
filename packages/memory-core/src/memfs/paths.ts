@@ -1,5 +1,11 @@
 import { lstatSync, realpathSync } from "node:fs";
-import { dirname, extname, isAbsolute, relative, resolve } from "node:path";
+import {
+  dirname,
+  extname,
+  isAbsolute,
+  relative,
+  resolve,
+} from "node:path";
 
 /**
  * Confined memory path validation.
@@ -133,9 +139,7 @@ function assertRealParentConfined(root: string, target: string): void {
       lstatSync(candidate);
     } catch (error) {
       if (!isMissingPathError(error)) {
-        throw invalid(
-          `path ancestor cannot be inspected: ${errorMessage(error)}`,
-        );
+        throw invalid(`path ancestor cannot be inspected: ${errorMessage(error)}`);
       }
       const parent = dirname(candidate);
       if (parent === candidate) {
@@ -149,9 +153,7 @@ function assertRealParentConfined(root: string, target: string): void {
     try {
       candidateReal = realpathSync(candidate);
     } catch (error) {
-      throw invalid(
-        `path contains an unresolved symlink: ${errorMessage(error)}`,
-      );
+      throw invalid(`path contains an unresolved symlink: ${errorMessage(error)}`);
     }
 
     const relToRealRoot = relative(rootReal, candidateReal);

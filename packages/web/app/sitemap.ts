@@ -1,10 +1,10 @@
-import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next"
 
-const BASE_URL = "https://omo.dev";
+const BASE_URL = "https://omo.dev"
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ["", "/docs", "/manifesto"];
-  const locales = ["en", "ko", "ja", "zh"];
+  const routes = ["", "/docs", "/manifesto"]
+  const locales = ["en", "ko", "ja", "zh"]
 
   return routes.flatMap((route) =>
     locales.map((locale) => ({
@@ -12,6 +12,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: new Date(),
       changeFrequency: "weekly" as const,
       priority: route === "" ? 1 : 0.8,
-    }))
-  );
+    })),
+  )
 }

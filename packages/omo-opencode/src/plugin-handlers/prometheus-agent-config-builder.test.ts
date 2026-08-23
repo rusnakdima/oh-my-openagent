@@ -1,28 +1,13 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from "bun:test";
+import { describe, expect, test, spyOn, afterEach, beforeEach, mock } from "bun:test";
 
 import * as shared from "../shared";
 import * as categoryResolver from "./category-config-resolver";
 import type { CategoryConfig } from "../config/schema";
 
-let buildPrometheusAgentConfig:
-  (typeof import("./prometheus-agent-config-builder"))[
-    "buildPrometheusAgentConfig"
-  ];
+let buildPrometheusAgentConfig: (typeof import("./prometheus-agent-config-builder"))["buildPrometheusAgentConfig"]
 
-async function importFreshPrometheusAgentConfigBuilderModule(): Promise<
-  typeof import("./prometheus-agent-config-builder")
-> {
-  return import(
-    `./prometheus-agent-config-builder?test=${Date.now()}-${Math.random()}`
-  );
+async function importFreshPrometheusAgentConfigBuilderModule(): Promise<typeof import("./prometheus-agent-config-builder")> {
+  return import(`./prometheus-agent-config-builder?test=${Date.now()}-${Math.random()}`)
 }
 
 describe("buildPrometheusAgentConfig", () => {
@@ -33,25 +18,16 @@ describe("buildPrometheusAgentConfig", () => {
 
   beforeEach(async () => {
     mock.restore();
-    fetchAvailableModelsSpy = spyOn(shared, "fetchAvailableModels")
-      .mockResolvedValue(new Set());
-    readConnectedProvidersCacheSpy = spyOn(
-      shared,
-      "readConnectedProvidersCache",
-    ).mockReturnValue(null);
-    resolveCategoryConfigSpy = spyOn(categoryResolver, "resolveCategoryConfig")
-      .mockImplementation(
-        (
-          category,
-        ) => ({ model: `${category}/default-model` } as CategoryConfig),
-      );
-    resolveModelPipelineSpy = spyOn(shared, "resolveModelPipeline")
-      .mockReturnValue({
-        model: "anthropic/claude-fable-5",
-        provenance: "provider-fallback",
-      });
-    ({ buildPrometheusAgentConfig } =
-      await importFreshPrometheusAgentConfigBuilderModule());
+    fetchAvailableModelsSpy = spyOn(shared, "fetchAvailableModels").mockResolvedValue(new Set());
+    readConnectedProvidersCacheSpy = spyOn(shared, "readConnectedProvidersCache").mockReturnValue(null);
+    resolveCategoryConfigSpy = spyOn(categoryResolver, "resolveCategoryConfig").mockImplementation(
+      (category) => ({ model: `${category}/default-model` } as CategoryConfig)
+    );
+    resolveModelPipelineSpy = spyOn(shared, "resolveModelPipeline").mockReturnValue({
+      model: "anthropic/claude-fable-5",
+      provenance: "provider-fallback",
+    });
+    ;({ buildPrometheusAgentConfig } = await importFreshPrometheusAgentConfigBuilderModule())
   });
 
   afterEach(() => {
@@ -114,7 +90,7 @@ describe("buildPrometheusAgentConfig", () => {
             intent: expect.objectContaining({
               uiSelectedModel: currentModel,
             }),
-          }),
+          })
         );
       });
 
@@ -151,42 +127,42 @@ describe("buildPrometheusAgentConfig", () => {
   });
 
   describe("#given explicit Prometheus model configured via plugin override", () => {
-    test("explicit config wins over currentModel and fallback chain", async () => {
+      test("explicit config wins over currentModel and fallback chain", async () => {
       // given
       const currentModel = "anthropic/claude-opus-4-8";
       const explicitModel = "custom-provider/custom-model";
 
       // when
-      resolveModelPipelineSpy.mockReturnValue({
-        model: explicitModel,
-        variant: "high",
-        provenance: "override",
-      });
+        resolveModelPipelineSpy.mockReturnValue({
+          model: explicitModel,
+          variant: "high",
+          provenance: "override",
+        });
 
-      const result = await buildPrometheusAgentConfig({
-        configAgentPlan: undefined,
-        pluginPrometheusOverride: { model: explicitModel },
-        userCategories: undefined,
-        currentModel,
-      });
+        const result = await buildPrometheusAgentConfig({
+          configAgentPlan: undefined,
+          pluginPrometheusOverride: { model: explicitModel },
+          userCategories: undefined,
+          currentModel,
+        });
 
-      // then
-      expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          intent: {
-            uiSelectedModel: undefined,
-            userModel: explicitModel,
-            categoryDefaultModel: undefined,
-          },
-        }),
-      );
-      expect(result.model).toBe(explicitModel);
-      expect(result.variant).toBe("high");
-    });
+        // then
+        expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            intent: {
+              uiSelectedModel: undefined,
+              userModel: explicitModel,
+              categoryDefaultModel: undefined,
+            },
+          })
+        );
+        expect(result.model).toBe(explicitModel);
+        expect(result.variant).toBe("high");
+      });
   });
 
   describe("#given category with model configured", () => {
-    test("category model wins when no explicit override", async () => {
+      test("category model wins when no explicit override", async () => {
       // given
       const currentModel = "anthropic/claude-opus-4-8";
       const categoryModel = "category-provider/category-model";
@@ -196,33 +172,33 @@ describe("buildPrometheusAgentConfig", () => {
       } as CategoryConfig);
 
       // when
-      resolveModelPipelineSpy.mockReturnValue({
-        model: categoryModel,
-        provenance: "category-default",
-      });
+        resolveModelPipelineSpy.mockReturnValue({
+          model: categoryModel,
+          provenance: "category-default",
+        });
 
-      const result = await buildPrometheusAgentConfig({
-        configAgentPlan: undefined,
-        pluginPrometheusOverride: { category: "test-category" },
-        userCategories: { "test-category": { model: categoryModel } },
-        currentModel,
-      });
+        const result = await buildPrometheusAgentConfig({
+          configAgentPlan: undefined,
+          pluginPrometheusOverride: { category: "test-category" },
+          userCategories: { "test-category": { model: categoryModel } },
+          currentModel,
+        });
 
-      // then
-      expect(resolveCategoryConfigSpy).toHaveBeenCalledWith("test-category", {
-        "test-category": { model: categoryModel },
+        // then
+        expect(resolveCategoryConfigSpy).toHaveBeenCalledWith("test-category", {
+          "test-category": { model: categoryModel },
+        });
+        expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            intent: {
+              uiSelectedModel: undefined,
+              userModel: undefined,
+              categoryDefaultModel: categoryModel,
+            },
+          })
+        );
+        expect(result.model).toBe(categoryModel);
       });
-      expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          intent: {
-            uiSelectedModel: undefined,
-            userModel: undefined,
-            categoryDefaultModel: categoryModel,
-          },
-        }),
-      );
-      expect(result.model).toBe(categoryModel);
-    });
 
     test("explicit model override wins over category model", async () => {
       // given
@@ -234,49 +210,44 @@ describe("buildPrometheusAgentConfig", () => {
       } as CategoryConfig);
 
       // when
-      resolveModelPipelineSpy.mockReturnValue({
-        model: explicitModel,
-        provenance: "override",
-      });
+        resolveModelPipelineSpy.mockReturnValue({
+          model: explicitModel,
+          provenance: "override",
+        });
 
-      const result = await buildPrometheusAgentConfig({
-        configAgentPlan: undefined,
-        pluginPrometheusOverride: {
-          category: "test-category",
+        const result = await buildPrometheusAgentConfig({
+          configAgentPlan: undefined,
+          pluginPrometheusOverride: {
+            category: "test-category",
           model: explicitModel,
         },
         userCategories: { "test-category": { model: categoryModel } },
-        currentModel: undefined,
-      });
+          currentModel: undefined,
+        });
 
-      // then
-      expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          intent: {
-            uiSelectedModel: undefined,
-            userModel: explicitModel,
-            categoryDefaultModel: categoryModel,
-          },
-        }),
-      );
-      expect(result.model).toBe(explicitModel);
-    });
+        // then
+        expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            intent: {
+              uiSelectedModel: undefined,
+              userModel: explicitModel,
+              categoryDefaultModel: categoryModel,
+            },
+          })
+        );
+        expect(result.model).toBe(explicitModel);
+      });
   });
 
   describe("#given canonical reasoning configured", () => {
     test("explicit reasoning wins over category reasoning", async () => {
       // given
-      resolveCategoryConfigSpy.mockReturnValue(
-        { reasoning: "high" } as CategoryConfig,
-      );
+      resolveCategoryConfigSpy.mockReturnValue({ reasoning: "high" } as CategoryConfig);
 
       // when
       const result = await buildPrometheusAgentConfig({
         configAgentPlan: undefined,
-        pluginPrometheusOverride: {
-          category: "test-category",
-          reasoning: "low",
-        },
+        pluginPrometheusOverride: { category: "test-category", reasoning: "low" },
         userCategories: { "test-category": { reasoning: "high" } },
         currentModel: undefined,
       });
@@ -298,9 +269,7 @@ describe("buildPrometheusAgentConfig", () => {
       const result = await buildPrometheusAgentConfig({
         configAgentPlan: undefined,
         pluginPrometheusOverride: { category: "test-category" },
-        userCategories: {
-          "test-category": { fallback_models: categoryFallbackModels },
-        },
+        userCategories: { "test-category": { fallback_models: categoryFallbackModels } },
         currentModel: undefined,
       });
 
@@ -311,32 +280,27 @@ describe("buildPrometheusAgentConfig", () => {
     test.each([
       ["explicit fallback_models", ["openai/gpt-5.5"]],
       ["explicit empty fallback_models", []],
-    ])(
-      "preserves %s over category fallback_models",
-      async (_label, explicitFallbackModels) => {
-        // given
-        const categoryFallbackModels = ["openai/gpt-5.4"];
-        resolveCategoryConfigSpy.mockReturnValue({
-          fallback_models: categoryFallbackModels,
-        } as CategoryConfig);
+    ])("preserves %s over category fallback_models", async (_label, explicitFallbackModels) => {
+      // given
+      const categoryFallbackModels = ["openai/gpt-5.4"];
+      resolveCategoryConfigSpy.mockReturnValue({
+        fallback_models: categoryFallbackModels,
+      } as CategoryConfig);
 
-        // when
-        const result = await buildPrometheusAgentConfig({
-          configAgentPlan: undefined,
-          pluginPrometheusOverride: {
-            category: "test-category",
-            fallback_models: explicitFallbackModels,
-          },
-          userCategories: {
-            "test-category": { fallback_models: categoryFallbackModels },
-          },
-          currentModel: undefined,
-        });
+      // when
+      const result = await buildPrometheusAgentConfig({
+        configAgentPlan: undefined,
+        pluginPrometheusOverride: {
+          category: "test-category",
+          fallback_models: explicitFallbackModels,
+        },
+        userCategories: { "test-category": { fallback_models: categoryFallbackModels } },
+        currentModel: undefined,
+      });
 
-        // then
-        expect(result.fallback_models).toEqual(explicitFallbackModels);
-      },
-    );
+      // then
+      expect(result.fallback_models).toEqual(explicitFallbackModels);
+    });
   });
 
   describe("#given no currentModel and no explicit config", () => {
@@ -345,28 +309,28 @@ describe("buildPrometheusAgentConfig", () => {
       readConnectedProvidersCacheSpy.mockReturnValue(["anthropic"]);
 
       // when
-      const result = await buildPrometheusAgentConfig({
-        configAgentPlan: undefined,
-        pluginPrometheusOverride: undefined,
-        userCategories: undefined,
-        currentModel: undefined,
-      });
+        const result = await buildPrometheusAgentConfig({
+          configAgentPlan: undefined,
+          pluginPrometheusOverride: undefined,
+          userCategories: undefined,
+          currentModel: undefined,
+        });
 
-      // then
-      expect(fetchAvailableModelsSpy).toHaveBeenCalledWith(undefined, {
-        connectedProviders: ["anthropic"],
+        // then
+        expect(fetchAvailableModelsSpy).toHaveBeenCalledWith(undefined, {
+          connectedProviders: ["anthropic"],
+        });
+        expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
+          expect.objectContaining({
+            intent: {
+              uiSelectedModel: undefined,
+              userModel: undefined,
+              categoryDefaultModel: undefined,
+            },
+          })
+        );
+        expect(result.model).toBe("anthropic/claude-fable-5");
       });
-      expect(resolveModelPipelineSpy).toHaveBeenCalledWith(
-        expect.objectContaining({
-          intent: {
-            uiSelectedModel: undefined,
-            userModel: undefined,
-            categoryDefaultModel: undefined,
-          },
-        }),
-      );
-      expect(result.model).toBe("anthropic/claude-fable-5");
-    });
   });
 
   test("returns Prometheus as a primary agent", async () => {

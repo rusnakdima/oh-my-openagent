@@ -19,27 +19,30 @@
  * constants, hand them to repo.init. No logic duplication.
  */
 
-import type { GitMemoryRepo, GitSeedFile } from "../git";
-import { renderMemoryFile } from "../memfs/frontmatter";
-import { DEFAULT_HUMAN_BODY, DEFAULT_PERSONA_BODY } from "./default-memory";
+import type { GitMemoryRepo, GitSeedFile } from "../git"
+import { renderMemoryFile } from "../memfs/frontmatter"
+import {
+  DEFAULT_HUMAN_BODY,
+  DEFAULT_PERSONA_BODY,
+} from "./default-memory"
 import {
   MEMORY_DISCIPLINE_SKILL_CONTENT,
   MEMORY_DISCIPLINE_SKILL_PATH,
-} from "./memory-discipline";
+} from "./memory-discipline"
 
-export { DEFAULT_MEMORY_BLOCK_LABELS } from "./default-memory";
+export { DEFAULT_MEMORY_BLOCK_LABELS } from "./default-memory"
 
-const PERSONA_PATH = "system/persona.md";
-const HUMAN_PATH = "system/human.md";
+const PERSONA_PATH = "system/persona.md"
+const HUMAN_PATH = "system/human.md"
 
-const PERSONA_DESCRIPTION = "Persona - who I am";
-const HUMAN_DESCRIPTION = "Person - Human";
-const HUMAN_ALIASES: readonly string[] = [];
+const PERSONA_DESCRIPTION = "Persona - who I am"
+const HUMAN_DESCRIPTION = "Person - Human"
+const HUMAN_ALIASES: readonly string[] = []
 
 export interface DefaultSeedFile extends GitSeedFile {}
 
 export interface InitMemorySeedsOptions {
-  authorName?: string;
+  authorName?: string
 }
 
 /**
@@ -53,19 +56,12 @@ export function buildDefaultSeedFiles(): readonly DefaultSeedFile[] {
   return [
     {
       relativePath: PERSONA_PATH,
-      content: renderMemoryFile(
-        { description: PERSONA_DESCRIPTION },
-        DEFAULT_PERSONA_BODY,
-      ),
+      content: renderMemoryFile({ description: PERSONA_DESCRIPTION }, DEFAULT_PERSONA_BODY),
     },
     {
       relativePath: HUMAN_PATH,
       content: renderMemoryFile(
-        {
-          description: HUMAN_DESCRIPTION,
-          kind: "person",
-          aliases: HUMAN_ALIASES,
-        },
+        { description: HUMAN_DESCRIPTION, kind: "person", aliases: HUMAN_ALIASES },
         DEFAULT_HUMAN_BODY,
       ),
     },
@@ -73,7 +69,7 @@ export function buildDefaultSeedFiles(): readonly DefaultSeedFile[] {
       relativePath: MEMORY_DISCIPLINE_SKILL_PATH,
       content: MEMORY_DISCIPLINE_SKILL_CONTENT,
     },
-  ];
+  ]
 }
 
 /**
@@ -93,5 +89,5 @@ export async function initMemoryWithSeeds(
   return repo.init({
     authorName: options.authorName,
     seedFiles: buildDefaultSeedFiles(),
-  });
+  })
 }

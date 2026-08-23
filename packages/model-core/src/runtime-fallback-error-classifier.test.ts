@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
 import {
   classifyRuntimeFallbackError,
@@ -6,9 +6,9 @@ import {
   getRuntimeFallbackErrorMessage,
   getRuntimeFallbackStatusCode,
   isRuntimeFallbackRetryableError,
-} from "./runtime-fallback-error-classifier";
+} from "./runtime-fallback-error-classifier"
 
-const DEFAULT_RETRY_CODES = [429, 500, 502, 503, 504] as const;
+const DEFAULT_RETRY_CODES = [429, 500, 502, 503, 504] as const
 
 describe("runtime fallback error classifier", () => {
   test("classifies representative Anthropic provider payloads without adapter state", () => {
@@ -19,8 +19,7 @@ describe("runtime fallback error classifier", () => {
         error: {
           name: "AI_APICallError",
           statusCode: 429,
-          message:
-            "Too Many Requests: rate limit reached for anthropic/claude-sonnet-4-6",
+          message: "Too Many Requests: rate limit reached for anthropic/claude-sonnet-4-6",
         },
         expectedType: undefined,
         expectedRetryable: true,
@@ -45,8 +44,7 @@ describe("runtime fallback error classifier", () => {
           data: {
             error: {
               name: "QuotaExceededError",
-              message:
-                "Subscription quota exceeded. You can continue using free models.",
+              message: "Subscription quota exceeded. You can continue using free models.",
             },
           },
         },
@@ -75,33 +73,23 @@ describe("runtime fallback error classifier", () => {
         expectedRetryable: false,
         expectedStatusCode: 400,
       },
-    ] as const;
+    ] as const
 
     //#when
     const results = cases.map(({ error, ...metadata }) => ({
       ...metadata,
       actualType: classifyRuntimeFallbackError(error),
-      actualRetryable: isRuntimeFallbackRetryableError(
-        error,
-        DEFAULT_RETRY_CODES,
-      ),
-      actualStatusCode: getRuntimeFallbackStatusCode(
-        error,
-        DEFAULT_RETRY_CODES,
-      ),
-    }));
+      actualRetryable: isRuntimeFallbackRetryableError(error, DEFAULT_RETRY_CODES),
+      actualStatusCode: getRuntimeFallbackStatusCode(error, DEFAULT_RETRY_CODES),
+    }))
 
     //#then
     for (const result of results) {
-      expect(result.actualType, result.label).toBe(result.expectedType);
-      expect(result.actualRetryable, result.label).toBe(
-        result.expectedRetryable,
-      );
-      expect(result.actualStatusCode, result.label).toBe(
-        result.expectedStatusCode,
-      );
+      expect(result.actualType, result.label).toBe(result.expectedType)
+      expect(result.actualRetryable, result.label).toBe(result.expectedRetryable)
+      expect(result.actualStatusCode, result.label).toBe(result.expectedStatusCode)
     }
-  });
+  })
 
   test("preserves malformed provider payload classification behavior", () => {
     //#given
@@ -111,7 +99,7 @@ describe("runtime fallback error classifier", () => {
       { statusCode: "429", message: 429 },
       { data: { error: { name: 7, message: false } } },
       { data: { error: null }, error: "broken" },
-    ];
+    ]
 
     //#when
     const results = malformedPayloads.map((error) => ({
@@ -119,127 +107,87 @@ describe("runtime fallback error classifier", () => {
       statusCode: getRuntimeFallbackStatusCode(error, DEFAULT_RETRY_CODES),
       type: classifyRuntimeFallbackError(error),
       retryable: isRuntimeFallbackRetryableError(error, DEFAULT_RETRY_CODES),
-    }));
+    }))
 
     //#then
     expect(results).toEqual([
       { message: "", statusCode: undefined, type: undefined, retryable: false },
       { message: "", statusCode: undefined, type: undefined, retryable: false },
-      {
-        message: '{"statuscode":"429","message":429}',
-        statusCode: 429,
-        type: undefined,
-        retryable: true,
-      },
-      {
-        message: '{"data":{"error":{"name":7,"message":false}}}',
-        statusCode: undefined,
-        type: undefined,
-        retryable: false,
-      },
-      {
-        message: '{"data":{"error":null},"error":"broken"}',
-        statusCode: undefined,
-        type: undefined,
-        retryable: false,
-      },
-    ]);
-  });
+      { message: "{\"statuscode\":\"429\",\"message\":429}", statusCode: 429, type: undefined, retryable: true },
+      { message: "{\"data\":{\"error\":{\"name\":7,\"message\":false}}}", statusCode: undefined, type: undefined, retryable: false },
+      { message: "{\"data\":{\"error\":null},\"error\":\"broken\"}", statusCode: undefined, type: undefined, retryable: false },
+    ])
+  })
 
   test("honors retryable AI SDK signals only for safe status codes", () => {
     //#given
     const cases = [
       {
-        error: {
-          error: {
-            statusCode: 524,
-            isRetryable: true,
-            message: "Cloudflare timeout",
-          },
-        },
+        error: { error: { statusCode: 524, isRetryable: true, message: "Cloudflare timeout" } },
         expected: true,
       },
       {
-        error: {
-          error: {
-            statusCode: 401,
-            isRetryable: true,
-            message: "Unauthorized",
-          },
-        },
+        error: { error: { statusCode: 401, isRetryable: true, message: "Unauthorized" } },
         expected: false,
       },
       {
-        error: {
-          error: {
-            isRetryable: true,
-            message: "connection reset before response body arrived",
-          },
-        },
+        error: { error: { isRetryable: true, message: "connection reset before response body arrived" } },
         expected: true,
       },
-    ] as const;
+    ] as const
 
     //#when
     const retryable = cases.map(({ error }) =>
-      isRuntimeFallbackRetryableError(error, DEFAULT_RETRY_CODES)
-    );
+      isRuntimeFallbackRetryableError(error, DEFAULT_RETRY_CODES),
+    )
 
     //#then
-    expect(retryable).toEqual(cases.map(({ expected }) => expected));
-  });
+    expect(retryable).toEqual(cases.map(({ expected }) => expected))
+  })
 
   test("treats free usage exceeded messages as retryable runtime fallback errors", () => {
     //#given
-    const error = { message: "Free usage exceeded, subscribe to Go" };
+    const error = { message: "Free usage exceeded, subscribe to Go" }
 
     //#when
-    const retryable = isRuntimeFallbackRetryableError(
-      error,
-      DEFAULT_RETRY_CODES,
-    );
-    const type = classifyRuntimeFallbackError(error);
+    const retryable = isRuntimeFallbackRetryableError(error, DEFAULT_RETRY_CODES)
+    const type = classifyRuntimeFallbackError(error)
 
     //#then
-    expect(retryable).toBe(true);
-    expect(type).toBeUndefined();
-  });
+    expect(retryable).toBe(true)
+    expect(type).toBeUndefined()
+  })
 
   test("leaves OpenCode context overflow to native compaction", () => {
     //#given
     const error = {
       name: "ContextOverflowError",
       data: {
-        message:
-          "Your input exceeds the context window of this model. Please adjust your input and try again.",
+        message: "Your input exceeds the context window of this model. Please adjust your input and try again.",
         responseBody:
           '{"error":{"message":"Your input exceeds the context window of this model. Please adjust your input and try again.","type":"invalid_request_error","code":"context_too_large"}}',
       },
-    };
+    }
 
     //#when
-    const type = classifyRuntimeFallbackError(error);
-    const retryable = isRuntimeFallbackRetryableError(error, [
-      400,
-      ...DEFAULT_RETRY_CODES,
-    ]);
+    const type = classifyRuntimeFallbackError(error)
+    const retryable = isRuntimeFallbackRetryableError(error, [400, ...DEFAULT_RETRY_CODES])
 
     //#then
-    expect(type).toBe("context_overflow");
-    expect(retryable).toBe(false);
-  });
+    expect(type).toBe("context_overflow")
+    expect(retryable).toBe(false)
+  })
 
   test("extracts provider auto-retry signals from status summary or details", () => {
     //#given
     const retryInfo = {
-      summary:
-        "All credentials for model claude-opus-4-7 are cooling down [retrying in 7m 56s attempt #1]",
-    };
+      summary: "All credentials for model claude-opus-4-7 are cooling down [retrying in 7m 56s attempt #1]",
+    }
 
     //#when
-    const signal = extractRuntimeFallbackAutoRetrySignal(retryInfo);
+    const signal = extractRuntimeFallbackAutoRetrySignal(retryInfo)
 
     //#then
-    expect(signal).toEqual({ signal: retryInfo.summary });
-  });
-});
+    expect(signal).toEqual({ signal: retryInfo.summary })
+  })
+})

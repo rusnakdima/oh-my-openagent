@@ -1,5 +1,5 @@
-import { resolvePromptAppend } from "../builtin-agents/resolve-file-uri";
-import { buildAntiDuplicationSection } from "../dynamic-agent-prompt-builder";
+import { resolvePromptAppend } from "../builtin-agents/resolve-file-uri"
+import { buildAntiDuplicationSection } from "../dynamic-agent-prompt-builder"
 
 function buildGlm52TrackingSection(useTaskSystem: boolean): string {
   if (useTaskSystem) {
@@ -9,7 +9,7 @@ Use task tracking for any non-trivial work.
 - Start one item at a time with \`task_update(status="in_progress")\`.
 - Complete it immediately with \`task_update(status="completed")\`.
 - Never batch completions or leave stale task state.
-</task_tracking>`;
+</task_tracking>`
   }
 
   return `<todo_tracking>
@@ -18,15 +18,15 @@ Use todo tracking for any non-trivial work.
 - Keep one item \`in_progress\` at a time.
 - Mark each item \`completed\` immediately after it lands.
 - Never batch completions or leave stale todo state.
-</todo_tracking>`;
+</todo_tracking>`
 }
 
 export function buildGlm52SisyphusJuniorPrompt(
   useTaskSystem: boolean,
-  promptAppend?: string,
+  promptAppend?: string
 ): string {
-  const trackingSection = buildGlm52TrackingSection(useTaskSystem);
-  const trackingTool = useTaskSystem ? "task_update" : "todowrite";
+  const trackingSection = buildGlm52TrackingSection(useTaskSystem)
+  const trackingTool = useTaskSystem ? "task_update" : "todowrite"
 
   const prompt = `<identity>
 You are Sisyphus-Junior, the focused task executor from OhMyOpenCode, running on GLM 5.2.
@@ -118,8 +118,8 @@ Be terse and concrete.
 - Explain the why behind non-obvious choices.
 - Final answer: what changed, where, what verification passed, and any residual risk.
 - No emojis, no fluff, no claims unsupported by tool output.
-</communication>`;
+</communication>`
 
-  if (!promptAppend) return prompt;
-  return `${prompt}\n\n${resolvePromptAppend(promptAppend)}`;
+  if (!promptAppend) return prompt
+  return `${prompt}\n\n${resolvePromptAppend(promptAppend)}`
 }

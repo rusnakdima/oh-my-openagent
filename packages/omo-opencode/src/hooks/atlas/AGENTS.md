@@ -4,17 +4,12 @@
 
 ## OVERVIEW
 
-17 files (~1976 LOC). The `atlasHook` — Continuation Tier hook that monitors
-session.idle events and forces continuation when boulder sessions (ralph-loop,
-task-spawned agents) have incomplete work. Also enforces write/edit policies for
-subagent sessions.
+17 files (~1976 LOC). The `atlasHook` — Continuation Tier hook that monitors session.idle events and forces continuation when boulder sessions (ralph-loop, task-spawned agents) have incomplete work. Also enforces write/edit policies for subagent sessions.
 
 ## WHAT ATLAS DOES
 
 Atlas is the "keeper of sessions" — it tracks every session and decides:
-
-1. Should this session be forced to continue? (if boulder session with
-   incomplete todos)
+1. Should this session be forced to continue? (if boulder session with incomplete todos)
 2. Should write/edit be blocked? (policy enforcement for certain session types)
 3. Should a verification reminder be injected? (after tool execution)
 
@@ -34,39 +29,36 @@ session.idle event
 
 ## KEY FILES
 
-| File                               | Purpose                                                                       |
-| ---------------------------------- | ----------------------------------------------------------------------------- |
-| `atlas-hook.ts`                    | `createAtlasHook()` — composes event + tool handlers, maintains session state |
-| `event-handler.ts`                 | `createAtlasEventHandler()` — decision gate for session.idle events           |
-| `boulder-continuation-injector.ts` | Build + inject continuation prompt into session                               |
-| `system-reminder-templates.ts`     | Templates for continuation reminder messages                                  |
-| `tool-execute-before.ts`           | Block write/edit based on session policy                                      |
-| `tool-execute-after.ts`            | Inject verification reminders post-tool                                       |
-| `write-edit-tool-policy.ts`        | Policy: which sessions can write/edit?                                        |
-| `verification-reminders.ts`        | Reminder content for verifying work                                           |
-| `session-last-agent.ts`            | Determine which agent owns the session                                        |
-| `recent-model-resolver.ts`         | Resolve model used in recent messages                                         |
-| `subagent-session-id.ts`           | Detect if session is a subagent session                                       |
-| `omo-path.ts`                      | Resolve `.omo/` directory path                                                |
-| `is-abort-error.ts`                | Detect abort signals in session output                                        |
-| `types.ts`                         | `SessionState`, `AtlasHookOptions`, `AtlasContext`                            |
+| File | Purpose |
+|------|---------|
+| `atlas-hook.ts` | `createAtlasHook()` — composes event + tool handlers, maintains session state |
+| `event-handler.ts` | `createAtlasEventHandler()` — decision gate for session.idle events |
+| `boulder-continuation-injector.ts` | Build + inject continuation prompt into session |
+| `system-reminder-templates.ts` | Templates for continuation reminder messages |
+| `tool-execute-before.ts` | Block write/edit based on session policy |
+| `tool-execute-after.ts` | Inject verification reminders post-tool |
+| `write-edit-tool-policy.ts` | Policy: which sessions can write/edit? |
+| `verification-reminders.ts` | Reminder content for verifying work |
+| `session-last-agent.ts` | Determine which agent owns the session |
+| `recent-model-resolver.ts` | Resolve model used in recent messages |
+| `subagent-session-id.ts` | Detect if session is a subagent session |
+| `omo-path.ts` | Resolve `.omo/` directory path |
+| `is-abort-error.ts` | Detect abort signals in session output |
+| `types.ts` | `SessionState`, `AtlasHookOptions`, `AtlasContext` |
 
 ## STATE PER SESSION
 
 ```typescript
 interface SessionState {
-  promptFailureCount: number; // Increments on failed continuations
+  promptFailureCount: number  // Increments on failed continuations
   // Resets on successful continuation
 }
 ```
 
-Max consecutive failures before 5min pause: 5 (exponential backoff in
-todo-continuation-enforcer).
+Max consecutive failures before 5min pause: 5 (exponential backoff in todo-continuation-enforcer).
 
 ## RELATIONSHIP TO OTHER HOOKS
 
-- **atlasHook** (Continuation Tier): Master orchestrator, handles boulder
-  sessions
-- **todoContinuationEnforcer** (Continuation Tier): "Boulder" mechanism for main
-  Sisyphus sessions
+- **atlasHook** (Continuation Tier): Master orchestrator, handles boulder sessions
+- **todoContinuationEnforcer** (Continuation Tier): "Boulder" mechanism for main Sisyphus sessions
 - Both inject into session.idle but serve different session types

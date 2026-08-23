@@ -1,4 +1,4 @@
-import type { AgentDefinition } from "../types";
+import type { AgentDefinition } from "../types"
 
 // Ported and senpi-adapted from packages/omo-opencode/src/agents/metis.ts (base prompt only).
 // Adaptation: child-side delegation and anti-duplication guidance deleted; exploration uses the
@@ -288,4 +288,4 @@ Advise the planner to delegate an advisory-only architecture consultation to the
     { pattern: "lsp_find_references", allow: true },
     { pattern: "lsp_symbols", allow: true },
   ],
-};
+}

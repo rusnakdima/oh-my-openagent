@@ -1,5 +1,5 @@
-import { z } from "zod";
-import { DynamicContextPruningConfigSchema } from "./dynamic-context-pruning";
+import { z } from "zod"
+import { DynamicContextPruningConfigSchema } from "./dynamic-context-pruning"
 
 export const ExperimentalConfigSchema = z.object({
   aggressive_truncation: z.boolean().optional(),
@@ -23,6 +23,6 @@ export const ExperimentalConfigSchema = z.object({
   max_tools: z.number().int().min(1).optional(),
   /** Disable routing parent-targeted internal prompts through the live opencode listener (rollback to pre-migration in-process dispatch) */
   disable_live_parent_wake_routing: z.boolean().optional(),
-});
+})
 
-export type ExperimentalConfig = z.infer<typeof ExperimentalConfigSchema>;
+export type ExperimentalConfig = z.infer<typeof ExperimentalConfigSchema>

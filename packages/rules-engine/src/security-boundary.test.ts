@@ -1,12 +1,6 @@
 /// <reference path="../../../bun-test.d.ts" />
 
-import {
-  mkdirSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from "node:fs";
+import { mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
@@ -54,9 +48,7 @@ describe("rules-core security boundary", () => {
     const found = findRuleFiles(projectRoot, homeDir, currentFile);
 
     // then
-    expect(
-      found.some((rule) => rule.realPath === realpathSync.native(escapedRule)),
-    ).toBe(false);
+    expect(found.some((rule) => rule.realPath === realpathSync.native(escapedRule))).toBe(false);
   });
 
   it("#given a project .github/instructions directory symlink escapes the workspace #when finding rule files #then escaped instructions are rejected", () => {
@@ -74,24 +66,13 @@ describe("rules-core security boundary", () => {
     mkdirSync(homeDir, { recursive: true });
     mkdirSync(outsideDir, { recursive: true });
     writeFileSync(currentFile, "export {};");
-    writeFileSync(
-      escapedInstruction,
-      "do not inject this external github instruction",
-    );
-    symlinkSync(
-      outsideDir,
-      join(projectRoot, ".github", "instructions"),
-      "dir",
-    );
+    writeFileSync(escapedInstruction, "do not inject this external github instruction");
+    symlinkSync(outsideDir, join(projectRoot, ".github", "instructions"), "dir");
 
     // when
     const found = findRuleFiles(projectRoot, homeDir, currentFile);
 
     // then
-    expect(
-      found.some((rule) =>
-        rule.realPath === realpathSync.native(escapedInstruction)
-      ),
-    ).toBe(false);
+    expect(found.some((rule) => rule.realPath === realpathSync.native(escapedInstruction))).toBe(false);
   });
 });

@@ -37,8 +37,7 @@ yt-dlp --dump-json "ytsearch5:query"
 ```
 
 > **字幕注意**: 手动上传的字幕提取可靠；自动生成字幕可能存在行间重复，需后处理。
-> **评论注意**: `--write-comments` 基于网页抓取（非 YouTube Data
-> API），部分评论可能丢失。
+> **评论注意**: `--write-comments` 基于网页抓取（非 YouTube Data API），部分评论可能丢失。
 
 ## B站 / Bilibili (yt-dlp + bili-cli)
 
@@ -67,9 +66,8 @@ bili hot -n 10
 bili rank -n 10
 ```
 
-> **412 风控**: 海外 IP 必须提供 Cookie（`--cookies-from-browser chrome` 或
-> `--cookies /path/to/cookies.txt`），国内 IP 一般不受影响。 **安装 bili-cli**:
-> `pipx install bilibili-cli`，然后 `bili login` 扫码登录。
+> **412 风控**: 海外 IP 必须提供 Cookie（`--cookies-from-browser chrome` 或 `--cookies /path/to/cookies.txt`），国内 IP 一般不受影响。
+> **安装 bili-cli**: `pipx install bilibili-cli`，然后 `bili login` 扫码登录。
 
 ## 小宇宙播客 / Xiaoyuzhou Podcast
 
@@ -109,9 +107,9 @@ mcporter call 'douyin.get_douyin_download_link(share_link: "https://v.douyin.com
 
 ## 选择指南
 
-| 场景         | 推荐工具             |
-| ------------ | -------------------- |
-| YouTube 字幕 | yt-dlp               |
-| B站字幕      | yt-dlp               |
-| 播客转录     | 小宇宙 transcribe.sh |
-| 抖音视频解析 | douyin MCP           |
+| 场景 | 推荐工具 |
+|-----|---------|
+| YouTube 字幕 | yt-dlp |
+| B站字幕 | yt-dlp |
+| 播客转录 | 小宇宙 transcribe.sh |
+| 抖音视频解析 | douyin MCP |

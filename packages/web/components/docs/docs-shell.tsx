@@ -1,16 +1,16 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { Menu, Search } from "lucide-react";
-import { Link } from "@/i18n/routing";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { DOC_SECTION_IDS, type DocSectionId } from "@/lib/docs-sections";
+import * as React from "react"
+import { Menu, Search } from "lucide-react"
+import { Link } from "@/i18n/routing"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { DOC_SECTION_IDS, type DocSectionId } from "@/lib/docs-sections"
 
 type DocsShellSection = {
-  id: DocSectionId;
-  title: string;
-};
+  id: DocSectionId
+  title: string
+}
 
 export function DocsShell({
   mobileHeader,
@@ -18,128 +18,115 @@ export function DocsShell({
   sections,
   children,
 }: {
-  mobileHeader: string;
-  searchPlaceholder: string;
-  sections: DocsShellSection[];
-  children: React.ReactNode;
+  mobileHeader: string
+  searchPlaceholder: string
+  sections: DocsShellSection[]
+  children: React.ReactNode
 }) {
-  const [searchQuery, setSearchQuery] = React.useState("");
-  const [activeSection, setActiveSection] = React.useState<DocSectionId>(
-    "overview",
-  );
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState("")
+  const [activeSection, setActiveSection] = React.useState<DocSectionId>("overview")
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
 
-  const activeSectionRef = React.useRef<DocSectionId>("overview");
+  const activeSectionRef = React.useRef<DocSectionId>("overview")
 
-  const findHashSectionId = React.useCallback(
-    (hash: string): DocSectionId | null => {
-      const id = hash.replace(/^#/, "");
-      return DOC_SECTION_IDS.find((sectionId) => sectionId === id) ?? null;
-    },
-    [],
-  );
+  const findHashSectionId = React.useCallback((hash: string): DocSectionId | null => {
+    const id = hash.replace(/^#/, "")
+    return DOC_SECTION_IDS.find((sectionId) => sectionId === id) ?? null
+  }, [])
 
-  const scrollToSection = React.useCallback(
-    (id: DocSectionId, updateHash = true) => {
-      const element = document.getElementById(id);
-      if (!element) return;
+  const scrollToSection = React.useCallback((id: DocSectionId, updateHash = true) => {
+    const element = document.getElementById(id)
+    if (!element) return
 
-      window.scrollTo({ top: element.offsetTop - 80, behavior: "auto" });
-      if (updateHash && window.location.hash !== `#${id}`) {
-        window.history.pushState(null, "", `#${id}`);
-      }
+    window.scrollTo({ top: element.offsetTop - 80, behavior: "auto" })
+    if (updateHash && window.location.hash !== `#${id}`) {
+      window.history.pushState(null, "", `#${id}`)
+    }
 
-      activeSectionRef.current = id;
-      setActiveSection(id);
-      setIsMobileMenuOpen(false);
-    },
-    [],
-  );
+    activeSectionRef.current = id
+    setActiveSection(id)
+    setIsMobileMenuOpen(false)
+  }, [])
 
   React.useEffect(() => {
-    activeSectionRef.current = activeSection;
-  }, [activeSection]);
+    activeSectionRef.current = activeSection
+  }, [activeSection])
 
   React.useEffect(() => {
     const scrollToHashSection = () => {
-      const sectionId = findHashSectionId(window.location.hash);
-      if (!sectionId) return;
+      const sectionId = findHashSectionId(window.location.hash)
+      if (!sectionId) return
 
-      window.requestAnimationFrame(() => scrollToSection(sectionId, false));
-    };
+      window.requestAnimationFrame(() => scrollToSection(sectionId, false))
+    }
 
-    scrollToHashSection();
-    window.addEventListener("hashchange", scrollToHashSection);
+    scrollToHashSection()
+    window.addEventListener("hashchange", scrollToHashSection)
 
-    return () => window.removeEventListener("hashchange", scrollToHashSection);
-  }, [findHashSectionId, scrollToSection]);
+    return () => window.removeEventListener("hashchange", scrollToHashSection)
+  }, [findHashSectionId, scrollToSection])
 
   const filteredSections = React.useMemo(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return sections;
-    return sections.filter((section) =>
-      section.title.toLowerCase().includes(query)
-    );
-  }, [searchQuery, sections]);
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return sections
+    return sections.filter((section) => section.title.toLowerCase().includes(query))
+  }, [searchQuery, sections])
 
   React.useEffect(() => {
-    const sectionEls = DOC_SECTION_IDS.map((id) => document.getElementById(id));
-    let rafId: number | null = null;
+    const sectionEls = DOC_SECTION_IDS.map((id) => document.getElementById(id))
+    let rafId: number | null = null
 
     const handleScroll = () => {
-      if (rafId !== null) return;
+      if (rafId !== null) return
 
       rafId = window.requestAnimationFrame(() => {
-        rafId = null;
+        rafId = null
 
-        const scrollPosition = window.scrollY + 100;
-        let nextActive: DocSectionId | null = null;
+        const scrollPosition = window.scrollY + 100
+        let nextActive: DocSectionId | null = null
 
         for (let i = 0; i < sectionEls.length; i++) {
-          const el = sectionEls[i];
-          if (!el) continue;
-          if (
-            el.offsetTop <= scrollPosition &&
-            el.offsetTop + el.offsetHeight > scrollPosition
-          ) {
-            nextActive = el.id as DocSectionId;
-            break;
+          const el = sectionEls[i]
+          if (!el) continue
+          if (el.offsetTop <= scrollPosition && el.offsetTop + el.offsetHeight > scrollPosition) {
+            nextActive = el.id as DocSectionId
+            break
           }
         }
 
         if (nextActive && nextActive !== activeSectionRef.current) {
-          activeSectionRef.current = nextActive;
-          setActiveSection(nextActive);
+          activeSectionRef.current = nextActive
+          setActiveSection(nextActive)
         }
-      });
-    };
+      })
+    }
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true })
+    handleScroll()
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (rafId !== null) window.cancelAnimationFrame(rafId);
-    };
-  }, []);
+      window.removeEventListener("scroll", handleScroll)
+      if (rafId !== null) window.cancelAnimationFrame(rafId)
+    }
+  }, [])
 
   const handleDocsClick = (event: React.MouseEvent<HTMLElement>) => {
-    if (!(event.target instanceof Element)) return;
+    if (!(event.target instanceof Element)) return
 
-    const anchor = event.target.closest("a[href]");
-    if (!(anchor instanceof HTMLAnchorElement)) return;
+    const anchor = event.target.closest("a[href]")
+    if (!(anchor instanceof HTMLAnchorElement)) return
 
-    const sectionId = findHashSectionId(anchor.hash);
-    if (!sectionId) return;
+    const sectionId = findHashSectionId(anchor.hash)
+    if (!sectionId) return
 
-    const href = anchor.getAttribute("href");
-    const isSamePath = anchor.origin === window.location.origin &&
-      anchor.pathname === window.location.pathname;
-    if (!href?.startsWith("#") && !isSamePath) return;
+    const href = anchor.getAttribute("href")
+    const isSamePath =
+      anchor.origin === window.location.origin && anchor.pathname === window.location.pathname
+    if (!href?.startsWith("#") && !isSamePath) return
 
-    event.preventDefault();
-    scrollToSection(sectionId);
-  };
+    event.preventDefault()
+    scrollToSection(sectionId)
+  }
 
   return (
     <div className="bg-background text-foreground flex min-h-screen">
@@ -159,9 +146,7 @@ export function DocsShell({
       </div>
 
       <aside
-        className={`bg-background fixed inset-y-0 left-0 z-40 w-64 transform border-r transition-transform duration-200 ease-in-out md:translate-x-0 ${
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } pt-16`}
+        className={`bg-background fixed inset-y-0 left-0 z-40 w-64 transform border-r transition-transform duration-200 ease-in-out md:translate-x-0 ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"} pt-16`}
       >
         <div className="flex h-full flex-col">
           <div className="p-4">
@@ -204,5 +189,5 @@ export function DocsShell({
         <div className="mx-auto max-w-4xl space-y-12">{children}</div>
       </main>
     </div>
-  );
+  )
 }

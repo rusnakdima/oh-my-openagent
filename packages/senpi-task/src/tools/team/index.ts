@@ -1,50 +1,34 @@
-import type { ToolDefinition } from "@code-yeongyu/senpi";
+import type { ToolDefinition } from "@code-yeongyu/senpi"
 
-import { createTeamCreateTool, createTeamDeleteTool } from "./lifecycle";
-import {
-  createTeamTaskCreateTool,
-  createTeamTaskGetTool,
-  createTeamTaskListTool,
-  createTeamTaskUpdateTool,
-} from "./tasks";
-import type { LeadTeamToolDeps } from "./types";
+import { createTeamCreateTool, createTeamDeleteTool } from "./lifecycle"
+import { createTeamTaskCreateTool, createTeamTaskGetTool, createTeamTaskListTool, createTeamTaskUpdateTool } from "./tasks"
+import type { LeadTeamToolDeps } from "./types"
 
-export type {
-  ActiveTeamSummary,
-  CreateTeamTaskServiceInput,
-  CreateTeamToolInput,
-  LeadTeamToolDeps,
-  TeamTaskStatus,
-  TeamToolDeps,
-  TeamToolsService,
-  UpdateTeamTaskServiceInput,
-} from "./types";
-export { classifyMailboxError, isMissingStateError } from "./classify-error";
-export type { MailboxErrorKind } from "./classify-error";
+export type { ActiveTeamSummary, CreateTeamTaskServiceInput, CreateTeamToolInput, LeadTeamToolDeps, TeamToolDeps, TeamToolsService, TeamTaskStatus, UpdateTeamTaskServiceInput } from "./types"
+export { classifyMailboxError, isMissingStateError } from "./classify-error"
+export type { MailboxErrorKind } from "./classify-error"
 export {
+  TeamCreateParams,
+  TeamDeleteParams,
   createTeamCreateTool,
   createTeamDeleteTool,
   runTeamCreate,
   runTeamDelete,
-  TeamCreateParams,
-  TeamDeleteParams,
-} from "./lifecycle";
-export type {
-  TeamCreateDetails,
-  TeamCreateInput,
-  TeamCreateMemberView,
-  TeamDeleteDetails,
-  TeamDeleteInput,
-} from "./lifecycle";
-export { runTeamSend } from "./messaging";
+} from "./lifecycle"
+export type { TeamCreateDetails, TeamCreateInput, TeamCreateMemberView, TeamDeleteDetails, TeamDeleteInput } from "./lifecycle"
+export { runTeamSend } from "./messaging"
 export type {
   LeadDeliveryView,
   MemberDeliveryOutcome,
   TeamSendDetails,
   TeamSendInput,
   TeamSendMemberView,
-} from "./messaging";
+} from "./messaging"
 export {
+  TeamTaskCreateParams,
+  TeamTaskGetParams,
+  TeamTaskListParams,
+  TeamTaskUpdateParams,
   createTeamTaskCreateTool,
   createTeamTaskGetTool,
   createTeamTaskListTool,
@@ -53,11 +37,7 @@ export {
   runTeamTaskGet,
   runTeamTaskList,
   runTeamTaskUpdate,
-  TeamTaskCreateParams,
-  TeamTaskGetParams,
-  TeamTaskListParams,
-  TeamTaskUpdateParams,
-} from "./tasks";
+} from "./tasks"
 export type {
   TeamTaskCreateDetails,
   TeamTaskCreateInput,
@@ -67,12 +47,12 @@ export type {
   TeamTaskListInput,
   TeamTaskUpdateDetails,
   TeamTaskUpdateInput,
-} from "./tasks";
+} from "./tasks"
 export {
   runTeamApproveShutdown,
   runTeamRejectShutdown,
   runTeamShutdownRequest,
-} from "./shutdown";
+} from "./shutdown"
 export type {
   ShutdownErrorView,
   TeamApproveShutdownDetails,
@@ -81,7 +61,7 @@ export type {
   TeamRejectShutdownInput,
   TeamShutdownRequestDetails,
   TeamShutdownRequestInput,
-} from "./shutdown";
+} from "./shutdown"
 
 export function buildLeadTeamTools(deps: LeadTeamToolDeps): ToolDefinition[] {
   return [
@@ -91,5 +71,5 @@ export function buildLeadTeamTools(deps: LeadTeamToolDeps): ToolDefinition[] {
     createTeamTaskGetTool(deps),
     createTeamTaskListTool(deps),
     createTeamTaskUpdateTool(deps),
-  ];
+  ]
 }

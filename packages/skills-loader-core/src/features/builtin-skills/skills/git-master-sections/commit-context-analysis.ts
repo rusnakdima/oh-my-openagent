@@ -1,5 +1,4 @@
-export const GIT_MASTER_COMMIT_CONTEXT_ANALYSIS_SECTION =
-  `## PHASE 0: Parallel Context Gathering (MANDATORY FIRST STEP)
+export const GIT_MASTER_COMMIT_CONTEXT_ANALYSIS_SECTION = `## PHASE 0: Parallel Context Gathering (MANDATORY FIRST STEP)
 
 <parallel_analysis>
 **Execute ALL of the following commands IN PARALLEL to minimize latency:**
@@ -142,4 +141,4 @@ ELSE IF pushed but not merged:
   -> STRATEGY = CAREFUL_REWRITE
   -> Fixup OK but warn about force push
 \`\`\`
-</branch_analysis>`;
+</branch_analysis>`

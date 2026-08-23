@@ -1,11 +1,8 @@
 # One-Liners and Disposable Scripts
 
-Production hygiene with throwaway ergonomics. Go scripts get the same strict
-lints, the same type discipline, the same 250 LOC ceiling. The difference: they
-live as single `.go` files invoked via `go run`, not as full modules.
+Production hygiene with throwaway ergonomics. Go scripts get the same strict lints, the same type discipline, the same 250 LOC ceiling. The difference: they live as single `.go` files invoked via `go run`, not as full modules.
 
-Python has PEP 723 + `uv run`. Rust has `rust-script`. **Go has `go run`
-directly** — no extra tooling needed.
+Python has PEP 723 + `uv run`. Rust has `rust-script`. **Go has `go run` directly** — no extra tooling needed.
 
 ---
 
@@ -47,9 +44,7 @@ func main() {
 
 Run: `go run fetch.go https://example.com`.
 
-The `//go:build ignore` directive keeps this file out of `go build ./...` — it
-is a script, not part of the module. Without that line, every `.go` file in the
-package gets compiled into your binary.
+The `//go:build ignore` directive keeps this file out of `go build ./...` — it is a script, not part of the module. Without that line, every `.go` file in the package gets compiled into your binary.
 
 ---
 
@@ -68,9 +63,7 @@ myproject/
         └── main.go
 ```
 
-Each `scripts/<name>/main.go` is its own `main` package. Invoke as
-`go run ./scripts/seed/`. Dependencies are shared with the parent module — no
-separate `go.mod`.
+Each `scripts/<name>/main.go` is its own `main` package. Invoke as `go run ./scripts/seed/`. Dependencies are shared with the parent module — no separate `go.mod`.
 
 This is the right pattern when:
 
@@ -91,8 +84,7 @@ EOF
 )
 ```
 
-Rare, but useful for one-shot terminal experiments. The `<(...)` is process
-substitution; `go run -mod=mod` reads from stdin.
+Rare, but useful for one-shot terminal experiments. The `<(...)` is process substitution; `go run -mod=mod` reads from stdin.
 
 ---
 
@@ -100,8 +92,7 @@ substitution; `go run -mod=mod` reads from stdin.
 
 Even a 30-line script follows the philosophy:
 
-1. **Typed flags via `flag` or `pflag`**, not `os.Args` string parsing past 2
-   args.
+1. **Typed flags via `flag` or `pflag`**, not `os.Args` string parsing past 2 args.
    ```go
    var (
        url   = flag.String("url", "", "URL to fetch")
@@ -118,9 +109,7 @@ Even a 30-line script follows the philosophy:
    req, _ := http.NewRequestWithContext(ctx, "GET", *url, nil)
    ```
 
-3. **`log.Fatal` is fine in `main()`** of a script (programmer error / fatal
-   path), but **never inside any function the script imports.** Library code
-   returns errors.
+3. **`log.Fatal` is fine in `main()`** of a script (programmer error / fatal path), but **never inside any function the script imports.** Library code returns errors.
 
 4. **Errors get wrapped.** Same rule as production code:
    ```go
@@ -129,11 +118,9 @@ Even a 30-line script follows the philosophy:
 
 5. **Resources released via `defer`.** No "I'll fix it later".
 
-6. **slog for output if it must be parseable.** `fmt.Println` for one-shot
-   terminal output is fine.
+6. **slog for output if it must be parseable.** `fmt.Println` for one-shot terminal output is fine.
 
-7. **No more than 250 pure LOC.** If it grows, it stops being a script and
-   becomes a subcommand of your CLI tool.
+7. **No more than 250 pure LOC.** If it grows, it stops being a script and becomes a subcommand of your CLI tool.
 
 ---
 
@@ -177,8 +164,7 @@ chmod +x script.go
 ./script.go
 ```
 
-`gorun` parses the inline `go.mod` block, materializes a temp module, runs the
-script. Niche tool — only if you want the executable-script experience.
+`gorun` parses the inline `go.mod` block, materializes a temp module, runs the script. Niche tool — only if you want the executable-script experience.
 
 ---
 
@@ -191,22 +177,20 @@ If your script needs:
 - Help text more than a paragraph
 - Repeated invocations from CI
 
-... promote it to a real CLI tool via `cobra` — see `cobra-stack.md`. The
-boundary is fuzzy; trust your judgment, but **a 500-line "script" is not a
-script.**
+... promote it to a real CLI tool via `cobra` — see `cobra-stack.md`. The boundary is fuzzy; trust your judgment, but **a 500-line "script" is not a script.**
 
 ---
 
 ## Antipatterns
 
-| Bad                                                        | Why                                                     | Good                                          |
-| ---------------------------------------------------------- | ------------------------------------------------------- | --------------------------------------------- |
-| `os.Args[1]` indexing without length check                 | Panics on missing arg                                   | `flag.Parse()` with explicit checks           |
-| `log.Fatal` inside a function the script imports           | Crashes caller's process                                | Return error                                  |
-| `panic(err)` for expected failures                         | Same as above                                           | `log.Fatal` in `main`, error return elsewhere |
-| Skipping `defer resp.Body.Close()` because "it's a script" | Leaks fd                                                | Always close                                  |
-| One 800-LOC `main.go` "to keep it simple"                  | Now harder to read than a real CLI                      | Promote to `cmd/<name>/` with subcommands     |
-| `// TODO: handle error`                                    | Production-grade hygiene means production-grade hygiene | Handle now or document why ignored            |
+| Bad | Why | Good |
+|---|---|---|
+| `os.Args[1]` indexing without length check | Panics on missing arg | `flag.Parse()` with explicit checks |
+| `log.Fatal` inside a function the script imports | Crashes caller's process | Return error |
+| `panic(err)` for expected failures | Same as above | `log.Fatal` in `main`, error return elsewhere |
+| Skipping `defer resp.Body.Close()` because "it's a script" | Leaks fd | Always close |
+| One 800-LOC `main.go` "to keep it simple" | Now harder to read than a real CLI | Promote to `cmd/<name>/` with subcommands |
+| `// TODO: handle error` | Production-grade hygiene means production-grade hygiene | Handle now or document why ignored |
 
 ---
 

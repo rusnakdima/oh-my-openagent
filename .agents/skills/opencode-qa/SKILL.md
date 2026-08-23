@@ -11,20 +11,21 @@ asserts its scenario against the live machine, so the scripts are both the QA
 tools and their own regression checks.
 
 Verified against opencode v1.17.7 (bun 1.3.12, macOS). Confirm the installed
-version with `opencode --version`; the surface is stable but always sanity check
-a flag with `opencode <cmd> --help`.
+version with `opencode --version`; the surface is stable but always sanity
+check a flag with `opencode <cmd> --help`.
 
 ## Golden rules (read before running anything)
 
 - READS of the live DB are safe and intended. Investigating sessions (Case D)
   only reads `~/.local/share/opencode/opencode.db`.
 - Anything that SPAWNS opencode (serve, run, the TUI) must use an isolated XDG
-  sandbox so QA never writes junk sessions into the real DB. The bundled scripts
-  already do this; if you run opencode by hand for QA, set `XDG_DATA_HOME` /
-  `XDG_CONFIG_HOME` / `XDG_STATE_HOME` / `XDG_CACHE_HOME` to temp dirs first.
+  sandbox so QA never writes junk sessions into the real DB. The bundled
+  scripts already do this; if you run opencode by hand for QA, set
+  `XDG_DATA_HOME` / `XDG_CONFIG_HOME` / `XDG_STATE_HOME` / `XDG_CACHE_HOME` to
+  temp dirs first.
 - Global text search over the `part` table is a multi-GB scan. Always scope it
-  (`--session`, `--recent`, or `--since`). The text script refuses an unbounded
-  scan on purpose.
+  (`--session`, `--recent`, or `--since`). The text script refuses an
+  unbounded scan on purpose.
 - The opencode source repo (`packages/opencode`) tests itself with `bun test`
   and CANNOT run tests from the repo root. See `references/testing-harness.md`.
 
@@ -40,9 +41,9 @@ bash scripts/lib/common.sh --self-check    # confirm the harness + deps
 
 **Docker is the default QA surface.** Run QA inside a disposable container that
 has the latest opencode and a copy of your config, with the host untouched:
-`script/agent/qa-docker.sh` (see
-[references/docker-qa.md](references/docker-qa.md)). The local scripts below are
-the fallback for when Docker is unavailable or on Windows.
+`script/agent/qa-docker.sh` (see [references/docker-qa.md](references/docker-qa.md)).
+The local scripts below are the fallback for when Docker is unavailable or on
+Windows.
 
 `common.sh` provides the shared harness (DB path, SQL escaping, isolated XDG
 sandbox, free port, server start/stop, and an EXIT-trap cleanup). It requires
@@ -50,19 +51,19 @@ sandbox, free port, server start/stop, and an EXIT-trap cleanup). It requires
 
 ## Router: pick your case
 
-| You want to...                                            | Case | Script                                                                                                                                                       | Reference                        |
-| --------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- |
-| Run opencode non-interactively / check a CLI command      | A    | `opencode run --format json` (inline)                                                                                                                        | `references/cli-commands.md`     |
-| Find a session by its id                                  | D    | `scripts/db-session-by-id.sh <ses_id>`                                                                                                                       | `references/db-investigation.md` |
-| Find sessions by title/name                               | D    | `scripts/db-session-by-name.sh "<text>"`                                                                                                                     | `references/db-investigation.md` |
-| Find sessions by message text                             | D    | `scripts/db-session-by-text.sh --recent N "<text>"`                                                                                                          | `references/db-investigation.md` |
-| Export a whole session as JSON                            | D    | `scripts/export-roundtrip.sh <ses_id>`                                                                                                                       | `references/db-investigation.md` |
-| Check the HTTP server / an endpoint                       | B    | `scripts/server-smoke.sh`                                                                                                                                    | `references/server-api.md`       |
-| Prove a hook / action / event fired                       | B    | `scripts/sse-hook-probe.sh`                                                                                                                                  | `references/events-hooks.md`     |
-| Prove serve-topology wake runner-split (reproduced/fixed) | B    | `scripts/serve-wake-split-probe.sh --expect reproduced\|fixed --evidence-dir DIR` (self-test: `--self-test`; fake LLM: `scripts/lib/fake-openai-server.mjs`) | `references/events-hooks.md`     |
-| Smoke-test the TUI                                        | C    | `scripts/tui-smoke.sh`                                                                                                                                       | `references/tui-tmux.md`         |
-| Write/run a test in the opencode source                   | -    | (bun test)                                                                                                                                                   | `references/testing-harness.md`  |
-| Drive opencode from a Bun/TS script                       | -    | (SDK)                                                                                                                                                        | `references/sdk.md`              |
+| You want to... | Case | Script | Reference |
+|---|---|---|---|
+| Run opencode non-interactively / check a CLI command | A | `opencode run --format json` (inline) | `references/cli-commands.md` |
+| Find a session by its id | D | `scripts/db-session-by-id.sh <ses_id>` | `references/db-investigation.md` |
+| Find sessions by title/name | D | `scripts/db-session-by-name.sh "<text>"` | `references/db-investigation.md` |
+| Find sessions by message text | D | `scripts/db-session-by-text.sh --recent N "<text>"` | `references/db-investigation.md` |
+| Export a whole session as JSON | D | `scripts/export-roundtrip.sh <ses_id>` | `references/db-investigation.md` |
+| Check the HTTP server / an endpoint | B | `scripts/server-smoke.sh` | `references/server-api.md` |
+| Prove a hook / action / event fired | B | `scripts/sse-hook-probe.sh` | `references/events-hooks.md` |
+| Prove serve-topology wake runner-split (reproduced/fixed) | B | `scripts/serve-wake-split-probe.sh --expect reproduced\|fixed --evidence-dir DIR` (self-test: `--self-test`; fake LLM: `scripts/lib/fake-openai-server.mjs`) | `references/events-hooks.md` |
+| Smoke-test the TUI | C | `scripts/tui-smoke.sh` | `references/tui-tmux.md` |
+| Write/run a test in the opencode source | - | (bun test) | `references/testing-harness.md` |
+| Drive opencode from a Bun/TS script | - | (SDK) | `references/sdk.md` |
 
 ## Case A: CLI / terminal works
 
@@ -110,9 +111,8 @@ curl -X POST -u opencode:$OPENCODE_SERVER_PASSWORD -H 'Content-Type: application
 
 A real prompt needs a configured provider, so run the watch-and-trigger pattern
 against your real server, not the isolated sandbox. Event-type catalog, the 21
-plugin hook points, and how to load a local plugin:
-`references/events-hooks.md`. Server start, auth, and routes:
-`references/server-api.md`.
+plugin hook points, and how to load a local plugin: `references/events-hooks.md`.
+Server start, auth, and routes: `references/server-api.md`.
 
 ## Case C: the TUI
 
@@ -150,9 +150,9 @@ tmux recipe: `references/tui-tmux.md`.
 
 ## Case D: investigate sessions in the DB
 
-Read-only against the live SQLite DB. The `session` table is small (title and id
-lookups are instant); message text lives in the multi-GB `part` table, so text
-search must be scoped.
+Read-only against the live SQLite DB. The `session` table is small (title and
+id lookups are instant); message text lives in the multi-GB `part` table, so
+text search must be scoped.
 
 ```bash
 # by id
@@ -167,26 +167,26 @@ bash scripts/db-session-by-text.sh --since "7 days" --limit 50 "TODO"
 bash scripts/export-roundtrip.sh ses_3a4e... > session.json
 ```
 
-Ad hoc queries: `opencode db "<SQL>" --format json`. Schema, tested query shapes
-with timings, the legacy `message`/`part` vs V2 `session_message` distinction,
-and the 25 GB caveat: `references/db-investigation.md`.
+Ad hoc queries: `opencode db "<SQL>" --format json`. Schema, tested query
+shapes with timings, the legacy `message`/`part` vs V2 `session_message`
+distinction, and the 25 GB caveat: `references/db-investigation.md`.
 
 ## Scripts index
 
-Run any script with `--self-test` to verify it against the live machine, or `-h`
-for usage. DB-read scripts are read-only; serve/sse/tui scripts use an isolated
-sandbox and clean up on exit.
+Run any script with `--self-test` to verify it against the live machine, or
+`-h` for usage. DB-read scripts are read-only; serve/sse/tui scripts use an
+isolated sandbox and clean up on exit.
 
-| Script                               | Case | Self-test asserts                                                             |
-| ------------------------------------ | ---- | ----------------------------------------------------------------------------- |
-| `scripts/lib/common.sh --self-check` | -    | deps present, DB path resolves, SQL escaping, free port, sandbox auto-removed |
-| `scripts/db-session-by-id.sh`        | D    | id round-trips for a real session                                             |
-| `scripts/db-session-by-name.sh`      | D    | a derived title needle returns >=1 row                                        |
-| `scripts/db-session-by-text.sh`      | D    | scoped search hits; unbounded scan refused; bounded search <30s               |
-| `scripts/export-roundtrip.sh`        | D    | export stdout is valid JSON and `.info.id` round-trips                        |
-| `scripts/server-smoke.sh`            | B    | `/global/health` healthy, `/doc` >=100 paths, no-auth -> 401                  |
-| `scripts/sse-hook-probe.sh`          | B    | `/event` opens and delivers `server.connected`                                |
-| `scripts/tui-smoke.sh`               | C    | TUI renders under tmux, tears down, real DB untouched                         |
+| Script | Case | Self-test asserts |
+|---|---|---|
+| `scripts/lib/common.sh --self-check` | - | deps present, DB path resolves, SQL escaping, free port, sandbox auto-removed |
+| `scripts/db-session-by-id.sh` | D | id round-trips for a real session |
+| `scripts/db-session-by-name.sh` | D | a derived title needle returns >=1 row |
+| `scripts/db-session-by-text.sh` | D | scoped search hits; unbounded scan refused; bounded search <30s |
+| `scripts/export-roundtrip.sh` | D | export stdout is valid JSON and `.info.id` round-trips |
+| `scripts/server-smoke.sh` | B | `/global/health` healthy, `/doc` >=100 paths, no-auth -> 401 |
+| `scripts/sse-hook-probe.sh` | B | `/event` opens and delivers `server.connected` |
+| `scripts/tui-smoke.sh` | C | TUI renders under tmux, tears down, real DB untouched |
 
 ## Risks and caveats
 
@@ -199,8 +199,8 @@ sandbox and clean up on exit.
 - The server enforces auth only when `OPENCODE_SERVER_PASSWORD` is set;
   otherwise it runs unsecured. Authenticated calls use `-u opencode:$PASS`.
   Unauthenticated calls to a secured server return HTTP 401.
-- Installed binary vs dev source: cite dev source paths for internals but verify
-  flags against the installed `opencode <cmd> --help`.
+- Installed binary vs dev source: cite dev source paths for internals but
+  verify flags against the installed `opencode <cmd> --help`.
 - Isolation: any QA that spawns opencode must use an isolated XDG sandbox so it
   never pollutes the real DB. Prove it by comparing
   `sqlite3 "$(opencode db path)" "SELECT count(*) FROM session"` before and
@@ -216,5 +216,4 @@ sandbox and clean up on exit.
 - `references/tui-tmux.md` - tmux recipe, isolation, TUI control API
 - `references/testing-harness.md` - how opencode tests itself (bun test)
 - `references/sdk.md` - the @opencode-ai/sdk client (reference only)
-- `references/docker-qa.md` - run QA in a disposable Docker container (default;
-  local is the fallback)
+- `references/docker-qa.md` - run QA in a disposable Docker container (default; local is the fallback)

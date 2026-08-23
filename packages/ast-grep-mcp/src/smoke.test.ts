@@ -12,9 +12,7 @@ describe("ast-grep-mcp smoke", () => {
       params: { protocolVersion },
     });
 
-    expect(response?.result?.serverInfo).toMatchObject({
-      name: AST_GREP_MCP_NAME,
-    });
+    expect(response?.result?.serverInfo).toMatchObject({ name: AST_GREP_MCP_NAME });
     expect(response?.result?.protocolVersion).toBe(protocolVersion);
   });
 });

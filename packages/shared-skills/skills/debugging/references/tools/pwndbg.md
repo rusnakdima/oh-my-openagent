@@ -2,13 +2,9 @@
 
 **https://github.com/pwndbg/pwndbg**
 
-pwndbg is a GDB plugin that turns GDB into something humans can actually use for
-binary debugging. It's strictly a superset of plain GDB — every vanilla GDB
-command still works, and pwndbg adds views and commands that make you
-productive.
+pwndbg is a GDB plugin that turns GDB into something humans can actually use for binary debugging. It's strictly a superset of plain GDB — every vanilla GDB command still works, and pwndbg adds views and commands that make you productive.
 
-**If you'd reach for plain `gdb`, reach for pwndbg instead.** The only reason
-not to is if pwndbg isn't installed on the machine, and that's a 2-minute fix.
+**If you'd reach for plain `gdb`, reach for pwndbg instead.** The only reason not to is if pwndbg isn't installed on the machine, and that's a 2-minute fix.
 
 ---
 
@@ -31,18 +27,15 @@ gdb ./any-binary
 # At gdb prompt, you should see pwndbg banner + colorful context view
 ```
 
-Once installed, pwndbg auto-loads every time you start `gdb`. You don't source
-anything manually.
+Once installed, pwndbg auto-loads every time you start `gdb`. You don't source anything manually.
 
 ---
 
 ## The `context` view — the one feature that changes everything
 
-Plain GDB: you run `info registers`, then `bt`, then `x/10xw $rsp`, then
-`disas`. Four commands to see what's going on.
+Plain GDB: you run `info registers`, then `bt`, then `x/10xw $rsp`, then `disas`. Four commands to see what's going on.
 
-pwndbg: `context` (or it auto-shows at every break). One command. Everything on
-screen:
+pwndbg: `context` (or it auto-shows at every break). One command. Everything on screen:
 
 ```
 ──── registers ────
@@ -64,8 +57,7 @@ screen:
    f 2  0x7fffff7a5083 __libc_start_main+0xf3
 ```
 
-You always know where you are, what the CPU state is, what's on the stack, and
-how you got here. This is why pwndbg is the default.
+You always know where you are, what the CPU state is, what's on the stack, and how you got here. This is why pwndbg is the default.
 
 ---
 
@@ -107,14 +99,11 @@ stack 20                        # 20 entries of stack
 vmmap                           # virtual memory map of the process
 ```
 
-**`telescope` is pwndbg's killer command.** Given an address, it walks pointers
-recursively:
-
+**`telescope` is pwndbg's killer command.** Given an address, it walks pointers recursively:
 ```
 00:0000│   0x7ffd... → 0x601010  (heap) → 0x2a (unknown, i.e. a number 42)
 01:0008│   0x7ffd... → 0x7fff... (stack) → 'hello world'
 ```
-
 This single view resolves 80% of "what is at this address" questions.
 
 ### Heap debugging
@@ -127,8 +116,7 @@ find_fake_fast <addr>           # (exploit context) find fake-fast overlap candi
 vis_heap_chunks                 # visualize heap layout
 ```
 
-For use-after-free / double-free / heap overflow hypotheses, `heap` + `bins` is
-usually sufficient to see the corruption.
+For use-after-free / double-free / heap overflow hypotheses, `heap` + `bins` is usually sufficient to see the corruption.
 
 ### Exploitation-adjacent (useful for bug understanding too)
 
@@ -180,8 +168,7 @@ disassemble <func>              # disasm a function
 
 ## Python scripting inside GDB
 
-pwndbg exposes a full Python API. Useful for automating observations across many
-breakpoints:
+pwndbg exposes a full Python API. Useful for automating observations across many breakpoints:
 
 ```python
 (gdb) python
@@ -195,7 +182,6 @@ end
 ```
 
 Or scripted runs from outside:
-
 ```bash
 gdb -batch -ex 'source script.gdb' -ex 'run' ./target
 ```
@@ -255,16 +241,10 @@ gdb ./target
 
 ## Gotchas
 
-- **`bt` looks weird on stripped binaries** — function names become offsets. Use
-  Ghidra's function labels to map back (see [ghidra.md](ghidra.md)).
-- **PIE binaries have randomized base addresses.** Addresses you see in Ghidra
-  are unslid; addresses in pwndbg are slid. The `vmmap` command shows the base,
-  and pwndbg's `piebase` command gives you the offset.
-- **Optimized builds inline functions.** You'll set a breakpoint on
-  `my_function` and it won't hit because the function was inlined. Either
-  disable optimizations or break on callers.
-- **Stack canaries trigger `__stack_chk_fail`.** If you see that in a backtrace,
-  the bug caused a stack-smash; look one frame up.
+- **`bt` looks weird on stripped binaries** — function names become offsets. Use Ghidra's function labels to map back (see [ghidra.md](ghidra.md)).
+- **PIE binaries have randomized base addresses.** Addresses you see in Ghidra are unslid; addresses in pwndbg are slid. The `vmmap` command shows the base, and pwndbg's `piebase` command gives you the offset.
+- **Optimized builds inline functions.** You'll set a breakpoint on `my_function` and it won't hit because the function was inlined. Either disable optimizations or break on callers.
+- **Stack canaries trigger `__stack_chk_fail`.** If you see that in a backtrace, the bug caused a stack-smash; look one frame up.
 
 ---
 

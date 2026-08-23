@@ -1,23 +1,22 @@
+
 # Agent Reach — 路由器
 
-> Part of the **ultimate-browsing** skill (Tier 1.5). Routing and
-> tier-escalation live in [../../SKILL.md](../../SKILL.md). Per-category guides
-> in this folder: [search.md](search.md) · [social.md](social.md) ·
-> [career.md](career.md) · [dev.md](dev.md) · [web.md](web.md) ·
-> [video.md](video.md).
+> Part of the **ultimate-browsing** skill (Tier 1.5). Routing and tier-escalation live in [../../SKILL.md](../../SKILL.md).
+> Per-category guides in this folder: [search.md](search.md) · [social.md](social.md) · [career.md](career.md) · [dev.md](dev.md) · [web.md](web.md) · [video.md](video.md).
+
 
 17 平台工具集合。根据用户意图选择对应分类。
 
 ## 路由表
 
-| 用户意图                              | 分类   | 详细文档               |
-| ------------------------------------- | ------ | ---------------------- |
-| 网页搜索/代码搜索                     | search | [search.md](search.md) |
+| 用户意图 | 分类 | 详细文档 |
+|---------|------|---------|
+| 网页搜索/代码搜索 | search | [search.md](search.md) |
 | 小红书/抖音/微博/推特/B站/V2EX/Reddit | social | [social.md](social.md) |
-| 招聘/职位/LinkedIn                    | career | [career.md](career.md) |
-| GitHub/代码                           | dev    | [dev.md](dev.md)       |
-| 网页/文章/公众号/RSS                  | web    | [web.md](web.md)       |
-| YouTube/B站/播客字幕                  | video  | [video.md](video.md)   |
+| 招聘/职位/LinkedIn | career | [career.md](career.md) |
+| GitHub/代码 | dev | [dev.md](dev.md) |
+| 网页/文章/公众号/RSS | web | [web.md](web.md) |
+| YouTube/B站/播客字幕 | video | [video.md](video.md) |
 
 ## 零配置快速命令
 

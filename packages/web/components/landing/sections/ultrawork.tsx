@@ -1,10 +1,10 @@
-import type { JSX } from "react";
-import { getTranslations } from "next-intl/server";
-import { Badge } from "@/components/ui/badge";
-import { TerminalTypewriter } from "@/components/landing/motion-wrappers";
+import type { JSX } from "react"
+import { getTranslations } from "next-intl/server"
+import { Badge } from "@/components/ui/badge"
+import { TerminalTypewriter } from "@/components/landing/motion-wrappers"
 
 export async function UltraworkSection(): Promise<JSX.Element> {
-  const t = await getTranslations("landing");
+  const t = await getTranslations("landing")
 
   return (
     <section
@@ -22,12 +22,8 @@ export async function UltraworkSection(): Promise<JSX.Element> {
               {t("ulw.title")}
             </h2>
             <div className="space-y-4">
-              <h3 className="text-3xl font-bold text-white">
-                {t("ulw.headline")}
-              </h3>
-              <p className="text-xl leading-relaxed text-zinc-400">
-                {t("ulw.description")}
-              </p>
+              <h3 className="text-3xl font-bold text-white">{t("ulw.headline")}</h3>
+              <p className="text-xl leading-relaxed text-zinc-400">{t("ulw.description")}</p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Badge className="border-cyan-500/20 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-400">
@@ -43,9 +39,7 @@ export async function UltraworkSection(): Promise<JSX.Element> {
                 {t("ulw.parallelAgents")}
               </Badge>
             </div>
-            <p className="text-lg text-zinc-400/90 italic">
-              {t("ulw.tagline")}
-            </p>
+            <p className="text-lg text-zinc-400/90 italic">{t("ulw.tagline")}</p>
           </div>
 
           <div className="w-full max-w-xl flex-1">
@@ -54,9 +48,7 @@ export async function UltraworkSection(): Promise<JSX.Element> {
                 <div className="h-3 w-3 rounded-full border border-red-500/50 bg-red-500/20" />
                 <div className="h-3 w-3 rounded-full border border-yellow-500/50 bg-yellow-500/20" />
                 <div className="h-3 w-3 rounded-full border border-green-500/50 bg-green-500/20" />
-                <div className="ml-2 font-mono text-xs text-zinc-400">
-                  {t("ulw.terminalTitle")}
-                </div>
+                <div className="ml-2 font-mono text-xs text-zinc-400">{t("ulw.terminalTitle")}</div>
               </div>
               <div className="space-y-4 overflow-x-auto p-6 font-mono text-sm">
                 <div className="flex gap-2">
@@ -67,21 +59,13 @@ export async function UltraworkSection(): Promise<JSX.Element> {
                 <div className="space-y-2 border-l-2 border-zinc-800 pl-4">
                   <div className="text-cyan-400">{t("ulw.steps.scanning")}</div>
                   <div className="text-zinc-400">{t("ulw.steps.context")}</div>
-                  <div className="text-purple-400">
-                    {t("ulw.steps.planning")}
-                  </div>
-                  <div className="text-amber-400">
-                    {t("ulw.steps.delegating")}
-                  </div>
-                  <div className="text-blue-400">
-                    {t("ulw.steps.verifying")}
-                  </div>
+                  <div className="text-purple-400">{t("ulw.steps.planning")}</div>
+                  <div className="text-amber-400">{t("ulw.steps.delegating")}</div>
+                  <div className="text-blue-400">{t("ulw.steps.verifying")}</div>
                 </div>
                 <div className="flex gap-2 pt-4">
                   <span className="text-green-500">ok</span>
-                  <span className="font-bold text-green-400">
-                    {t("ulw.steps.complete")}
-                  </span>
+                  <span className="font-bold text-green-400">{t("ulw.steps.complete")}</span>
                 </div>
                 <div className="flex gap-2">
                   <span className="text-green-500">$</span>
@@ -94,5 +78,5 @@ export async function UltraworkSection(): Promise<JSX.Element> {
         </div>
       </div>
     </section>
-  );
+  )
 }

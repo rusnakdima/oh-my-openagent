@@ -1,26 +1,22 @@
-import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool";
-import type {
-  MonitorManager,
-  MonitorRecord,
-  MonitorStatus,
-} from "../../features/monitor";
+import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
+import type { MonitorManager, MonitorRecord, MonitorStatus } from "../../features/monitor"
 
 interface MonitorListArgs {
-  include_exited?: boolean;
+  include_exited?: boolean
 }
 
 interface MonitorToolContext {
-  sessionID: string;
+  sessionID: string
 }
 
 interface MonitorListContext {
-  sessionID: string;
+  sessionID: string
 }
 
-const hiddenStatuses = new Set<MonitorStatus>(["exited", "stopped", "failed"]);
+const hiddenStatuses = new Set<MonitorStatus>(["exited", "stopped", "failed"])
 
 function formatStartedAt(startedAt: Date): string {
-  return startedAt.toISOString();
+  return startedAt.toISOString()
 }
 
 function formatMonitor(record: MonitorRecord) {
@@ -38,12 +34,12 @@ function formatMonitor(record: MonitorRecord) {
       bytesDropped: record.counters.bytesDropped,
       lastSequence: record.counters.lastSequence,
     },
-  };
+  }
 }
 
 export function createMonitorList(
   manager: MonitorManager,
-  ctx: MonitorListContext,
+  ctx: MonitorListContext
 ): ToolDefinition {
   return tool({
     description: `List monitors owned by the current session.
@@ -53,20 +49,17 @@ Returns id, label, mode, startedAt, status, and counters. Raw commands are never
       include_exited: tool.schema
         .boolean()
         .optional()
-        .describe(
-          "Include exited, stopped, and failed monitors. Defaults to false.",
-        ),
+        .describe("Include exited, stopped, and failed monitors. Defaults to false."),
     },
     execute: async (args: MonitorListArgs, toolContext): Promise<string> => {
-      const sessionID = ctx.sessionID ||
-        (toolContext as MonitorToolContext).sessionID;
-      const includeExited = args.include_exited ?? false;
-      const records = manager.list(sessionID);
+      const sessionID = ctx.sessionID || (toolContext as MonitorToolContext).sessionID
+      const includeExited = args.include_exited ?? false
+      const records = manager.list(sessionID)
       const monitors = records
         .filter((record) => includeExited || !hiddenStatuses.has(record.status))
-        .map(formatMonitor);
+        .map(formatMonitor)
 
-      return JSON.stringify({ monitors });
+      return JSON.stringify({ monitors })
     },
-  });
+  })
 }

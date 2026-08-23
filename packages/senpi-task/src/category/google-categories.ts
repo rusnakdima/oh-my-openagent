@@ -1,4 +1,4 @@
-import type { BuiltinCategoryDefinition } from "./types";
+import type { BuiltinCategoryDefinition } from "./types"
 
 // Ported from packages/omo-opencode/src/tools/delegate-task/google-categories.ts.
 const VISUAL_CATEGORY_PROMPT_APPEND = `<Category_Context>
@@ -88,7 +88,7 @@ Design-first mindset (AFTER design system is established):
 
 AVOID: Generic fonts, purple gradients on white, predictable layouts, cookie-cutter patterns.
 </DESIGN_QUALITY>
-</Category_Context>`;
+</Category_Context>`
 
 const ARTISTRY_CATEGORY_PROMPT_APPEND = `<Category_Context>
 You are working on HIGHLY CREATIVE / ARTISTIC tasks.
@@ -105,7 +105,7 @@ Approach:
 - Embrace ambiguity and wild experimentation
 - Balance novelty with coherence
 - This is for tasks requiring exceptional creativity
-</Category_Context>`;
+</Category_Context>`
 
 export const GOOGLE_CATEGORIES = [
   {
@@ -117,8 +117,7 @@ export const GOOGLE_CATEGORIES = [
   {
     name: "artistry",
     config: { model: "anthropic/claude-fable-5", variant: "xhigh" },
-    description:
-      "Complex problem-solving with unconventional, creative approaches - beyond standard patterns",
+    description: "Complex problem-solving with unconventional, creative approaches - beyond standard patterns",
     promptAppend: ARTISTRY_CATEGORY_PROMPT_APPEND,
   },
-] satisfies readonly BuiltinCategoryDefinition[];
+] satisfies readonly BuiltinCategoryDefinition[]

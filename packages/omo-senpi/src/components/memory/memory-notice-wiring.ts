@@ -11,70 +11,52 @@
 // renderResult (memory-write-render.ts) already draws the same notice on the tool row, and a
 // second transcript entry would double-notify.
 
-import type { EntryRenderer } from "@code-yeongyu/senpi";
-import {
-  type MemoryToolCommit,
-  touchesSoulPath,
-} from "@oh-my-opencode/memory-core";
+import type { EntryRenderer } from "@code-yeongyu/senpi"
+import { touchesSoulPath, type MemoryToolCommit } from "@oh-my-opencode/memory-core"
 
-import type { MemoryExtensionAPI } from "./capabilities";
-import type { MemoryIdentityContext } from "./context";
-import { renderMemoryWriteNotice } from "./memory-write-render";
-import {
-  renderSoulUpdatedEntry,
-  SOUL_UPDATED_ENTRY_TYPE,
-  type SoulUpdatedRecord,
-} from "./soul-notice";
-import {
-  MEMORY_MCP_APPLY_PATCH_TOOL_NAME,
-  MEMORY_MCP_TOOL_NAME,
-} from "./tool-metadata";
-import { consumeToolReceipt, type MemoryToolReceipt } from "./tool-receipts";
-import { gatherMemoryWriteNotice, type MemoryWriteNotice } from "./tools";
+import type { MemoryExtensionAPI } from "./capabilities"
+import type { MemoryIdentityContext } from "./context"
+import { renderMemoryWriteNotice } from "./memory-write-render"
+import { SOUL_UPDATED_ENTRY_TYPE, renderSoulUpdatedEntry, type SoulUpdatedRecord } from "./soul-notice"
+import { MEMORY_MCP_APPLY_PATCH_TOOL_NAME, MEMORY_MCP_TOOL_NAME } from "./tool-metadata"
+import { consumeToolReceipt, type MemoryToolReceipt } from "./tool-receipts"
+import { gatherMemoryWriteNotice, type MemoryWriteNotice } from "./tools"
 
-export const MEMORY_WRITE_UPDATED_ENTRY_TYPE = "omo-memory:write-updated";
+export const MEMORY_WRITE_UPDATED_ENTRY_TYPE = "omo-memory:write-updated"
 
 /** The write notice as a transcript entry; identical payload and rendering to the direct tool row. */
-export const renderMemoryWriteUpdatedEntry: EntryRenderer<MemoryWriteNotice> = (
-  entry,
-  options,
-  theme,
-) => {
-  const record = entry.data;
-  if (record === undefined) return undefined;
-  return renderMemoryWriteNotice(record, options, theme, Date.now());
-};
+export const renderMemoryWriteUpdatedEntry: EntryRenderer<MemoryWriteNotice> = (entry, options, theme) => {
+  const record = entry.data
+  if (record === undefined) return undefined
+  return renderMemoryWriteNotice(record, options, theme, Date.now())
+}
 
 export interface MemoryNoticeWiringOptions {
-  readonly resolveContext: (
-    sessionId: string,
-  ) => MemoryIdentityContext | undefined;
+  readonly resolveContext: (sessionId: string) => MemoryIdentityContext | undefined
   /** memory.soul.edit_notice for the identity behind the commit. */
-  readonly resolveEditNotice: (identity: string) => boolean;
+  readonly resolveEditNotice: (identity: string) => boolean
   /** memory.write_notice.enabled for the identity behind the commit. */
-  readonly resolveWriteNotice: (identity: string) => boolean;
+  readonly resolveWriteNotice: (identity: string) => boolean
   /** Gather seam; production reuses the direct surface's own best-effort gather. */
   readonly gatherWriteNotice?: (
     context: MemoryIdentityContext,
     commit: MemoryToolCommit,
     sessionId: string,
-  ) => Promise<MemoryWriteNotice | undefined>;
+  ) => Promise<MemoryWriteNotice | undefined>
   /** Receipt seam; production read-and-deletes the on-disk receipt exactly once per tool_result. */
   readonly consumeReceipt?: (
     receiptsDir: string,
     toolCallId: string,
-  ) => Promise<MemoryToolReceipt | undefined>;
+  ) => Promise<MemoryToolReceipt | undefined>
 }
 
 export interface MemoryNoticeWiring {
-  register(pi: MemoryExtensionAPI): void;
-  onCommit(context: MemoryIdentityContext, commit: MemoryToolCommit): void;
+  register(pi: MemoryExtensionAPI): void
+  onCommit(context: MemoryIdentityContext, commit: MemoryToolCommit): void
 }
 
-export function createMemoryNoticeWiring(
-  options: MemoryNoticeWiringOptions,
-): MemoryNoticeWiring {
-  let api: MemoryExtensionAPI | undefined;
+export function createMemoryNoticeWiring(options: MemoryNoticeWiringOptions): MemoryNoticeWiring {
+  let api: MemoryExtensionAPI | undefined
 
   /**
    * The write notice is DECORATION: gathering probes git and the filesystem, so a failure or a
@@ -85,76 +67,64 @@ export function createMemoryNoticeWiring(
     commit: MemoryToolCommit,
     sessionId: string,
   ): Promise<void> {
-    if (api === undefined) return;
-    if (!options.resolveWriteNotice(context.identity)) return;
-    const gather = options.gatherWriteNotice ?? defaultGatherWriteNotice;
-    let notice: MemoryWriteNotice | undefined;
+    if (api === undefined) return
+    if (!options.resolveWriteNotice(context.identity)) return
+    const gather = options.gatherWriteNotice ?? defaultGatherWriteNotice
+    let notice: MemoryWriteNotice | undefined
     try {
-      notice = await gather(context, commit, sessionId);
+      notice = await gather(context, commit, sessionId)
     } catch {
-      return;
+      return
     }
-    if (notice === undefined) return;
-    api.appendEntry(MEMORY_WRITE_UPDATED_ENTRY_TYPE, notice);
+    if (notice === undefined) return
+    api.appendEntry(MEMORY_WRITE_UPDATED_ENTRY_TYPE, notice)
   }
 
   function emitSoul(identity: string, commit: MemoryToolCommit): void {
-    if (api === undefined) return;
-    if (!touchesSoulPath(commit.affectedPaths)) return;
-    if (!options.resolveEditNotice(identity)) return;
-    api.appendEntry(
-      SOUL_UPDATED_ENTRY_TYPE,
-      {
-        sha: commit.sha,
-        subject: commit.subject,
-        affectedPaths: commit.affectedPaths,
-      } satisfies SoulUpdatedRecord,
-    );
+    if (api === undefined) return
+    if (!touchesSoulPath(commit.affectedPaths)) return
+    if (!options.resolveEditNotice(identity)) return
+    api.appendEntry(SOUL_UPDATED_ENTRY_TYPE, {
+      sha: commit.sha,
+      subject: commit.subject,
+      affectedPaths: commit.affectedPaths,
+    } satisfies SoulUpdatedRecord)
   }
 
   return {
     register(pi): void {
-      api = pi;
-      pi.registerEntryRenderer(SOUL_UPDATED_ENTRY_TYPE, renderSoulUpdatedEntry);
-      pi.registerEntryRenderer(
-        MEMORY_WRITE_UPDATED_ENTRY_TYPE,
-        renderMemoryWriteUpdatedEntry,
-      );
+      api = pi
+      pi.registerEntryRenderer(SOUL_UPDATED_ENTRY_TYPE, renderSoulUpdatedEntry)
+      pi.registerEntryRenderer(MEMORY_WRITE_UPDATED_ENTRY_TYPE, renderMemoryWriteUpdatedEntry)
       pi.on("tool_result", async (payload, eventCtx) => {
-        if (!isRecord(payload) || payload.type !== "tool_result") return;
-        if (!isMemoryMcpToolName(payload.toolName)) return;
-        if (
-          typeof payload.toolCallId !== "string" ||
-          payload.toolCallId.length === 0
-        ) return;
-        const sessionId = readSessionId(eventCtx);
-        if (sessionId === undefined) return;
-        const context = options.resolveContext(sessionId);
-        if (context === undefined) return;
-        const consume = options.consumeReceipt ?? consumeToolReceipt;
+        if (!isRecord(payload) || payload.type !== "tool_result") return
+        if (!isMemoryMcpToolName(payload.toolName)) return
+        if (typeof payload.toolCallId !== "string" || payload.toolCallId.length === 0) return
+        const sessionId = readSessionId(eventCtx)
+        if (sessionId === undefined) return
+        const context = options.resolveContext(sessionId)
+        if (context === undefined) return
+        const consume = options.consumeReceipt ?? consumeToolReceipt
         // ONE read per tool_result: the receipt is read-and-deleted, so every notice below is
         // derived from this single commit record.
-        const receipt = await consume(
-          context.identityPaths.toolReceipts,
-          payload.toolCallId,
-        );
-        if (receipt === undefined) return;
+        const receipt = await consume(context.identityPaths.toolReceipts, payload.toolCallId)
+        if (receipt === undefined) return
         const commit: MemoryToolCommit = {
           sha: receipt.sha,
           subject: receipt.subject,
           affectedPaths: receipt.affectedPaths,
-        };
-        emitSoul(context.identity, commit);
-        await emitWrite(context, commit, sessionId);
-      });
+        }
+        emitSoul(context.identity, commit)
+        await emitWrite(context, commit, sessionId)
+      })
     },
 
     // Direct surface only: the tool's own renderResult already draws the write notice on the tool
     // row, so emitting a write-updated entry here would notify twice for one commit.
     onCommit(context, commit): void {
-      emitSoul(context.identity, commit);
+      emitSoul(context.identity, commit)
     },
-  };
+  }
 }
 
 async function defaultGatherWriteNotice(
@@ -167,30 +137,27 @@ async function defaultGatherWriteNotice(
   return await Promise.race([
     gatherMemoryWriteNotice(context, commit, { sessionId }),
     new Promise<undefined>((resolve) => {
-      setTimeout(resolve, WRITE_NOTICE_BUDGET_MS).unref?.();
+      setTimeout(resolve, WRITE_NOTICE_BUDGET_MS).unref?.()
     }),
-  ]);
+  ])
 }
 
 /** Same budget the direct surface gives its own gather; the entry is decoration, not the write. */
-const WRITE_NOTICE_BUDGET_MS = 3_000;
+const WRITE_NOTICE_BUDGET_MS = 3_000
 
 function isMemoryMcpToolName(value: unknown): boolean {
-  return value === MEMORY_MCP_TOOL_NAME ||
-    value === MEMORY_MCP_APPLY_PATCH_TOOL_NAME;
+  return value === MEMORY_MCP_TOOL_NAME || value === MEMORY_MCP_APPLY_PATCH_TOOL_NAME
 }
 
 function readSessionId(eventCtx: unknown): string | undefined {
-  if (!isRecord(eventCtx) || !isRecord(eventCtx.sessionManager)) {
-    return undefined;
-  }
-  const manager = eventCtx.sessionManager;
-  const getter = manager.getSessionId;
-  if (typeof getter !== "function") return undefined;
-  const value = Reflect.apply(getter, manager, []);
-  return typeof value === "string" && value.length > 0 ? value : undefined;
+  if (!isRecord(eventCtx) || !isRecord(eventCtx.sessionManager)) return undefined
+  const manager = eventCtx.sessionManager
+  const getter = manager.getSessionId
+  if (typeof getter !== "function") return undefined
+  const value = Reflect.apply(getter, manager, [])
+  return typeof value === "string" && value.length > 0 ? value : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
+  return value !== null && typeof value === "object" && !Array.isArray(value)
 }

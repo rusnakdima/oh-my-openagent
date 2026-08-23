@@ -1,16 +1,13 @@
-import type {
-  SenpiModelPort,
-  SenpiModelRegistryPort,
-} from "@oh-my-opencode/senpi-task";
-import { resolveAvailableCategoryNames } from "@oh-my-opencode/senpi-task/category-resolver";
+import type { SenpiModelPort, SenpiModelRegistryPort } from "@oh-my-opencode/senpi-task"
+import { resolveAvailableCategoryNames } from "@oh-my-opencode/senpi-task/category-resolver"
 
-import { loadSenpiOmoConfig } from "../config-resolution";
+import { loadSenpiOmoConfig } from "../config-resolution"
 
-export type GateRegistry = SenpiModelRegistryPort<SenpiModelPort>;
+export type GateRegistry = SenpiModelRegistryPort<SenpiModelPort>
 
 export interface ArchitectGateOptions {
   /** Pins $HOME in tests so the loader cannot read the developer's real user config. */
-  env?: { readonly HOME?: string; readonly USERPROFILE?: string };
+  env?: { readonly HOME?: string; readonly USERPROFILE?: string }
   /**
    * The live senpi model registry (senpi's ExtensionContext.modelRegistry satisfies the port
    * structurally). When present, a builtin (user-undeclared) architect counts as active exactly
@@ -18,7 +15,7 @@ export interface ArchitectGateOptions {
    * applies, including the requiresModel: "claude-fable-5" check and fallback-chain viability.
    * When absent the gate falls back to the config-declared check, matching pre-registry callers.
    */
-  registry?: GateRegistry;
+  registry?: GateRegistry
 }
 
 /**
@@ -28,22 +25,15 @@ export interface ArchitectGateOptions {
  * entry always answers the gate (disable: true counts as inactive, declaration beats the builtin
  * requiresModel gate exactly as resolveCategory does).
  */
-export function hasActiveArchitectCategory(
-  cwd: string,
-  options: ArchitectGateOptions = {},
-): boolean {
+export function hasActiveArchitectCategory(cwd: string, options: ArchitectGateOptions = {}): boolean {
   try {
-    const loadOptions = options.env === undefined
-      ? { cwd }
-      : { cwd, env: options.env };
-    const { config } = loadSenpiOmoConfig(loadOptions);
-    const architect = config.categories?.["architect"];
-    if (architect !== undefined) return architect.disable !== true;
-    if (options.registry === undefined) return false;
-    return resolveAvailableCategoryNames(config, options.registry).includes(
-      "architect",
-    );
+    const loadOptions = options.env === undefined ? { cwd } : { cwd, env: options.env }
+    const { config } = loadSenpiOmoConfig(loadOptions)
+    const architect = config.categories?.["architect"]
+    if (architect !== undefined) return architect.disable !== true
+    if (options.registry === undefined) return false
+    return resolveAvailableCategoryNames(config, options.registry).includes("architect")
   } catch {
-    return false;
+    return false
   }
 }

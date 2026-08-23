@@ -18,4 +18,4 @@ export const SENPI_LOADER_ALIASES: readonly [
   "@sinclair/typebox",
   "@sinclair/typebox/compile",
   "@sinclair/typebox/value",
-];
+]

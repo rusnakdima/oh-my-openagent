@@ -1,40 +1,38 @@
-import type { LoadedSkill } from "./types";
-import type { SkillDefinition, SkillsConfig } from "../../types";
-import type { BuiltinSkill } from "../builtin-skills/types";
-import { builtinToLoadedSkill } from "./merger/builtin-skill-converter";
-import { configEntryToLoadedSkill } from "./merger/config-skill-entry-loader";
-import { mergeSkillDefinitions } from "./merger/skill-definition-merger";
-import { normalizeSkillsConfig } from "./merger/skills-config-normalizer";
-import { SCOPE_PRIORITY } from "./merger/scope-priority";
-import { isDisabledSkillAlias } from "./skill-discovery";
+import type { LoadedSkill } from "./types"
+import type { SkillDefinition, SkillsConfig } from "../../types"
+import type { BuiltinSkill } from "../builtin-skills/types"
+import { builtinToLoadedSkill } from "./merger/builtin-skill-converter"
+import { configEntryToLoadedSkill } from "./merger/config-skill-entry-loader"
+import { mergeSkillDefinitions } from "./merger/skill-definition-merger"
+import { normalizeSkillsConfig } from "./merger/skills-config-normalizer"
+import { SCOPE_PRIORITY } from "./merger/scope-priority"
+import { isDisabledSkillAlias } from "./skill-discovery"
 
 export interface MergeSkillsOptions {
-  configDir?: string;
-  isConfigEntryAllowed?: (name: string) => boolean;
+  configDir?: string
+  isConfigEntryAllowed?: (name: string) => boolean
 }
 
 function isDisabledConfigEntry(entry: boolean | SkillDefinition): boolean {
-  if (entry === false) return true;
-  if (entry === true) return false;
-  return entry.disable === true;
+  if (entry === false) return true
+  if (entry === true) return false
+  return entry.disable === true
 }
 
 function normalizeSkillAliasName(name: string): string {
-  return name.toLowerCase();
+  return name.toLowerCase()
 }
 
 function collectDisabledSkillNames(
   normalizedConfig: ReturnType<typeof normalizeSkillsConfig>,
 ): Set<string> {
-  const disabledSkillNames = new Set(
-    normalizedConfig.disable.map(normalizeSkillAliasName),
-  );
+  const disabledSkillNames = new Set(normalizedConfig.disable.map(normalizeSkillAliasName))
   for (const [name, entry] of Object.entries(normalizedConfig.entries)) {
     if (isDisabledConfigEntry(entry)) {
-      disabledSkillNames.add(normalizeSkillAliasName(name));
+      disabledSkillNames.add(normalizeSkillAliasName(name))
     }
   }
-  return disabledSkillNames;
+  return disabledSkillNames
 }
 
 export function mergeSkills(
@@ -45,34 +43,32 @@ export function mergeSkills(
   userOpencodeSkills: LoadedSkill[],
   projectClaudeSkills: LoadedSkill[],
   projectOpencodeSkills: LoadedSkill[],
-  options: MergeSkillsOptions = {},
+  options: MergeSkillsOptions = {}
 ): LoadedSkill[] {
-  const skillMap = new Map<string, LoadedSkill>();
+  const skillMap = new Map<string, LoadedSkill>()
 
   for (const builtin of builtinSkills) {
-    const loaded = builtinToLoadedSkill(builtin);
-    skillMap.set(loaded.name, loaded);
+    const loaded = builtinToLoadedSkill(builtin)
+    skillMap.set(loaded.name, loaded)
   }
 
-  const normalizedConfig = normalizeSkillsConfig(config);
-  const disabledSkillNames = collectDisabledSkillNames(normalizedConfig);
+  const normalizedConfig = normalizeSkillsConfig(config)
+  const disabledSkillNames = collectDisabledSkillNames(normalizedConfig)
 
   for (const [name, entry] of Object.entries(normalizedConfig.entries)) {
-    if (options.isConfigEntryAllowed && !options.isConfigEntryAllowed(name)) {
-      continue;
-    }
-    if (entry === false) continue;
-    if (entry === true) continue;
+    if (options.isConfigEntryAllowed && !options.isConfigEntryAllowed(name)) continue
+    if (entry === false) continue
+    if (entry === true) continue
 
-    if (entry.disable) continue;
+    if (entry.disable) continue
 
-    const loaded = configEntryToLoadedSkill(name, entry, options.configDir);
+    const loaded = configEntryToLoadedSkill(name, entry, options.configDir)
     if (loaded) {
-      const existing = skillMap.get(name);
+      const existing = skillMap.get(name)
       if (existing && !entry.template && !entry.from) {
-        skillMap.set(name, mergeSkillDefinitions(existing, entry));
+        skillMap.set(name, mergeSkillDefinitions(existing, entry))
       } else {
-        skillMap.set(name, loaded);
+        skillMap.set(name, loaded)
       }
     }
   }
@@ -83,56 +79,54 @@ export function mergeSkills(
     ...userOpencodeSkills,
     ...projectClaudeSkills,
     ...projectOpencodeSkills,
-  ];
+  ]
 
   for (const skill of fileSystemSkills) {
-    const existing = skillMap.get(skill.name);
-    if (
-      !existing || SCOPE_PRIORITY[skill.scope] > SCOPE_PRIORITY[existing.scope]
-    ) {
-      skillMap.set(skill.name, skill);
+    const existing = skillMap.get(skill.name)
+    if (!existing || SCOPE_PRIORITY[skill.scope] > SCOPE_PRIORITY[existing.scope]) {
+      skillMap.set(skill.name, skill)
     }
   }
 
   for (const [name, entry] of Object.entries(normalizedConfig.entries)) {
     if (options.isConfigEntryAllowed && !options.isConfigEntryAllowed(name)) {
       if (isDisabledConfigEntry(entry)) {
-        skillMap.delete(name);
+        skillMap.delete(name)
       }
-      continue;
+      continue
     }
-    if (entry === true) continue;
+    if (entry === true) continue
     if (entry === false) {
-      skillMap.delete(name);
-      continue;
+      skillMap.delete(name)
+      continue
     }
     if (entry.disable) {
-      skillMap.delete(name);
-      continue;
+      skillMap.delete(name)
+      continue
     }
 
-    const existing = skillMap.get(name);
+    const existing = skillMap.get(name)
     if (existing && !entry.template && !entry.from) {
-      skillMap.set(name, mergeSkillDefinitions(existing, entry));
+      skillMap.set(name, mergeSkillDefinitions(existing, entry))
     }
   }
 
   if (disabledSkillNames.size > 0) {
     for (const [name, skill] of skillMap) {
       if (isDisabledSkillAlias(skill, disabledSkillNames)) {
-        skillMap.delete(name);
+        skillMap.delete(name)
       }
     }
   }
 
   if (normalizedConfig.enable.length > 0) {
-    const enableSet = new Set(normalizedConfig.enable);
+    const enableSet = new Set(normalizedConfig.enable)
     for (const name of skillMap.keys()) {
       if (!enableSet.has(name)) {
-        skillMap.delete(name);
+        skillMap.delete(name)
       }
     }
   }
 
-  return Array.from(skillMap.values());
+  return Array.from(skillMap.values())
 }

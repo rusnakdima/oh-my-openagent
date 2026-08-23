@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod"
 
 export const ClaudeCodeConfigSchema = z.object({
   mcp: z.boolean().optional(),
@@ -14,6 +14,6 @@ export const ClaudeCodeConfigSchema = z.object({
   anthropic_provider: z.string().trim().min(1).refine((v) => !v.includes("/"), {
     message: "anthropic_provider must be a provider name without '/'",
   }).optional(),
-});
+})
 
-export type ClaudeCodeConfig = z.infer<typeof ClaudeCodeConfigSchema>;
+export type ClaudeCodeConfig = z.infer<typeof ClaudeCodeConfigSchema>

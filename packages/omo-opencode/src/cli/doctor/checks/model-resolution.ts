@@ -1,49 +1,34 @@
-import {
-  AGENT_MODEL_REQUIREMENTS,
-  CATEGORY_MODEL_REQUIREMENTS,
-} from "../../../shared/model-requirements";
-import { getModelCapabilities } from "../../../shared/model-capabilities";
-import { CHECK_IDS, CHECK_NAMES } from "../framework/constants";
-import type { CheckResult, DoctorIssue, FixResult } from "../framework/types";
-import { loadAvailableModelsFromCache } from "./model-resolution-cache";
-import { loadOmoConfig } from "./model-resolution-config";
-import { buildModelResolutionDetails } from "./model-resolution-details";
-import {
-  buildEffectiveResolution,
-  getEffectiveModel,
-} from "./model-resolution-effective-model";
-import type {
-  AgentResolutionInfo,
-  CategoryResolutionInfo,
-  ModelResolutionInfo,
-  OmoConfig,
-} from "./model-resolution-types";
-import type { SessionModel } from "../../../shared/session-model-state";
-import { existsSync, unlinkSync } from "node:fs";
-import { join } from "node:path";
-import { getOpenCodeCacheDir } from "../../../shared";
-import { spawnWithTimeout } from "../framework/spawn-with-timeout";
+import { AGENT_MODEL_REQUIREMENTS, CATEGORY_MODEL_REQUIREMENTS } from "../../../shared/model-requirements"
+import { getModelCapabilities } from "../../../shared/model-capabilities"
+import { CHECK_IDS, CHECK_NAMES } from "../framework/constants"
+import type { CheckResult, DoctorIssue, FixResult } from "../framework/types"
+import { loadAvailableModelsFromCache } from "./model-resolution-cache"
+import { loadOmoConfig } from "./model-resolution-config"
+import { buildModelResolutionDetails } from "./model-resolution-details"
+import { buildEffectiveResolution, getEffectiveModel } from "./model-resolution-effective-model"
+import type { AgentResolutionInfo, CategoryResolutionInfo, ModelResolutionInfo, OmoConfig } from "./model-resolution-types"
+import type { SessionModel } from "../../../shared/session-model-state"
+import { existsSync, unlinkSync } from "node:fs"
+import { join } from "node:path"
+import { getOpenCodeCacheDir } from "../../../shared"
+import { spawnWithTimeout } from "../framework/spawn-with-timeout"
 
-export function parseProviderModel(
-  value: string,
-): { providerID: string; modelID: string } | null {
-  const slashIndex = value.indexOf("/");
+export function parseProviderModel(value: string): { providerID: string; modelID: string } | null {
+  const slashIndex = value.indexOf("/")
   if (slashIndex <= 0 || slashIndex === value.length - 1) {
-    return null;
+    return null
   }
 
   return {
     providerID: value.slice(0, slashIndex),
     modelID: value.slice(slashIndex + 1),
-  };
+  }
 }
 
-function attachCapabilityDiagnostics<
-  T extends AgentResolutionInfo | CategoryResolutionInfo,
->(entry: T): T {
-  const parsed = parseProviderModel(entry.effectiveModel);
+function attachCapabilityDiagnostics<T extends AgentResolutionInfo | CategoryResolutionInfo>(entry: T): T {
+  const parsed = parseProviderModel(entry.effectiveModel)
   if (!parsed) {
-    return entry;
+    return entry
   }
 
   return {
@@ -52,33 +37,30 @@ function attachCapabilityDiagnostics<
       providerID: parsed.providerID,
       modelID: parsed.modelID,
     }).diagnostics,
-  };
+  }
 }
 
 export function getModelResolutionInfo(): ModelResolutionInfo {
-  const agents: AgentResolutionInfo[] = Object.entries(AGENT_MODEL_REQUIREMENTS)
-    .map(([name, requirement]) =>
-      attachCapabilityDiagnostics({
-        name,
-        requirement,
-        effectiveModel: getEffectiveModel(requirement),
-        effectiveResolution: buildEffectiveResolution(requirement),
-      })
-    );
+  const agents: AgentResolutionInfo[] = Object.entries(AGENT_MODEL_REQUIREMENTS).map(([name, requirement]) =>
+    attachCapabilityDiagnostics({
+      name,
+      requirement,
+      effectiveModel: getEffectiveModel(requirement),
+      effectiveResolution: buildEffectiveResolution(requirement),
+    })
+  )
 
-  const categories: CategoryResolutionInfo[] = Object.entries(
-    CATEGORY_MODEL_REQUIREMENTS,
-  ).map(
+  const categories: CategoryResolutionInfo[] = Object.entries(CATEGORY_MODEL_REQUIREMENTS).map(
     ([name, requirement]) =>
       attachCapabilityDiagnostics({
         name,
         requirement,
         effectiveModel: getEffectiveModel(requirement),
         effectiveResolution: buildEffectiveResolution(requirement),
-      }),
-  );
+      })
+  )
 
-  return { agents, categories };
+  return { agents, categories }
 }
 
 export function getModelResolutionInfoWithOverrides(
@@ -87,176 +69,134 @@ export function getModelResolutionInfoWithOverrides(
 ): ModelResolutionInfo {
   const liveModelString = liveSessionModel
     ? `${liveSessionModel.providerID}/${liveSessionModel.modelID}`
-    : undefined;
+    : undefined
 
-  const agents: AgentResolutionInfo[] = Object.entries(AGENT_MODEL_REQUIREMENTS)
-    .map(([name, requirement]) => {
-      const userOverride = config.agents?.[name]?.model;
-      const userVariant = config.agents?.[name]?.variant;
-      // liveSessionModel overrides everything when set
-      const effectiveModel = liveModelString ??
-        getEffectiveModel(requirement, userOverride);
-      return attachCapabilityDiagnostics({
-        name,
-        requirement,
-        userOverride,
-        userVariant,
-        effectiveModel,
-        effectiveResolution: buildEffectiveResolution(
-          requirement,
-          userOverride,
-        ),
-      });
-    });
+  const agents: AgentResolutionInfo[] = Object.entries(AGENT_MODEL_REQUIREMENTS).map(([name, requirement]) => {
+    const userOverride = config.agents?.[name]?.model
+    const userVariant = config.agents?.[name]?.variant
+    // liveSessionModel overrides everything when set
+    const effectiveModel = liveModelString ?? getEffectiveModel(requirement, userOverride)
+    return attachCapabilityDiagnostics({
+      name,
+      requirement,
+      userOverride,
+      userVariant,
+      effectiveModel,
+      effectiveResolution: buildEffectiveResolution(requirement, userOverride),
+    })
+  })
 
-  const categories: CategoryResolutionInfo[] = Object.entries(
-    CATEGORY_MODEL_REQUIREMENTS,
-  ).map(
+  const categories: CategoryResolutionInfo[] = Object.entries(CATEGORY_MODEL_REQUIREMENTS).map(
     ([name, requirement]) => {
-      const userOverride = config.categories?.[name]?.model;
-      const userVariant = config.categories?.[name]?.variant;
+      const userOverride = config.categories?.[name]?.model
+      const userVariant = config.categories?.[name]?.variant
       // liveSessionModel overrides everything when set
-      const effectiveModel = liveModelString ??
-        getEffectiveModel(requirement, userOverride);
+      const effectiveModel = liveModelString ?? getEffectiveModel(requirement, userOverride)
       return attachCapabilityDiagnostics({
         name,
         requirement,
         userOverride,
         userVariant,
         effectiveModel,
-        effectiveResolution: buildEffectiveResolution(
-          requirement,
-          userOverride,
-        ),
-      });
-    },
-  );
+        effectiveResolution: buildEffectiveResolution(requirement, userOverride),
+      })
+    }
+  )
 
-  return { agents, categories };
+  return { agents, categories }
 }
 
-export function collectCapabilityResolutionIssues(
-  info: ModelResolutionInfo,
-): DoctorIssue[] {
-  const issues: DoctorIssue[] = [];
-  const allEntries = [...info.agents, ...info.categories];
+export function collectCapabilityResolutionIssues(info: ModelResolutionInfo): DoctorIssue[] {
+  const issues: DoctorIssue[] = []
+  const allEntries = [...info.agents, ...info.categories]
   const fallbackEntries = allEntries.filter((entry) => {
-    const mode = entry.capabilityDiagnostics?.resolutionMode;
-    return mode === "unknown";
-  });
+    const mode = entry.capabilityDiagnostics?.resolutionMode
+    return mode === "unknown"
+  })
 
   if (fallbackEntries.length === 0) {
-    return issues;
+    return issues
   }
 
   const summary = fallbackEntries
-    .map((entry) =>
-      `${entry.name}=${entry.effectiveModel} (${
-        entry.capabilityDiagnostics?.resolutionMode ?? "unknown"
-      })`
-    )
-    .join(", ");
+    .map((entry) => `${entry.name}=${entry.effectiveModel} (${entry.capabilityDiagnostics?.resolutionMode ?? "unknown"})`)
+    .join(", ")
 
   issues.push({
     title: "Configured models rely on compatibility fallback",
     description: summary,
     severity: "warning",
     affects: fallbackEntries.map((entry) => entry.name),
-  });
+  })
 
-  return issues;
+  return issues
 }
 
 export async function checkModels(): Promise<CheckResult> {
-  const config = loadOmoConfig() ?? {};
-  const info = getModelResolutionInfoWithOverrides(config);
-  const available = loadAvailableModelsFromCache();
-  const issues: DoctorIssue[] = [];
+  const config = loadOmoConfig() ?? {}
+  const info = getModelResolutionInfoWithOverrides(config)
+  const available = loadAvailableModelsFromCache()
+  const issues: DoctorIssue[] = []
 
   if (!available.cacheExists) {
     issues.push({
       title: "Model cache not found",
-      description:
-        "OpenCode model cache is missing, so model availability cannot be validated.",
+      description: "OpenCode model cache is missing, so model availability cannot be validated.",
       fix: "Run: opencode models --refresh",
       severity: "warning",
       affects: ["model resolution"],
-    });
+    })
   }
 
-  issues.push(...collectCapabilityResolutionIssues(info));
+  issues.push(...collectCapabilityResolutionIssues(info))
 
   const overrideCount =
     info.agents.filter((agent) => Boolean(agent.userOverride)).length +
-    info.categories.filter((category) => Boolean(category.userOverride)).length;
+    info.categories.filter((category) => Boolean(category.userOverride)).length
 
   return {
     name: CHECK_NAMES[CHECK_IDS.MODELS],
     status: issues.length > 0 ? "warn" : "pass",
-    message:
-      `${info.agents.length} agents, ${info.categories.length} categories, ${overrideCount} override${
-        overrideCount === 1 ? "" : "s"
-      }`,
+    message: `${info.agents.length} agents, ${info.categories.length} categories, ${overrideCount} override${overrideCount === 1 ? "" : "s"}`,
     details: buildModelResolutionDetails({ info, available, config }),
     issues,
-  };
+  }
 }
 
-export const checkModelResolution = checkModels;
+export const checkModelResolution = checkModels
 
 export async function fixModelCache(): Promise<FixResult> {
-  const cacheDir = getOpenCodeCacheDir();
-  const cacheFile = join(cacheDir, "models.json");
-  const fixed: string[] = [];
+  const cacheDir = getOpenCodeCacheDir()
+  const cacheFile = join(cacheDir, "models.json")
+  const fixed: string[] = []
 
   if (existsSync(cacheFile)) {
     try {
-      unlinkSync(cacheFile);
-      fixed.push("Deleted stale models.json");
+      unlinkSync(cacheFile)
+      fixed.push("Deleted stale models.json")
     } catch (err) {
-      return {
-        success: false,
-        message: `Failed to delete cache: ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      };
+      return { success: false, message: `Failed to delete cache: ${err instanceof Error ? err.message : String(err)}` }
     }
   }
 
   // Try opencode models --refresh (try opencode directly first, then npx)
   try {
-    const result = await spawnWithTimeout(
-      ["opencode", "models", "--refresh"],
-      {},
-      30_000,
-    );
+    const result = await spawnWithTimeout(["opencode", "models", "--refresh"], {}, 30_000)
     if (result.exitCode === 0) {
-      return { success: true, message: "Model cache refreshed", fixed };
+      return { success: true, message: "Model cache refreshed", fixed }
     }
   } catch {
     // opencode not in PATH — try npx as fallback
   }
 
   try {
-    const whichResult = await spawnWithTimeout(
-      ["npx", "opencode", "models", "--refresh"],
-      {},
-      30_000,
-    );
+    const whichResult = await spawnWithTimeout(["npx", "opencode", "models", "--refresh"], {}, 30_000)
     if (whichResult.exitCode === 0) {
-      return {
-        success: true,
-        message: "Model cache refreshed (via npx)",
-        fixed,
-      };
+      return { success: true, message: "Model cache refreshed (via npx)", fixed }
     }
   } catch {
     // npx also failed — fall through to return failure below
   }
 
-  return {
-    success: false,
-    message: `Cache deleted but refresh failed: ${fixed.join(", ")}`,
-    fixed,
-  };
+  return { success: false, message: `Cache deleted but refresh failed: ${fixed.join(", ")}`, fixed }
 }

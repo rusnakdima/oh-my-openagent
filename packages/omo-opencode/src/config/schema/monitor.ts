@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod"
 
 export const MonitorConfigSchema = z.object({
   enabled: z.boolean().default(false),
@@ -12,6 +12,6 @@ export const MonitorConfigSchema = z.object({
   ring_max_lines: z.number().int().min(1).default(1000),
   line_max_bytes: z.number().int().min(256).default(8192),
   pattern_max_length: z.number().int().min(1).default(512),
-});
+})
 
-export type MonitorConfig = z.infer<typeof MonitorConfigSchema>;
+export type MonitorConfig = z.infer<typeof MonitorConfigSchema>

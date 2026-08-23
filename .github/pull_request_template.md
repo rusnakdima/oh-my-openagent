@@ -14,10 +14,10 @@
 
 <!-- For each command or manual QA action: what was tested, what you observed, where the saved artifact/log lives, and why that evidence is sufficient. Link sanitized artifacts under .omo/evidence/ when applicable. Do not paste raw secret-bearing logs, env dumps, tokens, auth headers, or private credentials. -->
 
-- **What was tested:** <!-- command or surface driven --> **Observed result:**
-  <!-- actual result --> **Artifact:**
-  <!-- saved sanitized artifact/log path --> **Why sufficient:**
-  <!-- covered behavior or risk -->
+- **What was tested:** <!-- command or surface driven -->
+  **Observed result:** <!-- actual result -->
+  **Artifact:** <!-- saved sanitized artifact/log path -->
+  **Why sufficient:** <!-- covered behavior or risk -->
 
 ## Risks & Residuals
 
@@ -30,8 +30,8 @@
 <!-- If applicable, add screenshots or GIFs showing before/after. Delete this section if not needed. -->
 
 | Before | After |
-| :----: | :---: |
-|        |       |
+|:---:|:---:|
+|  |  |
 
 ## Automated Checks
 

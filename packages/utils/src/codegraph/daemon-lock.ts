@@ -1,5 +1,5 @@
-import { readFileSync, realpathSync } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { readFileSync, realpathSync } from "node:fs"
+import { dirname, join, resolve } from "node:path"
 
 /**
  * Daemon pid lockfile handling for the zombie sweep's staleness gate.
@@ -21,54 +21,40 @@ import { dirname, join, resolve } from "node:path";
  */
 
 export interface CodegraphDaemonLock {
-  readonly pid: number;
-  readonly socketPath?: string;
-  readonly startedAt?: number;
-  readonly version?: string;
+  readonly pid: number
+  readonly socketPath?: string
+  readonly startedAt?: number
+  readonly version?: string
 }
 
 export type CodegraphDaemonStaleness =
-  | {
-    readonly stale: true;
-    readonly reason: "lock-absent" | "lock-pid-mismatch";
-  }
-  | {
-    readonly stale: false;
-    readonly reason: "lock-pid-match" | "lock-unparseable" | "lock-unreadable";
-  };
+  | { readonly stale: true; readonly reason: "lock-absent" | "lock-pid-mismatch" }
+  | { readonly stale: false; readonly reason: "lock-pid-match" | "lock-unparseable" | "lock-unreadable" }
 
 export function parseDaemonLock(raw: string): CodegraphDaemonLock | null {
-  const trimmed = raw.trim();
-  if (trimmed.length === 0) return null;
+  const trimmed = raw.trim()
+  if (trimmed.length === 0) return null
   try {
-    const parsed: unknown = JSON.parse(trimmed);
+    const parsed: unknown = JSON.parse(trimmed)
     if (typeof parsed === "object" && parsed !== null && "pid" in parsed) {
-      const pid = (parsed as { readonly pid: unknown }).pid;
+      const pid = (parsed as { readonly pid: unknown }).pid
       if (typeof pid === "number" && Number.isSafeInteger(pid) && pid > 0) {
-        const record = parsed as Record<string, unknown>;
+        const record = parsed as Record<string, unknown>
         return {
           pid,
-          ...(typeof record["socketPath"] === "string"
-            ? { socketPath: record["socketPath"] }
-            : {}),
-          ...(typeof record["startedAt"] === "number"
-            ? { startedAt: record["startedAt"] }
-            : {}),
-          ...(typeof record["version"] === "string"
-            ? { version: record["version"] }
-            : {}),
-        };
+          ...(typeof record["socketPath"] === "string" ? { socketPath: record["socketPath"] } : {}),
+          ...(typeof record["startedAt"] === "number" ? { startedAt: record["startedAt"] } : {}),
+          ...(typeof record["version"] === "string" ? { version: record["version"] } : {}),
+        }
       }
     }
-    return null;
+    return null
   } catch (error) {
-    if (!(error instanceof SyntaxError)) throw error;
+    if (!(error instanceof SyntaxError)) throw error
   }
-  const legacyPid = Number(trimmed);
-  if (Number.isSafeInteger(legacyPid) && legacyPid > 0) {
-    return { pid: legacyPid };
-  }
-  return null;
+  const legacyPid = Number(trimmed)
+  if (Number.isSafeInteger(legacyPid) && legacyPid > 0) return { pid: legacyPid }
+  return null
 }
 
 /**
@@ -78,62 +64,55 @@ export function parseDaemonLock(raw: string): CodegraphDaemonLock | null {
  * initialized project root, e.g. `/tmp/x` when `/tmp` itself is initialized).
  */
 export function daemonLockCandidates(projectRoot: string): string[] {
-  const dirs = new Set<string>();
-  const resolved = resolve(projectRoot);
-  collectAncestors(resolved, dirs);
-  collectAncestors(realpathIfPossible(resolved), dirs);
-  return [...dirs].map((dir) => join(dir, ".codegraph", "daemon.pid"));
+  const dirs = new Set<string>()
+  const resolved = resolve(projectRoot)
+  collectAncestors(resolved, dirs)
+  collectAncestors(realpathIfPossible(resolved), dirs)
+  return [...dirs].map((dir) => join(dir, ".codegraph", "daemon.pid"))
 }
 
-export function evaluateDaemonStaleness(
-  pid: number,
-  projectRoot: string,
-): CodegraphDaemonStaleness {
-  let sawLock = false;
+export function evaluateDaemonStaleness(pid: number, projectRoot: string): CodegraphDaemonStaleness {
+  let sawLock = false
   for (const lockPath of daemonLockCandidates(projectRoot)) {
-    const raw = readLockIfPresent(lockPath);
-    if (raw === undefined) continue;
-    if (raw === null) return { stale: false, reason: "lock-unreadable" };
-    sawLock = true;
-    const lock = parseDaemonLock(raw);
-    if (lock === null) return { stale: false, reason: "lock-unparseable" };
-    if (lock.pid === pid) return { stale: false, reason: "lock-pid-match" };
+    const raw = readLockIfPresent(lockPath)
+    if (raw === undefined) continue
+    if (raw === null) return { stale: false, reason: "lock-unreadable" }
+    sawLock = true
+    const lock = parseDaemonLock(raw)
+    if (lock === null) return { stale: false, reason: "lock-unparseable" }
+    if (lock.pid === pid) return { stale: false, reason: "lock-pid-match" }
   }
   return sawLock
     ? { stale: true, reason: "lock-pid-mismatch" }
-    : { stale: true, reason: "lock-absent" };
+    : { stale: true, reason: "lock-absent" }
 }
 
 /** Returns the lock body, undefined when absent, or null when unreadable. */
 function readLockIfPresent(lockPath: string): string | null | undefined {
   try {
-    return readFileSync(lockPath, "utf8");
+    return readFileSync(lockPath, "utf8")
   } catch (error) {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return undefined;
-    }
-    if (error instanceof Error && "code" in error && error.code === "ENOTDIR") {
-      return undefined;
-    }
-    return null;
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return undefined
+    if (error instanceof Error && "code" in error && error.code === "ENOTDIR") return undefined
+    return null
   }
 }
 
 function collectAncestors(start: string, output: Set<string>): void {
-  let current = start;
+  let current = start
   for (;;) {
-    output.add(current);
-    const parent = dirname(current);
-    if (parent === current) return;
-    current = parent;
+    output.add(current)
+    const parent = dirname(current)
+    if (parent === current) return
+    current = parent
   }
 }
 
 function realpathIfPossible(path: string): string {
   try {
-    return realpathSync(path);
+    return realpathSync(path)
   } catch (error) {
-    if (error instanceof Error) return path;
-    throw error;
+    if (error instanceof Error) return path
+    throw error
   }
 }

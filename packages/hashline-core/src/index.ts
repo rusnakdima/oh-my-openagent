@@ -7,83 +7,53 @@
  * falls back to a pure-JS implementation otherwise. No package-level dependency
  * on any specific runtime; the binding is detected via globalThis at call time.
  */
+export { NIBBLE_STR, HASHLINE_DICT, HASHLINE_REF_PATTERN, HASHLINE_OUTPUT_PATTERN } from "./constants"
+export type { ReplaceEdit, AppendEdit, PrependEdit, HashlineEdit } from "./types"
 export {
-  HASHLINE_DICT,
-  HASHLINE_OUTPUT_PATTERN,
-  HASHLINE_REF_PATTERN,
-  NIBBLE_STR,
-} from "./constants";
-export type {
-  AppendEdit,
-  HashlineEdit,
-  PrependEdit,
-  ReplaceEdit,
-} from "./types";
-export {
-  computeLegacyLineHash,
   computeLineHash,
+  computeLegacyLineHash,
   formatHashLine,
   formatHashLines,
-  streamHashLinesFromLines,
   streamHashLinesFromUtf8,
-} from "./hash-computation";
+  streamHashLinesFromLines,
+} from "./hash-computation"
+export { parseLineRef, validateLineRef, validateLineRefs, HashlineMismatchError, normalizeLineRef } from "./validation"
+export type { LineRef } from "./validation"
+export { applyHashlineEdits, applyHashlineEditsWithReport } from "./edit-operations"
+export type { HashlineApplyReport } from "./edit-operations"
 export {
-  HashlineMismatchError,
-  normalizeLineRef,
-  parseLineRef,
-  validateLineRef,
-  validateLineRefs,
-} from "./validation";
-export type { LineRef } from "./validation";
-export {
-  applyHashlineEdits,
-  applyHashlineEditsWithReport,
-} from "./edit-operations";
-export type { HashlineApplyReport } from "./edit-operations";
-export {
-  applyAppend,
+  applySetLine,
+  applyReplaceLines,
   applyInsertAfter,
   applyInsertBefore,
+  applyAppend,
   applyPrepend,
-  applyReplaceLines,
-  applySetLine,
-} from "./edit-operation-primitives";
+} from "./edit-operation-primitives"
+export { getEditLineNumber, collectLineRefs, detectOverlappingRanges } from "./edit-ordering"
+export { dedupeEdits } from "./edit-deduplication"
 export {
-  collectLineRefs,
-  detectOverlappingRanges,
-  getEditLineNumber,
-} from "./edit-ordering";
-export { dedupeEdits } from "./edit-deduplication";
-export {
+  stripLinePrefixes,
+  toNewLines,
   restoreLeadingIndent,
   stripInsertAnchorEcho,
   stripInsertBeforeEcho,
   stripInsertBoundaryEcho,
-  stripLinePrefixes,
   stripRangeBoundaryEcho,
-  toNewLines,
-} from "./edit-text-normalization";
+} from "./edit-text-normalization"
+export { canonicalizeFileText, restoreFileText } from "./file-text-canonicalization"
+export type { FileTextEnvelope } from "./file-text-canonicalization"
 export {
-  canonicalizeFileText,
-  restoreFileText,
-} from "./file-text-canonicalization";
-export type { FileTextEnvelope } from "./file-text-canonicalization";
-export {
-  autocorrectReplacementLines,
+  stripTrailingContinuationTokens,
+  stripMergeOperatorChars,
+  restoreOldWrappedLines,
   maybeExpandSingleLineMerge,
   restoreIndentForPairedReplacement,
-  restoreOldWrappedLines,
-  stripMergeOperatorChars,
-  stripTrailingContinuationTokens,
-} from "./autocorrect-replacement-lines";
-export { normalizeHashlineEdits } from "./normalize-edits";
-export type { RawHashlineEdit } from "./normalize-edits";
-export { createHashlineChunkFormatter } from "./hashline-chunk-formatter";
-export type { HashlineChunkFormatter } from "./hashline-chunk-formatter";
-export type { HashlineStreamOptions } from "./hash-computation";
-export {
-  countLineDiffs,
-  generateUnifiedDiff,
-  toHashlineContent,
-} from "./diff-utils";
-export { generateHashlineDiff } from "./hashline-edit-diff";
+  autocorrectReplacementLines,
+} from "./autocorrect-replacement-lines"
+export { normalizeHashlineEdits } from "./normalize-edits"
+export type { RawHashlineEdit } from "./normalize-edits"
+export { createHashlineChunkFormatter } from "./hashline-chunk-formatter"
+export type { HashlineChunkFormatter } from "./hashline-chunk-formatter"
+export type { HashlineStreamOptions } from "./hash-computation"
+export { toHashlineContent, generateUnifiedDiff, countLineDiffs } from "./diff-utils"
+export { generateHashlineDiff } from "./hashline-edit-diff"

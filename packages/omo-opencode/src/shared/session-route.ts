@@ -1,45 +1,32 @@
-import type { PluginInput } from "@opencode-ai/plugin";
+import type { PluginInput } from "@opencode-ai/plugin"
 import {
   promptSyncWithModelSuggestionRetry,
   promptWithModelSuggestionRetry,
-} from "./model-suggestion-retry";
-import {
-  dispatchInternalPrompt,
-  isInternalPromptDispatchAccepted,
-} from "./prompt-async-gate";
-import { isAmbiguousPostDispatchPromptFailure } from "./prompt-failure-classifier";
+} from "./model-suggestion-retry"
+import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "./prompt-async-gate"
+import { isAmbiguousPostDispatchPromptFailure } from "./prompt-failure-classifier"
 
-type OpencodeClient = PluginInput["client"];
+type OpencodeClient = PluginInput["client"]
 
-type PromptAsyncArgs = Parameters<OpencodeClient["session"]["promptAsync"]>[0];
-type SessionMessagesArgs = Parameters<OpencodeClient["session"]["messages"]>[0];
-type PromptRetryClient = Parameters<typeof promptWithModelSuggestionRetry>[0];
-type PromptRetryArgs = Parameters<typeof promptWithModelSuggestionRetry>[1];
-type PromptSyncRetryClient = Parameters<
-  typeof promptSyncWithModelSuggestionRetry
->[0];
-type PromptSyncRetryArgs = Parameters<
-  typeof promptSyncWithModelSuggestionRetry
->[1];
+type PromptAsyncArgs = Parameters<OpencodeClient["session"]["promptAsync"]>[0]
+type SessionMessagesArgs = Parameters<OpencodeClient["session"]["messages"]>[0]
+type PromptRetryClient = Parameters<typeof promptWithModelSuggestionRetry>[0]
+type PromptRetryArgs = Parameters<typeof promptWithModelSuggestionRetry>[1]
+type PromptSyncRetryClient = Parameters<typeof promptSyncWithModelSuggestionRetry>[0]
+type PromptSyncRetryArgs = Parameters<typeof promptSyncWithModelSuggestionRetry>[1]
 
-export function routeSessionPrompt(
-  args: PromptAsyncArgs,
-  directory: string,
-): PromptAsyncArgs {
+export function routeSessionPrompt(args: PromptAsyncArgs, directory: string): PromptAsyncArgs {
   return {
     ...args,
     query: { directory },
-  };
+  }
 }
 
-export function routePromptRetry(
-  args: PromptRetryArgs,
-  directory: string,
-): PromptRetryArgs {
+export function routePromptRetry(args: PromptRetryArgs, directory: string): PromptRetryArgs {
   return {
     ...args,
     query: { directory },
-  };
+  }
 }
 
 export function routePromptSyncRetry(
@@ -49,7 +36,7 @@ export function routePromptSyncRetry(
   return {
     ...args,
     query: { directory },
-  };
+  }
 }
 
 export function routeSessionMessages(
@@ -59,7 +46,7 @@ export function routeSessionMessages(
   return {
     ...args,
     query: { directory },
-  };
+  }
 }
 
 export function promptAsyncInDirectory(
@@ -67,12 +54,10 @@ export function promptAsyncInDirectory(
   args: PromptAsyncArgs,
   directory: string,
 ): Promise<unknown> {
-  const routedArgs = routeSessionPrompt(args, directory);
-  const sessionID = routedArgs.path?.id;
+  const routedArgs = routeSessionPrompt(args, directory)
+  const sessionID = routedArgs.path?.id
   if (!sessionID) {
-    return Promise.reject(
-      new Error("session id is required for routed promptAsync"),
-    );
+    return Promise.reject(new Error("session id is required for routed promptAsync"))
   }
 
   return dispatchInternalPrompt({
@@ -86,15 +71,15 @@ export function promptAsyncInDirectory(
   }).then((result) => {
     if (result.status === "failed") {
       if (isAmbiguousPostDispatchPromptFailure(result)) {
-        return undefined;
+        return undefined
       }
-      throw result.error;
+      throw result.error
     }
     if (!isInternalPromptDispatchAccepted(result)) {
-      throw new Error(`promptAsync skipped by gate: ${result.status}`);
+      throw new Error(`promptAsync skipped by gate: ${result.status}`)
     }
-    return result.status === "dispatched" ? result.response : undefined;
-  });
+    return result.status === "dispatched" ? result.response : undefined
+  })
 }
 
 export function promptWithRetryInDirectory(
@@ -102,11 +87,7 @@ export function promptWithRetryInDirectory(
   args: PromptRetryArgs,
   directory: string,
 ): Promise<void> {
-  return promptWithModelSuggestionRetry(
-    client,
-    routePromptRetry(args, directory),
-    { queueBehavior: "defer" },
-  );
+  return promptWithModelSuggestionRetry(client, routePromptRetry(args, directory), { queueBehavior: "defer" })
 }
 
 export function promptSyncWithRetryInDirectory(
@@ -114,11 +95,7 @@ export function promptSyncWithRetryInDirectory(
   args: PromptSyncRetryArgs,
   directory: string,
 ): Promise<void> {
-  return promptSyncWithModelSuggestionRetry(
-    client,
-    routePromptSyncRetry(args, directory),
-    { queueBehavior: "defer" },
-  );
+  return promptSyncWithModelSuggestionRetry(client, routePromptSyncRetry(args, directory), { queueBehavior: "defer" })
 }
 
 export function messagesInDirectory(
@@ -126,5 +103,5 @@ export function messagesInDirectory(
   args: SessionMessagesArgs,
   directory: string,
 ): Promise<unknown> {
-  return client.session.messages(routeSessionMessages(args, directory));
+  return client.session.messages(routeSessionMessages(args, directory))
 }

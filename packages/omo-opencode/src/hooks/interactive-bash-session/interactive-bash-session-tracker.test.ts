@@ -1,12 +1,4 @@
-import {
-  afterAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from "bun:test";
+import { afterAll, beforeEach, describe, expect, it, mock, spyOn } from "bun:test";
 import * as spawnWithWindowsHideModule from "../../shared/spawn-with-windows-hide";
 
 const mockLoadInteractiveBashSessionState = mock(() => null);
@@ -15,10 +7,7 @@ const mockClearInteractiveBashSessionState = mock(() => {});
 // spyOn instead of mock.module: bun module mocks are process-global and survive
 // mock.restore(), so they leak into other test files that touch this module
 // (order-dependent CI failures); the spy patches the shared instance in place.
-const mockSpawnWithWindowsHide = spyOn(
-  spawnWithWindowsHideModule,
-  "spawnWithWindowsHide",
-).mockImplementation(() => {
+const mockSpawnWithWindowsHide = spyOn(spawnWithWindowsHideModule, "spawnWithWindowsHide").mockImplementation(() => {
   throw new Error("tmux unavailable");
 });
 
@@ -62,17 +51,10 @@ describe("createInteractiveBashSessionTracker", () => {
     await tracker.handleSessionDeleted("session-1");
 
     // then
-    expect(mockSpawnWithWindowsHide).toHaveBeenCalledWith([
-      "tmux",
-      "kill-session",
-      "-t",
-      "omo-shell",
-    ], {
+    expect(mockSpawnWithWindowsHide).toHaveBeenCalledWith(["tmux", "kill-session", "-t", "omo-shell"], {
       stdout: "ignore",
       stderr: "ignore",
     });
-    expect(mockClearInteractiveBashSessionState).toHaveBeenCalledWith(
-      "session-1",
-    );
+    expect(mockClearInteractiveBashSessionState).toHaveBeenCalledWith("session-1");
   });
 });

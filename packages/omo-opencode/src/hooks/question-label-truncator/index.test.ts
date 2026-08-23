@@ -1,5 +1,5 @@
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
-import { describe, expect, it } from "bun:test";
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import { describe, it, expect } from "bun:test";
 import { createQuestionLabelTruncatorHook } from "./index";
 
 describe("createQuestionLabelTruncatorHook", () => {
@@ -8,8 +8,7 @@ describe("createQuestionLabelTruncatorHook", () => {
   describe("tool.execute.before", () => {
     it("truncates labels exceeding 30 characters with ellipsis", async () => {
       // given
-      const longLabel =
-        "This is a very long label that exceeds thirty characters";
+      const longLabel = "This is a very long label that exceeds thirty characters";
       const input = { tool: "AskUserQuestion" };
       const output = {
         args: {
@@ -25,14 +24,10 @@ describe("createQuestionLabelTruncatorHook", () => {
       };
 
       // when
-      await hook["tool.execute.before"]?.(
-        unsafeTestValue(input),
-        unsafeTestValue(output),
-      );
+      await hook["tool.execute.before"]?.(unsafeTestValue(input), unsafeTestValue(output));
 
       // then
-      const truncatedLabel =
-        (unsafeTestValue(output.args)).questions[0].options[0].label;
+      const truncatedLabel = (unsafeTestValue(output.args)).questions[0].options[0].label;
       expect(truncatedLabel.length).toBeLessThanOrEqual(30);
       expect(truncatedLabel).toBe("This is a very long label t...");
       expect(truncatedLabel.endsWith("...")).toBe(true);
@@ -56,14 +51,10 @@ describe("createQuestionLabelTruncatorHook", () => {
       };
 
       // when
-      await hook["tool.execute.before"]?.(
-        unsafeTestValue(input),
-        unsafeTestValue(output),
-      );
+      await hook["tool.execute.before"]?.(unsafeTestValue(input), unsafeTestValue(output));
 
       // then
-      const resultLabel =
-        (unsafeTestValue(output.args)).questions[0].options[0].label;
+      const resultLabel = (unsafeTestValue(output.args)).questions[0].options[0].label;
       expect(resultLabel).toBe(shortLabel);
     });
 
@@ -84,14 +75,10 @@ describe("createQuestionLabelTruncatorHook", () => {
       };
 
       // when
-      await hook["tool.execute.before"]?.(
-        unsafeTestValue(input),
-        unsafeTestValue(output),
-      );
+      await hook["tool.execute.before"]?.(unsafeTestValue(input), unsafeTestValue(output));
 
       // then
-      const resultLabel =
-        (unsafeTestValue(output.args)).questions[0].options[0].label;
+      const resultLabel = (unsafeTestValue(output.args)).questions[0].options[0].label;
       expect(resultLabel).toBe(exactLabel);
     });
 
@@ -104,10 +91,7 @@ describe("createQuestionLabelTruncatorHook", () => {
       const originalArgs = { ...output.args };
 
       // when
-      await hook["tool.execute.before"]?.(
-        unsafeTestValue(input),
-        unsafeTestValue(output),
-      );
+      await hook["tool.execute.before"]?.(unsafeTestValue(input), unsafeTestValue(output));
 
       // then
       expect(output.args).toEqual(originalArgs);
@@ -137,15 +121,12 @@ describe("createQuestionLabelTruncatorHook", () => {
       };
 
       // when
-      await hook["tool.execute.before"]?.(
-        unsafeTestValue(input),
-        unsafeTestValue(output),
-      );
+      await hook["tool.execute.before"]?.(unsafeTestValue(input), unsafeTestValue(output));
 
       // then
       const q1opts = (unsafeTestValue(output.args)).questions[0].options;
       const q2opts = (unsafeTestValue(output.args)).questions[1].options;
-
+      
       expect(q1opts[0].label).toBe("Very long label number one ...");
       expect(q1opts[0].label.length).toBeLessThanOrEqual(30);
       expect(q1opts[1].label).toBe("Short");

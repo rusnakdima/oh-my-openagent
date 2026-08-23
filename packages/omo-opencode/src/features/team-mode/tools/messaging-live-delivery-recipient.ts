@@ -1,35 +1,29 @@
-import type { TeamModeConfig } from "../../../config/schema/team-mode";
-import {
-  dispatchInternalPrompt,
-  isInternalPromptDispatchAccepted,
-} from "../../../hooks/shared/prompt-async-gate";
-import { log } from "../../../shared/logger";
-import { isAmbiguousPostDispatchPromptFailure } from "../../../shared/prompt-failure-classifier";
-import {
-  applyMemberSessionRouting,
-  buildMemberPromptBody,
-} from "../member-session-routing";
-import { buildEnvelope } from "@oh-my-opencode/team-core/team-mailbox/poll";
-import { commitDeliveryReservation } from "@oh-my-opencode/team-core/team-mailbox/reservation";
-import type { Message, RuntimeState } from "@oh-my-opencode/team-core/types";
-import type { LiveDeliveryClient } from "./messaging-live-delivery-client";
-import type { DeliveryReservation } from "./messaging-live-delivery-reservation";
-import { releaseReservationSafely } from "./messaging-live-delivery-reservation";
-import { markLiveDeliveryPending } from "./messaging-live-delivery-state";
+import type { TeamModeConfig } from "../../../config/schema/team-mode"
+import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "../../../hooks/shared/prompt-async-gate"
+import { log } from "../../../shared/logger"
+import { isAmbiguousPostDispatchPromptFailure } from "../../../shared/prompt-failure-classifier"
+import { applyMemberSessionRouting, buildMemberPromptBody } from "../member-session-routing"
+import { buildEnvelope } from "@oh-my-opencode/team-core/team-mailbox/poll"
+import { commitDeliveryReservation } from "@oh-my-opencode/team-core/team-mailbox/reservation"
+import type { Message, RuntimeState } from "@oh-my-opencode/team-core/types"
+import type { LiveDeliveryClient } from "./messaging-live-delivery-client"
+import type { DeliveryReservation } from "./messaging-live-delivery-reservation"
+import { releaseReservationSafely } from "./messaging-live-delivery-reservation"
+import { markLiveDeliveryPending } from "./messaging-live-delivery-state"
 
-type RuntimeMember = RuntimeState["members"][number];
-type LiveDeliveryEnvelope = ReturnType<typeof buildEnvelope>;
+type RuntimeMember = RuntimeState["members"][number]
+type LiveDeliveryEnvelope = ReturnType<typeof buildEnvelope>
 
 export async function deliverLiveToRecipient(input: {
-  client: LiveDeliveryClient;
-  message: Message;
-  envelope: LiveDeliveryEnvelope;
-  teamRunId: string;
-  recipientName: string;
-  recipientMember: RuntimeMember;
-  reservation: DeliveryReservation;
-  config: TeamModeConfig;
-  directory: string;
+  client: LiveDeliveryClient
+  message: Message
+  envelope: LiveDeliveryEnvelope
+  teamRunId: string
+  recipientName: string
+  recipientMember: RuntimeMember
+  reservation: DeliveryReservation
+  config: TeamModeConfig
+  directory: string
 }): Promise<void> {
   const {
     client,
@@ -41,15 +35,15 @@ export async function deliverLiveToRecipient(input: {
     reservation,
     config,
     directory,
-  } = input;
+  } = input
 
   if (recipientMember.pendingInjectedMessageIds.length > 0) {
     await releaseReservationSafely(reservation, {
       teamRunId,
       recipient: recipientName,
       messageId: message.messageId,
-    });
-    return;
+    })
+    return
   }
 
   if (recipientMember.status !== "idle") {
@@ -59,35 +53,32 @@ export async function deliverLiveToRecipient(input: {
       recipient: recipientName,
       status: recipientMember.status,
       messageId: message.messageId,
-    });
+    })
     await releaseReservationSafely(reservation, {
       teamRunId,
       recipient: recipientName,
       messageId: message.messageId,
-    });
-    return;
+    })
+    return
   }
 
-  const recipientSessionId = recipientMember.sessionId;
+  const recipientSessionId = recipientMember.sessionId
   if (!recipientSessionId) {
-    log(
-      "[team-mailbox] live delivery unavailable, falling back to inbox injection",
-      {
-        reason: "missing-session-id",
-        teamRunId,
-        recipient: recipientName,
-        messageId: message.messageId,
-      },
-    );
+    log("[team-mailbox] live delivery unavailable, falling back to inbox injection", {
+      reason: "missing-session-id",
+      teamRunId,
+      recipient: recipientName,
+      messageId: message.messageId,
+    })
     await releaseReservationSafely(reservation, {
       teamRunId,
       recipient: recipientName,
       messageId: message.messageId,
-    });
-    return;
+    })
+    return
   }
 
-  applyMemberSessionRouting(recipientSessionId, recipientMember);
+  applyMemberSessionRouting(recipientSessionId, recipientMember)
 
   try {
     const promptResult = await dispatchInternalPrompt({
@@ -101,11 +92,8 @@ export async function deliverLiveToRecipient(input: {
         body: buildMemberPromptBody(recipientMember, envelope),
         query: { directory: recipientMember.worktreePath ?? directory },
       },
-    });
-    if (
-      promptResult.status === "failed" &&
-      isAmbiguousPostDispatchPromptFailure(promptResult)
-    ) {
+    })
+    if (promptResult.status === "failed" && isAmbiguousPostDispatchPromptFailure(promptResult)) {
       await markLiveDeliveryAcceptedLike({
         teamRunId,
         recipientName,
@@ -114,38 +102,30 @@ export async function deliverLiveToRecipient(input: {
         reservation,
         config,
         logReason: "live delivery prompt failed ambiguously",
-      });
-      log(
-        "[team-mailbox] live delivery prompt failed ambiguously, retained reservation against duplicate injection",
-        {
-          teamRunId,
-          recipient: recipientName,
-          recipientSessionId,
-          messageId: message.messageId,
-          error: promptResult.error instanceof Error
-            ? promptResult.error.message
-            : String(promptResult.error),
-        },
-      );
-      return;
+      })
+      log("[team-mailbox] live delivery prompt failed ambiguously, retained reservation against duplicate injection", {
+        teamRunId,
+        recipient: recipientName,
+        recipientSessionId,
+        messageId: message.messageId,
+        error: promptResult.error instanceof Error ? promptResult.error.message : String(promptResult.error),
+      })
+      return
     }
     if (!isInternalPromptDispatchAccepted(promptResult)) {
-      log(
-        "[team-mailbox] live delivery skipped by promptAsync gate, falling back to inbox injection",
-        {
-          status: promptResult.status,
-          teamRunId,
-          recipient: recipientName,
-          recipientSessionId,
-          messageId: message.messageId,
-        },
-      );
+      log("[team-mailbox] live delivery skipped by promptAsync gate, falling back to inbox injection", {
+        status: promptResult.status,
+        teamRunId,
+        recipient: recipientName,
+        recipientSessionId,
+        messageId: message.messageId,
+      })
       await releaseReservationSafely(reservation, {
         teamRunId,
         recipient: recipientName,
         messageId: message.messageId,
-      });
-      return;
+      })
+      return
     }
     await markLiveDeliveryAcceptedLike({
       teamRunId,
@@ -155,77 +135,59 @@ export async function deliverLiveToRecipient(input: {
       reservation,
       config,
       logReason: "live delivery prompt dispatched",
-    });
+    })
     log("[team-mailbox] live delivery reserved until recipient idle", {
       teamRunId,
       recipient: recipientName,
       recipientSessionId,
       messageId: message.messageId,
-    });
+    })
   } catch (error) {
-    log(
-      "[team-mailbox] live delivery failed, falling back to inbox injection",
-      {
-        error: error instanceof Error ? error.message : String(error),
-        teamRunId,
-        recipient: recipientName,
-        messageId: message.messageId,
-      },
-    );
+    log("[team-mailbox] live delivery failed, falling back to inbox injection", {
+      error: error instanceof Error ? error.message : String(error),
+      teamRunId,
+      recipient: recipientName,
+      messageId: message.messageId,
+    })
     await releaseReservationSafely(reservation, {
       teamRunId,
       recipient: recipientName,
       messageId: message.messageId,
-    });
+    })
   }
 }
 
 async function markLiveDeliveryAcceptedLike(input: {
-  readonly teamRunId: string;
-  readonly recipientName: string;
-  readonly recipientSessionId: string;
-  readonly messageId: string;
-  readonly reservation: DeliveryReservation;
-  readonly config: TeamModeConfig;
-  readonly logReason: string;
+  readonly teamRunId: string
+  readonly recipientName: string
+  readonly recipientSessionId: string
+  readonly messageId: string
+  readonly reservation: DeliveryReservation
+  readonly config: TeamModeConfig
+  readonly logReason: string
 }): Promise<void> {
   try {
-    await markLiveDeliveryPending(
-      input.teamRunId,
-      input.recipientName,
-      input.messageId,
-      input.config,
-    );
+    await markLiveDeliveryPending(input.teamRunId, input.recipientName, input.messageId, input.config)
   } catch (markError) {
     try {
-      await commitDeliveryReservation(input.reservation);
+      await commitDeliveryReservation(input.reservation)
     } catch (commitError) {
-      log(
-        "[team-mailbox] live delivery accepted-like prompt but pending mark and reservation commit failed",
-        {
-          teamRunId: input.teamRunId,
-          recipient: input.recipientName,
-          recipientSessionId: input.recipientSessionId,
-          messageId: input.messageId,
-          reason: input.logReason,
-          error: commitError instanceof Error
-            ? commitError.message
-            : String(commitError),
-        },
-      );
-    }
-    log(
-      "[team-mailbox] live delivery accepted-like prompt but pending mark failed, committed reservation directly",
-      {
+      log("[team-mailbox] live delivery accepted-like prompt but pending mark and reservation commit failed", {
         teamRunId: input.teamRunId,
         recipient: input.recipientName,
         recipientSessionId: input.recipientSessionId,
         messageId: input.messageId,
         reason: input.logReason,
-        error: markError instanceof Error
-          ? markError.message
-          : String(markError),
-      },
-    );
+        error: commitError instanceof Error ? commitError.message : String(commitError),
+      })
+    }
+    log("[team-mailbox] live delivery accepted-like prompt but pending mark failed, committed reservation directly", {
+      teamRunId: input.teamRunId,
+      recipient: input.recipientName,
+      recipientSessionId: input.recipientSessionId,
+      messageId: input.messageId,
+      reason: input.logReason,
+      error: markError instanceof Error ? markError.message : String(markError),
+    })
   }
 }

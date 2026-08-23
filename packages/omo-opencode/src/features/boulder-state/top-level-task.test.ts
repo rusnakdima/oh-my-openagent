@@ -1,14 +1,14 @@
-import { describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
-import { tmpdir } from "node:os";
+import { describe, expect, test } from "bun:test"
+import { writeFileSync } from "node:fs"
+import { join } from "node:path"
+import { tmpdir } from "node:os"
 
-import { readCurrentTopLevelTask } from "./top-level-task";
+import { readCurrentTopLevelTask } from "./top-level-task"
 
 function writePlanFile(fileName: string, content: string): string {
-  const planPath = join(tmpdir(), fileName);
-  writeFileSync(planPath, content, "utf-8");
-  return planPath;
+  const planPath = join(tmpdir(), fileName)
+  writeFileSync(planPath, content, "utf-8")
+  return planPath
 }
 
 describe("readCurrentTopLevelTask", () => {
@@ -25,10 +25,10 @@ describe("readCurrentTopLevelTask", () => {
 ## Final Verification Wave
 - [ ] F1. Final review
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
     expect(result).toEqual({
@@ -36,8 +36,8 @@ describe("readCurrentTopLevelTask", () => {
       section: "todo",
       label: "2",
       title: "Current task",
-    });
-  });
+    })
+  })
 
   test("returns null when all tasks are checked", () => {
     // given
@@ -52,36 +52,36 @@ describe("readCurrentTopLevelTask", () => {
 ## Final Verification Wave
 - [x] F1. Final done review
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result).toBeNull();
-  });
+    expect(result).toBeNull()
+  })
 
   test("returns null for empty plan file", () => {
     // given
-    const planPath = writePlanFile(`top-level-task-empty-${Date.now()}.md`, "");
+    const planPath = writePlanFile(`top-level-task-empty-${Date.now()}.md`, "")
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result).toBeNull();
-  });
+    expect(result).toBeNull()
+  })
 
   test("returns null when plan file does not exist", () => {
     // given
-    const planPath = join(tmpdir(), `top-level-task-missing-${Date.now()}.md`);
+    const planPath = join(tmpdir(), `top-level-task-missing-${Date.now()}.md`)
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result).toBeNull();
-  });
+    expect(result).toBeNull()
+  })
 
   test("skips nested or indented checkboxes", () => {
     // given
@@ -94,14 +94,14 @@ describe("readCurrentTopLevelTask", () => {
   - [ ] nested should be ignored
 - [ ] 2. Top-level pending
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result?.key).toBe("todo:2");
-  });
+    expect(result?.key).toBe("todo:2")
+  })
 
   test("falls back to Final Verification Wave when TODOs are all checked", () => {
     // given
@@ -116,10 +116,10 @@ describe("readCurrentTopLevelTask", () => {
 ## Final Verification Wave
 - [ ] F1. Final review pending
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
     expect(result).toEqual({
@@ -127,8 +127,8 @@ describe("readCurrentTopLevelTask", () => {
       section: "final-wave",
       label: "F1",
       title: "Final review pending",
-    });
-  });
+    })
+  })
 
   test("selects the first unchecked task among mixed checked and unchecked TODOs", () => {
     // given
@@ -141,15 +141,15 @@ describe("readCurrentTopLevelTask", () => {
 - [ ] 2. First unchecked
 - [ ] 3. Second unchecked
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result?.key).toBe("todo:2");
-    expect(result?.title).toBe("First unchecked");
-  });
+    expect(result?.key).toBe("todo:2")
+    expect(result?.title).toBe("First unchecked")
+  })
 
   test("ignores malformed labels and continues to next unchecked task", () => {
     // given
@@ -161,10 +161,10 @@ describe("readCurrentTopLevelTask", () => {
 - [ ] no number prefix
 - [ ] 2. Valid task after malformed label
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
     expect(result).toEqual({
@@ -172,8 +172,8 @@ describe("readCurrentTopLevelTask", () => {
       section: "todo",
       label: "2",
       title: "Valid task after malformed label",
-    });
-  });
+    })
+  })
 
   test("rejects structured asterisk rows and selects the next canonical task", () => {
     // given
@@ -185,15 +185,15 @@ describe("readCurrentTopLevelTask", () => {
 * [ ] 1. Task using asterisk bullet
 - [ ] 2. Canonical task
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result?.key).toBe("todo:2");
-    expect(result?.title).toBe("Canonical task");
-  });
+    expect(result?.key).toBe("todo:2")
+    expect(result?.title).toBe("Canonical task")
+  })
 
   test("keeps parent-section rows after child headings and ignores fenced examples", () => {
     // given
@@ -215,10 +215,10 @@ describe("readCurrentTopLevelTask", () => {
 \`\`\`\`
 - [ ] 4. Canonical task
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
     expect(result).toEqual({
@@ -226,8 +226,8 @@ describe("readCurrentTopLevelTask", () => {
       section: "todo",
       label: "2",
       title: "Canonical task after child heading",
-    });
-  });
+    })
+  })
 
   test("supports structured headings with ATX closing markers", () => {
     // given
@@ -236,10 +236,10 @@ describe("readCurrentTopLevelTask", () => {
       `## TODOs ##
 - [ ] 1. Implement
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
     expect(result).toEqual({
@@ -247,8 +247,8 @@ describe("readCurrentTopLevelTask", () => {
       section: "todo",
       label: "1",
       title: "Implement",
-    });
-  });
+    })
+  })
 
   test("returns final-wave task when plan has only Final Verification Wave section", () => {
     // given
@@ -259,10 +259,10 @@ describe("readCurrentTopLevelTask", () => {
 ## Final Verification Wave
 - [ ] F2. Final-only task
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
     expect(result).toEqual({
@@ -270,8 +270,8 @@ describe("readCurrentTopLevelTask", () => {
       section: "final-wave",
       label: "F2",
       title: "Final-only task",
-    });
-  });
+    })
+  })
 
   test("returns the first unchecked task when multiple unchecked tasks exist", () => {
     // given
@@ -284,15 +284,15 @@ describe("readCurrentTopLevelTask", () => {
 - [ ] 2. Second unchecked task
 - [ ] 3. Third unchecked task
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result?.label).toBe("1");
-    expect(result?.title).toBe("First unchecked task");
-  });
+    expect(result?.label).toBe("1")
+    expect(result?.title).toBe("First unchecked task")
+  })
 
   test("ignores unchecked content in non-target sections during section transitions", () => {
     // given
@@ -312,13 +312,13 @@ describe("readCurrentTopLevelTask", () => {
 ## Final Verification Wave
 - [ ] F3. Final verification task
 `,
-    );
+    )
 
     // when
-    const result = readCurrentTopLevelTask(planPath);
+    const result = readCurrentTopLevelTask(planPath)
 
     // then
-    expect(result?.key).toBe("final-wave:f3");
-    expect(result?.section).toBe("final-wave");
-  });
-});
+    expect(result?.key).toBe("final-wave:f3")
+    expect(result?.section).toBe("final-wave")
+  })
+})

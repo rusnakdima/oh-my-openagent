@@ -1,25 +1,18 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import {
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import {
-  buildRewriteApplyArgs,
-  buildRewriteArgs,
-  executeRewrite,
   REWRITE_TOOL_DESCRIPTION,
   REWRITE_TOOL_NAME,
+  buildRewriteArgs,
+  buildRewriteApplyArgs,
+  executeRewrite,
+  rewriteInputSchema,
   type RewriteErrorPayload,
   type RewriteInput,
-  rewriteInputSchema,
   type RewriteSuccessPayload,
 } from "./rewrite";
 
@@ -32,8 +25,7 @@ function fixtureRepo(files?: Record<string, string>): string {
   directories.push(dir);
   mkdirSync(join(dir, "src"), { recursive: true });
   const contents = files ?? {
-    "src/a.ts":
-      'console.log("hello");\nconsole.log("world");\nconst x = 1;\nconsole.log(x);\n',
+    "src/a.ts": 'console.log("hello");\nconsole.log("world");\nconst x = 1;\nconsole.log(x);\n',
     "src/b.ts": 'console.log("from-b");\n',
   };
   for (const [relative, body] of Object.entries(contents)) {
@@ -48,10 +40,7 @@ function sha256(filePath: string): string {
   return createHash("sha256").update(readFileSync(filePath)).digest("hex");
 }
 
-function baseInput(
-  dir: string,
-  overrides: Partial<RewriteInput> = {},
-): RewriteInput {
+function baseInput(dir: string, overrides: Partial<RewriteInput> = {}): RewriteInput {
   return {
     pattern: "console.log($MSG)",
     rewrite: "logger.info($MSG)",
@@ -67,9 +56,7 @@ function baseInput(
 }
 
 afterEach(() => {
-  for (const dir of directories.splice(0)) {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
 // ---- constants ----
@@ -114,11 +101,7 @@ describe("rewrite tool: schema", () => {
 
   it("#given a missing rewrite #when parsed #then it rejects", () => {
     expect(() =>
-      rewriteInputSchema.parse({
-        pattern: "console.log($MSG)",
-        language: "typescript",
-        paths: ["src"],
-      })
+      rewriteInputSchema.parse({ pattern: "console.log($MSG)", language: "typescript", paths: ["src"] }),
     ).toThrow();
   });
 
@@ -129,7 +112,7 @@ describe("rewrite tool: schema", () => {
         rewrite: "x".repeat(65_537),
         language: "typescript",
         paths: ["src"],
-      })
+      }),
     ).toThrow();
   });
 
@@ -140,7 +123,7 @@ describe("rewrite tool: schema", () => {
         rewrite: "y",
         language: "typescript",
         paths: ["src"],
-      })
+      }),
     ).toThrow();
   });
 
@@ -151,7 +134,7 @@ describe("rewrite tool: schema", () => {
         rewrite: "logger.info($MSG)",
         language: "typescript",
         paths: Array.from({ length: 65 }, (_unused, index) => `src/${index}`),
-      })
+      }),
     ).toThrow();
   });
 
@@ -163,7 +146,7 @@ describe("rewrite tool: schema", () => {
         language: "typescript",
         paths: ["src"],
         updateAll: true,
-      })
+      }),
     ).toThrow();
   });
 
@@ -175,7 +158,7 @@ describe("rewrite tool: schema", () => {
         language: "typescript",
         paths: ["src"],
         apply: "yes",
-      })
+      }),
     ).toThrow();
   });
 
@@ -187,7 +170,7 @@ describe("rewrite tool: schema", () => {
         language: "typescript",
         paths: ["src"],
         maxMatches: 501,
-      })
+      }),
     ).toThrow();
   });
 });
@@ -211,7 +194,7 @@ describe("rewrite tool: per-string bounds", () => {
           language: "typescript",
           paths: ["src"],
           ...overrides,
-        })
+        }),
       ).toThrow();
     });
 
@@ -234,9 +217,7 @@ describe("rewrite tool: per-string bounds", () => {
         SG_PATH,
       );
       expect(result.ok).toBe(false);
-      expect((result as RewriteErrorPayload).error.code).toBe(
-        "INVALID_ARGUMENT",
-      );
+      expect((result as RewriteErrorPayload).error.code).toBe("INVALID_ARGUMENT");
       expect((result as RewriteErrorPayload).error.phase).toBe("preflight");
       expect(sha256(join(dir, "src/a.ts"))).toBe(before);
     });
@@ -252,7 +233,7 @@ describe("rewrite tool: per-string bounds", () => {
         workdir: "y".repeat(4096),
         globs: ["z".repeat(1024)],
         selector: "s".repeat(128),
-      })
+      }),
     ).not.toThrow();
   });
 });
@@ -265,9 +246,7 @@ describe("rewrite tool: astral per-string bounds", () => {
   // exactly at the limit in the unit the contract actually specifies.
   const ASTRAL = "\u{1D11E}";
 
-  const fields: Array<
-    [string, number, (value: string) => Record<string, unknown>]
-  > = [
+  const fields: Array<[string, number, (value: string) => Record<string, unknown>]> = [
     ["path", 4096, (value) => ({ paths: [value] })],
     ["workdir", 4096, (value) => ({ workdir: value })],
     ["glob", 1024, (value) => ({ globs: [value] })],
@@ -333,9 +312,7 @@ describe("rewrite tool: astral per-string bounds", () => {
         SG_PATH,
       );
       expect(result.ok).toBe(false);
-      expect((result as RewriteErrorPayload).error.code).toBe(
-        "INVALID_ARGUMENT",
-      );
+      expect((result as RewriteErrorPayload).error.code).toBe("INVALID_ARGUMENT");
       expect(sha256(join(dir, "src/a.ts"))).toBe(before);
     });
   }
@@ -374,12 +351,8 @@ describe("rewrite tool: CLI translation", () => {
       followSymlinks: true,
       selector: "call_expression",
     });
-    const preview = buildRewriteArgs(input).filter((arg) =>
-      arg !== "--json=stream"
-    );
-    const apply = buildRewriteApplyArgs(input).filter((arg) =>
-      arg !== "--update-all"
-    );
+    const preview = buildRewriteArgs(input).filter((arg) => arg !== "--json=stream");
+    const apply = buildRewriteApplyArgs(input).filter((arg) => arg !== "--update-all");
     expect(preview).toEqual(apply);
     expect(preview).toContain("--globs");
     expect(preview).toContain("!*.test.ts");
@@ -397,11 +370,7 @@ describe("rewrite tool: preflight", () => {
     const dir = fixtureRepo();
     const before = sha256(join(dir, "src/a.ts"));
     const result = await executeRewrite(
-      baseInput(dir, {
-        rewrite: "logger.info($OTHER)",
-        apply: true,
-        force: true,
-      }),
+      baseInput(dir, { rewrite: "logger.info($OTHER)", apply: true, force: true }),
       SG_PATH,
     );
     expect(result.ok).toBe(false);
@@ -435,26 +404,16 @@ describe("rewrite tool: preflight", () => {
       SG_PATH,
     );
     expect(result.ok).toBe(false);
-    expect((result as RewriteErrorPayload).error.code).toBe(
-      "PATTERN_HINT_REJECTED",
-    );
+    expect((result as RewriteErrorPayload).error.code).toBe("PATTERN_HINT_REJECTED");
   });
 
   it("#given a regex-misuse pattern WITH force #when executed #then the heuristic is bypassed", async () => {
     const dir = fixtureRepo();
     const result = await executeRewrite(
-      baseInput(dir, {
-        pattern: "console.log(.*)",
-        rewrite: "logger.info()",
-        force: true,
-      }),
+      baseInput(dir, { pattern: "console.log(.*)", rewrite: "logger.info()", force: true }),
       SG_PATH,
     );
-    if (!result.ok) {
-      expect((result as RewriteErrorPayload).error.code).not.toBe(
-        "PATTERN_HINT_REJECTED",
-      );
-    }
+    if (!result.ok) expect((result as RewriteErrorPayload).error.code).not.toBe("PATTERN_HINT_REJECTED");
   });
 });
 
@@ -509,17 +468,11 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: dry run (default)", () => {
   });
 
   it("#given an empty rewrite #when applied #then the matched node is deleted from the file", async () => {
-    const dir = fixtureRepo({
-      "src/a.ts": 'console.log("hello");\nconst x = 1;\n',
-    });
+    const dir = fixtureRepo({ "src/a.ts": 'console.log("hello");\nconst x = 1;\n' });
     const target = join(dir, "src/a.ts");
 
     const result = await executeRewrite(
-      baseInput(dir, {
-        rewrite: "",
-        pattern: "console.log($MSG)",
-        apply: true,
-      }),
+      baseInput(dir, { rewrite: "", pattern: "console.log($MSG)", apply: true }),
       SG_PATH,
     );
 
@@ -547,10 +500,7 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: apply gating", () => {
     const target = join(dir, "src/a.ts");
     const before = sha256(target);
 
-    const result = await executeRewrite(
-      baseInput(dir, { apply: true }),
-      SG_PATH,
-    );
+    const result = await executeRewrite(baseInput(dir, { apply: true }), SG_PATH);
 
     expect(result.ok).toBe(true);
     const payload = result as RewriteSuccessPayload;
@@ -560,8 +510,7 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: apply gating", () => {
     expect(payload.application.secondPassExitCode).toBe(0);
     expect(payload.application.countsArePreviewBased).toBe(true);
     expect(payload.application.idempotencyChecked).toBe(false);
-    expect(payload.warnings.some((warning) => warning.includes("preview")))
-      .toBe(true);
+    expect(payload.warnings.some((warning) => warning.includes("preview"))).toBe(true);
     expect(sha256(target)).not.toBe(before);
     expect(readFileSync(target, "utf8")).toContain('logger.info("hello")');
     expect(readFileSync(target, "utf8")).not.toContain("console.log");
@@ -572,10 +521,7 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: apply gating", () => {
     const target = join(dir, "src/a.ts");
     const before = sha256(target);
 
-    const result = await executeRewrite(
-      baseInput(dir, { apply: true, maxMatches: 2 }),
-      SG_PATH,
-    );
+    const result = await executeRewrite(baseInput(dir, { apply: true, maxMatches: 2 }), SG_PATH);
 
     expect(result.ok).toBe(false);
     const error = result as RewriteErrorPayload;
@@ -590,11 +536,7 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: apply gating", () => {
     const before = sha256(target);
 
     const result = await executeRewrite(
-      baseInput(dir, {
-        apply: true,
-        pattern: "process.exit($CODE)",
-        rewrite: "shutdown($CODE)",
-      }),
+      baseInput(dir, { apply: true, pattern: "process.exit($CODE)", rewrite: "shutdown($CODE)" }),
       SG_PATH,
     );
 
@@ -612,16 +554,11 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: apply gating", () => {
     const dir = fixtureRepo({ "src/a.ts": 'console.log("hello");\n' });
     const target = join(dir, "src/a.ts");
 
-    const result = await executeRewrite(
-      baseInput(dir, { apply: true }),
-      SG_PATH,
-      undefined,
-      {
-        onPreviewComplete: () => {
-          writeFileSync(target, "const untouched = 1;\n");
-        },
+    const result = await executeRewrite(baseInput(dir, { apply: true }), SG_PATH, undefined, {
+      onPreviewComplete: () => {
+        writeFileSync(target, "const untouched = 1;\n");
       },
-    );
+    });
 
     expect(result.ok).toBe(false);
     const error = result as RewriteErrorPayload;
@@ -638,16 +575,11 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: apply gating", () => {
     const target = join(dir, "src/a.ts");
     const before = sha256(target);
 
-    const result = await executeRewrite(
-      baseInput(dir, { apply: true, timeoutMs: 1_000 }),
-      SG_PATH,
-      undefined,
-      {
-        onPreviewComplete: async () => {
-          await new Promise((resolve) => setTimeout(resolve, 1_100));
-        },
+    const result = await executeRewrite(baseInput(dir, { apply: true, timeoutMs: 1_000 }), SG_PATH, undefined, {
+      onPreviewComplete: async () => {
+        await new Promise((resolve) => setTimeout(resolve, 1_100));
       },
-    );
+    });
 
     expect(result.ok).toBe(false);
     const error = result as RewriteErrorPayload;
@@ -663,19 +595,12 @@ describe.skipIf(!SG_AVAILABLE)("rewrite tool: apply gating", () => {
     const before = sha256(target);
 
     const result = await executeRewrite(
-      baseInput(dir, {
-        apply: true,
-        pattern: "console.log($MSG",
-        rewrite: "logger.info($MSG)",
-        force: true,
-      }),
+      baseInput(dir, { apply: true, pattern: "console.log($MSG", rewrite: "logger.info($MSG)", force: true }),
       SG_PATH,
     );
 
     expect(result.ok).toBe(false);
-    expect((result as RewriteErrorPayload).error.code).toBe(
-      "PATTERN_PARSE_FAILED",
-    );
+    expect((result as RewriteErrorPayload).error.code).toBe("PATTERN_PARSE_FAILED");
     expect(sha256(target)).toBe(before);
   });
 });

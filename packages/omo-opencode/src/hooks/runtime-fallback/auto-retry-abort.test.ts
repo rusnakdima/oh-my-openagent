@@ -1,12 +1,9 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import { afterEach, describe, expect, test } from "bun:test"
 
-import { releaseAllPromptAsyncReservationsForTesting } from "../../shared/prompt-async-gate";
-import {
-  getPromptReservation,
-  setPromptReservation,
-} from "../../shared/prompt-async-gate/reservations";
-import { createAbortSessionRequest } from "./auto-retry-abort";
-import type { HookDeps, RuntimeFallbackPluginInput } from "./types";
+import { releaseAllPromptAsyncReservationsForTesting } from "../../shared/prompt-async-gate"
+import { getPromptReservation, setPromptReservation } from "../../shared/prompt-async-gate/reservations"
+import { createAbortSessionRequest } from "./auto-retry-abort"
+import type { HookDeps, RuntimeFallbackPluginInput } from "./types"
 
 function createContext(): RuntimeFallbackPluginInput {
   return {
@@ -21,7 +18,7 @@ function createContext(): RuntimeFallbackPluginInput {
       },
     },
     directory: "/test/dir",
-  };
+  }
 }
 
 function createDeps(): HookDeps {
@@ -44,7 +41,7 @@ function createDeps(): HookDeps {
     sessionFallbackTimeouts: new Map(),
     sessionStatusRetryKeys: new Map(),
     internallyAbortedSessions: new Set(),
-  };
+  }
 }
 
 function reserveSession(sessionID: string, source: string): void {
@@ -54,67 +51,67 @@ function reserveSession(sessionID: string, source: string): void {
     reservedAt: Date.now(),
     token: Symbol("in-flight-stream"),
     expiresAt: Date.now() + 60_000,
-  });
+  })
 }
 
 describe("createAbortSessionRequest reservation release", () => {
   afterEach(() => {
-    releaseAllPromptAsyncReservationsForTesting();
-  });
+    releaseAllPromptAsyncReservationsForTesting()
+  })
 
   test("#given a session reserved by model-suggestion-retry on a provider retry signal #when the runtime-fallback abort fires #then the reservation is released so the fallback dispatch can acquire the session", async () => {
     // given
-    const deps = createDeps();
-    const sessionID = "session-model-suggestion-retry-held";
-    reserveSession(sessionID, "model-suggestion-retry");
-    const abortSessionRequest = createAbortSessionRequest(deps);
+    const deps = createDeps()
+    const sessionID = "session-model-suggestion-retry-held"
+    reserveSession(sessionID, "model-suggestion-retry")
+    const abortSessionRequest = createAbortSessionRequest(deps)
 
     // when
-    await abortSessionRequest(sessionID, "session.status.retry-signal");
+    await abortSessionRequest(sessionID, "session.status.retry-signal")
 
     // then
-    expect(getPromptReservation(sessionID)).toBeUndefined();
-  });
+    expect(getPromptReservation(sessionID)).toBeUndefined()
+  })
 
   test("#given a session reserved by model-suggestion-retry:sync #when the runtime-fallback abort fires #then the reservation is released", async () => {
     // given
-    const deps = createDeps();
-    const sessionID = "session-model-suggestion-retry-sync-held";
-    reserveSession(sessionID, "model-suggestion-retry:sync");
-    const abortSessionRequest = createAbortSessionRequest(deps);
+    const deps = createDeps()
+    const sessionID = "session-model-suggestion-retry-sync-held"
+    reserveSession(sessionID, "model-suggestion-retry:sync")
+    const abortSessionRequest = createAbortSessionRequest(deps)
 
     // when
-    await abortSessionRequest(sessionID, "message.updated.retry-signal");
+    await abortSessionRequest(sessionID, "message.updated.retry-signal")
 
     // then
-    expect(getPromptReservation(sessionID)).toBeUndefined();
-  });
+    expect(getPromptReservation(sessionID)).toBeUndefined()
+  })
 
   test("#given a session reserved by the runtime-fallback path itself #when the abort fires #then the reservation is still released", async () => {
     // given
-    const deps = createDeps();
-    const sessionID = "session-runtime-fallback-held";
-    reserveSession(sessionID, "runtime-fallback:session.status.retry-signal");
-    const abortSessionRequest = createAbortSessionRequest(deps);
+    const deps = createDeps()
+    const sessionID = "session-runtime-fallback-held"
+    reserveSession(sessionID, "runtime-fallback:session.status.retry-signal")
+    const abortSessionRequest = createAbortSessionRequest(deps)
 
     // when
-    await abortSessionRequest(sessionID, "session.status.retry-signal");
+    await abortSessionRequest(sessionID, "session.status.retry-signal")
 
     // then
-    expect(getPromptReservation(sessionID)).toBeUndefined();
-  });
+    expect(getPromptReservation(sessionID)).toBeUndefined()
+  })
 
   test("#given a session reserved by an unrelated user prompt #when the runtime-fallback abort fires #then the reservation is preserved (abort must not steal a foreground user turn)", async () => {
     // given
-    const deps = createDeps();
-    const sessionID = "session-user-prompt-held";
-    reserveSession(sessionID, "user-prompt");
-    const abortSessionRequest = createAbortSessionRequest(deps);
+    const deps = createDeps()
+    const sessionID = "session-user-prompt-held"
+    reserveSession(sessionID, "user-prompt")
+    const abortSessionRequest = createAbortSessionRequest(deps)
 
     // when
-    await abortSessionRequest(sessionID, "session.status.retry-signal");
+    await abortSessionRequest(sessionID, "session.status.retry-signal")
 
     // then
-    expect(getPromptReservation(sessionID)?.source).toBe("user-prompt");
-  });
-});
+    expect(getPromptReservation(sessionID)?.source).toBe("user-prompt")
+  })
+})

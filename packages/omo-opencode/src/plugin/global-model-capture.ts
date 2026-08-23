@@ -1,16 +1,9 @@
-import type { OhMyOpenCodeConfig } from "../config";
-import {
-  isAgentRegistered,
-  subagentSessions,
-} from "../features/claude-code-session-state";
-import { getAgentConfigKey } from "../shared/agent-display-names";
-import { log } from "../shared";
-import {
-  applyGlobalModel,
-  getSelectedGlobalModel,
-  type SessionModel,
-} from "../shared/session-model-state";
-import { writeGlobalModelToConfigs } from "../shared/persist-config-model";
+import type { OhMyOpenCodeConfig } from "../config"
+import { isAgentRegistered, subagentSessions } from "../features/claude-code-session-state"
+import { getAgentConfigKey } from "../shared/agent-display-names"
+import { log } from "../shared"
+import { applyGlobalModel, getSelectedGlobalModel, type SessionModel } from "../shared/session-model-state"
+import { writeGlobalModelToConfigs } from "../shared/persist-config-model"
 
 /**
  * Gate for user-driven global model capture. Only PRIMARY (user-facing) sessions
@@ -27,35 +20,28 @@ export function isPrimaryModelCaptureSession(
   agent: string | undefined,
   pluginConfig: OhMyOpenCodeConfig,
 ): boolean {
-  if (subagentSessions.has(sessionID)) return false;
+  if (subagentSessions.has(sessionID)) return false
 
-  if (!agent || !isAgentRegistered(agent)) return false;
+  if (!agent || !isAgentRegistered(agent)) return false
 
-  if (hasExplicitAgentModelOverride(agent, pluginConfig)) return false;
+  if (hasExplicitAgentModelOverride(agent, pluginConfig)) return false
 
-  return true;
+  return true
 }
 
 export function hasExplicitAgentModelOverride(
   agent: string | undefined,
   pluginConfig: OhMyOpenCodeConfig,
 ): boolean {
-  const configuredAgents = pluginConfig.agents;
-  const normalizedAgent = typeof agent === "string"
-    ? getAgentConfigKey(agent)
-    : undefined;
-  if (
-    !normalizedAgent || !configuredAgents ||
-    !(normalizedAgent in configuredAgents)
-  ) {
-    return false;
+  const configuredAgents = pluginConfig.agents
+  const normalizedAgent = typeof agent === "string" ? getAgentConfigKey(agent) : undefined
+  if (!normalizedAgent || !configuredAgents || !(normalizedAgent in configuredAgents)) {
+    return false
   }
 
-  const configuredAgent =
-    configuredAgents[normalizedAgent as keyof typeof configuredAgents];
-  const configuredModel = configuredAgent?.model;
-  return typeof configuredModel === "string" &&
-    configuredModel.trim().length > 0;
+  const configuredAgent = configuredAgents[normalizedAgent as keyof typeof configuredAgents]
+  const configuredModel = configuredAgent?.model
+  return typeof configuredModel === "string" && configuredModel.trim().length > 0
 }
 
 /**
@@ -63,21 +49,15 @@ export function hasExplicitAgentModelOverride(
  * store + user config files. Deduplicated against the current global so repeated
  * captures of the same model are no-ops.
  */
-export function captureGlobalModelPick(
-  model: SessionModel,
-  sessionID: string,
-): void {
-  const current = getSelectedGlobalModel();
-  if (
-    current && current.providerID === model.providerID &&
-    current.modelID === model.modelID
-  ) {
-    return;
+export function captureGlobalModelPick(model: SessionModel, sessionID: string): void {
+  const current = getSelectedGlobalModel()
+  if (current && current.providerID === model.providerID && current.modelID === model.modelID) {
+    return
   }
-  applyGlobalModel(model);
-  writeGlobalModelToConfigs(model);
+  applyGlobalModel(model)
+  writeGlobalModelToConfigs(model)
   log("[global-model-capture] global model updated", {
     model: `${model.providerID}/${model.modelID}`,
     sessionID: sessionID.slice(0, 8),
-  });
+  })
 }

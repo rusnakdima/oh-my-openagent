@@ -4,20 +4,17 @@ export {
   formatHashLines,
   streamHashLinesFromLines,
   streamHashLinesFromUtf8,
-} from "./hash-computation";
-export { parseLineRef, validateLineRef } from "./validation";
-export type { LineRef } from "./validation";
+} from "./hash-computation"
+export { parseLineRef, validateLineRef } from "./validation"
+export type { LineRef } from "./validation"
 export type {
-  AppendEdit,
-  HashlineEdit,
-  PrependEdit,
   ReplaceEdit,
-} from "./types";
+  AppendEdit,
+  PrependEdit,
+  HashlineEdit,
+} from "./types"
+export { NIBBLE_STR, HASHLINE_DICT, HASHLINE_REF_PATTERN, HASHLINE_OUTPUT_PATTERN } from "./constants"
 export {
-  HASHLINE_DICT,
-  HASHLINE_OUTPUT_PATTERN,
-  HASHLINE_REF_PATTERN,
-  NIBBLE_STR,
-} from "./constants";
-export { applyHashlineEdits } from "./edit-operations";
-export { createHashlineEditTool } from "./tools";
+  applyHashlineEdits,
+} from "./edit-operations"
+export { createHashlineEditTool } from "./tools"

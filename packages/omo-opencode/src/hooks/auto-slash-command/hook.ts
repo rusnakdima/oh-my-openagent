@@ -1,49 +1,42 @@
-import { isRecord } from "@oh-my-opencode/utils";
+import { isRecord } from "@oh-my-opencode/utils"
 import {
   detectSlashCommand,
   extractPromptText,
   findSlashCommandPartIndex,
-} from "./detector";
-import {
-  type ExecuteResult,
-  executeSlashCommand,
-  type ExecutorOptions,
-} from "./executor";
-import { log } from "../../shared";
-import { resolveSessionEventID } from "../../shared/event-session-id";
+} from "./detector"
+import { executeSlashCommand, type ExecuteResult, type ExecutorOptions } from "./executor"
+import { log } from "../../shared"
+import { resolveSessionEventID } from "../../shared/event-session-id"
 import {
   AUTO_SLASH_COMMAND_TAG_CLOSE,
   AUTO_SLASH_COMMAND_TAG_OPEN,
-} from "./constants";
-import { createProcessedCommandStore } from "./processed-command-store";
-import { BTW_AUTO_SLASH_COMMAND_MARKER } from "../btw-context-strip/predicates";
-import {
-  clearBtwTurnActive,
-  markBtwTurnActive,
-} from "../btw-tool-guard/turn-state";
+} from "./constants"
+import { createProcessedCommandStore } from "./processed-command-store"
+import { BTW_AUTO_SLASH_COMMAND_MARKER } from "../btw-context-strip/predicates"
+import { clearBtwTurnActive, markBtwTurnActive } from "../btw-tool-guard/turn-state"
 import {
   getMainSessionID,
   subagentSessions,
   syncSubagentSessions,
-} from "../../features/claude-code-session-state";
-import { lookupTeamSession } from "../../features/team-mode/team-session-registry";
+} from "../../features/claude-code-session-state"
+import { lookupTeamSession } from "../../features/team-mode/team-session-registry"
 import type {
   AutoSlashCommandHookInput,
   AutoSlashCommandHookOutput,
   CommandExecuteBeforeInput,
   CommandExecuteBeforeOutput,
-} from "./types";
-import type { LoadedSkill } from "../../features/opencode-skill-loader";
+} from "./types"
+import type { LoadedSkill } from "../../features/opencode-skill-loader"
 
-const COMMAND_EXECUTE_FALLBACK_DEDUP_TTL_MS = 100;
+const COMMAND_EXECUTE_FALLBACK_DEDUP_TTL_MS = 100
+
+
 
 function getDeletedSessionID(properties: unknown): string | null {
-  return resolveSessionEventID(properties) ?? null;
+  return resolveSessionEventID(properties) ?? null
 }
 
-function getCommandExecutionEventID(
-  input: CommandExecuteBeforeInput,
-): string | null {
+function getCommandExecutionEventID(input: CommandExecuteBeforeInput): string | null {
   const candidateKeys = [
     "messageID",
     "messageId",
@@ -53,78 +46,67 @@ function getCommandExecutionEventID(
     "invocationId",
     "commandID",
     "commandId",
-  ];
+  ]
 
-  const recordInput: unknown = input;
+  const recordInput: unknown = input
   if (!isRecord(recordInput)) {
-    return null;
+    return null
   }
 
   for (const key of candidateKeys) {
-    const candidateValue = recordInput[key];
+    const candidateValue = recordInput[key]
     if (typeof candidateValue === "string" && candidateValue.length > 0) {
-      return candidateValue;
+      return candidateValue
     }
   }
 
-  return null;
+  return null
 }
 
 function markBtwCommandMessage(
   command: string,
-  output: {
-    message?: Record<string, unknown>;
-    parts: Array<Record<string, unknown>>;
-  },
+  output: { message?: Record<string, unknown>; parts: Array<Record<string, unknown>> },
 ): void {
   if (command.toLowerCase() !== "btw") {
-    return;
+    return
   }
 
   if (output.message !== undefined) {
-    output.message[BTW_AUTO_SLASH_COMMAND_MARKER] = true;
+    output.message[BTW_AUTO_SLASH_COMMAND_MARKER] = true
   } else {
     // command.execute.before output only has parts; inject marker as a synthetic part
     output.parts.push({
       type: "text",
       text: "",
       [BTW_AUTO_SLASH_COMMAND_MARKER]: true,
-    });
+    })
   }
 }
 
-function markBtwCommandPart(
-  command: string,
-  part: Record<string, unknown>,
-): void {
+function markBtwCommandPart(command: string, part: Record<string, unknown>): void {
   if (command.toLowerCase() !== "btw") {
-    return;
+    return
   }
 
-  part[BTW_AUTO_SLASH_COMMAND_MARKER] = true;
+  part[BTW_AUTO_SLASH_COMMAND_MARKER] = true
 }
 
-function partsContainAutoSlashCommandTags(
-  parts: Array<{ text?: string }>,
-): boolean {
+function partsContainAutoSlashCommandTags(parts: Array<{ text?: string }>): boolean {
   return parts.some((part) =>
-    typeof part.text === "string" &&
-    (
-      part.text.includes(AUTO_SLASH_COMMAND_TAG_OPEN) ||
-      part.text.includes(AUTO_SLASH_COMMAND_TAG_CLOSE)
+    typeof part.text === "string"
+    && (
+      part.text.includes(AUTO_SLASH_COMMAND_TAG_OPEN)
+      || part.text.includes(AUTO_SLASH_COMMAND_TAG_CLOSE)
     )
-  );
+  )
 }
 
-function isBtwChatTraffic(
-  promptText: string,
-  parts: Array<Record<string, unknown>>,
-): boolean {
+function isBtwChatTraffic(promptText: string, parts: Array<Record<string, unknown>>): boolean {
   if (parts.some((part) => part[BTW_AUTO_SLASH_COMMAND_MARKER] === true)) {
-    return true;
+    return true
   }
 
-  return detectSlashCommand(promptText)?.command.toLowerCase() === "btw";
+  return detectSlashCommand(promptText)?.command.toLowerCase() === "btw"
 }
 
 // The builtin /btw is documented as primary-session-only; expanding it in
@@ -132,114 +114,105 @@ function isBtwChatTraffic(
 // tool guard does not protect it, so those sessions keep the raw text instead.
 function isPrimaryBtwSession(sessionID: string): boolean {
   if (subagentSessions.has(sessionID) || syncSubagentSessions.has(sessionID)) {
-    return false;
+    return false
   }
 
   if (lookupTeamSession(sessionID)) {
-    return false;
+    return false
   }
 
-  const mainSessionID = getMainSessionID();
-  return !mainSessionID || mainSessionID === sessionID;
+  const mainSessionID = getMainSessionID()
+  return !mainSessionID || mainSessionID === sessionID
 }
 
 // A custom project/user/skill command named "btw" shadows the builtin and must
 // NOT inherit the builtin's marking, stripping, or read-only guard semantics.
-function isBuiltinBtwResult(
-  command: string,
-  scope: ExecuteResult["scope"],
-): boolean {
-  return command.toLowerCase() === "btw" && scope === "builtin";
+function isBuiltinBtwResult(command: string, scope: ExecuteResult["scope"]): boolean {
+  return command.toLowerCase() === "btw" && scope === "builtin"
 }
 
 export interface AutoSlashCommandHookOptions {
-  skills?: LoadedSkill[];
-  pluginsEnabled?: boolean;
-  enabledPluginsOverride?: Record<string, boolean>;
-  directory?: string;
-  disabledCommands?: string[];
+  skills?: LoadedSkill[]
+  pluginsEnabled?: boolean
+  enabledPluginsOverride?: Record<string, boolean>
+  directory?: string
+  disabledCommands?: string[]
 }
 
-export function createAutoSlashCommandHook(
-  options?: AutoSlashCommandHookOptions,
-) {
+export function createAutoSlashCommandHook(options?: AutoSlashCommandHookOptions) {
   const executorOptions: ExecutorOptions = {
     skills: options?.skills,
     pluginsEnabled: options?.pluginsEnabled,
     enabledPluginsOverride: options?.enabledPluginsOverride,
     directory: options?.directory,
     disabledCommands: options?.disabledCommands,
-  };
-  const sessionProcessedCommands = createProcessedCommandStore();
-  const sessionProcessedCommandExecutions = createProcessedCommandStore();
+  }
+  const sessionProcessedCommands = createProcessedCommandStore()
+  const sessionProcessedCommandExecutions = createProcessedCommandStore()
 
   const dispose = (): void => {
-    sessionProcessedCommands.clear();
-    sessionProcessedCommandExecutions.clear();
-  };
+    sessionProcessedCommands.clear()
+    sessionProcessedCommandExecutions.clear()
+  }
 
   return {
     "chat.message": async (
       input: AutoSlashCommandHookInput,
-      output: AutoSlashCommandHookOutput,
+      output: AutoSlashCommandHookOutput
     ): Promise<void> => {
-      const promptText = extractPromptText(output.parts);
+      const promptText = extractPromptText(output.parts)
 
       // Non-/btw traffic ends any active /btw turn; /btw traffic (fresh or a
       // tagged refire of the same marked message) must keep the guard state.
       if (!isBtwChatTraffic(promptText, output.parts)) {
-        clearBtwTurnActive(input.sessionID);
+        clearBtwTurnActive(input.sessionID)
       }
 
       // Debug logging to diagnose slash command issues
       if (promptText.startsWith("/")) {
-        const isBtwCommand = promptText.toLowerCase().startsWith("/btw");
+        const isBtwCommand = promptText.toLowerCase().startsWith("/btw")
         log(`[auto-slash-command] chat.message hook received slash command`, {
           sessionID: input.sessionID,
-          promptText: isBtwCommand
-            ? "[redacted /btw side-question]"
-            : promptText.slice(0, 100),
-        });
+          promptText: isBtwCommand ? "[redacted /btw side-question]" : promptText.slice(0, 100),
+        })
       }
 
       if (
         promptText.includes(AUTO_SLASH_COMMAND_TAG_OPEN) ||
         promptText.includes(AUTO_SLASH_COMMAND_TAG_CLOSE)
       ) {
-        return;
+        return
       }
 
-      const parsed = detectSlashCommand(promptText);
+      const parsed = detectSlashCommand(promptText)
 
       if (!parsed) {
-        return;
+        return
       }
 
       const commandKey = input.messageID
         ? `${input.sessionID}:${input.messageID}:${parsed.command}`
-        : `${input.sessionID}:${parsed.command}`;
+        : `${input.sessionID}:${parsed.command}`
       if (sessionProcessedCommands.has(commandKey)) {
-        return;
+        return
       }
-      sessionProcessedCommands.add(commandKey);
+      sessionProcessedCommands.add(commandKey)
 
       log(`[auto-slash-command] Detected: /${parsed.command}`, {
         sessionID: input.sessionID,
-        args: parsed.command.toLowerCase() === "btw"
-          ? "[redacted /btw side-question]"
-          : parsed.args,
-      });
+        args: parsed.command.toLowerCase() === "btw" ? "[redacted /btw side-question]" : parsed.args,
+      })
 
       const executionOptions: ExecutorOptions = {
         ...executorOptions,
         agent: input.agent,
-      };
+      }
 
-      const result = await executeSlashCommand(parsed, executionOptions);
+      const result = await executeSlashCommand(parsed, executionOptions)
 
-      const idx = findSlashCommandPartIndex(output.parts);
+      const idx = findSlashCommandPartIndex(output.parts)
       if (idx < 0) {
-        return;
+        return
       }
 
       if (!result.success || !result.replacementText) {
@@ -247,19 +220,16 @@ export function createAutoSlashCommandHook(
           sessionID: input.sessionID,
           command: parsed.command,
           error: result.error,
-        });
-        return;
+        })
+        return
       }
 
-      const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope);
+      const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope)
       if (isBuiltinBtw && !isPrimaryBtwSession(input.sessionID)) {
-        log(
-          `[auto-slash-command] Skipping builtin /btw expansion outside the primary session`,
-          {
-            sessionID: input.sessionID,
-          },
-        );
-        return;
+        log(`[auto-slash-command] Skipping builtin /btw expansion outside the primary session`, {
+          sessionID: input.sessionID,
+        })
+        return
       }
 
       // Direct execution for /list-agents: the hook reads session state and calls
@@ -267,44 +237,26 @@ export function createAutoSlashCommandHook(
       // We mark the command in sessionProcessedCommandExecutions so command.execute.before
       // skips it (it would otherwise overwrite our result with the template text).
       if (parsed.command.toLowerCase() === "list-agents") {
-        log(
-          `[auto-slash-command] /list-agents — direct menu execution via chat.message`,
-          {
-            sessionID: input.sessionID,
-          },
-        );
+        log(`[auto-slash-command] /list-agents — direct menu execution via chat.message`, {
+          sessionID: input.sessionID,
+        })
 
         try {
-          const { getMainSessionID } = await import(
-            "../../features/claude-code-session-state/state"
-          );
-          const { getSessionModel } = await import(
-            "../../shared/session-model-state"
-          );
+          const { getMainSessionID } = await import("../../features/claude-code-session-state/state")
+          const { getSessionModel } = await import("../../shared/session-model-state")
           const { getModelResolutionInfoWithOverrides } = await import(
             "../../cli/doctor/checks/model-resolution"
-          );
-          const { loadOmoConfig } = await import(
-            "../../cli/doctor/checks/model-resolution-config"
-          );
+          )
+          const { loadOmoConfig } = await import("../../cli/doctor/checks/model-resolution-config")
 
-          const mainSessionID = getMainSessionID();
-          const storedSessionModel = mainSessionID
-            ? getSessionModel(mainSessionID)
-            : undefined;
-          const config = await loadOmoConfig();
-          const liveInfo = getModelResolutionInfoWithOverrides(
-            config,
-            storedSessionModel,
-          );
+          const mainSessionID = getMainSessionID()
+          const storedSessionModel = mainSessionID ? getSessionModel(mainSessionID) : undefined
+          const config = await loadOmoConfig()
+          const liveInfo = getModelResolutionInfoWithOverrides(config, storedSessionModel)
 
-          const options = liveInfo.agents.map((a, i) =>
-            `${i + 1}. ${a.name} — ${a.effectiveModel}`
-          );
+          const options = liveInfo.agents.map((a, i) => `${i + 1}. ${a.name} — ${a.effectiveModel}`)
 
-          const { executeInteractiveMenu } = await import(
-            "../../tools/interactive-menu/tools"
-          );
+          const { executeInteractiveMenu } = await import("../../tools/interactive-menu/tools")
           const menuResult = await executeInteractiveMenu(
             {
               prompt: "Select agent to configure (current model shown):",
@@ -312,230 +264,206 @@ export function createAutoSlashCommandHook(
               timeout_ms: 60000,
             },
             input.sessionID,
-          );
+          )
 
-          let selectionText = "No selection made.";
+          let selectionText = "No selection made."
           if (menuResult.startsWith('{"value":')) {
             try {
-              const parsed2 = JSON.parse(menuResult);
-              const idx2 = parseInt(parsed2.value, 10) - 1;
+              const parsed2 = JSON.parse(menuResult)
+              const idx2 = parseInt(parsed2.value, 10) - 1
               if (idx2 >= 0 && idx2 < liveInfo.agents.length) {
-                const agent = liveInfo.agents[idx2];
-                selectionText =
-                  `Selected ${agent.name} (current model: ${agent.effectiveModel}). Use /models to change the global model.`;
+                const agent = liveInfo.agents[idx2]
+                selectionText = `Selected ${agent.name} (current model: ${agent.effectiveModel}). Use /models to change the global model.`
               }
             } catch {
               // malformed JSON, keep default text
             }
-          } else if (
-            menuResult.includes('"cancelled"') || menuResult.includes('"error"')
-          ) {
-            selectionText = "Selection cancelled or timed out.";
+          } else if (menuResult.includes('"cancelled"') || menuResult.includes('"error"')) {
+            selectionText = "Selection cancelled or timed out."
           }
 
-          output.parts[idx].text = selectionText;
+          output.parts[idx].text = selectionText
 
           // Mark in command.execute.before dedup store so that hook skips this command
-          const cmdKey =
-            `${input.sessionID}:fallback:${parsed.command.toLowerCase()}:`;
-          sessionProcessedCommandExecutions.add(cmdKey);
+          const cmdKey = `${input.sessionID}:fallback:${parsed.command.toLowerCase()}:`
+          sessionProcessedCommandExecutions.add(cmdKey)
         } catch (err) {
-          log(
-            `[auto-slash-command] /list-agents direct execution failed in chat.message`,
-            {
-              sessionID: input.sessionID,
-              error: err instanceof Error ? err.message : String(err),
-            },
-          );
+          log(`[auto-slash-command] /list-agents direct execution failed in chat.message`, {
+            sessionID: input.sessionID,
+            error: err instanceof Error ? err.message : String(err),
+          })
           // Fall through to template-based approach
-          const taggedContent =
-            `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`;
+          const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
           output.parts[idx].text = taggedContent
             .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
             .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
             .replace(/\n?<command-instruction>\n?/g, "")
-            .replace(/\n?<\/command-instruction>\n?/g, "");
+            .replace(/\n?<\/command-instruction>\n?/g, "")
         }
-        return;
+        return
       }
 
-      const taggedContent =
-        `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`;
+      const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
       // For non-btw commands, strip BOTH wrappers — OpenCode 1.18.19 does not strip them,
       // causing visible tags in chat. For /btw, keep tags so the goal guard in loop-commands.ts works.
-      const outputText = isBuiltinBtw ? taggedContent : taggedContent
-        .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
-        .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
-        .replace(/\n?<command-instruction>\n?/g, "")
-        .replace(/\n?<\/command-instruction>\n?/g, "");
-      output.parts[idx].text = outputText;
+      const outputText = isBuiltinBtw
+        ? taggedContent
+        : taggedContent
+            .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
+            .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
+            .replace(/\n?<command-instruction>\n?/g, "")
+            .replace(/\n?<\/command-instruction>\n?/g, "")
+      output.parts[idx].text = outputText
       if (isBuiltinBtw) {
-        markBtwCommandPart(parsed.command, output.parts[idx]);
-        markBtwCommandMessage(parsed.command, output);
-        markBtwTurnActive(input.sessionID);
+        markBtwCommandPart(parsed.command, output.parts[idx])
+        markBtwCommandMessage(parsed.command, output)
+        markBtwTurnActive(input.sessionID)
       }
 
       log(`[auto-slash-command] Replaced message with command template`, {
         sessionID: input.sessionID,
         command: parsed.command,
-      });
+      })
     },
 
     "command.execute.before": async (
       input: CommandExecuteBeforeInput,
-      output: CommandExecuteBeforeOutput,
+      output: CommandExecuteBeforeOutput
     ): Promise<void> => {
       log(`[auto-slash-command] command.execute.before FIRED`, {
         sessionID: input.sessionID,
         command: input.command,
         arguments: input.arguments,
-      });
+      })
       try {
         if (input.command.toLowerCase() !== "btw") {
-          clearBtwTurnActive(input.sessionID);
+          clearBtwTurnActive(input.sessionID)
         }
 
         if (!Array.isArray(output.parts)) {
-          log(
-            `[auto-slash-command] command.execute.before - output.parts is not an array`,
-            {
-              sessionID: input.sessionID,
-              command: input.command,
-              partsType: typeof output.parts,
-            },
-          );
-          return;
+          log(`[auto-slash-command] command.execute.before - output.parts is not an array`, {
+            sessionID: input.sessionID,
+            command: input.command,
+            partsType: typeof output.parts,
+          })
+          return
         }
 
         if (partsContainAutoSlashCommandTags(output.parts)) {
-          return;
+          return
         }
 
-        const eventID = getCommandExecutionEventID(input);
+        const eventID = getCommandExecutionEventID(input)
         const commandKey = eventID
           ? `${input.sessionID}:event:${eventID}`
-          : `${input.sessionID}:fallback:${input.command.toLowerCase()}:${
-            input.arguments || ""
-          }`;
+          : `${input.sessionID}:fallback:${input.command.toLowerCase()}:${input.arguments || ""}`
         if (sessionProcessedCommandExecutions.has(commandKey)) {
-          return;
+          return
         }
 
         log(`[auto-slash-command] command.execute.before received`, {
           sessionID: input.sessionID,
           command: input.command,
-          arguments: input.command.toLowerCase() === "btw"
-            ? "[redacted /btw side-question]"
-            : input.arguments,
-        });
+          arguments: input.command.toLowerCase() === "btw" ? "[redacted /btw side-question]" : input.arguments,
+        })
 
         const parsed = {
           command: input.command,
           args: input.arguments || "",
-          raw: `/${input.command}${
-            input.arguments ? " " + input.arguments : ""
-          }`,
-        };
+          raw: `/${input.command}${input.arguments ? " " + input.arguments : ""}`,
+        }
 
         const executionOptions: ExecutorOptions = {
           ...executorOptions,
           agent: input.agent,
-        };
-
-        const result = await executeSlashCommand(parsed, executionOptions)
-          .catch((err) => ({
-            success: false as const,
-            error: `executeSlashCommand failed: ${
-              err instanceof Error ? err.message : String(err)
-            }`,
-          }));
-
-        if (!result.success || !result.replacementText) {
-          log(
-            `[auto-slash-command] command.execute.before - command not found in our executor`,
-            {
-              sessionID: input.sessionID,
-              command: input.command,
-              error: result.error,
-            },
-          );
-          return;
         }
 
-        const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope);
+        const result = await executeSlashCommand(parsed, executionOptions).catch((err) => ({
+          success: false as const,
+          error: `executeSlashCommand failed: ${err instanceof Error ? err.message : String(err)}`,
+        }))
+
+        if (!result.success || !result.replacementText) {
+          log(`[auto-slash-command] command.execute.before - command not found in our executor`, {
+            sessionID: input.sessionID,
+            command: input.command,
+            error: result.error,
+          })
+          return
+        }
+
+        const isBuiltinBtw = isBuiltinBtwResult(parsed.command, result.scope)
         if (isBuiltinBtw && !isPrimaryBtwSession(input.sessionID)) {
-          log(
-            `[auto-slash-command] Skipping builtin /btw expansion outside the primary session`,
-            {
-              sessionID: input.sessionID,
-            },
-          );
-          return;
+          log(`[auto-slash-command] Skipping builtin /btw expansion outside the primary session`, {
+            sessionID: input.sessionID,
+          })
+          return
         }
 
         sessionProcessedCommandExecutions.add(
           commandKey,
-          eventID ? undefined : COMMAND_EXECUTE_FALLBACK_DEDUP_TTL_MS,
-        );
+          eventID ? undefined : COMMAND_EXECUTE_FALLBACK_DEDUP_TTL_MS
+        )
 
-        const taggedContent =
-          `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`;
+        const taggedContent = `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`
         // For non-btw commands, strip BOTH wrappers — OpenCode 1.18.19 does not strip them,
         // causing visible tags in chat. For /btw, keep tags so the goal guard in loop-commands.ts works.
-        const outputText = isBuiltinBtw ? taggedContent : taggedContent
-          .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
-          .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
-          .replace(/\n?<command-instruction>\n?/g, "")
-          .replace(/\n?<\/command-instruction>\n?/g, "");
+        const outputText = isBuiltinBtw
+          ? taggedContent
+          : taggedContent
+              .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
+              .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
+              .replace(/\n?<command-instruction>\n?/g, "")
+              .replace(/\n?<\/command-instruction>\n?/g, "")
 
-        const idx = findSlashCommandPartIndex(output.parts);
+        const idx = findSlashCommandPartIndex(output.parts)
         if (idx >= 0) {
-          output.parts[idx].text = outputText;
+          output.parts[idx].text = outputText
           if (isBuiltinBtw) {
-            markBtwCommandPart(parsed.command, output.parts[idx]);
+            markBtwCommandPart(parsed.command, output.parts[idx])
           }
         } else {
-          const injectedPart = { type: "text", text: outputText };
+          const injectedPart = { type: "text", text: outputText }
           if (isBuiltinBtw) {
-            markBtwCommandPart(parsed.command, injectedPart);
+            markBtwCommandPart(parsed.command, injectedPart)
           }
-          output.parts.unshift(injectedPart);
+          output.parts.unshift(injectedPart)
         }
         if (isBuiltinBtw) {
-          markBtwCommandMessage(parsed.command, output);
-          markBtwTurnActive(input.sessionID);
+          markBtwCommandMessage(parsed.command, output)
+          markBtwTurnActive(input.sessionID)
         }
 
         log(`[auto-slash-command] command.execute.before - injected template`, {
           sessionID: input.sessionID,
           command: input.command,
-        });
+        })
       } catch (err) {
         log(`[auto-slash-command] command.execute.before threw`, {
           sessionID: input.sessionID,
           command: input.command,
           error: err instanceof Error ? err.message : String(err),
-        });
+        })
       }
     },
     event: async ({
       event,
     }: {
-      event: { type: string; properties?: unknown };
+      event: { type: string; properties?: unknown }
     }): Promise<void> => {
       if (event.type !== "session.deleted") {
-        return;
+        return
       }
 
-      const sessionID = getDeletedSessionID(event.properties);
+      const sessionID = getDeletedSessionID(event.properties)
       if (!sessionID) {
-        return;
+        return
       }
 
-      sessionProcessedCommands.cleanupSession(sessionID);
-      sessionProcessedCommandExecutions.cleanupSession(sessionID);
-      clearBtwTurnActive(sessionID);
+      sessionProcessedCommands.cleanupSession(sessionID)
+      sessionProcessedCommandExecutions.cleanupSession(sessionID)
+      clearBtwTurnActive(sessionID)
     },
     dispose,
-  };
+  }
 }

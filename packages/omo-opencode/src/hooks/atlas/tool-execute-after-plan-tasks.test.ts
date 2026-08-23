@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { parseCheckedTopLevelTaskKeys } from "./tool-execute-after-plan-tasks";
+import { describe, expect, test } from "bun:test"
+import { parseCheckedTopLevelTaskKeys } from "./tool-execute-after-plan-tasks"
 
 describe("tool.execute.after plan task parsing", () => {
   test("#given checked todo and final-wave top-level tasks #when parsed #then task keys preserve their sections", () => {
@@ -18,12 +18,12 @@ describe("tool.execute.after plan task parsing", () => {
 - [X] F1. Review behavior
 - [ ] F2. Run build
   - [x] F3. nested final-wave evidence ignored
-`;
+`
 
     // when
-    const keys = parseCheckedTopLevelTaskKeys(planContent);
+    const keys = parseCheckedTopLevelTaskKeys(planContent)
 
     // then
-    expect([...keys]).toEqual(["todo:1", "final-wave:f1"]);
-  });
-});
+    expect([...keys]).toEqual(["todo:1", "final-wave:f1"])
+  })
+})

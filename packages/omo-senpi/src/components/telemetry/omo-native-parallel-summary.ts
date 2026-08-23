@@ -20,63 +20,43 @@
  * for the same session emits nothing and two sessions can never mix.
  */
 
-import type { EventTelemetryProperties } from "@oh-my-opencode/telemetry-core";
+import type { EventTelemetryProperties } from "@oh-my-opencode/telemetry-core"
 
-import type { SenpiExtensionAPI } from "../../extension/types";
-import {
-  type ClassifiableWave,
-  classifyWaveBucket,
-  summarizeWaveBuckets,
-} from "./eval-classifier";
+import type { SenpiExtensionAPI } from "../../extension/types"
+import { classifyWaveBucket, summarizeWaveBuckets, type ClassifiableWave } from "./eval-classifier"
 import {
   createParallelTelemetryRegistry,
+  registerOmoNativeParallelTelemetry,
   type OmoNativeParallelTelemetryOptions,
   type ParallelSessionSnapshot,
-  registerOmoNativeParallelTelemetry,
-} from "./omo-native-parallel";
-import {
-  modeledWallClockSavedMs,
-  savedRoundTrips,
-  upperBoundSavedMs,
-} from "./savings-math";
-import type { ConcurrencyWave } from "./wave-assembler";
+} from "./omo-native-parallel"
+import { modeledWallClockSavedMs, savedRoundTrips, upperBoundSavedMs } from "./savings-math"
+import type { ConcurrencyWave } from "./wave-assembler"
 
-export type OmoNativeParallelSummaryOptions =
-  & OmoNativeParallelTelemetryOptions
-  & {
-    readonly captureEvent: (
-      name: "parallelism_summary",
-      properties: EventTelemetryProperties,
-    ) => void;
-    readonly hashSessionId: (rawId: string) => string;
-  };
+export type OmoNativeParallelSummaryOptions = OmoNativeParallelTelemetryOptions & {
+  readonly captureEvent: (name: "parallelism_summary", properties: EventTelemetryProperties) => void
+  readonly hashSessionId: (rawId: string) => string
+}
 
 export function registerOmoNativeParallelSummary(
   pi: SenpiExtensionAPI,
   options: OmoNativeParallelSummaryOptions,
 ): void {
-  const { captureEvent, hashSessionId, ...telemetryOptions } = options;
-  const registry = telemetryOptions.registry ??
-    createParallelTelemetryRegistry();
+  const { captureEvent, hashSessionId, ...telemetryOptions } = options
+  const registry = telemetryOptions.registry ?? createParallelTelemetryRegistry()
 
-  pi.on(
-    "session_shutdown",
-    (_payload: unknown, eventContext: unknown): void => {
-      const sessionId = extractSessionId(eventContext);
-      if (sessionId === undefined) return;
-      const snapshot = registry.snapshot(sessionId);
-      registry.clear(sessionId);
-      if (snapshot === undefined) return;
-      const properties = buildParallelismSummary(
-        snapshot,
-        hashSessionId(sessionId),
-      );
-      if (properties === undefined) return;
-      captureEvent("parallelism_summary", properties);
-    },
-  );
+  pi.on("session_shutdown", (_payload: unknown, eventContext: unknown): void => {
+    const sessionId = extractSessionId(eventContext)
+    if (sessionId === undefined) return
+    const snapshot = registry.snapshot(sessionId)
+    registry.clear(sessionId)
+    if (snapshot === undefined) return
+    const properties = buildParallelismSummary(snapshot, hashSessionId(sessionId))
+    if (properties === undefined) return
+    captureEvent("parallelism_summary", properties)
+  })
 
-  registerOmoNativeParallelTelemetry(pi, { ...telemetryOptions, registry });
+  registerOmoNativeParallelTelemetry(pi, { ...telemetryOptions, registry })
 }
 
 /**
@@ -88,27 +68,27 @@ export function buildParallelismSummary(
   snapshot: ParallelSessionSnapshot,
   sessionHash: string,
 ): EventTelemetryProperties | undefined {
-  const classifiable: ClassifiableWave[] = [];
+  const classifiable: ClassifiableWave[] = []
   // Savings are summed over the `non_eval` bucket alone. Including a `mixed` wave here would let an
   // eval call's span inflate the reported saving, which is why `mixed` keeps its own counter only.
-  const nonEvalWaves: ConcurrencyWave[] = [];
+  const nonEvalWaves: ConcurrencyWave[] = []
   for (const wave of snapshot.assembly.waves) {
-    const projected = toClassifiableWave(wave);
-    classifiable.push(projected);
-    if (classifyWaveBucket(projected) === "non_eval") nonEvalWaves.push(wave);
+    const projected = toClassifiableWave(wave)
+    classifiable.push(projected)
+    if (classifyWaveBucket(projected) === "non_eval") nonEvalWaves.push(wave)
   }
 
-  const buckets = summarizeWaveBuckets(classifiable);
+  const buckets = summarizeWaveBuckets(classifiable)
   if (
-    buckets.nonEval.wavesTotal === 0 &&
-    buckets.evalOnlyWaves === 0 &&
-    buckets.mixedWaves === 0 &&
-    snapshot.evalExecution.eventCount === 0
+    buckets.nonEval.wavesTotal === 0
+    && buckets.evalOnlyWaves === 0
+    && buckets.mixedWaves === 0
+    && snapshot.evalExecution.eventCount === 0
   ) {
-    return undefined;
+    return undefined
   }
-  const counters = snapshot.assembly.counters;
-  const evalExecution = snapshot.evalExecution;
+  const counters = snapshot.assembly.counters
+  const evalExecution = snapshot.evalExecution
   return {
     $session_id: sessionHash,
     clock_anomalies: counters.clockAnomalies,
@@ -121,36 +101,26 @@ export function buildParallelismSummary(
     eval_nested_tool_call_count: evalExecution.nestedToolCallCount,
     eval_nested_tool_call_error_count: evalExecution.nestedToolCallErrorCount,
     eval_nested_tool_call_ok_count: evalExecution.nestedToolCallOkCount,
-    eval_nested_tool_call_pending_count:
-      evalExecution.nestedToolCallPendingCount,
+    eval_nested_tool_call_pending_count: evalExecution.nestedToolCallPendingCount,
     eval_only_duration_ms: buckets.evalOnlyDurationMs,
     eval_only_waves: buckets.evalOnlyWaves,
     eval_outer_joined_calls: buckets.evalOuterJoinedCalls,
-    eval_tool_aggregate_truncated_execution_count:
-      evalExecution.truncatedExecutionCount,
+    eval_tool_aggregate_truncated_execution_count: evalExecution.truncatedExecutionCount,
     incomplete_calls: counters.incomplete,
-    measured_eval_execution_duration_ms_sum:
-      evalExecution.measuredExecutionDurationMsSum,
-    measured_eval_nested_tool_duration_ms_sum:
-      evalExecution.measuredNestedToolDurationMsSum,
+    measured_eval_execution_duration_ms_sum: evalExecution.measuredExecutionDurationMsSum,
+    measured_eval_nested_tool_duration_ms_sum: evalExecution.measuredNestedToolDurationMsSum,
     measured_turn_duration_ms_total: snapshot.measuredTurnDurationMsTotal,
     mixed_non_eval_joined_calls: buckets.mixedNonEvalJoinedCalls,
     mixed_waves: buckets.mixedWaves,
-    modeled_wallclock_saved_ms: sumBy(
-      nonEvalWaves,
-      (wave) => modeledWallClockSavedMs(wave).valueMs,
-    ),
+    modeled_wallclock_saved_ms: sumBy(nonEvalWaves, (wave) => modeledWallClockSavedMs(wave).valueMs),
     non_eval_joined_calls: buckets.nonEval.joinedCalls,
     non_eval_saved_round_trips: savedRoundTrips(nonEvalWaves),
     non_eval_wave_size_histogram: buckets.nonEval.waveSizeHistogram,
     non_eval_waves_multi: buckets.nonEval.wavesMulti,
     non_eval_waves_total: buckets.nonEval.wavesTotal,
     schema_kind: "parallelism_v2",
-    upper_bound_saved_ms: sumBy(
-      nonEvalWaves,
-      (wave) => upperBoundSavedMs(wave).valueMs,
-    ),
-  };
+    upper_bound_saved_ms: sumBy(nonEvalWaves, (wave) => upperBoundSavedMs(wave).valueMs),
+  }
 }
 
 /**
@@ -159,34 +129,24 @@ export function buildParallelismSummary(
  * is per-wave and transient, never retained.
  */
 function toClassifiableWave(wave: ConcurrencyWave): ClassifiableWave {
-  return {
-    toolNames: wave.calls.map((call) => call.toolName),
-    spanMs: wave.spanMs,
-  };
+  return { toolNames: wave.calls.map((call) => call.toolName), spanMs: wave.spanMs }
 }
 
-function sumBy(
-  waves: readonly ConcurrencyWave[],
-  value: (wave: ConcurrencyWave) => number,
-): number {
-  let total = 0;
-  for (const wave of waves) total += value(wave);
-  return total;
+function sumBy(waves: readonly ConcurrencyWave[], value: (wave: ConcurrencyWave) => number): number {
+  let total = 0
+  for (const wave of waves) total += value(wave)
+  return total
 }
 
 function extractSessionId(eventContext: unknown): string | undefined {
-  if (!isRecord(eventContext) || !isRecord(eventContext["sessionManager"])) {
-    return undefined;
-  }
-  const manager = eventContext["sessionManager"];
-  const getSessionId = manager["getSessionId"];
-  if (typeof getSessionId !== "function") return undefined;
-  const sessionId: unknown = getSessionId.call(manager);
-  return typeof sessionId === "string" && sessionId.length > 0
-    ? sessionId
-    : undefined;
+  if (!isRecord(eventContext) || !isRecord(eventContext["sessionManager"])) return undefined
+  const manager = eventContext["sessionManager"]
+  const getSessionId = manager["getSessionId"]
+  if (typeof getSessionId !== "function") return undefined
+  const sessionId: unknown = getSessionId.call(manager)
+  return typeof sessionId === "string" && sessionId.length > 0 ? sessionId : undefined
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }

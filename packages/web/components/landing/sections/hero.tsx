@@ -1,21 +1,21 @@
-import type { JSX } from "react";
-import { getTranslations } from "next-intl/server";
-import { FALLBACK_FORMATTED_STATS, formatStats, getStats } from "@/lib/stats";
-import { HeroStats } from "@/components/landing/hero-stats";
-import { InstallCommand } from "@/components/landing/install-command";
-import { Button } from "@/components/ui/button";
-import { Link } from "@/i18n/routing";
-import { GithubIcon } from "@/components/icons/github-icon";
+import type { JSX } from "react"
+import { getTranslations } from "next-intl/server"
+import { getStats, formatStats, FALLBACK_FORMATTED_STATS } from "@/lib/stats"
+import { HeroStats } from "@/components/landing/hero-stats"
+import { InstallCommand } from "@/components/landing/install-command"
+import { Button } from "@/components/ui/button"
+import { Link } from "@/i18n/routing"
+import { GithubIcon } from "@/components/icons/github-icon"
 
 export async function HeroSection(): Promise<JSX.Element> {
-  const t = await getTranslations("landing");
+  const t = await getTranslations("landing")
 
-  let formattedStats = FALLBACK_FORMATTED_STATS;
+  let formattedStats = FALLBACK_FORMATTED_STATS
   try {
-    const stats = await getStats();
-    formattedStats = formatStats(stats);
+    const stats = await getStats()
+    formattedStats = formatStats(stats)
   } catch {
-    formattedStats = FALLBACK_FORMATTED_STATS;
+    formattedStats = FALLBACK_FORMATTED_STATS
   }
 
   return (
@@ -94,5 +94,5 @@ export async function HeroSection(): Promise<JSX.Element> {
         </div>
       </div>
     </section>
-  );
+  )
 }

@@ -1,11 +1,11 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import { createCompletionNotifier } from "../completion";
+import { createCompletionNotifier } from "../completion"
 import type {
   ParentNotifierMessage,
   PersistedTaskEvent,
   TaskRecord,
-} from "../index";
+} from "../index"
 
 function completedTeamRecord(): TaskRecord {
   return {
@@ -37,59 +37,55 @@ function completedTeamRecord(): TaskRecord {
     updated_at: "2026-07-28T08:00:03.000Z",
     final_response: "team worker completed",
     notification: { run_epoch: 1, notified_epoch: -1 },
-  };
+  }
 }
 
 describe("team fallback notification", () => {
   test("#given duplicate lead lifecycle triggers #when fallback notification delivers #then the lead receives one factual reroute", () => {
     // given
-    const record = completedTeamRecord();
-    const records = new Map([[record.task_id, record]]);
-    const messages: ParentNotifierMessage[] = [];
+    const record = completedTeamRecord()
+    const records = new Map([[record.task_id, record]])
+    const messages: ParentNotifierMessage[] = []
     const completion = createCompletionNotifier({
       notifier: {
         enqueue: (message) => {
-          messages.push(message);
+          messages.push(message)
         },
       },
       store: {
         load: (taskId: string) => records.get(taskId) ?? null,
         list: () => ({ records: [...records.values()], diagnostics: [] }),
         replace: (next: TaskRecord) => {
-          records.set(next.task_id, next);
+          records.set(next.task_id, next)
         },
-        mutate: (
-          taskId: string,
-          mutation: (record: TaskRecord) => TaskRecord,
-        ) => {
-          const current = records.get(taskId);
-          if (current === undefined) return null;
-          const next = mutation(current);
-          if (next !== current) records.set(taskId, next);
-          return next;
+        mutate: (taskId: string, mutation: (record: TaskRecord) => TaskRecord) => {
+          const current = records.get(taskId)
+          if (current === undefined) return null
+          const next = mutation(current)
+          if (next !== current) records.set(taskId, next)
+          return next
         },
-        appendEvent: (_taskId: string, _event: PersistedTaskEvent) =>
-          "events.jsonl",
+        appendEvent: (_taskId: string, _event: PersistedTaskEvent) => "events.jsonl",
       },
-    });
+    })
 
     // when
     completion.notifyTerminal({
       record,
       parentState: { kind: "streaming" },
       runInBackground: true,
-    });
+    })
     completion.notifyTerminal({
       record,
       parentState: { kind: "streaming" },
       runInBackground: true,
-    });
+    })
 
     // then
-    expect(messages).toHaveLength(1);
-    expect(messages[0]?.content.match(/fallback:/gu)).toHaveLength(1);
+    expect(messages).toHaveLength(1)
+    expect(messages[0]?.content.match(/fallback:/gu)).toHaveLength(1)
     expect(messages[0]?.content).toContain(
       "fallback:vendor-a/primary-model->vendor-b/fallback-model",
-    );
-  });
-});
+    )
+  })
+})

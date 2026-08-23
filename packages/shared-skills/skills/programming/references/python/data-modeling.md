@@ -37,8 +37,7 @@ Is it a tuple with positional semantics (x, y coords / DB row)?
 
 ### @dataclass — internal value object
 
-The default for structured data inside your codebase. Zero overhead, no
-framework coupling.
+The default for structured data inside your codebase. Zero overhead, no framework coupling.
 
 ```python
 from dataclasses import dataclass
@@ -58,13 +57,11 @@ class Point:
     y: float
 ```
 
-Always `frozen=True, slots=True`. Mutable only when mutation is the documented
-purpose — opt out with `# noqa: MUTABLE_OK`.
+Always `frozen=True, slots=True`. Mutable only when mutation is the documented purpose — opt out with `# noqa: MUTABLE_OK`.
 
 ### Pydantic BaseModel — trust boundary guardian
 
-Use when data enters or leaves your system. Validates at construction,
-serializes to JSON, generates OpenAPI schema.
+Use when data enters or leaves your system. Validates at construction, serializes to JSON, generates OpenAPI schema.
 
 ```python
 from pydantic import BaseModel, ConfigDict, EmailStr
@@ -84,14 +81,12 @@ class UserResponse(BaseModel):
     email: str
 ```
 
-**The one rule**: data crosses a trust boundary → Pydantic. Everything else →
-dataclass. Never use Pydantic for internal-only data just because it's
-convenient. The validation cost is real.
+**The one rule**: data crosses a trust boundary → Pydantic. Everything else → dataclass.
+Never use Pydantic for internal-only data just because it's convenient. The validation cost is real.
 
 ### TypedDict — dict that knows its shape
 
-Use when the value must stay a `dict` at runtime — JSON blobs, `**kwargs`,
-third-party APIs expecting dicts.
+Use when the value must stay a `dict` at runtime — JSON blobs, `**kwargs`, third-party APIs expecting dicts.
 
 ```python
 from typing import TypedDict, NotRequired
@@ -128,8 +123,7 @@ def publish(doc: Renderable) -> None:
     print(doc.render())  # MarkdownDoc works — no inheritance needed
 ```
 
-Default to Protocol for interfaces. ABC only when you need shared method
-implementations.
+Default to Protocol for interfaces. ABC only when you need shared method implementations.
 
 ### ABC — interface with shared code
 
@@ -173,30 +167,30 @@ x, y = Coordinate(1.0, 2.0)  # tuple unpacking
 
 ## Quick lookup
 
-| Situation                        | Use                                   | Why                                    |
-| -------------------------------- | ------------------------------------- | -------------------------------------- |
-| User input, API request/response | `Pydantic BaseModel`                  | Validation, JSON schema, serialization |
-| DB row ↔ Python (ORM)            | SQLAlchemy `Mapped[]` model           | ORM integration, async session         |
-| Internal value object            | `@dataclass(frozen=True, slots=True)` | Zero overhead, no validation needed    |
-| Multiple outcomes from function  | Union of frozen dataclasses           | Distinct types for `match`             |
-| Dict shape for JSON / `**kwargs` | `TypedDict`                           | Stays a dict at runtime                |
-| Fixed constants                  | `StrEnum` / `IntEnum`                 | Exhaustive match, no typos             |
-| Distinct primitive               | `NewType("X", int)`                   | Zero runtime cost, type-level only     |
-| Contract / capability            | `Protocol`                            | Structural typing, no inheritance      |
-| Contract + shared impl           | `ABC`                                 | When Protocol isn't enough             |
+| Situation | Use | Why |
+|---|---|---|
+| User input, API request/response | `Pydantic BaseModel` | Validation, JSON schema, serialization |
+| DB row ↔ Python (ORM) | SQLAlchemy `Mapped[]` model | ORM integration, async session |
+| Internal value object | `@dataclass(frozen=True, slots=True)` | Zero overhead, no validation needed |
+| Multiple outcomes from function | Union of frozen dataclasses | Distinct types for `match` |
+| Dict shape for JSON / `**kwargs` | `TypedDict` | Stays a dict at runtime |
+| Fixed constants | `StrEnum` / `IntEnum` | Exhaustive match, no typos |
+| Distinct primitive | `NewType("X", int)` | Zero runtime cost, type-level only |
+| Contract / capability | `Protocol` | Structural typing, no inheritance |
+| Contract + shared impl | `ABC` | When Protocol isn't enough |
 
 ---
 
 ## Comparison matrix
 
-| Feature            | dataclass   | Pydantic    | TypedDict   | Protocol | NamedTuple | NewType | Enum     |
-| ------------------ | ----------- | ----------- | ----------- | -------- | ---------- | ------- | -------- |
-| Validation         | -           | ✓           | -           | -        | -          | -       | -        |
-| JSON serialization | manual      | built-in    | native dict | -        | -          | -       | `.value` |
-| Immutable          | frozen=True | frozen=True | - (dict)    | N/A      | always     | N/A     | always   |
-| Runtime cost       | ~zero       | validation  | zero        | zero     | ~zero      | zero    | ~zero    |
-| `match` support    | ✓           | ✓           | -           | -        | ✓          | -       | ✓        |
-| `slots` support    | ✓           | -           | -           | -        | -          | -       | -        |
+| Feature | dataclass | Pydantic | TypedDict | Protocol | NamedTuple | NewType | Enum |
+|---|---|---|---|---|---|---|---|
+| Validation | - | ✓ | - | - | - | - | - |
+| JSON serialization | manual | built-in | native dict | - | - | - | `.value` |
+| Immutable | frozen=True | frozen=True | - (dict) | N/A | always | N/A | always |
+| Runtime cost | ~zero | validation | zero | zero | ~zero | zero | ~zero |
+| `match` support | ✓ | ✓ | - | - | ✓ | - | ✓ |
+| `slots` support | ✓ | - | - | - | - | - | - |
 
 ---
 
@@ -226,8 +220,7 @@ def parse_email(raw: str) -> Email:
 def send_welcome(email: Email) -> None: ...
 ```
 
-With Pydantic this happens automatically — `EmailStr` is already a parsed type.
-Once constructed, `.email` is always valid. No re-validation needed.
+With Pydantic this happens automatically — `EmailStr` is already a parsed type. Once constructed, `.email` is always valid. No re-validation needed.
 
 ---
 
@@ -235,9 +228,6 @@ Once constructed, `.email` is always valid. No re-validation needed.
 
 - Python docs: [dataclasses](https://docs.python.org/3/library/dataclasses.html)
 - Pydantic v2: [docs.pydantic.dev](https://docs.pydantic.dev/latest/)
-- Python docs:
-  [typing — Protocol](https://docs.python.org/3/library/typing.html#typing.Protocol)
-- Python docs:
-  [typing — TypedDict](https://docs.python.org/3/library/typing.html#typing.TypedDict)
-- Alexis King:
-  [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)
+- Python docs: [typing — Protocol](https://docs.python.org/3/library/typing.html#typing.Protocol)
+- Python docs: [typing — TypedDict](https://docs.python.org/3/library/typing.html#typing.TypedDict)
+- Alexis King: [Parse, don't validate](https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/)

@@ -1,9 +1,6 @@
-import { OmoReasoningSchema } from "@oh-my-opencode/omo-config-core";
-import { z } from "zod";
-import {
-  FallbackModelObjectSchema,
-  FallbackModelsSchema,
-} from "./fallback-models";
+import { OmoReasoningSchema } from "@oh-my-opencode/omo-config-core"
+import { z } from "zod"
+import { FallbackModelObjectSchema, FallbackModelsSchema } from "./fallback-models"
 
 export const CategoryConfigSchema = z.object({
   /** Human-readable description of the category's purpose. Shown in task prompt. */
@@ -37,15 +34,7 @@ export const CategoryConfigSchema = z.object({
     })
     .optional(),
   /** @deprecated Use `reasoning` instead. */
-  reasoningEffort: z.enum([
-    "none",
-    "minimal",
-    "low",
-    "medium",
-    "high",
-    "xhigh",
-    "max",
-  ]).optional(),
+  reasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh", "max"]).optional(),
   textVerbosity: z.enum(["low", "medium", "high"]).optional(),
   tools: z.record(z.string(), z.boolean()).optional(),
   prompt_append: z.string().optional(),
@@ -56,7 +45,7 @@ export const CategoryConfigSchema = z.object({
   disable: z.boolean().optional(),
   /** Suppress the warning shown when this category's model is unavailable. Mirrors omo-config-core. */
   warn_unavailable: z.boolean().optional(),
-});
+})
 
 export const BuiltinCategoryNameSchema = z.enum([
   "visual-engineering",
@@ -67,13 +56,10 @@ export const BuiltinCategoryNameSchema = z.enum([
   "unspecified-low",
   "unspecified-high",
   "writing",
-]);
+])
 
-export const CategoriesConfigSchema = z.record(
-  z.string(),
-  CategoryConfigSchema,
-);
+export const CategoriesConfigSchema = z.record(z.string(), CategoryConfigSchema)
 
-export type CategoryConfig = z.infer<typeof CategoryConfigSchema>;
-export type CategoriesConfig = z.infer<typeof CategoriesConfigSchema>;
-export type BuiltinCategoryName = z.infer<typeof BuiltinCategoryNameSchema>;
+export type CategoryConfig = z.infer<typeof CategoryConfigSchema>
+export type CategoriesConfig = z.infer<typeof CategoriesConfigSchema>
+export type BuiltinCategoryName = z.infer<typeof BuiltinCategoryNameSchema>

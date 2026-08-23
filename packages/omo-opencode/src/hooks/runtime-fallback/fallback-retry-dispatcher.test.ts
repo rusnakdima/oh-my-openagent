@@ -1,9 +1,9 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import type { AutoRetryHelpers } from "./auto-retry";
-import { dispatchFallbackRetry } from "./fallback-retry-dispatcher";
-import { createFallbackState } from "./fallback-state";
-import type { HookDeps, RuntimeFallbackPluginInput } from "./types";
+import type { AutoRetryHelpers } from "./auto-retry"
+import { dispatchFallbackRetry } from "./fallback-retry-dispatcher"
+import { createFallbackState } from "./fallback-state"
+import type { HookDeps, RuntimeFallbackPluginInput } from "./types"
 
 function createContext(toastMessages: string[]): RuntimeFallbackPluginInput {
   return {
@@ -15,13 +15,13 @@ function createContext(toastMessages: string[]): RuntimeFallbackPluginInput {
       },
       tui: {
         showToast: async (input) => {
-          toastMessages.push(input.body.message);
-          return {};
+          toastMessages.push(input.body.message)
+          return {}
         },
       },
     },
     directory: "/test/dir",
-  };
+  }
 }
 
 function createDeps(toastMessages: string[]): HookDeps {
@@ -45,39 +45,33 @@ function createDeps(toastMessages: string[]): HookDeps {
     sessionFallbackTimeouts: new Map(),
     sessionStatusRetryKeys: new Map(),
     internallyAbortedSessions: new Set(),
-  };
+  }
 }
 
-function createRejectedDispatchHelpers(
-  dispatchCalls: string[],
-): AutoRetryHelpers {
+function createRejectedDispatchHelpers(dispatchCalls: string[]): AutoRetryHelpers {
   return {
     abortSessionRequest: async () => {},
     clearSessionFallbackTimeout: () => {},
     scheduleSessionFallbackTimeout: () => {},
     autoRetryWithFallback: async (_sessionID, model) => {
-      dispatchCalls.push(model);
-      return {
-        accepted: false,
-        status: "blocked",
-        reason: "test gate blocked dispatch",
-      };
+      dispatchCalls.push(model)
+      return { accepted: false, status: "blocked", reason: "test gate blocked dispatch" }
     },
     resolveAgentForSessionFromContext: async () => undefined,
     cleanupStaleSessions: () => {},
-  };
+  }
 }
 
 describe("dispatchFallbackRetry", () => {
   test("#given fallback dispatch is blocked #when fallback retry runs #then state is restored and no success toast is shown", async () => {
     // given
-    const toastMessages: string[] = [];
-    const dispatchCalls: string[] = [];
-    const deps = createDeps(toastMessages);
-    const helpers = createRejectedDispatchHelpers(dispatchCalls);
-    const sessionID = "session-dispatch-rejected";
-    const state = createFallbackState("openai/gpt-5.4");
-    deps.sessionStates.set(sessionID, state);
+    const toastMessages: string[] = []
+    const dispatchCalls: string[] = []
+    const deps = createDeps(toastMessages)
+    const helpers = createRejectedDispatchHelpers(dispatchCalls)
+    const sessionID = "session-dispatch-rejected"
+    const state = createFallbackState("openai/gpt-5.4")
+    deps.sessionStates.set(sessionID, state)
 
     // when
     await dispatchFallbackRetry(deps, helpers, {
@@ -85,17 +79,15 @@ describe("dispatchFallbackRetry", () => {
       state,
       fallbackModels: ["litellm/openai.eu.gpt-5.5"],
       source: "message.updated",
-    });
+    })
 
     // then
-    expect(dispatchCalls).toEqual(["litellm/openai.eu.gpt-5.5"]);
-    expect(toastMessages).toEqual([
-      "Fallback could not be applied: test gate blocked dispatch",
-    ]);
-    expect(state.currentModel).toBe("openai/gpt-5.4");
-    expect(state.fallbackIndex).toBe(-1);
-    expect(state.attemptCount).toBe(0);
-    expect(state.pendingFallbackModel).toBe(undefined);
-    expect(state.failedModels.size).toBe(0);
-  });
-});
+    expect(dispatchCalls).toEqual(["litellm/openai.eu.gpt-5.5"])
+    expect(toastMessages).toEqual(["Fallback could not be applied: test gate blocked dispatch"])
+    expect(state.currentModel).toBe("openai/gpt-5.4")
+    expect(state.fallbackIndex).toBe(-1)
+    expect(state.attemptCount).toBe(0)
+    expect(state.pendingFallbackModel).toBe(undefined)
+    expect(state.failedModels.size).toBe(0)
+  })
+})

@@ -1,7 +1,6 @@
 # CLI Stack — clap + color-eyre + tracing + indicatif + dialoguer
 
-The default for any new CLI tool. Strict typing on arguments, beautiful errors,
-progress feedback, interactive prompts when needed.
+The default for any new CLI tool. Strict typing on arguments, beautiful errors, progress feedback, interactive prompts when needed.
 
 ## Cargo.toml
 
@@ -115,8 +114,7 @@ Key clap derive patterns:
 
 - `env = "VAR"` — falls back to env var if flag not given.
 - `global = true` — flag inherits to subcommands.
-- `arg_required_else_help = true` — running with no args prints help instead of
-  erroring.
+- `arg_required_else_help = true` — running with no args prints help instead of erroring.
 - `value_enum` on an enum — case-insensitive parsing + auto-completion.
 - `action = clap::ArgAction::Count` — `-v` is 1, `-vv` is 2, etc.
 - `conflicts_with` — incompatible flags.
@@ -176,11 +174,8 @@ fn init_tracing(cli: &Cli) {
 ```
 
 Tracing on a CLI:
-
-- **Write to stderr.** stdout is for the tool's actual output (which the user
-  might pipe). Logs and progress bars go to stderr.
-- **Verbosity from `-v`, not from `RUST_LOG`.** Users expect `-v` on a CLI;
-  `RUST_LOG` is a developer escape hatch (kept, but secondary).
+- **Write to stderr.** stdout is for the tool's actual output (which the user might pipe). Logs and progress bars go to stderr.
+- **Verbosity from `-v`, not from `RUST_LOG`.** Users expect `-v` on a CLI; `RUST_LOG` is a developer escape hatch (kept, but secondary).
 
 ## Progress bars — `indicatif`
 
@@ -227,11 +222,9 @@ let bars: Vec<_> = (0..workers).map(|i| {
 }).collect();
 ```
 
-`MultiProgress` keeps bars stacked and redraws cleanly even with concurrent
-updates from multiple tasks.
+`MultiProgress` keeps bars stacked and redraws cleanly even with concurrent updates from multiple tasks.
 
-When stdout is not a terminal, indicatif silently disables animation. Force
-on/off with `pb.set_draw_target(ProgressDrawTarget::stdout())` / `hidden()`.
+When stdout is not a terminal, indicatif silently disables animation. Force on/off with `pb.set_draw_target(ProgressDrawTarget::stdout())` / `hidden()`.
 
 ## Interactive prompts — `dialoguer`
 
@@ -282,8 +275,7 @@ if !console::user_attended() {
 }
 ```
 
-For automated tests, expose a `--non-interactive` flag and gate all prompts
-behind it.
+For automated tests, expose a `--non-interactive` flag and gate all prompts behind it.
 
 ## Structured output
 
@@ -317,8 +309,7 @@ Always offer `--format json` for piping into `jq`, scripts, and other tools.
 
 ## Shell completions
 
-Already shown in the `Completions` subcommand above. Distribute completions by
-adding to the install script:
+Already shown in the `Completions` subcommand above. Distribute completions by adding to the install script:
 
 ```bash
 mytool completions bash > /etc/bash_completion.d/mytool
@@ -369,36 +360,25 @@ fn main() -> color_eyre::Result<()> {
 }
 ```
 
-Errors with `.wrap_err("...")` from `eyre::WrapErr` (compatible with anyhow's
-`.context`) show as a numbered chain. `RUST_BACKTRACE=1` shows the full trace;
-`RUST_SPANTRACE=1` shows tracing spans where the error fired.
+Errors with `.wrap_err("...")` from `eyre::WrapErr` (compatible with anyhow's `.context`) show as a numbered chain. `RUST_BACKTRACE=1` shows the full trace; `RUST_SPANTRACE=1` shows tracing spans where the error fired.
 
 ## Distribution
 
-- Add `cargo dist init` for prebuilt binary release pipeline (cross-platform
-  tarballs + installers).
+- Add `cargo dist init` for prebuilt binary release pipeline (cross-platform tarballs + installers).
 - Publish to Homebrew tap, AUR, scoop, Chocolatey via dist.
 - Sign Linux binaries with `cosign` if your audience is enterprise.
-- Build single static binary on Linux with `--target x86_64-unknown-linux-musl`
-  (or `aarch64-unknown-linux-musl`).
+- Build single static binary on Linux with `--target x86_64-unknown-linux-musl` (or `aarch64-unknown-linux-musl`).
 - For wasm-runnable CLIs (`wasi-cli`), add `--target wasm32-wasip1`.
 
 ## Common mistakes
 
-1. **Mixing stdout and stderr.** Tool output goes to stdout; logs and progress
-   go to stderr.
+1. **Mixing stdout and stderr.** Tool output goes to stdout; logs and progress go to stderr.
 2. **No `--non-interactive` flag.** Interactive prompts block automation.
-3. **Printing colored output unconditionally.** Honor `NO_COLOR` env var, detect
-   TTY with `console::user_attended()`.
-4. **`println!` for errors.** Use `tracing::error!` so logs go to stderr
-   automatically and respect verbosity.
-5. **`unwrap()` on `Cli::parse()`.** clap returns clean errors with `--help`
-   text; `parse()` exits on its own.
-6. **Long subcommand handlers in `main.rs`.** Split into
-   `src/commands/<name>.rs` per command.
-7. **Missing exit code semantics.** Use `std::process::exit(1)` (general error),
-   `2` (usage), `130` (SIGINT) appropriately. Or return `Result` and let main
-   map.
+3. **Printing colored output unconditionally.** Honor `NO_COLOR` env var, detect TTY with `console::user_attended()`.
+4. **`println!` for errors.** Use `tracing::error!` so logs go to stderr automatically and respect verbosity.
+5. **`unwrap()` on `Cli::parse()`.** clap returns clean errors with `--help` text; `parse()` exits on its own.
+6. **Long subcommand handlers in `main.rs`.** Split into `src/commands/<name>.rs` per command.
+7. **Missing exit code semantics.** Use `std::process::exit(1)` (general error), `2` (usage), `130` (SIGINT) appropriately. Or return `Result` and let main map.
 
 ## Testing CLIs
 
@@ -426,5 +406,4 @@ fn rejects_unknown_subcommand() {
 }
 ```
 
-`assert_cmd` builds the binary once per test run and gives a fluent assertion
-API.
+`assert_cmd` builds the binary once per test run and gives a fluent assertion API.

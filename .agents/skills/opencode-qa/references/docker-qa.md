@@ -10,8 +10,8 @@ when Docker is unavailable or on Windows.
 ## Use it
 
 `qa-docker.sh` brings up a disposable box (builds `omo-dev` then `omo-qa` on
-first use, reused after) and either drops you into it or serves opencode to your
-host. From the repo root:
+first use, reused after) and either drops you into it or serves opencode to
+your host. From the repo root:
 
 ```bash
 # a shell inside the box: just type `opencode ...` or `codex ...`
@@ -33,17 +33,16 @@ script/agent/qa-docker.sh --clean                               # remove the QA 
 
 `omo-qa` is `omo-dev` (`.devcontainer/Dockerfile`) plus the latest `opencode-ai`
 and `@openai/codex` npm packages and `sqlite3 jq curl rsync`. Pin with
-`--build-arg OMO_OPENCODE_VERSION=...` on the qa.Dockerfile for a specific
-release.
+`--build-arg OMO_OPENCODE_VERSION=...` on the qa.Dockerfile for a specific release.
 
 ## Why the container is the sandbox
 
-The local scripts isolate by pointing `XDG_*` at temp dirs so they never pollute
-the real `~/.local/share/opencode/opencode.db`. In Docker the whole container is
-throwaway, so isolation is structural: your host DB and config are never
-written. `qa-docker.sh` mounts `~/.config/opencode` (and `~/.codex`) READ-ONLY
-at `/mnt/host/*`; the entrypoint copies them into the container's writable home
-(heavy caches excluded) so QA runs against a COPY.
+The local scripts isolate by pointing `XDG_*` at temp dirs so they never
+pollute the real `~/.local/share/opencode/opencode.db`. In Docker the whole
+container is throwaway, so isolation is structural: your host DB and config are
+never written. `qa-docker.sh` mounts `~/.config/opencode` (and `~/.codex`)
+READ-ONLY at `/mnt/host/*`; the entrypoint copies them into the container's
+writable home (heavy caches excluded) so QA runs against a COPY.
 
 ## Credentials
 

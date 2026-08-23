@@ -9,9 +9,7 @@ function permissionValue(
   permission: ReturnType<typeof createSisyphusAgent>["permission"],
   key: string,
 ): unknown {
-  return Object.entries(permission ?? {}).find(([permissionKey]) =>
-    permissionKey === key
-  )?.[1];
+  return Object.entries(permission ?? {}).find(([permissionKey]) => permissionKey === key)?.[1];
 }
 
 describe("createSisyphusAgent", () => {
@@ -57,10 +55,9 @@ describe("createSisyphusAgent", () => {
       ];
 
       // when / then
-      expect(cases.map(([model]) => resolveSisyphusPromptFamily(model)))
-        .toEqual(
-          cases.map(([, family]) => family),
-        );
+      expect(cases.map(([model]) => resolveSisyphusPromptFamily(model))).toEqual(
+        cases.map(([, family]) => family),
+      );
     });
 
     test("#when selecting a tracking mode #then wires the matching tool contract", () => {
@@ -69,22 +66,8 @@ describe("createSisyphusAgent", () => {
 
       for (const model of models) {
         // when
-        const taskAgent = createSisyphusAgent(
-          model,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          true,
-        );
-        const todoAgent = createSisyphusAgent(
-          model,
-          undefined,
-          undefined,
-          undefined,
-          undefined,
-          false,
-        );
+        const taskAgent = createSisyphusAgent(model, undefined, undefined, undefined, undefined, true);
+        const todoAgent = createSisyphusAgent(model, undefined, undefined, undefined, undefined, false);
 
         // then
         expect(taskAgent.prompt).toContain("task_create");
@@ -108,8 +91,7 @@ describe("createSisyphusAgent", () => {
 
         // then
         expect(agent.reasoningEffort).toBe("medium");
-        expect(permissionValue(agent.permission, "apply_patch"))
-          .toBeUndefined();
+        expect(permissionValue(agent.permission, "apply_patch")).toBeUndefined();
         expect(agent.thinking).toBeUndefined();
       }
     });
@@ -145,9 +127,7 @@ describe("createSisyphusAgent", () => {
       const agent = createSisyphusAgent(model);
 
       // then - glm routes to its own variant, not the default prompt
-      expect(agent.prompt).not.toBe(
-        createSisyphusAgent("anthropic/claude-sonnet-4-6").prompt,
-      );
+      expect(agent.prompt).not.toBe(createSisyphusAgent("anthropic/claude-sonnet-4-6").prompt);
       expect(agent.thinking).toBeUndefined();
       expect(agent.reasoningEffort).toBeUndefined();
     });
@@ -163,9 +143,7 @@ describe("createSisyphusAgent", () => {
         const agent = createSisyphusAgent(model);
 
         // then - grok 4.5/4.6 route to the shared grok variant, not the default prompt
-        expect(agent.prompt).not.toBe(
-          createSisyphusAgent("anthropic/claude-sonnet-4-6").prompt,
-        );
+        expect(agent.prompt).not.toBe(createSisyphusAgent("anthropic/claude-sonnet-4-6").prompt);
         expect(agent.reasoningEffort).toBe("high");
         expect(agent.thinking).toBeUndefined();
       }
@@ -173,11 +151,7 @@ describe("createSisyphusAgent", () => {
 
     test("#when creating agents for other grok ids #then keeps the fallback family", () => {
       // given
-      const models = [
-        "x-ai/grok-4.20",
-        "xai/grok-4-1-fast-reasoning",
-        "x-ai/grok-code-fast-1",
-      ];
+      const models = ["x-ai/grok-4.20", "xai/grok-4-1-fast-reasoning", "x-ai/grok-code-fast-1"];
       const grokPrompt = createSisyphusAgent("xai/grok-4.6").prompt;
 
       for (const model of models) {
@@ -232,9 +206,7 @@ describe("createSisyphusAgent", () => {
       const agent = createSisyphusAgent(model);
 
       // then - gemini routes to its own corrected variant, not the default prompt
-      expect(agent.prompt).not.toBe(
-        createSisyphusAgent("anthropic/claude-sonnet-4-6").prompt,
-      );
+      expect(agent.prompt).not.toBe(createSisyphusAgent("anthropic/claude-sonnet-4-6").prompt);
       expect(agent.thinking).toEqual({
         type: "enabled",
         budgetTokens: 32000,

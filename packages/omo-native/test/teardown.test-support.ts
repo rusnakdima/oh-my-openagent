@@ -1,4 +1,4 @@
-import { rmSync as nodeRmSync } from "node:fs";
+import { rmSync as nodeRmSync } from "node:fs"
 
 // Windows keeps a directory busy while anything inside it still holds an open handle, and it also
 // releases the handles of an exited child process asynchronously with respect to the parent that
@@ -14,21 +14,21 @@ import { rmSync as nodeRmSync } from "node:fs";
 // teardown bug cannot hide behind the retry. On POSIX rmSync never raises EBUSY for these paths, so
 // the first attempt always succeeds and behavior is byte-identical to a bare rmSync.
 
-export const TEARDOWN_FAILURE_PREFIX = "teardown-failure:";
+export const TEARDOWN_FAILURE_PREFIX = "teardown-failure:"
 
-export type TeardownRmOptions = { recursive?: boolean; force?: boolean };
-export type RmSyncFn = (path: string, options?: TeardownRmOptions) => void;
-export type SleepSyncFn = (ms: number) => void;
+export type TeardownRmOptions = { recursive?: boolean; force?: boolean }
+export type RmSyncFn = (path: string, options?: TeardownRmOptions) => void
+export type SleepSyncFn = (ms: number) => void
 
 export type RmSyncEbusyTolerantDeps = {
-  rmSync?: RmSyncFn;
-  sleep?: SleepSyncFn;
-  ebusyAttempts?: number;
-  ebusyDelayMs?: number;
-  ebusyMaxDelayMs?: number;
-};
+  rmSync?: RmSyncFn
+  sleep?: SleepSyncFn
+  ebusyAttempts?: number
+  ebusyDelayMs?: number
+  ebusyMaxDelayMs?: number
+}
 
-const DEFAULT_OPTIONS: TeardownRmOptions = { recursive: true, force: true };
+const DEFAULT_OPTIONS: TeardownRmOptions = { recursive: true, force: true }
 // A flat 10 x 50ms (500ms) budget was measured insufficient on windows-latest: CI still reported
 // `teardown-failure: EBUSY persisted after 10 attempts` for roots whose launcher child had already
 // exited and been reaped, including a `.omp/agent/agent.db` the child opened read-only. Windows
@@ -36,34 +36,25 @@ const DEFAULT_OPTIONS: TeardownRmOptions = { recursive: true, force: true };
 // delay now escalates (50, 100, 200, then 400ms) for a worst case of ~4.4s per stuck path. The
 // budget is still finite and still escalates loudly, so a genuine leak fails rather than hangs, and
 // POSIX never enters the retry at all.
-const DEFAULT_EBUSY_ATTEMPTS = 14;
-const DEFAULT_EBUSY_DELAY_MS = 50;
-const DEFAULT_EBUSY_MAX_DELAY_MS = 400;
+const DEFAULT_EBUSY_ATTEMPTS = 14
+const DEFAULT_EBUSY_DELAY_MS = 50
+const DEFAULT_EBUSY_MAX_DELAY_MS = 400
 
 function defaultSleepSync(ms: number): void {
-  Bun.sleepSync(ms);
+  Bun.sleepSync(ms)
 }
 
 function errorCode(error: unknown): string | undefined {
-  if (
-    error !== null && typeof error === "object" && "code" in error &&
-    typeof error.code === "string"
-  ) {
-    return error.code;
+  if (error !== null && typeof error === "object" && "code" in error && typeof error.code === "string") {
+    return error.code
   }
-  return undefined;
+  return undefined
 }
 
-function teardownFailure(
-  path: string,
-  attempts: number,
-  cause: unknown,
-): Error {
-  const error = new Error(
-    `${TEARDOWN_FAILURE_PREFIX} EBUSY persisted after ${attempts} attempts removing ${path}`,
-  );
-  error.cause = cause;
-  return error;
+function teardownFailure(path: string, attempts: number, cause: unknown): Error {
+  const error = new Error(`${TEARDOWN_FAILURE_PREFIX} EBUSY persisted after ${attempts} attempts removing ${path}`)
+  error.cause = cause
+  return error
 }
 
 /** Remove `path`, retrying a bounded number of times only while Windows reports EBUSY. */
@@ -72,52 +63,47 @@ export function rmSyncEbusyTolerant(
   options: TeardownRmOptions = DEFAULT_OPTIONS,
   deps: RmSyncEbusyTolerantDeps = {},
 ): void {
-  const rm = deps.rmSync ?? nodeRmSync;
-  const sleep = deps.sleep ?? defaultSleepSync;
-  const attempts = deps.ebusyAttempts ?? DEFAULT_EBUSY_ATTEMPTS;
-  const delayMs = deps.ebusyDelayMs ?? DEFAULT_EBUSY_DELAY_MS;
-  const maxDelayMs = deps.ebusyMaxDelayMs ?? DEFAULT_EBUSY_MAX_DELAY_MS;
-  let lastError: unknown;
+  const rm = deps.rmSync ?? nodeRmSync
+  const sleep = deps.sleep ?? defaultSleepSync
+  const attempts = deps.ebusyAttempts ?? DEFAULT_EBUSY_ATTEMPTS
+  const delayMs = deps.ebusyDelayMs ?? DEFAULT_EBUSY_DELAY_MS
+  const maxDelayMs = deps.ebusyMaxDelayMs ?? DEFAULT_EBUSY_MAX_DELAY_MS
+  let lastError: unknown
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      rm(path, options);
-      return;
+      rm(path, options)
+      return
     } catch (error) {
-      if (errorCode(error) !== "EBUSY") throw error;
-      lastError = error;
-      if (attempt + 1 < attempts) {
-        sleep(Math.min(delayMs * 2 ** attempt, maxDelayMs));
-      }
+      if (errorCode(error) !== "EBUSY") throw error
+      lastError = error
+      if (attempt + 1 < attempts) sleep(Math.min(delayMs * 2 ** attempt, maxDelayMs))
     }
   }
-  throw teardownFailure(path, attempts, lastError);
+  throw teardownFailure(path, attempts, lastError)
 }
 
-export type Closable = { close: () => void };
+export type Closable = { close: () => void }
 
-const openDatabases = new Set<Closable>();
+const openDatabases = new Set<Closable>()
 
 /**
  * Run `body` against a database handle that is registered for teardown and closed on every exit path,
  * including a throwing `body`. Closing is the real completion signal that frees the Windows file
  * handle; teardown must never race an open handle.
  */
-export function withDatabase<D extends Closable, T>(
-  database: D,
-  body: (database: D) => T,
-): T {
-  openDatabases.add(database);
+export function withDatabase<D extends Closable, T>(database: D, body: (database: D) => T): T {
+  openDatabases.add(database)
   try {
-    return body(database);
+    return body(database)
   } finally {
-    closeDatabase(database);
+    closeDatabase(database)
   }
 }
 
 function closeDatabase(database: Closable): void {
-  openDatabases.delete(database);
+  openDatabases.delete(database)
   try {
-    database.close();
+    database.close()
   } catch {
     // Already closed (or closed by a failing statement); the handle is gone either way.
   }
@@ -125,7 +111,7 @@ function closeDatabase(database: Closable): void {
 
 /** Close any database handle a failed test left open, so teardown owns no live handles. */
 export function closeTrackedDatabases(): void {
-  for (const database of [...openDatabases]) closeDatabase(database);
+  for (const database of [...openDatabases]) closeDatabase(database)
 }
 
 /**
@@ -142,25 +128,22 @@ export function closeTrackedDatabases(): void {
  * there EBUSY on these paths would be a genuine teardown bug rather than an OS property.
  */
 export function teardownRoots(roots: string[]): void {
-  closeTrackedDatabases();
-  let failure: unknown;
+  closeTrackedDatabases()
+  let failure: unknown
   for (const root of roots.splice(0)) {
     try {
-      rmSyncEbusyTolerant(root);
+      rmSyncEbusyTolerant(root)
     } catch (error) {
       if (process.platform === "win32" && isTeardownFailure(error)) {
-        console.warn(
-          `${TEARDOWN_FAILURE_PREFIX} leaving ${root} for the OS to reclaim (win32 EBUSY)`,
-        );
-        continue;
+        console.warn(`${TEARDOWN_FAILURE_PREFIX} leaving ${root} for the OS to reclaim (win32 EBUSY)`)
+        continue
       }
-      failure ??= error;
+      failure ??= error
     }
   }
-  if (failure !== undefined) throw failure;
+  if (failure !== undefined) throw failure
 }
 
 function isTeardownFailure(error: unknown): boolean {
-  return error instanceof Error &&
-    error.message.startsWith(TEARDOWN_FAILURE_PREFIX);
+  return error instanceof Error && error.message.startsWith(TEARDOWN_FAILURE_PREFIX)
 }

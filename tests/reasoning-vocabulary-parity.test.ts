@@ -1,15 +1,15 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
 import {
   normalizeReasoning as coreNormalize,
-  REASONING_LEVELS as CORE_LEVELS,
   splitReasoningSuffix as coreSplit,
-} from "../packages/omo-config-core/src/schema/reasoning-vocabulary";
+  REASONING_LEVELS as CORE_LEVELS,
+} from "../packages/omo-config-core/src/schema/reasoning-vocabulary"
 import {
   normalizeReasoning as mcNormalize,
-  REASONING_LEVELS as MC_LEVELS,
   splitReasoningSuffix as mcSplit,
-} from "../packages/model-core/src/reasoning-level";
+  REASONING_LEVELS as MC_LEVELS,
+} from "../packages/model-core/src/reasoning-level"
 
 describe("reasoning vocabulary parity between model-core and omo-config-core", () => {
   test("#given both modules #when compared #then the level sets and normalization agree", () => {
@@ -17,34 +17,15 @@ describe("reasoning vocabulary parity between model-core and omo-config-core", (
     // into stricter downstream tsconfigs)
 
     // when / then the public vocabulary and behavior stay identical
-    expect([...MC_LEVELS]).toEqual([...CORE_LEVELS]);
+    expect([...MC_LEVELS]).toEqual([...CORE_LEVELS])
 
-    for (
-      const input of [
-        "none",
-        "off",
-        "auto",
-        "xhigh",
-        "thinking",
-        "MAX",
-        " weird ",
-      ]
-    ) {
-      expect(mcNormalize(input)).toEqual(coreNormalize(input));
+    for (const input of ["none", "off", "auto", "xhigh", "thinking", "MAX", " weird "]) {
+      expect(mcNormalize(input)).toEqual(coreNormalize(input))
     }
 
-    for (
-      const model of [
-        "openai/gpt-5.6-sol:max",
-        "openai/gpt-5.6-sol:high",
-        "bare:max",
-        "p/m:free",
-      ]
-    ) {
-      expect(mcSplit(model)).toEqual(coreSplit(model));
-      expect(mcSplit(model, { allowMaxSuffix: true })).toEqual(
-        coreSplit(model, { allowMaxSuffix: true }),
-      );
+    for (const model of ["openai/gpt-5.6-sol:max", "openai/gpt-5.6-sol:high", "bare:max", "p/m:free"]) {
+      expect(mcSplit(model)).toEqual(coreSplit(model))
+      expect(mcSplit(model, { allowMaxSuffix: true })).toEqual(coreSplit(model, { allowMaxSuffix: true }))
     }
-  });
-});
+  })
+})

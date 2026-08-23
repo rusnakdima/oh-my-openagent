@@ -29,24 +29,24 @@
 
 import type {
   AvailableAgent,
-  AvailableCategory,
-  AvailableSkill,
   AvailableTool,
+  AvailableSkill,
+  AvailableCategory,
 } from "../dynamic-agent-prompt-builder";
 import { KIMI_TOOL_LOOP_GUARD } from "../kimi-tool-loop-guard";
 import {
   buildAgentIdentitySection,
-  buildAntiDuplicationSection,
-  buildAntiPatternsSection,
-  buildCategorySkillsDelegationGuide,
-  buildDelegationTable,
-  buildExploreSection,
-  buildHardBlocksSection,
   buildKeyTriggersSection,
-  buildLibrarianSection,
-  buildNonClaudePlannerSection,
-  buildOracleSection,
   buildToolSelectionTable,
+  buildExploreSection,
+  buildLibrarianSection,
+  buildDelegationTable,
+  buildCategorySkillsDelegationGuide,
+  buildOracleSection,
+  buildHardBlocksSection,
+  buildAntiPatternsSection,
+  buildAntiDuplicationSection,
+  buildNonClaudePlannerSection,
   categorizeTools,
 } from "../dynamic-agent-prompt-builder";
 
@@ -474,13 +474,9 @@ Keep IDs separate: background task IDs (\`bg_...\`) are for \`background_output(
 
 This preserves full context, avoids repeated exploration, saves 70%+ tokens.
 
-${
-    oracleSection
-      ? `### Oracle
+${oracleSection ? `### Oracle
 
-${oracleSection}`
-      : ""
-  }
+${oracleSection}` : ""}
 </delegation>`;
 
   const styleBlock = `<style>

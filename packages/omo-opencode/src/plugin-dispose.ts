@@ -1,43 +1,43 @@
-import { log } from "./shared";
+import { log } from "./shared"
 
-export type PluginDispose = () => Promise<void>;
+export type PluginDispose = () => Promise<void>
 
 export function createPluginDispose(args: {
   backgroundManager: {
-    shutdown: () => void | Promise<void>;
-  };
+    shutdown: () => void | Promise<void>
+  }
   skillMcpManager: {
-    disconnectAll: () => Promise<void>;
-  };
-  disposeHooks: () => void;
+    disconnectAll: () => Promise<void>
+  }
+  disposeHooks: () => void
 }): PluginDispose {
-  const { backgroundManager, skillMcpManager, disposeHooks } = args;
-  let disposePromise: Promise<void> | null = null;
+  const { backgroundManager, skillMcpManager, disposeHooks } = args
+  let disposePromise: Promise<void> | null = null
 
   return async (): Promise<void> => {
     if (disposePromise) {
-      await disposePromise;
-      return;
+      await disposePromise
+      return
     }
 
     disposePromise = (async (): Promise<void> => {
       try {
-        await backgroundManager.shutdown();
+        await backgroundManager.shutdown()
       } catch (error) {
-        log("[plugin-dispose] backgroundManager.shutdown() error:", error);
+        log("[plugin-dispose] backgroundManager.shutdown() error:", error)
       }
       try {
-        await skillMcpManager.disconnectAll();
+        await skillMcpManager.disconnectAll()
       } catch (error) {
-        log("[plugin-dispose] skillMcpManager.disconnectAll() error:", error);
+        log("[plugin-dispose] skillMcpManager.disconnectAll() error:", error)
       }
       try {
-        disposeHooks();
+        disposeHooks()
       } catch (error) {
-        log("[plugin-dispose] disposeHooks() error:", error);
+        log("[plugin-dispose] disposeHooks() error:", error)
       }
-    })();
+    })()
 
-    await disposePromise;
-  };
+    await disposePromise
+  }
 }

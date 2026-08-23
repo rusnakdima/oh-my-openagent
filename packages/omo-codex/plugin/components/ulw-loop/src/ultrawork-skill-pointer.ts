@@ -31,38 +31,25 @@ Do not start the requested work until all three steps are complete.
 `;
 
 const ULTRAWORK_SKILL_PATH_PLACEHOLDER = "{{ULTRAWORK_SKILL_PATH}}";
-const ULTRAWORK_SKILL_FILE_URL = new URL(
-  "../../../skills/ultrawork/SKILL.md",
-  import.meta.url,
-);
-const ULTRAWORK_DIRECTIVE = readFileSync(
-  new URL("../directive.md", import.meta.url),
-  "utf8",
-);
+const ULTRAWORK_SKILL_FILE_URL = new URL("../../../skills/ultrawork/SKILL.md", import.meta.url);
+const ULTRAWORK_DIRECTIVE = readFileSync(new URL("../directive.md", import.meta.url), "utf8");
 
 export interface UltraworkAdditionalContextOptions {
-  readonly skillFilePath?: string | null;
+	readonly skillFilePath?: string | null;
 }
 
 export function resolveUltraworkSkillFilePath(): string {
-  return fileURLToPath(ULTRAWORK_SKILL_FILE_URL);
+	return fileURLToPath(ULTRAWORK_SKILL_FILE_URL);
 }
 
 export function buildUltraworkSkillPointer(skillFilePath: string): string {
-  return ULTRAWORK_SKILL_POINTER_TEMPLATE.replace(
-    ULTRAWORK_SKILL_PATH_PLACEHOLDER,
-    skillFilePath,
-  );
+	return ULTRAWORK_SKILL_POINTER_TEMPLATE.replace(ULTRAWORK_SKILL_PATH_PLACEHOLDER, skillFilePath);
 }
 
-export function buildUltraworkAdditionalContext(
-  options: UltraworkAdditionalContextOptions = {},
-): string {
-  const skillFilePath = options.skillFilePath === undefined
-    ? resolveUltraworkSkillFilePath()
-    : options.skillFilePath;
-  if (skillFilePath !== null && existsSync(skillFilePath)) {
-    return buildUltraworkSkillPointer(skillFilePath);
-  }
-  return ULTRAWORK_DIRECTIVE;
+export function buildUltraworkAdditionalContext(options: UltraworkAdditionalContextOptions = {}): string {
+	const skillFilePath = options.skillFilePath === undefined ? resolveUltraworkSkillFilePath() : options.skillFilePath;
+	if (skillFilePath !== null && existsSync(skillFilePath)) {
+		return buildUltraworkSkillPointer(skillFilePath);
+	}
+	return ULTRAWORK_DIRECTIVE;
 }

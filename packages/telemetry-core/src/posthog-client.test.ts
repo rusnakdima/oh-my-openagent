@@ -1,26 +1,26 @@
-import { createHash } from "node:crypto";
-import { describe, expect, test } from "bun:test";
-import { existsSync, mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { createHash } from "node:crypto"
+import { describe, expect, test } from "bun:test"
+import { existsSync, mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import {
-  createTelemetryClient,
   DEFAULT_POSTHOG_API_KEY,
   DEFAULT_POSTHOG_HOST,
+  UNCONFIGURED_POSTHOG_API_KEY,
+  createTelemetryClient,
   getTelemetryActivityStateFilePath,
   getTelemetryDistinctId,
   isTelemetryClientEnabled,
   recordDailyActive,
-  UNCONFIGURED_POSTHOG_API_KEY,
-} from "./index";
+} from "./index"
 import type {
   TelemetryCaptureMessage,
   TelemetryOsProvider,
   TelemetryProductConfig,
   TelemetryTransport,
   TelemetryTransportFactory,
-} from "./index";
+} from "./index"
 
 const PRODUCT = {
   cacheDirName: "omo-codex",
@@ -33,7 +33,7 @@ const PRODUCT = {
   platform: "omo-codex",
   productName: "omo-codex",
   productEnvPrefix: "OMO_CODEX",
-} satisfies TelemetryProductConfig;
+} satisfies TelemetryProductConfig
 
 const OS_PROVIDER = {
   arch: () => "arm64",
@@ -43,23 +43,21 @@ const OS_PROVIDER = {
   release: () => "26.0.0",
   totalmem: () => 17_179_869_184,
   type: () => "Darwin",
-} satisfies TelemetryOsProvider;
+} satisfies TelemetryOsProvider
 
-function createCapturingFactory(
-  capturedMessages: TelemetryCaptureMessage[],
-): TelemetryTransportFactory {
+function createCapturingFactory(capturedMessages: TelemetryCaptureMessage[]): TelemetryTransportFactory {
   return () => ({
     capture: (message) => {
-      capturedMessages.push(message);
+      capturedMessages.push(message)
     },
     flush: async () => undefined,
     shutdown: async () => undefined,
-  });
+  })
 }
 
 describe("posthog telemetry client", () => {
   test("#given the unconfigured OmO Native placeholder and clean env #when clients are created #then telemetry fails closed without constructing transports", () => {
-    let transportsCreated = 0;
+    let transportsCreated = 0
     const input = {
       env: {},
       osProvider: OS_PROVIDER,
@@ -70,21 +68,21 @@ describe("posthog telemetry client", () => {
       },
       source: "plugin",
       transportFactory: () => {
-        transportsCreated += 1;
+        transportsCreated += 1
         return {
           capture: () => undefined,
           shutdown: async () => undefined,
-        };
+        }
       },
-    } as const;
+    } as const
 
-    const first = createTelemetryClient(input);
-    const second = createTelemetryClient(input);
+    const first = createTelemetryClient(input)
+    const second = createTelemetryClient(input)
 
-    expect(isTelemetryClientEnabled(input)).toBe(false);
-    expect([first.enabled, second.enabled]).toEqual([false, false]);
-    expect(transportsCreated).toBe(0);
-  });
+    expect(isTelemetryClientEnabled(input)).toBe(false)
+    expect([first.enabled, second.enabled]).toEqual([false, false])
+    expect(transportsCreated).toBe(0)
+  })
 
   test("#given the placeholder default and a real env override #when enabled state is checked #then telemetry is enabled", () => {
     expect(isTelemetryClientEnabled({
@@ -93,15 +91,15 @@ describe("posthog telemetry client", () => {
         defaultApiKey: UNCONFIGURED_POSTHOG_API_KEY,
         productEnvPrefix: "OMO_SENPI",
       },
-    })).toBe(true);
-  });
+    })).toBe(true)
+  })
 
   test("#given the legacy shared key as the default #when enabled state is checked #then telemetry remains enabled", () => {
     expect(isTelemetryClientEnabled({
       env: {},
       product: PRODUCT,
-    })).toBe(true);
-  });
+    })).toBe(true)
+  })
 
   test("#given a real OmO Native default replaces the placeholder #when enabled state is checked #then telemetry activates without another flag", () => {
     expect(isTelemetryClientEnabled({
@@ -110,38 +108,33 @@ describe("posthog telemetry client", () => {
         defaultApiKey: "phc_omo_native_project_key",
         productEnvPrefix: "OMO_SENPI",
       },
-    })).toBe(true);
-  });
+    })).toBe(true)
+  })
 
   test("#given codex product parameters #when daily active is captured #then payload shape matches current contract", async () => {
     // given
-    const capturedMessages: TelemetryCaptureMessage[] = [];
+    const capturedMessages: TelemetryCaptureMessage[] = []
     const client = createTelemetryClient({
-      env: {
-        POSTHOG_API_KEY: "test-key",
-        POSTHOG_HOST: "https://posthog.test",
-      },
+      env: { POSTHOG_API_KEY: "test-key", POSTHOG_HOST: "https://posthog.test" },
       osProvider: OS_PROVIDER,
       product: PRODUCT,
       source: "cli",
       transportFactory: createCapturingFactory(capturedMessages),
-    });
+    })
 
     // when
     client.trackActive({
       dayUTC: "2026-05-25",
       distinctId: getTelemetryDistinctId(PRODUCT.machineIdPrefix, OS_PROVIDER),
       reason: "cli_run",
-    });
-    await client.flush();
-    await client.shutdown();
+    })
+    await client.flush()
+    await client.shutdown()
 
     // then
-    expect(capturedMessages).toHaveLength(1);
+    expect(capturedMessages).toHaveLength(1)
     expect(capturedMessages[0]).toEqual({
-      distinctId: createHash("sha256").update("omo-codex:test-host").digest(
-        "hex",
-      ),
+      distinctId: createHash("sha256").update("omo-codex:test-host").digest("hex"),
       event: "omo_codex_daily_active",
       properties: {
         platform: "omo-codex",
@@ -167,13 +160,13 @@ describe("posthog telemetry client", () => {
         day_utc: "2026-05-25",
         reason: "cli_run",
       },
-    });
-  });
+    })
+  })
 
   test("#given a state dir and fake transport #when daily active records twice same day #then only one event is sent", async () => {
     // given
-    const capturedMessages: TelemetryCaptureMessage[] = [];
-    const stateDir = mkdtempSync(join(tmpdir(), "telemetry-core-record-"));
+    const capturedMessages: TelemetryCaptureMessage[] = []
+    const stateDir = mkdtempSync(join(tmpdir(), "telemetry-core-record-"))
 
     try {
       const options = {
@@ -185,28 +178,28 @@ describe("posthog telemetry client", () => {
         source: "plugin",
         stateDir,
         transportFactory: createCapturingFactory(capturedMessages),
-      } as const;
+      } as const
 
       // when
-      await recordDailyActive(options);
-      await recordDailyActive(options);
+      await recordDailyActive(options)
+      await recordDailyActive(options)
 
       // then
-      expect(capturedMessages).toHaveLength(1);
-      const message = capturedMessages[0];
+      expect(capturedMessages).toHaveLength(1)
+      const message = capturedMessages[0]
       if (message === undefined || message.properties === undefined) {
-        throw new Error("expected one captured message with properties");
+        throw new Error("expected one captured message with properties")
       }
-      expect(message.properties.day_utc).toBe("2026-05-25");
-      expect(message.properties.reason).toBe("session_start");
+      expect(message.properties.day_utc).toBe("2026-05-25")
+      expect(message.properties.reason).toBe("session_start")
     } finally {
-      rmSync(stateDir, { recursive: true, force: true });
+      rmSync(stateDir, { recursive: true, force: true })
     }
-  });
+  })
 
   test("#given no API key after trimming #when client is created #then transport is not constructed", () => {
     // given
-    let transportCreated = false;
+    let transportCreated = false
 
     // when
     const client = createTelemetryClient({
@@ -215,29 +208,29 @@ describe("posthog telemetry client", () => {
       product: PRODUCT,
       source: "install",
       transportFactory: () => {
-        transportCreated = true;
+        transportCreated = true
         const transport: TelemetryTransport = {
           capture: () => undefined,
           shutdown: async () => undefined,
-        };
-        return transport;
+        }
+        return transport
       },
-    });
+    })
     client.trackActive({
       dayUTC: "2026-05-25",
       distinctId: "distinct",
       reason: "install_completed",
-    });
+    })
 
     // then
-    expect(transportCreated).toBe(false);
-  });
+    expect(transportCreated).toBe(false)
+  })
 
   test("#given telemetry is disabled #when daily active records #then dedup state is not written", async () => {
     // given
-    const capturedMessages: TelemetryCaptureMessage[] = [];
-    const stateDir = mkdtempSync(join(tmpdir(), "telemetry-core-disabled-"));
-    const stateFilePath = getTelemetryActivityStateFilePath(stateDir);
+    const capturedMessages: TelemetryCaptureMessage[] = []
+    const stateDir = mkdtempSync(join(tmpdir(), "telemetry-core-disabled-"))
+    const stateFilePath = getTelemetryActivityStateFilePath(stateDir)
 
     try {
       // when
@@ -250,21 +243,21 @@ describe("posthog telemetry client", () => {
         source: "plugin",
         stateDir,
         transportFactory: createCapturingFactory(capturedMessages),
-      });
+      })
 
       // then
-      expect(capturedMessages).toHaveLength(0);
-      expect(existsSync(stateFilePath)).toBe(false);
+      expect(capturedMessages).toHaveLength(0)
+      expect(existsSync(stateFilePath)).toBe(false)
     } finally {
-      rmSync(stateDir, { recursive: true, force: true });
+      rmSync(stateDir, { recursive: true, force: true })
     }
-  });
+  })
 
   test("#given blank API key #when daily active records #then dedup state is not written", async () => {
     // given
-    const capturedMessages: TelemetryCaptureMessage[] = [];
-    const stateDir = mkdtempSync(join(tmpdir(), "telemetry-core-no-key-"));
-    const stateFilePath = getTelemetryActivityStateFilePath(stateDir);
+    const capturedMessages: TelemetryCaptureMessage[] = []
+    const stateDir = mkdtempSync(join(tmpdir(), "telemetry-core-no-key-"))
+    const stateFilePath = getTelemetryActivityStateFilePath(stateDir)
 
     try {
       // when
@@ -277,13 +270,13 @@ describe("posthog telemetry client", () => {
         source: "plugin",
         stateDir,
         transportFactory: createCapturingFactory(capturedMessages),
-      });
+      })
 
       // then
-      expect(capturedMessages).toHaveLength(0);
-      expect(existsSync(stateFilePath)).toBe(false);
+      expect(capturedMessages).toHaveLength(0)
+      expect(existsSync(stateFilePath)).toBe(false)
     } finally {
-      rmSync(stateDir, { recursive: true, force: true });
+      rmSync(stateDir, { recursive: true, force: true })
     }
-  });
-});
+  })
+})

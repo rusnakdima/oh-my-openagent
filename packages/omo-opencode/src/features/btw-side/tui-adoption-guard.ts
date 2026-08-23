@@ -1,8 +1,8 @@
 export function createBtwAdoptionGuard(
   currentSessionID: () => string | undefined,
 ) {
-  const deletedSessionIDs = new Set<string>();
-  let disposed = false;
+  const deletedSessionIDs = new Set<string>()
+  let disposed = false
 
   return {
     canApply: (
@@ -15,10 +15,10 @@ export function createBtwAdoptionGuard(
         !deletedSessionIDs.has(parentSessionID)) &&
       currentSessionID() === sessionID,
     markDeleted: (sessionID: string): void => {
-      deletedSessionIDs.add(sessionID);
+      deletedSessionIDs.add(sessionID)
     },
     dispose: (): void => {
-      disposed = true;
+      disposed = true
     },
-  };
+  }
 }

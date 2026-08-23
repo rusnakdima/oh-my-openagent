@@ -1,27 +1,19 @@
-import os from "node:os";
-import path from "node:path";
+import os from "node:os"
+import path from "node:path"
 
-import pc from "picocolors";
-import { spawn } from "@oh-my-opencode/utils";
+import pc from "picocolors"
+import { spawn } from "@oh-my-opencode/utils"
 
-const DEFAULT_WORKTREE_BASE_DIR = path.join(os.homedir(), ".omo", "worktrees");
+const DEFAULT_WORKTREE_BASE_DIR = path.join(os.homedir(), ".omo", "worktrees")
 
-async function runGit(
-  args: readonly string[],
-  cwd?: string,
-): Promise<{ code: number; stdout: string; stderr: string }> {
-  const proc = spawn({
-    cmd: ["git", ...args],
-    cwd,
-    stdout: "pipe",
-    stderr: "pipe",
-  });
+async function runGit(args: readonly string[], cwd?: string): Promise<{ code: number; stdout: string; stderr: string }> {
+  const proc = spawn({ cmd: ["git", ...args], cwd, stdout: "pipe", stderr: "pipe" })
   const [exitCode, stdoutText, stderrText] = await Promise.all([
     proc.exited,
     new Response(proc.stdout).text(),
     new Response(proc.stderr).text(),
-  ]);
-  return { code: exitCode, stdout: stdoutText, stderr: stderrText };
+  ])
+  return { code: exitCode, stdout: stdoutText, stderr: stderrText }
 }
 
 /**
@@ -31,9 +23,9 @@ async function runGit(
  */
 export function resolveWorktreePath(worktreeSpec: string): string {
   if (worktreeSpec.includes("/") || worktreeSpec.startsWith(".")) {
-    return path.resolve(worktreeSpec);
+    return path.resolve(worktreeSpec)
   }
-  return path.join(DEFAULT_WORKTREE_BASE_DIR, worktreeSpec);
+  return path.join(DEFAULT_WORKTREE_BASE_DIR, worktreeSpec)
 }
 
 /**
@@ -42,11 +34,9 @@ export function resolveWorktreePath(worktreeSpec: string): string {
 export function worktreeExists(worktreePath: string): Promise<boolean> {
   // Use git worktree list to check — this is authoritative even for locked worktrees.
   return runGit(["worktree", "list", "--porcelain"]).then((result) => {
-    if (result.code !== 0) return false;
-    return result.stdout.split("\n").some((line) =>
-      line.startsWith("worktree ") && line.slice(9).trim() === worktreePath
-    );
-  });
+    if (result.code !== 0) return false
+    return result.stdout.split("\n").some((line) => line.startsWith("worktree ") && line.slice(9).trim() === worktreePath)
+  })
 }
 
 /**
@@ -55,29 +45,15 @@ export function worktreeExists(worktreePath: string): Promise<boolean> {
  * @param worktreePath Absolute path for the worktree
  * @param repoRoot Root of the git repository (cwd for git worktree add)
  */
-export async function createWorktreeForRun(
-  worktreePath: string,
-  repoRoot: string,
-): Promise<string> {
-  const branchName = `worktree/${path.basename(worktreePath)}`;
-  console.log(pc.blue(`Creating git worktree at ${worktreePath}`));
-  const result = await runGit([
-    "worktree",
-    "add",
-    "--detach",
-    worktreePath,
-    "-b",
-    branchName,
-  ], repoRoot);
+export async function createWorktreeForRun(worktreePath: string, repoRoot: string): Promise<string> {
+  const branchName = `worktree/${path.basename(worktreePath)}`
+  console.log(pc.blue(`Creating git worktree at ${worktreePath}`))
+  const result = await runGit(["worktree", "add", "--detach", worktreePath, "-b", branchName], repoRoot)
   if (result.code !== 0) {
-    throw new Error(
-      `git worktree add failed: ${
-        result.stderr.trim() || result.stdout.trim()
-      }`,
-    );
+    throw new Error(`git worktree add failed: ${result.stderr.trim() || result.stdout.trim()}`)
   }
-  console.log(pc.green(`Worktree created at ${worktreePath}`));
-  return worktreePath;
+  console.log(pc.green(`Worktree created at ${worktreePath}`))
+  return worktreePath
 }
 
 /**
@@ -90,15 +66,12 @@ export async function createWorktreeForRun(
  *
  * Returns the absolute worktree path to use as the session's working directory.
  */
-export async function resolveOrCreateWorktree(
-  worktreeSpec: string,
-  repoRoot: string,
-): Promise<string> {
-  const worktreePath = resolveWorktreePath(worktreeSpec);
-  const exists = await worktreeExists(worktreePath);
+export async function resolveOrCreateWorktree(worktreeSpec: string, repoRoot: string): Promise<string> {
+  const worktreePath = resolveWorktreePath(worktreeSpec)
+  const exists = await worktreeExists(worktreePath)
   if (exists) {
-    console.log(pc.dim(`Reusing existing worktree at ${worktreePath}`));
-    return worktreePath;
+    console.log(pc.dim(`Reusing existing worktree at ${worktreePath}`))
+    return worktreePath
   }
-  return createWorktreeForRun(worktreePath, repoRoot);
+  return createWorktreeForRun(worktreePath, repoRoot)
 }

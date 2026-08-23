@@ -8,7 +8,6 @@ Load and follow the `security-research` skill exactly.
 ```text
 skill(name="security-research")
 ```
-
 </command-instruction>
 
 <user-request>

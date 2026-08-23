@@ -1,6 +1,6 @@
-import { ULTRAWORK_PLANNER_PROMPT } from "@oh-my-opencode/prompts-core";
+import { ULTRAWORK_PLANNER_PROMPT } from "@oh-my-opencode/prompts-core"
 
-export const ULTRAWORK_PLANNER_SECTION = ULTRAWORK_PLANNER_PROMPT;
+export const ULTRAWORK_PLANNER_SECTION = ULTRAWORK_PLANNER_PROMPT
 
 export function getPlannerUltraworkMessage(): string {
   return `<ultrawork-mode>
@@ -11,5 +11,5 @@ ${ULTRAWORK_PLANNER_SECTION}
 
 </ultrawork-mode>
 
-`;
+`
 }

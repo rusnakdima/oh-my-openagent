@@ -3,12 +3,12 @@ import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool";
 import { join } from "path";
 import type { OhMyOpenCodeConfig } from "../../config/schema";
 import type { TaskObject } from "./types";
-import { TaskCreateInputSchema, TaskObjectSchema } from "./types";
+import { TaskObjectSchema, TaskCreateInputSchema } from "./types";
 import {
-  acquireLock,
-  generateTaskId,
   getTaskDir,
   writeJsonAtomic,
+  acquireLock,
+  generateTaskId,
 } from "../../features/claude-tasks/storage";
 import { syncTaskTodoUpdate } from "./todo-sync";
 
@@ -16,9 +16,8 @@ export function createTaskCreateTool(
   config: Partial<OhMyOpenCodeConfig>,
   ctx?: PluginInput,
 ): ToolDefinition {
-  return tool({
-    description:
-      `Create a new task with auto-generated ID and threadID recording.
+   return tool({
+     description: `Create a new task with auto-generated ID and threadID recording.
 
 Auto-generates T-{uuid} ID, records threadID from context, sets status to "pending".
 Returns minimal response with task ID and subject.
@@ -29,7 +28,7 @@ Calculate dependencies carefully to maximize parallel execution:
 - Tasks with no dependencies can run simultaneously
 - Only block a task if it truly depends on another's output
 - Minimize dependency chains to reduce sequential bottlenecks`,
-    args: {
+     args: {
       subject: tool.schema.string().describe("Task subject (required)"),
       description: tool.schema.string().optional().describe("Task description"),
       activeForm: tool.schema

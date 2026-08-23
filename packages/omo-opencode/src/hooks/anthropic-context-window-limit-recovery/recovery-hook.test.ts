@@ -1,77 +1,69 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
 import {
   createRecoveryHook,
   executeCompactMock,
   getLastAssistantMock,
   parseAnthropicTokenLimitErrorMock,
   setupDelayedTimeoutMocks,
-} from "./recovery-hook.test-support";
+} from "./recovery-hook.test-support"
 
 describe("createAnthropicContextWindowLimitRecoveryHook", () => {
   beforeEach(() => {
-    executeCompactMock.mockClear();
-    getLastAssistantMock.mockClear();
-    parseAnthropicTokenLimitErrorMock.mockClear();
-  });
+    executeCompactMock.mockClear()
+    getLastAssistantMock.mockClear()
+    parseAnthropicTokenLimitErrorMock.mockClear()
+  })
 
   afterEach(() => {
-    mock.restore();
-  });
+    mock.restore()
+  })
 
   test("cancels pending timer when session.idle handles compaction first", async () => {
     //#given
-    const { restore, getClearTimeoutCalls, getScheduledTimeouts } =
-      setupDelayedTimeoutMocks();
-    let compactedSessionID: unknown;
+    const { restore, getClearTimeoutCalls, getScheduledTimeouts } = setupDelayedTimeoutMocks()
+    let compactedSessionID: unknown
     executeCompactMock.mockImplementationOnce(async (...args: unknown[]) => {
-      compactedSessionID = args[0];
-    });
-    const hook = createRecoveryHook();
+      compactedSessionID = args[0]
+    })
+    const hook = createRecoveryHook()
 
     try {
       //#when
       await hook.event({
         event: {
           type: "session.error",
-          properties: {
-            sessionID: "session-race",
-            error: "prompt is too long",
-          },
+          properties: { sessionID: "session-race", error: "prompt is too long" },
         },
-      });
+      })
 
       await hook.event({
         event: {
           type: "session.idle",
           properties: { sessionID: "session-race" },
         },
-      });
+      })
 
       //#then
-      expect(getClearTimeoutCalls()).toEqual([getScheduledTimeouts()[0]]);
-      expect(executeCompactMock).toHaveBeenCalledTimes(1);
-      expect(compactedSessionID).toBe("session-race");
+      expect(getClearTimeoutCalls()).toEqual([getScheduledTimeouts()[0]])
+      expect(executeCompactMock).toHaveBeenCalledTimes(1)
+      expect(compactedSessionID).toBe("session-race")
     } finally {
-      restore();
+      restore()
     }
-  });
+  })
 
   test("clears pending recovery when OpenCode core compaction succeeds first", async () => {
     //#given
-    const { restore, getClearTimeoutCalls, getScheduledTimeouts } =
-      setupDelayedTimeoutMocks();
-    const hook = createRecoveryHook();
+    const { restore, getClearTimeoutCalls, getScheduledTimeouts } = setupDelayedTimeoutMocks()
+    const hook = createRecoveryHook()
 
     try {
       await hook.event({
         event: {
           type: "session.error",
-          properties: {
-            sessionID: "session-core-compacted",
-            error: "prompt is too long",
-          },
+          properties: { sessionID: "session-core-compacted", error: "prompt is too long" },
         },
-      });
+      })
 
       //#when
       await hook.event({
@@ -79,32 +71,31 @@ describe("createAnthropicContextWindowLimitRecoveryHook", () => {
           type: "session.compacted",
           properties: { sessionID: "session-core-compacted" },
         },
-      });
+      })
 
       await hook.event({
         event: {
           type: "session.idle",
           properties: { sessionID: "session-core-compacted" },
         },
-      });
+      })
 
       //#then
-      expect(getClearTimeoutCalls()).toEqual([getScheduledTimeouts()[0]]);
-      expect(executeCompactMock).not.toHaveBeenCalled();
-      expect(getLastAssistantMock).toHaveBeenCalledTimes(1);
+      expect(getClearTimeoutCalls()).toEqual([getScheduledTimeouts()[0]])
+      expect(executeCompactMock).not.toHaveBeenCalled()
+      expect(getLastAssistantMock).toHaveBeenCalledTimes(1)
     } finally {
-      restore();
+      restore()
     }
-  });
+  })
 
   test("does not treat empty summary assistant messages as successful compaction", async () => {
     //#given
-    const { restore, getClearTimeoutCalls, getScheduledTimeouts } =
-      setupDelayedTimeoutMocks();
-    let compactedSessionID: unknown;
+    const { restore, getClearTimeoutCalls, getScheduledTimeouts } = setupDelayedTimeoutMocks()
+    let compactedSessionID: unknown
     executeCompactMock.mockImplementationOnce(async (...args: unknown[]) => {
-      compactedSessionID = args[0];
-    });
+      compactedSessionID = args[0]
+    })
     getLastAssistantMock.mockResolvedValueOnce({
       info: {
         summary: true,
@@ -112,93 +103,73 @@ describe("createAnthropicContextWindowLimitRecoveryHook", () => {
         modelID: "claude-sonnet-4-6",
       },
       hasContent: false,
-    });
-    const hook = createRecoveryHook();
+    })
+    const hook = createRecoveryHook()
 
     try {
       //#when
       await hook.event({
         event: {
           type: "session.error",
-          properties: {
-            sessionID: "session-empty-summary",
-            error: "prompt is too long",
-          },
+          properties: { sessionID: "session-empty-summary", error: "prompt is too long" },
         },
-      });
+      })
 
       await hook.event({
         event: {
           type: "session.idle",
           properties: { sessionID: "session-empty-summary" },
         },
-      });
+      })
 
       //#then
-      expect(getClearTimeoutCalls()).toEqual([getScheduledTimeouts()[0]]);
-      expect(executeCompactMock).toHaveBeenCalledTimes(1);
-      expect(compactedSessionID).toBe("session-empty-summary");
+      expect(getClearTimeoutCalls()).toEqual([getScheduledTimeouts()[0]])
+      expect(executeCompactMock).toHaveBeenCalledTimes(1)
+      expect(compactedSessionID).toBe("session-empty-summary")
     } finally {
-      restore();
+      restore()
     }
-  });
+  })
 
   test("#given active pending and retry timers #when dispose is called #then it clears both timer maps", async () => {
     //#given
-    const {
-      createUntrackedTimeout,
-      getClearTimeoutCalls,
-      getScheduledTimeouts,
-      restore,
-      runScheduledTimeout,
-    } = setupDelayedTimeoutMocks();
-    executeCompactMock.mockImplementationOnce(
-      async (...args: Parameters<typeof executeCompactMock>) => {
-        const sessionID = args[0];
-        const autoCompactState = args[2];
+    const { createUntrackedTimeout, getClearTimeoutCalls, getScheduledTimeouts, restore, runScheduledTimeout } =
+      setupDelayedTimeoutMocks()
+    executeCompactMock.mockImplementationOnce(async (...args: Parameters<typeof executeCompactMock>) => {
+      const sessionID = args[0]
+      const autoCompactState = args[2]
 
-        autoCompactState.retryTimerBySession.set(
-          sessionID,
-          createUntrackedTimeout(),
-        );
-      },
-    );
-    const hook = createRecoveryHook();
+      autoCompactState.retryTimerBySession.set(sessionID, createUntrackedTimeout())
+    })
+    const hook = createRecoveryHook()
 
     try {
       await hook.event({
         event: {
           type: "session.error",
-          properties: {
-            sessionID: "session-retry",
-            error: "prompt is too long",
-          },
+          properties: { sessionID: "session-retry", error: "prompt is too long" },
         },
-      });
+      })
 
       await hook.event({
         event: {
           type: "session.error",
-          properties: {
-            sessionID: "session-pending",
-            error: "prompt is too long",
-          },
+          properties: { sessionID: "session-pending", error: "prompt is too long" },
         },
-      });
+      })
 
-      runScheduledTimeout(0);
+      runScheduledTimeout(0)
 
-      const [retryTimer, pendingTimer] = getScheduledTimeouts();
+      const [retryTimer, pendingTimer] = getScheduledTimeouts()
 
       //#when
-      hook.dispose();
+      hook.dispose()
 
       //#then
-      expect(getClearTimeoutCalls()).toEqual(
-        expect.arrayContaining([retryTimer, pendingTimer]),
-      );
+      expect(getClearTimeoutCalls()).toEqual(expect.arrayContaining([retryTimer, pendingTimer]))
     } finally {
-      restore();
+      restore()
     }
-  });
-});
+  })
+
+})

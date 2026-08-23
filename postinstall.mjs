@@ -1,13 +1,13 @@
 // postinstall.mjs
 // Runs after npm install to verify platform binary is available
 
-import { readdirSync, readFileSync, rmSync } from "node:fs";
+import { readFileSync, readdirSync, rmSync } from "node:fs";
 import { createRequire } from "node:module";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import {
-  getBinaryPath,
   getPlatformPackageCandidates,
+  getBinaryPath,
   resolvePlatformPackageBaseName,
 } from "./bin/platform.js";
 import { detectPlatformBinaryMismatch } from "./bin/version-mismatch.js";
@@ -78,7 +78,7 @@ function getLibcFamily() {
   if (process.platform !== "linux") {
     return undefined;
   }
-
+  
   try {
     const detectLibc = require("detect-libc");
     return detectLibc.familySync();
@@ -89,9 +89,7 @@ function getLibcFamily() {
 
 function readMainPackageJson() {
   try {
-    return JSON.parse(
-      readFileSync(new URL("./package.json", import.meta.url), "utf8"),
-    );
+    return JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
   } catch {
     return null;
   }
@@ -108,22 +106,14 @@ function getMainPackageVersion() {
 }
 
 function invalidateOpenCodePluginCache() {
-  const cacheDir = join(
-    process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"),
-    "opencode",
-  );
+  const cacheDir = join(process.env.XDG_CACHE_HOME ?? join(homedir(), ".cache"), "opencode");
   const parentDirs = [cacheDir, join(cacheDir, "packages")];
-  const prefixes = OPENCODE_PLUGIN_PACKAGES.map((packageName) =>
-    `${packageName}@`
-  );
+  const prefixes = OPENCODE_PLUGIN_PACKAGES.map((packageName) => `${packageName}@`);
 
   for (const parentDir of parentDirs) {
     try {
       for (const entry of readdirSync(parentDir, { withFileTypes: true })) {
-        if (
-          entry.isDirectory() &&
-          prefixes.some((prefix) => entry.name.startsWith(prefix))
-        ) {
+        if (entry.isDirectory() && prefixes.some((prefix) => entry.name.startsWith(prefix))) {
           rmSync(join(parentDir, entry.name), { recursive: true, force: true });
         }
       }
@@ -136,9 +126,7 @@ function invalidateOpenCodePluginCache() {
 function readPlatformPackageVersion(pkg) {
   try {
     const platformPackageJsonPath = require.resolve(`${pkg}/package.json`);
-    const packageJson = JSON.parse(
-      readFileSync(platformPackageJsonPath, "utf8"),
-    );
+    const packageJson = JSON.parse(readFileSync(platformPackageJsonPath, "utf8"));
     return packageJson.version ?? null;
   } catch {
     return null;
@@ -159,9 +147,7 @@ function main() {
   // Check opencode version requirement
   const versionCheck = checkOpenCodeVersion();
   if (versionCheck.version && !versionCheck.ok) {
-    console.warn(
-      `⚠ oh-my-opencode requires OpenCode >= ${MIN_OPENCODE_VERSION}`,
-    );
+    console.warn(`⚠ oh-my-opencode requires OpenCode >= ${MIN_OPENCODE_VERSION}`);
     console.warn(`  Detected: ${versionCheck.version}`);
     console.warn(`  Please update OpenCode to avoid compatibility issues.`);
   }
@@ -185,9 +171,7 @@ function main() {
 
     if (!resolvedPackage) {
       throw new Error(
-        `No platform binary package installed. Tried: ${
-          packageCandidates.join(", ")
-        }`,
+        `No platform binary package installed. Tried: ${packageCandidates.join(", ")}`
       );
     }
 
@@ -197,24 +181,14 @@ function main() {
       platformPackage: resolvedPackage,
     });
     if (mismatch) {
-      console.warn(
-        `⚠ oh-my-opencode platform binary version mismatch detected`,
-      );
+      console.warn(`⚠ oh-my-opencode platform binary version mismatch detected`);
       console.warn(`  ${packageBaseName}: ${mismatch.mainVersion}`);
-      console.warn(
-        `  ${mismatch.platformPackage}: ${mismatch.platformVersion}`,
-      );
-      console.warn(
-        `  The startup banner may show the stale version until the platform binary is updated.`,
-      );
-      console.warn(
-        `  Fix: npm install -g ${packageBaseName}@${mismatch.mainVersion} ${mismatch.platformPackage}@${mismatch.mainVersion}`,
-      );
+      console.warn(`  ${mismatch.platformPackage}: ${mismatch.platformVersion}`);
+      console.warn(`  The startup banner may show the stale version until the platform binary is updated.`);
+      console.warn(`  Fix: npm install -g ${packageBaseName}@${mismatch.mainVersion} ${mismatch.platformPackage}@${mismatch.mainVersion}`);
     }
 
-    console.log(
-      `✓ oh-my-opencode binary installed for ${platform}-${arch} (${resolvedPackage})`,
-    );
+    console.log(`✓ oh-my-opencode binary installed for ${platform}-${arch} (${resolvedPackage})`);
   } catch (error) {
     console.warn(`⚠ oh-my-opencode: ${error.message}`);
     console.warn(`  The CLI may not work on this platform.`);

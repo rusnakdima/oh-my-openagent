@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 import {
   dagDefinitionAmendedEvent,
   dagDiagnosticAddedEvent,
@@ -18,14 +18,14 @@ import {
   dagStreamOverflowEvent,
   dagWaveCompletedEvent,
   dagWaveStartedEvent,
-} from "./events";
-import type { DagRunEventType } from "./events";
-import type { DagNodeCounts, DagNodeError, DagNodeId, DagRunId } from "./types";
-import { DAG_RUN_EVENT_TYPES } from "./types";
+} from "./events"
+import type { DagRunEventType } from "./events"
+import type { DagNodeCounts, DagNodeError, DagNodeId, DagRunId } from "./types"
+import { DAG_RUN_EVENT_TYPES } from "./types"
 
-const nodeA = "node-a" as DagNodeId;
-const nodeB = "node-b" as DagNodeId;
-const runId = "run-1" as DagRunId;
+const nodeA = "node-a" as DagNodeId
+const nodeB = "node-b" as DagNodeId
+const runId = "run-1" as DagRunId
 
 const counts: DagNodeCounts = {
   total: 2,
@@ -37,40 +37,40 @@ const counts: DagNodeCounts = {
   failed: 0,
   cancelled: 0,
   skipped: 0,
-};
+}
 
 const nodeError: DagNodeError = {
   code: "task_error",
   message: "boom",
   nodeId: nodeA,
   at: "2026-01-01T00:00:00.000Z",
-};
+}
 
 describe("dagEventLane", () => {
   describe("#given all 14 journaled event types", () => {
     test("#then every one classifies as boundary without throwing", () => {
       // given / when / then
-      expect(DAG_RUN_EVENT_TYPES).toHaveLength(17);
+      expect(DAG_RUN_EVENT_TYPES).toHaveLength(17)
       for (const type of DAG_RUN_EVENT_TYPES) {
-        let lane: string | undefined;
+        let lane: string | undefined
         expect(() => {
-          lane = dagEventLane(type);
-        }).not.toThrow();
-        expect(lane).toBe("boundary");
+          lane = dagEventLane(type)
+        }).not.toThrow()
+        expect(lane).toBe("boundary")
       }
-    });
-  });
+    })
+  })
 
   describe("#given an unknown type string", () => {
     test("#when classified #then it throws (exhaustiveness guard)", () => {
       // given
-      const bogus = "dag.unknown.event" as DagRunEventType;
+      const bogus = "dag.unknown.event" as DagRunEventType
 
       // when / then
-      expect(() => dagEventLane(bogus)).toThrow();
-    });
-  });
-});
+      expect(() => dagEventLane(bogus)).toThrow()
+    })
+  })
+})
 
 describe("dag event builders", () => {
   test("#given run fields #when dagRunCreatedEvent #then spec-shaped payload", () => {
@@ -81,7 +81,7 @@ describe("dag event builders", () => {
       definitionFingerprint: "fp",
       nodeCount: 2,
       edgeCount: 1,
-    });
+    })
 
     // then
     expect(event).toEqual({
@@ -91,98 +91,80 @@ describe("dag event builders", () => {
       definitionFingerprint: "fp",
       nodeCount: 2,
       edgeCount: 1,
-    });
-  });
+    })
+  })
 
   test("#given a generation #when dagRunStartedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagRunStartedEvent({ generation: 3 });
+    const event = dagRunStartedEvent({ generation: 3 })
 
     // then
-    expect(event).toEqual({ type: "dag.run.started", generation: 3 });
-  });
+    expect(event).toEqual({ type: "dag.run.started", generation: 3 })
+  })
 
   test("#given a reason #when dagRunPausedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagRunPausedEvent({ reason: "session_shutdown" });
+    const event = dagRunPausedEvent({ reason: "session_shutdown" })
 
     // then
-    expect(event).toEqual({
-      type: "dag.run.paused",
-      reason: "session_shutdown",
-    });
-  });
+    expect(event).toEqual({ type: "dag.run.paused", reason: "session_shutdown" })
+  })
 
   test("#given no reason #when dagRunPausedEvent #then reason omitted", () => {
     // when
-    const event = dagRunPausedEvent();
+    const event = dagRunPausedEvent()
 
     // then
-    expect(event).toEqual({ type: "dag.run.paused" });
-  });
+    expect(event).toEqual({ type: "dag.run.paused" })
+  })
 
   test("#given a generation #when dagRunResumedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagRunResumedEvent({ generation: 2 });
+    const event = dagRunResumedEvent({ generation: 2 })
 
     // then
-    expect(event).toEqual({ type: "dag.run.resumed", generation: 2 });
-  });
+    expect(event).toEqual({ type: "dag.run.resumed", generation: 2 })
+  })
 
   test("#given counts #when dagRunCompletedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagRunCompletedEvent({ counts });
+    const event = dagRunCompletedEvent({ counts })
 
     // then
-    expect(event).toEqual({ type: "dag.run.completed", counts });
-  });
+    expect(event).toEqual({ type: "dag.run.completed", counts })
+  })
 
   test("#given an error and counts #when dagRunFailedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagRunFailedEvent({ error: nodeError, counts });
+    const event = dagRunFailedEvent({ error: nodeError, counts })
 
     // then
-    expect(event).toEqual({ type: "dag.run.failed", error: nodeError, counts });
-  });
+    expect(event).toEqual({ type: "dag.run.failed", error: nodeError, counts })
+  })
 
   test("#given a reason and counts #when dagRunCancelledEvent #then spec-shaped payload", () => {
     // when
-    const event = dagRunCancelledEvent({ reason: "user", counts });
+    const event = dagRunCancelledEvent({ reason: "user", counts })
 
     // then
-    expect(event).toEqual({
-      type: "dag.run.cancelled",
-      reason: "user",
-      counts,
-    });
-  });
+    expect(event).toEqual({ type: "dag.run.cancelled", reason: "user", counts })
+  })
 
   test("#given a wave #when dagWaveStartedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagWaveStartedEvent({
-      waveIndex: 1,
-      nodeIds: [nodeA, nodeB],
-    });
+    const event = dagWaveStartedEvent({ waveIndex: 1, nodeIds: [nodeA, nodeB] })
 
     // then
-    expect(event).toEqual({
-      type: "dag.wave.started",
-      waveIndex: 1,
-      nodeIds: [nodeA, nodeB],
-    });
-  });
+    expect(event).toEqual({ type: "dag.wave.started", waveIndex: 1, nodeIds: [nodeA, nodeB] })
+  })
 
   test("#given a wave #when dagWaveCompletedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagWaveCompletedEvent({ waveIndex: 0, nodeIds: [nodeA] });
+    const event = dagWaveCompletedEvent({ waveIndex: 0, nodeIds: [nodeA] })
 
     // then
-    expect(event).toEqual({
-      type: "dag.wave.completed",
-      waveIndex: 0,
-      nodeIds: [nodeA],
-    });
-  });
+    expect(event).toEqual({ type: "dag.wave.completed", waveIndex: 0, nodeIds: [nodeA] })
+  })
 
   test("#given a transition #when dagNodeTransitionedEvent #then spec-shaped payload", () => {
     // when
@@ -191,7 +173,7 @@ describe("dag event builders", () => {
       from: "blocked",
       to: "scheduled",
       reason: { kind: "unblocked" },
-    });
+    })
 
     // then
     expect(event).toEqual({
@@ -200,16 +182,12 @@ describe("dag event builders", () => {
       from: "blocked",
       to: "scheduled",
       reason: { kind: "unblocked" },
-    });
-  });
+    })
+  })
 
   test("#given a task attach #when dagNodeTaskAttachedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagNodeTaskAttachedEvent({
-      nodeId: nodeA,
-      taskId: "task-1",
-      attempt: 1,
-    });
+    const event = dagNodeTaskAttachedEvent({ nodeId: nodeA, taskId: "task-1", attempt: 1 })
 
     // then
     expect(event).toEqual({
@@ -217,16 +195,12 @@ describe("dag event builders", () => {
       nodeId: nodeA,
       taskId: "task-1",
       attempt: 1,
-    });
-  });
+    })
+  })
 
   test("#given a reuse source #when dagNodeReusedEvent #then spec-shaped payload", () => {
     // when
-    const event = dagNodeReusedEvent({
-      nodeId: nodeB,
-      taskId: "task-9",
-      sourceRunId: runId,
-    });
+    const event = dagNodeReusedEvent({ nodeId: nodeB, taskId: "task-9", sourceRunId: runId })
 
     // then
     expect(event).toEqual({
@@ -234,8 +208,8 @@ describe("dag event builders", () => {
       nodeId: nodeB,
       taskId: "task-9",
       sourceRunId: runId,
-    });
-  });
+    })
+  })
 
   test("#given a retry #when dagNodeRetriedEvent #then spec-shaped payload", () => {
     // when
@@ -244,7 +218,7 @@ describe("dag event builders", () => {
       priorTaskId: "task-prior",
       execAttempt: 2,
       promptChanged: true,
-    });
+    })
 
     // then
     expect(event).toEqual({
@@ -253,16 +227,12 @@ describe("dag event builders", () => {
       priorTaskId: "task-prior",
       execAttempt: 2,
       promptChanged: true,
-    });
-  });
+    })
+  })
 
   test("#given a retry without prior task #when dagNodeRetriedEvent #then priorTaskId omitted", () => {
     // when
-    const event = dagNodeRetriedEvent({
-      nodeId: nodeA,
-      execAttempt: 1,
-      promptChanged: false,
-    });
+    const event = dagNodeRetriedEvent({ nodeId: nodeA, execAttempt: 1, promptChanged: false })
 
     // then
     expect(event).toEqual({
@@ -270,16 +240,12 @@ describe("dag event builders", () => {
       nodeId: nodeA,
       execAttempt: 1,
       promptChanged: false,
-    });
-  });
+    })
+  })
 
   test("#given a steer delivery #when dagNodeSteeredEvent #then spec-shaped payload", () => {
     // when
-    const event = dagNodeSteeredEvent({
-      nodeId: nodeA,
-      taskId: "task-1",
-      delivery: "steer",
-    });
+    const event = dagNodeSteeredEvent({ nodeId: nodeA, taskId: "task-1", delivery: "steer" })
 
     // then
     expect(event).toEqual({
@@ -287,16 +253,12 @@ describe("dag event builders", () => {
       nodeId: nodeA,
       taskId: "task-1",
       delivery: "steer",
-    });
-  });
+    })
+  })
 
   test("#given a revive delivery #when dagNodeSteeredEvent #then spec-shaped payload", () => {
     // when
-    const event = dagNodeSteeredEvent({
-      nodeId: nodeB,
-      taskId: "task-2",
-      delivery: "revive",
-    });
+    const event = dagNodeSteeredEvent({ nodeId: nodeB, taskId: "task-2", delivery: "revive" })
 
     // then
     expect(event).toEqual({
@@ -304,8 +266,8 @@ describe("dag event builders", () => {
       nodeId: nodeB,
       taskId: "task-2",
       delivery: "revive",
-    });
-  });
+    })
+  })
 
   test("#given an amendment #when dagDefinitionAmendedEvent #then spec-shaped payload", () => {
     // when
@@ -315,7 +277,7 @@ describe("dag event builders", () => {
       changedNodeIds: [nodeA],
       addedNodeIds: [nodeB],
       invalidatedNodeIds: [nodeA, nodeB],
-    });
+    })
 
     // then
     expect(event).toEqual({
@@ -325,8 +287,8 @@ describe("dag event builders", () => {
       changedNodeIds: [nodeA],
       addedNodeIds: [nodeB],
       invalidatedNodeIds: [nodeA, nodeB],
-    });
-  });
+    })
+  })
 
   test("#given a diagnostic #when dagDiagnosticAddedEvent #then spec-shaped payload", () => {
     // given
@@ -334,29 +296,22 @@ describe("dag event builders", () => {
       kind: "run_flag" as const,
       message: "heads up",
       at: "2026-01-01T00:00:00.000Z",
-    };
+    }
 
     // when
-    const event = dagDiagnosticAddedEvent({ diagnostic });
+    const event = dagDiagnosticAddedEvent({ diagnostic })
 
     // then
-    expect(event).toEqual({ type: "dag.diagnostic.added", diagnostic });
-  });
+    expect(event).toEqual({ type: "dag.diagnostic.added", diagnostic })
+  })
 
   test("#given an overflow #when dagStreamOverflowEvent #then spec-shaped payload", () => {
     // when
-    const event = dagStreamOverflowEvent({
-      droppedCount: 5,
-      recoverAfterSeq: 42,
-    });
+    const event = dagStreamOverflowEvent({ droppedCount: 5, recoverAfterSeq: 42 })
 
     // then
-    expect(event).toEqual({
-      type: "dag.stream.overflow",
-      droppedCount: 5,
-      recoverAfterSeq: 42,
-    });
-  });
+    expect(event).toEqual({ type: "dag.stream.overflow", droppedCount: 5, recoverAfterSeq: 42 })
+  })
 
   test("#given any builder output #when inspected #then no envelope seq or at is assigned here", () => {
     // when
@@ -384,11 +339,7 @@ describe("dag event builders", () => {
       }),
       dagNodeTaskAttachedEvent({ nodeId: nodeA, taskId: "t", attempt: 1 }),
       dagNodeReusedEvent({ nodeId: nodeA, taskId: "t", sourceRunId: runId }),
-      dagNodeRetriedEvent({
-        nodeId: nodeA,
-        execAttempt: 1,
-        promptChanged: false,
-      }),
+      dagNodeRetriedEvent({ nodeId: nodeA, execAttempt: 1, promptChanged: false }),
       dagNodeSteeredEvent({ nodeId: nodeA, taskId: "t", delivery: "steer" }),
       dagDefinitionAmendedEvent({
         previousFingerprint: "fp-old",
@@ -398,21 +349,17 @@ describe("dag event builders", () => {
         invalidatedNodeIds: [nodeA],
       }),
       dagDiagnosticAddedEvent({
-        diagnostic: {
-          kind: "run_flag",
-          message: "m",
-          at: "2026-01-01T00:00:00.000Z",
-        },
+        diagnostic: { kind: "run_flag", message: "m", at: "2026-01-01T00:00:00.000Z" },
       }),
       dagStreamOverflowEvent({ droppedCount: 1, recoverAfterSeq: 0 }),
-    ];
+    ]
 
     // then: seq/at/lane are the WAL writer's job, never the builders'
     for (const event of events) {
-      expect(event).not.toHaveProperty("seq");
-      expect(event).not.toHaveProperty("at");
-      expect(event).not.toHaveProperty("lane");
-      expect(event).not.toHaveProperty("runId");
+      expect(event).not.toHaveProperty("seq")
+      expect(event).not.toHaveProperty("at")
+      expect(event).not.toHaveProperty("lane")
+      expect(event).not.toHaveProperty("runId")
     }
-  });
-});
+  })
+})

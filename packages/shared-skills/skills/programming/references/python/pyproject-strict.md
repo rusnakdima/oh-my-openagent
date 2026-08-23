@@ -1,7 +1,6 @@
 # Strict pyproject.toml (basedpyright + ruff + uv)
 
-The canonical "super strict but sane" config for modern Python projects.
-Copy-paste, then add your own dependencies.
+The canonical "super strict but sane" config for modern Python projects. Copy-paste, then add your own dependencies.
 
 ## Bootstrap
 
@@ -18,8 +17,7 @@ cd mylibrary
 uv add --dev basedpyright ruff pytest
 ```
 
-`uv init` creates `pyproject.toml`, `.python-version`, and `src/` layout.
-Replace its `pyproject.toml` `[tool.*]` sections with the block below.
+`uv init` creates `pyproject.toml`, `.python-version`, and `src/` layout. Replace its `pyproject.toml` `[tool.*]` sections with the block below.
 
 ## The full pyproject.toml
 
@@ -167,46 +165,35 @@ exclude_lines = [
 
 basedpyright's modes, strictest first:
 
-| Mode                | Behavior                                                                               |
-| ------------------- | -------------------------------------------------------------------------------------- |
-| `"all"`             | Every diagnostic at `error`                                                            |
-| `"recommended"`     | Same rules; less severe ones at `warning`; `failOnWarnings = true` makes CI still fail |
-| `"strict"`          | pyright's strict mode                                                                  |
-| `"standard"`        | Default                                                                                |
-| `"basic"` / `"off"` | Loose / disabled                                                                       |
+| Mode | Behavior |
+|---|---|
+| `"all"` | Every diagnostic at `error` |
+| `"recommended"` | Same rules; less severe ones at `warning`; `failOnWarnings = true` makes CI still fail |
+| `"strict"` | pyright's strict mode |
+| `"standard"` | Default |
+| `"basic"` / `"off"` | Loose / disabled |
 
-`"all"` enables basedpyright-exclusive rules pyright lacks:
-`reportImplicitOverride`, `reportImplicitStringConcatenation`,
-`reportIncompatibleUnannotatedOverride`, `reportUnannotatedClassAttribute`. No
-need to opt-in to additional flags.
+`"all"` enables basedpyright-exclusive rules pyright lacks: `reportImplicitOverride`, `reportImplicitStringConcatenation`, `reportIncompatibleUnannotatedOverride`, `reportUnannotatedClassAttribute`. No need to opt-in to additional flags.
 
-`pythonPlatform = "All"` is basedpyright's default (better than pyright's
-host-OS default) - it errors on platform-specific imports that fail on other
-OSes.
+`pythonPlatform = "All"` is basedpyright's default (better than pyright's host-OS default) - it errors on platform-specific imports that fail on other OSes.
 
 ### ruff `select = ["ALL"]`
 
-The official docs say _"Use ALL with discretion. Enabling ALL will implicitly
-enable new rules whenever you upgrade."_ For a strict skill that is the intended
-behavior - every new ruff rule should be considered an error until you justify
-ignoring it.
+The official docs say *"Use ALL with discretion. Enabling ALL will implicitly enable new rules whenever you upgrade."* For a strict skill that is the intended behavior - every new ruff rule should be considered an error until you justify ignoring it.
 
 The minimal ignore set:
 
-| Rule                               | Reason                                                             |
-| ---------------------------------- | ------------------------------------------------------------------ |
-| `COM812`, `ISC001`                 | Conflict with `ruff format` (ruff itself documents this)           |
-| `D203` vs `D211`, `D213` vs `D212` | Mutually-exclusive docstring conventions; pick the modern one      |
-| `CPY001`                           | Most projects don't need a copyright header on every file          |
-| `FBT001`, `FBT002`                 | Boolean flags are ergonomic for CLI/typer; ban makes typer awkward |
-| `TD002`, `TD003`, `FIX002`         | TODOs without a JIRA link are fine in solo / internal code         |
+| Rule | Reason |
+|---|---|
+| `COM812`, `ISC001` | Conflict with `ruff format` (ruff itself documents this) |
+| `D203` vs `D211`, `D213` vs `D212` | Mutually-exclusive docstring conventions; pick the modern one |
+| `CPY001` | Most projects don't need a copyright header on every file |
+| `FBT001`, `FBT002` | Boolean flags are ergonomic for CLI/typer; ban makes typer awkward |
+| `TD002`, `TD003`, `FIX002` | TODOs without a JIRA link are fine in solo / internal code |
 
-`ANN101` and `ANN102` were **removed in ruff 0.8.0** (Nov 2024). Do NOT include
-them in `ignore` - ruff errors on unknown rule codes.
+`ANN101` and `ANN102` were **removed in ruff 0.8.0** (Nov 2024). Do NOT include them in `ignore` - ruff errors on unknown rule codes.
 
-`per-file-ignores` for `tests/**` is the standard pattern from real-world repos
-like `community-of-python/auto-typing-final` and
-`Preston-Landers/concurrent-log-handler`.
+`per-file-ignores` for `tests/**` is the standard pattern from real-world repos like `community-of-python/auto-typing-final` and `Preston-Landers/concurrent-log-handler`.
 
 ## CI gate
 
@@ -224,26 +211,22 @@ A single `make ci` target combining the four works fine.
 
 The config above, combined with `scripts/check-no-excuse-rules.py`, enforces:
 
-| What                  | How                                                |
-| --------------------- | -------------------------------------------------- |
-| Exhaustive match      | basedpyright `all` mode + `assert_never`           |
-| No `Any`              | basedpyright `all` mode + script `cast-any` rule   |
-| Ignored return values | `reportUnusedCallResult = "warning"`               |
-| Immutable default     | Script `mutable-dataclass` + `missing-slots` rules |
-| No null surprise      | basedpyright strict `None` analysis                |
-| Constants are const   | basedpyright catches `Final` reassignment          |
-| Unused variables      | `reportUnusedVariable = "error"`                   |
+| What | How |
+|---|---|
+| Exhaustive match | basedpyright `all` mode + `assert_never` |
+| No `Any` | basedpyright `all` mode + script `cast-any` rule |
+| Ignored return values | `reportUnusedCallResult = "warning"` |
+| Immutable default | Script `mutable-dataclass` + `missing-slots` rules |
+| No null surprise | basedpyright strict `None` analysis |
+| Constants are const | basedpyright catches `Final` reassignment |
+| Unused variables | `reportUnusedVariable = "error"` |
 
 ## Sources
 
-- basedpyright modes:
-  <https://docs.basedpyright.com/latest/configuration/config-files/#type-check-diagnostics-settings>
-- basedpyright `"all"` vs `"recommended"`:
-  <https://docs.basedpyright.com/latest/configuration/config-files/#recommended-and-all>
-- basedpyright better defaults:
-  <https://docs.basedpyright.com/latest/benefits-over-pyright/better-defaults/>
+- basedpyright modes: <https://docs.basedpyright.com/latest/configuration/config-files/#type-check-diagnostics-settings>
+- basedpyright `"all"` vs `"recommended"`: <https://docs.basedpyright.com/latest/configuration/config-files/#recommended-and-all>
+- basedpyright better defaults: <https://docs.basedpyright.com/latest/benefits-over-pyright/better-defaults/>
 - ruff rule selection: <https://docs.astral.sh/ruff/linter/#rule-selection>
 - ruff ANN101/ANN102 removed: <https://github.com/astral-sh/ruff/pull/14384>
-- Real-world ALL config:
-  <https://github.com/community-of-python/auto-typing-final/blob/main/pyproject.toml>
+- Real-world ALL config: <https://github.com/community-of-python/auto-typing-final/blob/main/pyproject.toml>
 - PEP 735 dependency-groups: <https://peps.python.org/pep-0735/>

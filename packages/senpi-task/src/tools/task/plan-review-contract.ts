@@ -1,10 +1,7 @@
-import {
-  EMPTY_SKILL_INVOCATIONS,
-  interactionPolicyForAgent,
-} from "../../agents";
-import type { PlanArtifactReference, SkillInvocationState } from "../../agents";
+import { EMPTY_SKILL_INVOCATIONS, interactionPolicyForAgent } from "../../agents"
+import type { PlanArtifactReference, SkillInvocationState } from "../../agents"
 
-import type { TaskToolDeps } from "./types";
+import type { TaskToolDeps } from "./types"
 
 // The plan-review prompt contract for one-shot review agents (momus): whatever the caller asked,
 // the child receives EXACTLY one canonical sentence carrying one .omo/plans/*.md path - no claims,
@@ -13,75 +10,62 @@ import type { TaskToolDeps } from "./types";
 // otherwise the spawn is denied. The deny branch is defensive: through the real tool path the
 // plan gate (requiresPlanArtifact) fires first, so a passing session always has references.
 
-const PLAN_PATH_GLOBAL =
-  /[^\s"'`()\[\]]*\.omo[\\/]plans[\\/][^\s"'`()\[\]/\\]+\.md/gi;
+const PLAN_PATH_GLOBAL = /[^\s"'`()\[\]]*\.omo[\\/]plans[\\/][^\s"'`()\[\]/\\]+\.md/gi
 
 export const PLAN_REVIEW_DENY_MESSAGE =
-  "momus requires exactly one .omo/plans/*.md path: include the plan path in the prompt, or touch the plan file in this session first.";
+  "momus requires exactly one .omo/plans/*.md path: include the plan path in the prompt, or touch the plan file in this session first."
 
 export function extractPlanPaths(text: string): readonly string[] {
-  const seen = new Set<string>();
-  const paths: string[] = [];
+  const seen = new Set<string>()
+  const paths: string[] = []
   for (const match of text.matchAll(PLAN_PATH_GLOBAL)) {
-    const normalized = match[0].replace(/\\/g, "/");
-    if (seen.has(normalized)) continue;
-    seen.add(normalized);
-    paths.push(normalized);
+    const normalized = match[0].replace(/\\/g, "/")
+    if (seen.has(normalized)) continue
+    seen.add(normalized)
+    paths.push(normalized)
   }
-  return paths;
+  return paths
 }
 
-export type PlanReviewTarget =
-  | { readonly kind: "path"; readonly path: string }
-  | { readonly kind: "deny"; readonly message: string };
+export type PlanReviewTarget = { readonly kind: "path"; readonly path: string } | { readonly kind: "deny"; readonly message: string }
 
-export function resolvePlanReviewTarget(
-  callerPrompt: string,
-  state: SkillInvocationState,
-): PlanReviewTarget {
-  const references = state.planArtifactReferences();
-  const explicit = extractPlanPaths(callerPrompt);
+export function resolvePlanReviewTarget(callerPrompt: string, state: SkillInvocationState): PlanReviewTarget {
+  const references = state.planArtifactReferences()
+  const explicit = extractPlanPaths(callerPrompt)
   if (explicit.length === 1) {
-    const only = explicit[0];
-    const recorded = only !== undefined
-      ? matchRecordedReference(only, references)
-      : undefined;
-    if (recorded !== undefined) return { kind: "path", path: recorded.path };
+    const only = explicit[0]
+    const recorded = only !== undefined ? matchRecordedReference(only, references) : undefined
+    if (recorded !== undefined) return { kind: "path", path: recorded.path }
   }
-  const mostReferenced = topReference(references);
-  if (mostReferenced !== undefined) {
-    return { kind: "path", path: mostReferenced.path };
-  }
-  return { kind: "deny", message: PLAN_REVIEW_DENY_MESSAGE };
+  const mostReferenced = topReference(references)
+  if (mostReferenced !== undefined) return { kind: "path", path: mostReferenced.path }
+  return { kind: "deny", message: PLAN_REVIEW_DENY_MESSAGE }
 }
 
 // An explicit caller path is a SELECTOR over session-recorded references, never a value that
 // reaches the child: the prompt is built from the RECORDED path, so caller-controlled prefixes,
 // absolute paths, and `..` segments cannot be interpolated into the momus prompt. Identity is the
 // normalized `.omo/plans/<name>.md` suffix, which keeps worktree-rooted recordings matchable.
-function matchRecordedReference(
-  candidate: string,
-  references: readonly PlanArtifactReference[],
-): PlanArtifactReference | undefined {
-  const wanted = planSuffix(candidate);
-  if (wanted === undefined) return undefined;
-  return references.find((reference) => planSuffix(reference.path) === wanted);
+function matchRecordedReference(candidate: string, references: readonly PlanArtifactReference[]): PlanArtifactReference | undefined {
+  const wanted = planSuffix(candidate)
+  if (wanted === undefined) return undefined
+  return references.find((reference) => planSuffix(reference.path) === wanted)
 }
 
 function planSuffix(path: string): string | undefined {
-  const normalized = path.replace(/\\/g, "/");
-  const marker = ".omo/plans/";
-  const index = normalized.indexOf(marker);
-  return index === -1 ? undefined : normalized.slice(index);
+  const normalized = path.replace(/\\/g, "/")
+  const marker = ".omo/plans/"
+  const index = normalized.indexOf(marker)
+  return index === -1 ? undefined : normalized.slice(index)
 }
 
 export function buildPlanReviewPrompt(path: string): string {
-  return `Review the work plan at ${path} for contradictions and blocking issues.`;
+  return `Review the work plan at ${path} for contradictions and blocking issues.`
 }
 
 export type PlanReviewContractOutcome =
   | { readonly kind: "prompt"; readonly prompt: string }
-  | { readonly kind: "deny"; readonly message: string };
+  | { readonly kind: "deny"; readonly message: string }
 
 // Tool-layer bridge mirroring invocation-gate.ts: returns undefined when the target agent carries
 // no plan-review contract (passthrough), otherwise the forced prompt or the denial. A missing
@@ -93,28 +77,19 @@ export function planReviewContractOutcome(
   callerPrompt: string,
   sessionId: string,
 ): PlanReviewContractOutcome | undefined {
-  if (
-    interactionPolicyForAgent(subagentType)?.promptContract !== "plan-review"
-  ) return undefined;
-  const state = deps.resolveSkillInvocations?.(sessionId) ??
-    EMPTY_SKILL_INVOCATIONS;
-  const target = resolvePlanReviewTarget(callerPrompt, state);
-  if (target.kind === "deny") return { kind: "deny", message: target.message };
-  return { kind: "prompt", prompt: buildPlanReviewPrompt(target.path) };
+  if (interactionPolicyForAgent(subagentType)?.promptContract !== "plan-review") return undefined
+  const state = deps.resolveSkillInvocations?.(sessionId) ?? EMPTY_SKILL_INVOCATIONS
+  const target = resolvePlanReviewTarget(callerPrompt, state)
+  if (target.kind === "deny") return { kind: "deny", message: target.message }
+  return { kind: "prompt", prompt: buildPlanReviewPrompt(target.path) }
 }
 
-function topReference(
-  references: readonly PlanArtifactReference[],
-): PlanArtifactReference | undefined {
-  let top: PlanArtifactReference | undefined;
+function topReference(references: readonly PlanArtifactReference[]): PlanArtifactReference | undefined {
+  let top: PlanArtifactReference | undefined
   for (const reference of references) {
-    if (
-      top === undefined || reference.count > top.count ||
-      (reference.count === top.count &&
-        reference.lastTouchedAt > top.lastTouchedAt)
-    ) {
-      top = reference;
+    if (top === undefined || reference.count > top.count || (reference.count === top.count && reference.lastTouchedAt > top.lastTouchedAt)) {
+      top = reference
     }
   }
-  return top;
+  return top
 }

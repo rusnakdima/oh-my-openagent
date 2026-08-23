@@ -10,13 +10,9 @@ This project treats model capability resolution as a layered system:
 ## Internal policy
 
 - Built-in OmO agent/category requirement models must use canonical model IDs.
-- Aliases exist only to preserve compatibility with historical OmO names or
-  provider-specific decorations.
-- New decorated names like `-high`, `-low`, or `-thinking` should not be added
-  to built-in requirements when a canonical model ID plus structured settings
-  can express the same thing.
-- If a provider or config input still uses an alias, normalize it at the edge
-  and continue internally with the canonical ID.
+- Aliases exist only to preserve compatibility with historical OmO names or provider-specific decorations.
+- New decorated names like `-high`, `-low`, or `-thinking` should not be added to built-in requirements when a canonical model ID plus structured settings can express the same thing.
+- If a provider or config input still uses an alias, normalize it at the edge and continue internally with the canonical ID.
 
 ## When adding an alias
 
@@ -34,5 +30,4 @@ This project treats model capability resolution as a layered system:
 - pattern aliases must not rewrite canonical snapshot IDs
 - built-in requirement models must stay canonical and snapshot-backed
 
-The scheduled `refresh-model-capabilities` workflow runs these guardrails before
-opening an automated snapshot refresh PR.
+The scheduled `refresh-model-capabilities` workflow runs these guardrails before opening an automated snapshot refresh PR.

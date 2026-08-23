@@ -1,118 +1,108 @@
-import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test"
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
-import { OhMyOpenCodeConfigSchema } from "../config";
-import * as mcpLoader from "../features/claude-code-mcp-loader";
-import * as skillLoader from "../features/opencode-skill-loader";
-import * as opencodeConfigDir from "../shared/opencode-config-dir";
-import { createSkillContext } from "./skill-context";
+import { OhMyOpenCodeConfigSchema } from "../config"
+import * as mcpLoader from "../features/claude-code-mcp-loader"
+import * as skillLoader from "../features/opencode-skill-loader"
+import * as opencodeConfigDir from "../shared/opencode-config-dir"
+import { createSkillContext } from "./skill-context"
 
 describe("createSkillContext", () => {
-  const testDirectory = join(tmpdir(), `skill-context-test-${Date.now()}`);
+  const testDirectory = join(tmpdir(), `skill-context-test-${Date.now()}`)
   // Isolated "global" opencode config dir so the developer's real
   // ~/.config/opencode/opencode.jsonc never leaks into these tests.
-  let mockGlobalConfigDir: string;
-  let getOpenCodeConfigDirSpy: ReturnType<typeof spyOn>;
+  let mockGlobalConfigDir: string
+  let getOpenCodeConfigDirSpy: ReturnType<typeof spyOn>
 
   beforeEach(() => {
-    mkdirSync(testDirectory, { recursive: true });
-    mockGlobalConfigDir = mkdtempSync(join(tmpdir(), "skill-context-global-"));
-    getOpenCodeConfigDirSpy = spyOn(opencodeConfigDir, "getOpenCodeConfigDir")
-      .mockReturnValue(
-        mockGlobalConfigDir,
-      );
-  });
+    mkdirSync(testDirectory, { recursive: true })
+    mockGlobalConfigDir = mkdtempSync(join(tmpdir(), "skill-context-global-"))
+    getOpenCodeConfigDirSpy = spyOn(opencodeConfigDir, "getOpenCodeConfigDir").mockReturnValue(
+      mockGlobalConfigDir,
+    )
+  })
 
   afterEach(() => {
-    getOpenCodeConfigDirSpy.mockRestore();
-    rmSync(testDirectory, { recursive: true, force: true });
-    rmSync(mockGlobalConfigDir, { recursive: true, force: true });
-  });
+    getOpenCodeConfigDirSpy.mockRestore()
+    rmSync(testDirectory, { recursive: true, force: true })
+    rmSync(mockGlobalConfigDir, { recursive: true, force: true })
+  })
 
   it("exposes security skills to the OMO skill tool context", async () => {
     // given
     const discoverConfigSourceSkillsSpy = spyOn(
       skillLoader,
       "discoverConfigSourceSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverUserClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverUserClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeGlobalSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeGlobalSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeProjectSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeProjectSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverGlobalAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverGlobalAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const getSystemMcpServerNamesSpy = spyOn(
       mcpLoader,
       "getSystemMcpServerNames",
-    ).mockReturnValue(new Set<string>());
+    ).mockReturnValue(new Set<string>())
 
-    const pluginConfig = OhMyOpenCodeConfigSchema.parse({});
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({})
 
     try {
       // when
       const result = await createSkillContext({
         directory: testDirectory,
         pluginConfig,
-      });
+      })
 
       // then
-      expect(
-        result.mergedSkills.some((skill) => skill.name === "security-research"),
-      ).toBe(true);
-      expect(
-        result.mergedSkills.some((skill) => skill.name === "security-review"),
-      ).toBe(true);
+      expect(result.mergedSkills.some((skill) => skill.name === "security-research")).toBe(true)
+      expect(result.mergedSkills.some((skill) => skill.name === "security-review")).toBe(true)
       expect(result.availableSkills).toContainEqual({
         name: "security-research",
         description: expect.stringContaining("security research"),
         location: "plugin",
-      });
+      })
       expect(result.availableSkills).toContainEqual({
         name: "security-review",
         description: expect.stringContaining("/security-review"),
         location: "plugin",
-      });
+      })
     } finally {
-      discoverConfigSourceSkillsSpy.mockRestore();
-      discoverUserClaudeSkillsSpy.mockRestore();
-      discoverProjectClaudeSkillsSpy.mockRestore();
-      discoverOpencodeGlobalSkillsSpy.mockRestore();
-      discoverOpencodeProjectSkillsSpy.mockRestore();
-      discoverProjectAgentsSkillsSpy.mockRestore();
-      discoverGlobalAgentsSkillsSpy.mockRestore();
-      getSystemMcpServerNamesSpy.mockRestore();
+      discoverConfigSourceSkillsSpy.mockRestore()
+      discoverUserClaudeSkillsSpy.mockRestore()
+      discoverProjectClaudeSkillsSpy.mockRestore()
+      discoverOpencodeGlobalSkillsSpy.mockRestore()
+      discoverOpencodeProjectSkillsSpy.mockRestore()
+      discoverProjectAgentsSkillsSpy.mockRestore()
+      discoverGlobalAgentsSkillsSpy.mockRestore()
+      getSystemMcpServerNamesSpy.mockRestore()
     }
-  });
+  })
 
   it("excludes discovered playwright skill when browser provider is agent-browser", async () => {
     // given
-    const discoveredPlaywrightDir = join(
-      testDirectory,
-      ".claude",
-      "skills",
-      "playwright",
-    );
-    mkdirSync(discoveredPlaywrightDir, { recursive: true });
+    const discoveredPlaywrightDir = join(testDirectory, ".claude", "skills", "playwright")
+    mkdirSync(discoveredPlaywrightDir, { recursive: true })
     writeFileSync(
       join(discoveredPlaywrightDir, "SKILL.md"),
       [
@@ -123,69 +113,64 @@ describe("createSkillContext", () => {
         "Discovered playwright body.",
         "",
       ].join("\n"),
-    );
+    )
 
     const discoverConfigSourceSkillsSpy = spyOn(
       skillLoader,
       "discoverConfigSourceSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverUserClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverUserClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeGlobalSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeGlobalSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverGlobalAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverGlobalAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const getSystemMcpServerNamesSpy = spyOn(
       mcpLoader,
       "getSystemMcpServerNames",
-    ).mockReturnValue(new Set<string>());
+    ).mockReturnValue(new Set<string>())
 
     const pluginConfig = OhMyOpenCodeConfigSchema.parse({
       browser_automation_engine: { provider: "agent-browser" },
-    });
+    })
 
     try {
       // when
       const result = await createSkillContext({
         directory: testDirectory,
         pluginConfig,
-      });
+      })
 
       // then
-      expect(result.browserProvider).toBe("agent-browser");
-      expect(
-        result.mergedSkills.some((skill) => skill.name === "agent-browser"),
-      ).toBe(true);
-      expect(result.mergedSkills.some((skill) => skill.name === "playwright"))
-        .toBe(false);
-      expect(
-        result.availableSkills.some((skill) => skill.name === "playwright"),
-      ).toBe(false);
+      expect(result.browserProvider).toBe("agent-browser")
+      expect(result.mergedSkills.some((skill) => skill.name === "agent-browser")).toBe(true)
+      expect(result.mergedSkills.some((skill) => skill.name === "playwright")).toBe(false)
+      expect(result.availableSkills.some((skill) => skill.name === "playwright")).toBe(false)
     } finally {
-      discoverConfigSourceSkillsSpy.mockRestore();
-      discoverUserClaudeSkillsSpy.mockRestore();
-      discoverOpencodeGlobalSkillsSpy.mockRestore();
-      discoverProjectAgentsSkillsSpy.mockRestore();
-      discoverGlobalAgentsSkillsSpy.mockRestore();
-      getSystemMcpServerNamesSpy.mockRestore();
+      discoverConfigSourceSkillsSpy.mockRestore()
+      discoverUserClaudeSkillsSpy.mockRestore()
+      discoverOpencodeGlobalSkillsSpy.mockRestore()
+      discoverProjectAgentsSkillsSpy.mockRestore()
+      discoverGlobalAgentsSkillsSpy.mockRestore()
+      getSystemMcpServerNamesSpy.mockRestore()
     }
-  });
+  })
 
   it("discovers skills from host opencode.jsonc skills.paths", async () => {
     // given - a host-config skill registered via opencode.jsonc skills.paths
-    const hostSkillsDir = join(testDirectory, "host-skills");
-    const hostSkillDir = join(hostSkillsDir, "host-skill");
-    mkdirSync(hostSkillDir, { recursive: true });
+    const hostSkillsDir = join(testDirectory, "host-skills")
+    const hostSkillDir = join(hostSkillsDir, "host-skill")
+    mkdirSync(hostSkillDir, { recursive: true })
     writeFileSync(
       join(hostSkillDir, "SKILL.md"),
       [
@@ -196,77 +181,74 @@ describe("createSkillContext", () => {
         "Host skill body.",
         "",
       ].join("\n"),
-    );
+    )
 
-    const opencodeDir = join(testDirectory, ".opencode");
-    mkdirSync(opencodeDir, { recursive: true });
+    const opencodeDir = join(testDirectory, ".opencode")
+    mkdirSync(opencodeDir, { recursive: true })
     writeFileSync(
       join(opencodeDir, "opencode.jsonc"),
       JSON.stringify({ skills: { paths: [hostSkillsDir] } }),
-    );
+    )
 
     const discoverUserClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverUserClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeGlobalSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeGlobalSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeProjectSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeProjectSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverGlobalAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverGlobalAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const getSystemMcpServerNamesSpy = spyOn(
       mcpLoader,
       "getSystemMcpServerNames",
-    ).mockReturnValue(new Set<string>());
+    ).mockReturnValue(new Set<string>())
 
-    const pluginConfig = OhMyOpenCodeConfigSchema.parse({});
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({})
 
     try {
       // when
       const result = await createSkillContext({
         directory: testDirectory,
         pluginConfig,
-      });
+      })
 
       // then
-      expect(result.mergedSkills.some((skill) => skill.name === "host-skill"))
-        .toBe(true);
-      expect(
-        result.availableSkills.some((skill) => skill.name === "host-skill"),
-      ).toBe(true);
+      expect(result.mergedSkills.some((skill) => skill.name === "host-skill")).toBe(true)
+      expect(result.availableSkills.some((skill) => skill.name === "host-skill")).toBe(true)
     } finally {
-      discoverUserClaudeSkillsSpy.mockRestore();
-      discoverProjectClaudeSkillsSpy.mockRestore();
-      discoverOpencodeGlobalSkillsSpy.mockRestore();
-      discoverOpencodeProjectSkillsSpy.mockRestore();
-      discoverProjectAgentsSkillsSpy.mockRestore();
-      discoverGlobalAgentsSkillsSpy.mockRestore();
-      getSystemMcpServerNamesSpy.mockRestore();
+      discoverUserClaudeSkillsSpy.mockRestore()
+      discoverProjectClaudeSkillsSpy.mockRestore()
+      discoverOpencodeGlobalSkillsSpy.mockRestore()
+      discoverOpencodeProjectSkillsSpy.mockRestore()
+      discoverProjectAgentsSkillsSpy.mockRestore()
+      discoverGlobalAgentsSkillsSpy.mockRestore()
+      getSystemMcpServerNamesSpy.mockRestore()
     }
-  });
+  })
 
   it("sources host skill MCPs from the runtime hostSkills arg (not on-disk config)", async () => {
     // given - a skill with an embedded mcp, registered only via the runtime
     // hostSkills arg (as a plugin like claude-bridge injects at runtime), with
     // NOTHING on disk.
-    const runtimeSkillsDir = join(testDirectory, "runtime-skills");
-    const runtimeSkillDir = join(runtimeSkillsDir, "runtime-host-skill");
-    mkdirSync(runtimeSkillDir, { recursive: true });
+    const runtimeSkillsDir = join(testDirectory, "runtime-skills")
+    const runtimeSkillDir = join(runtimeSkillsDir, "runtime-host-skill")
+    mkdirSync(runtimeSkillDir, { recursive: true })
     writeFileSync(
       join(runtimeSkillDir, "SKILL.md"),
       [
@@ -281,43 +263,22 @@ describe("createSkillContext", () => {
         "Body.",
         "",
       ].join("\n"),
-    );
+    )
 
     // on-disk config returns nothing: proves the runtime arg is the source.
     const readOpencodeConfigSkillsSpy = spyOn(
       skillLoader,
       "readOpencodeConfigSkills",
-    ).mockReturnValue(undefined);
-    const discoverUserClaudeSkillsSpy = spyOn(
-      skillLoader,
-      "discoverUserClaudeSkills",
-    ).mockResolvedValue([]);
-    const discoverProjectClaudeSkillsSpy = spyOn(
-      skillLoader,
-      "discoverProjectClaudeSkills",
-    ).mockResolvedValue([]);
-    const discoverOpencodeGlobalSkillsSpy = spyOn(
-      skillLoader,
-      "discoverOpencodeGlobalSkills",
-    ).mockResolvedValue([]);
-    const discoverOpencodeProjectSkillsSpy = spyOn(
-      skillLoader,
-      "discoverOpencodeProjectSkills",
-    ).mockResolvedValue([]);
-    const discoverProjectAgentsSkillsSpy = spyOn(
-      skillLoader,
-      "discoverProjectAgentsSkills",
-    ).mockResolvedValue([]);
-    const discoverGlobalAgentsSkillsSpy = spyOn(
-      skillLoader,
-      "discoverGlobalAgentsSkills",
-    ).mockResolvedValue([]);
-    const getSystemMcpServerNamesSpy = spyOn(
-      mcpLoader,
-      "getSystemMcpServerNames",
-    ).mockReturnValue(new Set<string>());
+    ).mockReturnValue(undefined)
+    const discoverUserClaudeSkillsSpy = spyOn(skillLoader, "discoverUserClaudeSkills").mockResolvedValue([])
+    const discoverProjectClaudeSkillsSpy = spyOn(skillLoader, "discoverProjectClaudeSkills").mockResolvedValue([])
+    const discoverOpencodeGlobalSkillsSpy = spyOn(skillLoader, "discoverOpencodeGlobalSkills").mockResolvedValue([])
+    const discoverOpencodeProjectSkillsSpy = spyOn(skillLoader, "discoverOpencodeProjectSkills").mockResolvedValue([])
+    const discoverProjectAgentsSkillsSpy = spyOn(skillLoader, "discoverProjectAgentsSkills").mockResolvedValue([])
+    const discoverGlobalAgentsSkillsSpy = spyOn(skillLoader, "discoverGlobalAgentsSkills").mockResolvedValue([])
+    const getSystemMcpServerNamesSpy = spyOn(mcpLoader, "getSystemMcpServerNames").mockReturnValue(new Set<string>())
 
-    const pluginConfig = OhMyOpenCodeConfigSchema.parse({});
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({})
 
     try {
       // when - hostSkills is provided, as createTools does from the runtime config
@@ -325,29 +286,25 @@ describe("createSkillContext", () => {
         directory: testDirectory,
         pluginConfig,
         hostSkills: { paths: [runtimeSkillsDir] },
-      });
+      })
 
       // then - the skill is discovered AND its embedded mcp survives into mergedSkills
-      const skill = result.mergedSkills.find((s) =>
-        s.name === "runtime-host-skill"
-      );
-      expect(skill).toBeDefined();
-      expect(Boolean(skill?.mcpConfig && "testmcp" in skill.mcpConfig)).toBe(
-        true,
-      );
+      const skill = result.mergedSkills.find((s) => s.name === "runtime-host-skill")
+      expect(skill).toBeDefined()
+      expect(Boolean(skill?.mcpConfig && "testmcp" in skill.mcpConfig)).toBe(true)
       // and the on-disk reader was bypassed entirely
-      expect(readOpencodeConfigSkillsSpy).not.toHaveBeenCalled();
+      expect(readOpencodeConfigSkillsSpy).not.toHaveBeenCalled()
     } finally {
-      readOpencodeConfigSkillsSpy.mockRestore();
-      discoverUserClaudeSkillsSpy.mockRestore();
-      discoverProjectClaudeSkillsSpy.mockRestore();
-      discoverOpencodeGlobalSkillsSpy.mockRestore();
-      discoverOpencodeProjectSkillsSpy.mockRestore();
-      discoverProjectAgentsSkillsSpy.mockRestore();
-      discoverGlobalAgentsSkillsSpy.mockRestore();
-      getSystemMcpServerNamesSpy.mockRestore();
+      readOpencodeConfigSkillsSpy.mockRestore()
+      discoverUserClaudeSkillsSpy.mockRestore()
+      discoverProjectClaudeSkillsSpy.mockRestore()
+      discoverOpencodeGlobalSkillsSpy.mockRestore()
+      discoverOpencodeProjectSkillsSpy.mockRestore()
+      discoverProjectAgentsSkillsSpy.mockRestore()
+      discoverGlobalAgentsSkillsSpy.mockRestore()
+      getSystemMcpServerNamesSpy.mockRestore()
     }
-  });
+  })
 
   it("excludes discovered dev-browser skill when browser provider is playwright", async () => {
     // given
@@ -355,81 +312,72 @@ describe("createSkillContext", () => {
       name: "dev-browser",
       definition: { description: "Discovered dev-browser skill" },
       scope: "user" as const,
-    };
+    }
 
     const discoverConfigSourceSkillsSpy = spyOn(
       skillLoader,
       "discoverConfigSourceSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverUserClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverUserClaudeSkills",
-    ).mockResolvedValue([discoveredDevBrowserSkill]);
+    ).mockResolvedValue([discoveredDevBrowserSkill])
     const discoverProjectClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeGlobalSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeGlobalSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverGlobalAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverGlobalAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const getSystemMcpServerNamesSpy = spyOn(
       mcpLoader,
       "getSystemMcpServerNames",
-    ).mockReturnValue(new Set<string>());
+    ).mockReturnValue(new Set<string>())
 
     const pluginConfig = OhMyOpenCodeConfigSchema.parse({
       browser_automation_engine: {
         provider: "playwright",
-        playwright_mcp_args: [
-          "--headless",
-          "--executable-path",
-          "/opt/chromium/chrome",
-        ],
+        playwright_mcp_args: ["--headless", "--executable-path", "/opt/chromium/chrome"],
       },
-    });
+    })
 
     try {
       // when
       const result = await createSkillContext({
         directory: testDirectory,
         pluginConfig,
-      });
+      })
 
       // then
-      expect(result.browserProvider).toBe("playwright");
-      const playwright = result.mergedSkills.find((skill) =>
-        skill.name === "playwright"
-      );
+      expect(result.browserProvider).toBe("playwright")
+      const playwright = result.mergedSkills.find((skill) => skill.name === "playwright")
       expect(playwright?.mcpConfig?.playwright?.args).toEqual([
         "@playwright/mcp@latest",
         "--headless",
         "--executable-path",
         "/opt/chromium/chrome",
-      ]);
-      expect(result.mergedSkills.some((skill) => skill.name === "dev-browser"))
-        .toBe(false);
-      expect(
-        result.availableSkills.some((skill) => skill.name === "dev-browser"),
-      ).toBe(false);
+      ])
+      expect(result.mergedSkills.some((skill) => skill.name === "dev-browser")).toBe(false)
+      expect(result.availableSkills.some((skill) => skill.name === "dev-browser")).toBe(false)
     } finally {
-      discoverConfigSourceSkillsSpy.mockRestore();
-      discoverUserClaudeSkillsSpy.mockRestore();
-      discoverProjectClaudeSkillsSpy.mockRestore();
-      discoverOpencodeGlobalSkillsSpy.mockRestore();
-      discoverProjectAgentsSkillsSpy.mockRestore();
-      discoverGlobalAgentsSkillsSpy.mockRestore();
-      getSystemMcpServerNamesSpy.mockRestore();
+      discoverConfigSourceSkillsSpy.mockRestore()
+      discoverUserClaudeSkillsSpy.mockRestore()
+      discoverProjectClaudeSkillsSpy.mockRestore()
+      discoverOpencodeGlobalSkillsSpy.mockRestore()
+      discoverProjectAgentsSkillsSpy.mockRestore()
+      discoverGlobalAgentsSkillsSpy.mockRestore()
+      getSystemMcpServerNamesSpy.mockRestore()
     }
-  });
+  })
 
   it("prefers host-config skill when plugin-config declares the same name", async () => {
     // given - plugin-config "shared-skill" and host-config "shared-skill"
@@ -439,79 +387,72 @@ describe("createSkillContext", () => {
       name: "shared-skill",
       definition: { description: "from plugin config" },
       scope: "config" as const,
-    };
+    }
     const hostConfigSkill = {
       name: "shared-skill",
       definition: { description: "from host opencode.jsonc" },
       scope: "config" as const,
-    };
+    }
 
-    const discoverConfigSourceSkillsSpy = spyOn(
-      skillLoader,
-      "discoverConfigSourceSkills",
-    )
+    const discoverConfigSourceSkillsSpy = spyOn(skillLoader, "discoverConfigSourceSkills")
       .mockResolvedValueOnce([pluginConfigSkill]) // first call -> plugin config
-      .mockResolvedValueOnce([hostConfigSkill]); // second call -> host config
+      .mockResolvedValueOnce([hostConfigSkill]) // second call -> host config
     const discoverUserClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverUserClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectClaudeSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectClaudeSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeGlobalSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeGlobalSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverOpencodeProjectSkillsSpy = spyOn(
       skillLoader,
       "discoverOpencodeProjectSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverProjectAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverProjectAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const discoverGlobalAgentsSkillsSpy = spyOn(
       skillLoader,
       "discoverGlobalAgentsSkills",
-    ).mockResolvedValue([]);
+    ).mockResolvedValue([])
     const readOpencodeConfigSkillsSpy = spyOn(
       skillLoader,
       "readOpencodeConfigSkills",
-    ).mockReturnValue({ paths: ["/fake/host/skills"] });
+    ).mockReturnValue({ paths: ["/fake/host/skills"] })
     const getSystemMcpServerNamesSpy = spyOn(
       mcpLoader,
       "getSystemMcpServerNames",
-    ).mockReturnValue(new Set<string>());
+    ).mockReturnValue(new Set<string>())
 
-    const pluginConfig = OhMyOpenCodeConfigSchema.parse({});
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({})
 
     try {
       // when
       const result = await createSkillContext({
         directory: testDirectory,
         pluginConfig,
-      });
+      })
 
       // then - the merged skill comes from host-config, not plugin-config
-      const sharedSkill = result.mergedSkills.find((skill) =>
-        skill.name === "shared-skill"
-      );
-      expect(sharedSkill).toBeDefined();
-      expect(sharedSkill?.definition.description).toBe(
-        "from host opencode.jsonc",
-      );
+      const sharedSkill = result.mergedSkills.find((skill) => skill.name === "shared-skill")
+      expect(sharedSkill).toBeDefined()
+      expect(sharedSkill?.definition.description).toBe("from host opencode.jsonc")
     } finally {
-      discoverConfigSourceSkillsSpy.mockRestore();
-      discoverUserClaudeSkillsSpy.mockRestore();
-      discoverProjectClaudeSkillsSpy.mockRestore();
-      discoverOpencodeGlobalSkillsSpy.mockRestore();
-      discoverOpencodeProjectSkillsSpy.mockRestore();
-      discoverProjectAgentsSkillsSpy.mockRestore();
-      discoverGlobalAgentsSkillsSpy.mockRestore();
-      readOpencodeConfigSkillsSpy.mockRestore();
-      getSystemMcpServerNamesSpy.mockRestore();
+      discoverConfigSourceSkillsSpy.mockRestore()
+      discoverUserClaudeSkillsSpy.mockRestore()
+      discoverProjectClaudeSkillsSpy.mockRestore()
+      discoverOpencodeGlobalSkillsSpy.mockRestore()
+      discoverOpencodeProjectSkillsSpy.mockRestore()
+      discoverProjectAgentsSkillsSpy.mockRestore()
+      discoverGlobalAgentsSkillsSpy.mockRestore()
+      readOpencodeConfigSkillsSpy.mockRestore()
+      getSystemMcpServerNamesSpy.mockRestore()
     }
-  });
-});
+  })
+})

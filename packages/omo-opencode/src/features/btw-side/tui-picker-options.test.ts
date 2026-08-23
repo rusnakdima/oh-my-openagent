@@ -1,7 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test"
 
-import { buildBtwPickerOptions } from "./tui-picker-options";
-import type { BtwSessionCatalog } from "./tui-session-catalog";
+import { buildBtwPickerOptions } from "./tui-picker-options"
+import type { BtwSessionCatalog } from "./tui-session-catalog"
 
 describe("buildBtwPickerOptions", () => {
   it("#given retained sides #when options build #then Main stable numbers summaries and New BTW are distinct", () => {
@@ -33,10 +33,10 @@ describe("buildBtwPickerOptions", () => {
           },
         },
       ],
-    };
+    }
 
     // when
-    const result = buildBtwPickerOptions(catalog, "ses_side_2");
+    const result = buildBtwPickerOptions(catalog, "ses_side_2")
 
     // then
     expect(result.options.map((option) => option.title)).toEqual([
@@ -44,15 +44,15 @@ describe("buildBtwPickerOptions", () => {
       "BTW #1 · first retained question",
       "BTW #2 · second retained question",
       "New BTW",
-    ]);
+    ])
     expect(result.options.map((option) => option.category)).toEqual([
       "Main conversation",
       "Retained BTW sessions",
       "Retained BTW sessions",
       "Actions",
-    ]);
-    expect(result.current).toBe("session:ses_side_2");
-  });
+    ])
+    expect(result.current).toBe("session:ses_side_2")
+  })
 
   it("#given untitled rows #when options build #then readable fallbacks replace empty labels", () => {
     // given
@@ -75,15 +75,15 @@ describe("buildBtwPickerOptions", () => {
           },
         },
       ],
-    };
+    }
 
     // when
-    const result = buildBtwPickerOptions(catalog, "ses_parent");
+    const result = buildBtwPickerOptions(catalog, "ses_parent")
 
     // then
-    expect(result.options[0]?.title).toBe("Main · Untitled conversation");
-    expect(result.options[1]?.title).toBe("BTW #1 · Untitled side");
-  });
+    expect(result.options[0]?.title).toBe("Main · Untitled conversation")
+    expect(result.options[1]?.title).toBe("BTW #1 · Untitled side")
+  })
 
   it("#given no retained sides #when options build #then an explanatory disabled row points to New BTW", () => {
     // given
@@ -97,10 +97,10 @@ describe("buildBtwPickerOptions", () => {
         },
       },
       sides: [],
-    };
+    }
 
     // when
-    const result = buildBtwPickerOptions(catalog, "ses_parent");
+    const result = buildBtwPickerOptions(catalog, "ses_parent")
 
     // then
     expect(result.options).toEqual([
@@ -114,6 +114,6 @@ describe("buildBtwPickerOptions", () => {
       expect.objectContaining({
         title: "New BTW",
       }),
-    ]);
-  });
-});
+    ])
+  })
+})

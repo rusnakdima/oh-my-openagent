@@ -5,14 +5,9 @@ description: "Escalation skill for blocked or hard-to-reach web access — load 
 
 # Ultimate Browsing
 
-Escalation web access for tasks a normal browse or fetch cannot complete. Reach
-for this skill the moment a page is blocked (WAF / 403 / Cloudflare), needs JS
-rendering, hides behind a login, or lives on a platform a generic fetcher cannot
-read. Escalate only when the cheaper tier cannot do the job:
+Escalation web access for tasks a normal browse or fetch cannot complete. Reach for this skill the moment a page is blocked (WAF / 403 / Cloudflare), needs JS rendering, hides behind a login, or lives on a platform a generic fetcher cannot read. Escalate only when the cheaper tier cannot do the job:
 
-**Tier 1 — insane-search** (headless extraction + WAF bypass) -> **Tier 1.5 —
-agent-reach** (platform-native APIs, esp. Chinese platforms) -> **Tier 2 —
-Chrome stealth** (real interaction via CloakBrowser + agent-browser).
+**Tier 1 — insane-search** (headless extraction + WAF bypass) -> **Tier 1.5 — agent-reach** (platform-native APIs, esp. Chinese platforms) -> **Tier 2 — Chrome stealth** (real interaction via CloakBrowser + agent-browser).
 
 ## PHASE 0 — ROUTE FIRST (MANDATORY)
 
@@ -37,24 +32,12 @@ User request
   +- simple search query ------------------------------ NOT this skill (use web-search)
 ```
 
-Read the matching reference before acting:
-[`references/insane-search/README.md`](references/insane-search/README.md),
-[`references/agent-reach/README.md`](references/agent-reach/README.md), or
-[`references/chrome-stealth.md`](references/chrome-stealth.md).
+Read the matching reference before acting: [`references/insane-search/README.md`](references/insane-search/README.md), [`references/agent-reach/README.md`](references/agent-reach/README.md), or [`references/chrome-stealth.md`](references/chrome-stealth.md).
 
 ## Tier 1 — insane-search (headless extraction)
 
-**When**: content extraction, blocked-URL bypass, media metadata — no browser UI
-needed. **Why first**: ~10x faster than a browser, no process spin-up; handles
-most "fetch this blocked page" requests via curl_cffi TLS impersonation, yt-dlp
-(1858 sites), official public APIs, mobile URL transforms, **Phase-2.5 surrogate
-archives** (Wayback / archive.today snapshots, provenance-tagged — see
-[`references/insane-search/cache-archive.md`](references/insane-search/cache-archive.md)),
-a key-gated Jina Reader (`JINA_API_KEY`), and a Playwright real-Chrome fallback.
-The engine lives **inside this skill** at `engine/` and is invoked as a module.
-Surrogate results are dated COPIES: a result whose `provenance` is `snapshot`
-must be reported with its `snapshot_timestamp`, never presented as the live
-page.
+**When**: content extraction, blocked-URL bypass, media metadata — no browser UI needed.
+**Why first**: ~10x faster than a browser, no process spin-up; handles most "fetch this blocked page" requests via curl_cffi TLS impersonation, yt-dlp (1858 sites), official public APIs, mobile URL transforms, **Phase-2.5 surrogate archives** (Wayback / archive.today snapshots, provenance-tagged — see [`references/insane-search/cache-archive.md`](references/insane-search/cache-archive.md)), a key-gated Jina Reader (`JINA_API_KEY`), and a Playwright real-Chrome fallback. The engine lives **inside this skill** at `engine/` and is invoked as a module. Surrogate results are dated COPIES: a result whose `provenance` is `snapshot` must be reported with its `snapshot_timestamp`, never presented as the live page.
 
 ```bash
 # Core command — auto-detects WAF, runs the full fetch grid (run from the skill dir):
@@ -69,36 +52,24 @@ yt-dlp --write-sub --write-auto-sub --sub-lang "en,ko" --skip-download -o "/tmp/
 # references/insane-search/README.md (Twitter syndication, Reddit .json, HN Firebase, ...).
 ```
 
-The full engine harness (rules R1-R7, the Phase 0 official-API index, the
-no-site-name rule, and the `references/insane-search/*.md` deep-dives for TLS,
-Playwright routing, Naver, media, etc.) is in
-[`references/insane-search/README.md`](references/insane-search/README.md). Read
-it before tuning the engine or adding a WAF profile.
+The full engine harness (rules R1-R7, the Phase 0 official-API index, the no-site-name rule, and the `references/insane-search/*.md` deep-dives for TLS, Playwright routing, Naver, media, etc.) is in [`references/insane-search/README.md`](references/insane-search/README.md). Read it before tuning the engine or adding a WAF profile.
 
 ### Escalate to Tier 1.5 or Tier 2 when
-
 - The target is a Chinese / social platform with a native reader -> Tier 1.5.
-- insane-search returns empty/partial, or the page needs JS interaction, a
-  screenshot, a persistent login, or media playback -> Tier 2.
+- insane-search returns empty/partial, or the page needs JS interaction, a screenshot, a persistent login, or media playback -> Tier 2.
 
 ## Tier 1.5 — agent-reach (platform-native readers)
 
-**When**: the target is a platform with a first-class API/CLI that beats generic
-fetching — especially Chinese platforms that stealth browsers still cannot reach
-cleanly. Several channels are zero-config (Douyin, V2EX, Reddit, RSS, YouTube);
-others need a one-time auth you supply via environment variables if you have
-access (`JINA_API_KEY` for Jina Reader — anonymous access is dead, see
-`references/insane-search/jina.md`; `TWITTER_*` for X; a transcription key for
-podcasts).
+**When**: the target is a platform with a first-class API/CLI that beats generic fetching — especially Chinese platforms that stealth browsers still cannot reach cleanly. Several channels are zero-config (Douyin, V2EX, Reddit, RSS, YouTube); others need a one-time auth you supply via environment variables if you have access (`JINA_API_KEY` for Jina Reader — anonymous access is dead, see `references/insane-search/jina.md`; `TWITTER_*` for X; a transcription key for podcasts).
 
-| Category | Platforms                                                           | Entry                                                                |
-| -------- | ------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| social   | xhs (Xiaohongshu), douyin, weibo, bilibili, V2EX, Reddit, Twitter/X | [references/agent-reach/social.md](references/agent-reach/social.md) |
-| web      | Jina Reader, WeChat articles, RSS                                   | [references/agent-reach/web.md](references/agent-reach/web.md)       |
-| video    | YouTube, Bilibili, podcast transcripts, Douyin video                | [references/agent-reach/video.md](references/agent-reach/video.md)   |
-| career   | LinkedIn                                                            | [references/agent-reach/career.md](references/agent-reach/career.md) |
-| dev      | GitHub (gh CLI)                                                     | [references/agent-reach/dev.md](references/agent-reach/dev.md)       |
-| search   | Exa AI                                                              | [references/agent-reach/search.md](references/agent-reach/search.md) |
+| Category | Platforms | Entry |
+|---|---|---|
+| social | xhs (Xiaohongshu), douyin, weibo, bilibili, V2EX, Reddit, Twitter/X | [references/agent-reach/social.md](references/agent-reach/social.md) |
+| web | Jina Reader, WeChat articles, RSS | [references/agent-reach/web.md](references/agent-reach/web.md) |
+| video | YouTube, Bilibili, podcast transcripts, Douyin video | [references/agent-reach/video.md](references/agent-reach/video.md) |
+| career | LinkedIn | [references/agent-reach/career.md](references/agent-reach/career.md) |
+| dev | GitHub (gh CLI) | [references/agent-reach/dev.md](references/agent-reach/dev.md) |
+| search | Exa AI | [references/agent-reach/search.md](references/agent-reach/search.md) |
 
 ```bash
 mcporter call 'douyin.parse_douyin_video_info(url: "<URL>")'   # douyin, zero-config
@@ -107,22 +78,13 @@ yt-dlp --dump-json "<bilibili-url>"                            # Bilibili (overs
 curl -s "https://www.v2ex.com/api/topics/hot.json"            # V2EX public API
 ```
 
-Routing table, per-platform auth (set `TWITTER_*` env vars, `gh auth login`, a
-transcription key — only if you have access), rate-limit notes, and known
-version quirks are in
-[references/agent-reach/README.md](references/agent-reach/README.md).
+Routing table, per-platform auth (set `TWITTER_*` env vars, `gh auth login`, a transcription key — only if you have access), rate-limit notes, and known version quirks are in [references/agent-reach/README.md](references/agent-reach/README.md).
 
 ## Tier 2 — Chrome stealth (real interaction)
 
-**When**: real interaction is needed (clicks, forms, screenshots, video,
-persistent login), or Tier 1/1.5 failed.
+**When**: real interaction is needed (clicks, forms, screenshots, video, persistent login), or Tier 1/1.5 failed.
 
-CloakBrowser is a stealth Chromium with source-level fingerprint patches that
-passes Cloudflare Turnstile, FingerprintJS, BrowserScan, and 30+ detectors;
-agent-browser is the CDP automation CLI that drives it. Both are
-runtime-installed tools (not vendored here). Full setup, version pins, launch
-flow, cookie login, and cross-platform notes are in
-[references/chrome-stealth.md](references/chrome-stealth.md).
+CloakBrowser is a stealth Chromium with source-level fingerprint patches that passes Cloudflare Turnstile, FingerprintJS, BrowserScan, and 30+ detectors; agent-browser is the CDP automation CLI that drives it. Both are runtime-installed tools (not vendored here). Full setup, version pins, launch flow, cookie login, and cross-platform notes are in [references/chrome-stealth.md](references/chrome-stealth.md).
 
 ```bash
 # 1. Launch CloakBrowser with CDP on :9242 (see chrome-stealth.md for install + venv).
@@ -137,10 +99,7 @@ agent-browser --cdp 9242 close
 
 ### Cookie login (cross-platform)
 
-`scripts/extract_cookies.py` reads cookies from a local Chromium-family or
-Firefox-family browser and optionally injects them into the running CDP session.
-It resolves browser profile paths and decrypts cookie values per-OS (macOS
-Keychain, Linux libsecret, Windows DPAPI):
+`scripts/extract_cookies.py` reads cookies from a local Chromium-family or Firefox-family browser and optionally injects them into the running CDP session. It resolves browser profile paths and decrypts cookie values per-OS (macOS Keychain, Linux libsecret, Windows DPAPI):
 
 ```bash
 # Extract cookies to a file:
@@ -150,20 +109,15 @@ python3 scripts/extract_cookies.py --browser chrome --domain youtube.com --outpu
 python3 scripts/extract_cookies.py --browser chrome --domain youtube.com --inject --cdp 9242
 ```
 
-Cookie export files are written with owner-only `0600` permissions. Do not place
-live auth cookies in shared temp directories or commit them to a repo. Cookie
-injection sends values to CDP over stdin rather than argv. Cookies apply on next
-navigation — reload after injecting. Google services use fingerprint-bound
-tokens that may not transfer across browser profiles. Full detail in
-[references/chrome-stealth.md](references/chrome-stealth.md).
+Cookie export files are written with owner-only `0600` permissions. Do not place live auth cookies in shared temp directories or commit them to a repo. Cookie injection sends values to CDP over stdin rather than argv. Cookies apply on next navigation — reload after injecting. Google services use fingerprint-bound tokens that may not transfer across browser profiles. Full detail in [references/chrome-stealth.md](references/chrome-stealth.md).
 
 ## Reference docs
 
-| File                                                                     | When to read                                                                                |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
+| File | When to read |
+|------|-------------|
 | [references/insane-search/README.md](references/insane-search/README.md) | Tier-1 engine harness (R1-R7, Phase 0 API index, no-site-name rule) + its `*.md` deep-dives |
-| [references/agent-reach/README.md](references/agent-reach/README.md)     | Tier-1.5 routing table, platform auth, per-category `*.md`                                  |
-| [references/chrome-stealth.md](references/chrome-stealth.md)             | Tier-2 CloakBrowser + agent-browser install, CDP flow, version pins, cookie login           |
+| [references/agent-reach/README.md](references/agent-reach/README.md) | Tier-1.5 routing table, platform auth, per-category `*.md` |
+| [references/chrome-stealth.md](references/chrome-stealth.md) | Tier-2 CloakBrowser + agent-browser install, CDP flow, version pins, cookie login |
 
 ## Environment variables
 
@@ -178,13 +132,9 @@ AGENT_BROWSER_HEADED=1           # show the browser window
 ## Anti-patterns
 
 - Do NOT launch Chrome stealth for plain text extraction — use Tier 1.
-- Do NOT pass an `--init-script` for the webdriver flag — CloakBrowser already
-  patches it at source; the only required override is `--user-agent`.
-- Do NOT run agent-browser before creating the first tab via
-  `curl -X PUT .../json/new` — CloakBrowser launches tabless.
+- Do NOT pass an `--init-script` for the webdriver flag — CloakBrowser already patches it at source; the only required override is `--user-agent`.
+- Do NOT run agent-browser before creating the first tab via `curl -X PUT .../json/new` — CloakBrowser launches tabless.
 - Do NOT use vanilla Chrome when stealth is needed — always CloakBrowser.
 - Do NOT forget to `close` the session when done.
 - Do NOT inject cookies without reloading the page.
-- Do NOT hardcode site domains/selectors into `engine/**` or `waf_profiles.yaml`
-  — runtime hints only (see the no-site-name rule in the insane-search
-  reference).
+- Do NOT hardcode site domains/selectors into `engine/**` or `waf_profiles.yaml` — runtime hints only (see the no-site-name rule in the insane-search reference).

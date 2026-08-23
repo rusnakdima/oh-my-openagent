@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test"
 
 import {
   _resetForTesting,
   subagentSessions,
   syncSubagentSessions,
-} from "../../features/claude-code-session-state";
-import { createEventHandler } from "../../plugin/event";
+} from "../../features/claude-code-session-state"
+import { createEventHandler } from "../../plugin/event"
 
 function createMinimalEventHandler() {
   return createEventHandler({
@@ -47,19 +47,19 @@ function createMinimalEventHandler() {
       writeExistingFileGuard: { event: async () => {} },
       atlasHook: { handler: async () => {} },
     } as never,
-  });
+  })
 }
 
 describe("reused sync session delete cleanup", () => {
   afterEach(() => {
-    _resetForTesting();
-  });
+    _resetForTesting()
+  })
 
   it("removes reused sync sessions from subagentSessions when session.deleted fires", async () => {
     // given
-    const syncSessionID = "ses-reused-sync-delete-cleanup";
-    const unrelatedSubagentSessionID = "ses-unrelated-subagent-delete-cleanup";
-    const eventHandler = createMinimalEventHandler();
+    const syncSessionID = "ses-reused-sync-delete-cleanup"
+    const unrelatedSubagentSessionID = "ses-unrelated-subagent-delete-cleanup"
+    const eventHandler = createMinimalEventHandler()
     const input = {
       event: {
         type: "session.deleted",
@@ -69,18 +69,18 @@ describe("reused sync session delete cleanup", () => {
           },
         },
       },
-    } as Parameters<ReturnType<typeof createEventHandler>>[0];
+    } as Parameters<ReturnType<typeof createEventHandler>>[0]
 
-    subagentSessions.add(syncSessionID);
-    syncSubagentSessions.add(syncSessionID);
-    subagentSessions.add(unrelatedSubagentSessionID);
+    subagentSessions.add(syncSessionID)
+    syncSubagentSessions.add(syncSessionID)
+    subagentSessions.add(unrelatedSubagentSessionID)
 
     // when
-    await eventHandler(input);
+    await eventHandler(input)
 
     // then
-    expect(syncSubagentSessions.has(syncSessionID)).toBe(false);
-    expect(subagentSessions.has(syncSessionID)).toBe(false);
-    expect(subagentSessions.has(unrelatedSubagentSessionID)).toBe(true);
-  });
-});
+    expect(syncSubagentSessions.has(syncSessionID)).toBe(false)
+    expect(subagentSessions.has(syncSessionID)).toBe(false)
+    expect(subagentSessions.has(unrelatedSubagentSessionID)).toBe(true)
+  })
+})

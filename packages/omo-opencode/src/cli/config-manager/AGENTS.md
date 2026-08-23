@@ -4,37 +4,34 @@
 
 ## OVERVIEW
 
-20 files. Stateless utility functions for the `install` command. Handles
-OpenCode config manipulation, provider configuration, JSONC operations, binary
-detection, and npm registry queries. No class — flat utility collection.
+20 files. Stateless utility functions for the `install` command. Handles OpenCode config manipulation, provider configuration, JSONC operations, binary detection, and npm registry queries. No class — flat utility collection.
 
 ## FILE CATALOG
 
-| File                                    | Purpose                                                             |
-| --------------------------------------- | ------------------------------------------------------------------- |
-| `add-plugin-to-opencode-config.ts`      | Register `oh-my-opencode` in `.opencode/opencode.json` plugin array |
-| `add-provider-config.ts`                | Add provider API key to OpenCode config (user-level)                |
-| `antigravity-provider-configuration.ts` | Handle Antigravity provider setup (special case)                    |
-| `auth-plugins.ts`                       | Detect auth plugin requirements per provider (oauth vs key)         |
-| `bun-install.ts`                        | Run `bun install` / `npm install` for plugin setup                  |
-| `config-context.ts`                     | `ConfigContext` — shared config state across install steps          |
-| `deep-merge-record.ts`                  | Deep merge utility for JSONC config objects                         |
-| `detect-current-config.ts`              | Read existing OpenCode config, detect installed plugins             |
-| `ensure-config-directory-exists.ts`     | Create `.opencode/` dir if missing                                  |
-| `format-error-with-suggestion.ts`       | Format errors with actionable suggestions                           |
-| `generate-omo-config.ts`                | Generate the `[opencode]` OMO view from install selections          |
-| `jsonc-provider-editor.ts`              | Read/write JSONC files with comment preservation                    |
-| `npm-dist-tags.ts`                      | Fetch latest version from npm registry (dist-tags)                  |
-| `opencode-binary.ts`                    | Detect OpenCode binary location, verify it's installed              |
-| `opencode-config-format.ts`             | OpenCode config format constants and type guards                    |
-| `parse-opencode-config-file.ts`         | Parse opencode.json/opencode.jsonc with fallback                    |
-| `plugin-name-with-version.ts`           | Resolve `oh-my-opencode@X.Y.Z` for installation                     |
-| `write-omo-config.ts`                   | Write generated config to `~/.omo/omo.jsonc`                        |
+| File | Purpose |
+|------|---------|
+| `add-plugin-to-opencode-config.ts` | Register `oh-my-opencode` in `.opencode/opencode.json` plugin array |
+| `add-provider-config.ts` | Add provider API key to OpenCode config (user-level) |
+| `antigravity-provider-configuration.ts` | Handle Antigravity provider setup (special case) |
+| `auth-plugins.ts` | Detect auth plugin requirements per provider (oauth vs key) |
+| `bun-install.ts` | Run `bun install` / `npm install` for plugin setup |
+| `config-context.ts` | `ConfigContext` — shared config state across install steps |
+| `deep-merge-record.ts` | Deep merge utility for JSONC config objects |
+| `detect-current-config.ts` | Read existing OpenCode config, detect installed plugins |
+| `ensure-config-directory-exists.ts` | Create `.opencode/` dir if missing |
+| `format-error-with-suggestion.ts` | Format errors with actionable suggestions |
+| `generate-omo-config.ts` | Generate the `[opencode]` OMO view from install selections |
+| `jsonc-provider-editor.ts` | Read/write JSONC files with comment preservation |
+| `npm-dist-tags.ts` | Fetch latest version from npm registry (dist-tags) |
+| `opencode-binary.ts` | Detect OpenCode binary location, verify it's installed |
+| `opencode-config-format.ts` | OpenCode config format constants and type guards |
+| `parse-opencode-config-file.ts` | Parse opencode.json/opencode.jsonc with fallback |
+| `plugin-name-with-version.ts` | Resolve `oh-my-opencode@X.Y.Z` for installation |
+| `write-omo-config.ts` | Write generated config to `~/.omo/omo.jsonc` |
 
 ## USAGE PATTERN
 
-Functions are called sequentially by `src/cli/install.ts` /
-`src/cli/tui-installer.ts`:
+Functions are called sequentially by `src/cli/install.ts` / `src/cli/tui-installer.ts`:
 
 ```
 1. ensure-config-directory-exists
@@ -51,7 +48,5 @@ Functions are called sequentially by `src/cli/install.ts` /
 ## NOTES
 
 - All functions are pure / stateless (except disk I/O) — no shared module state
-- `jsonc-provider-editor.ts` uses comment-preserving JSONC library — NEVER use
-  `JSON.parse` on JSONC files
-- `opencode-binary.ts` searches PATH + common install locations (`.local/bin`,
-  `~/.bun/bin`, etc.)
+- `jsonc-provider-editor.ts` uses comment-preserving JSONC library — NEVER use `JSON.parse` on JSONC files
+- `opencode-binary.ts` searches PATH + common install locations (`.local/bin`, `~/.bun/bin`, etc.)

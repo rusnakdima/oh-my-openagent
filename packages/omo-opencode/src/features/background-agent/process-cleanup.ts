@@ -1,7 +1,7 @@
-import { log } from "../../shared";
+import { log } from "../../shared"
 
-type ProcessCleanupSignal = NodeJS.Signals | "beforeExit" | "exit";
-type ProcessCleanupErrorEvent = "uncaughtException" | "unhandledRejection";
+type ProcessCleanupSignal = NodeJS.Signals | "beforeExit" | "exit"
+type ProcessCleanupErrorEvent = "uncaughtException" | "unhandledRejection"
 
 /**
  * When set to a truthy value (1/true/yes/on), skips registering the global
@@ -19,26 +19,26 @@ type ProcessCleanupErrorEvent = "uncaughtException" | "unhandledRejection";
  * because they are the real shutdown path and run `cleanupAll()` before the
  * host actually terminates.
  */
-const PROCESS_CLEANUP_DISABLE_ENV = "OMO_DISABLE_PROCESS_CLEANUP";
-const TRUTHY_ENV_VALUES = new Set(["1", "true", "yes", "on"]);
+const PROCESS_CLEANUP_DISABLE_ENV = "OMO_DISABLE_PROCESS_CLEANUP"
+const TRUTHY_ENV_VALUES = new Set(["1", "true", "yes", "on"])
 
 function isProcessCleanupErrorHandlersDisabled(): boolean {
-  const raw = process.env[PROCESS_CLEANUP_DISABLE_ENV];
-  if (!raw) return false;
-  return TRUTHY_ENV_VALUES.has(raw.trim().toLowerCase());
+  const raw = process.env[PROCESS_CLEANUP_DISABLE_ENV]
+  if (!raw) return false
+  return TRUTHY_ENV_VALUES.has(raw.trim().toLowerCase())
 }
 
 /** @internal test-only seam: prevents process.exitCode from contaminating bun test runner */
-let _scheduleForcedExitEnabled = true;
+let _scheduleForcedExitEnabled = true
 
 /** @internal test-only */
 export function __disableScheduledForcedExitForTesting(): void {
-  _scheduleForcedExitEnabled = false;
+  _scheduleForcedExitEnabled = false
 }
 
 /** @internal test-only */
 export function __enableScheduledForcedExitForTesting(): void {
-  _scheduleForcedExitEnabled = true;
+  _scheduleForcedExitEnabled = true
 }
 
 function scheduleForcedExit(
@@ -46,15 +46,15 @@ function scheduleForcedExit(
   exitCode: number,
   exitAfterCleanup = false,
 ): void {
-  if (!_scheduleForcedExitEnabled) return;
-  process.exitCode = exitCode;
-  const exitTimeout = setTimeout(() => process.exit(), 6000);
+  if (!_scheduleForcedExitEnabled) return
+  process.exitCode = exitCode
+  const exitTimeout = setTimeout(() => process.exit(), 6000)
   void Promise.resolve(cleanupResult).finally(() => {
-    clearTimeout(exitTimeout);
+    clearTimeout(exitTimeout)
     if (exitAfterCleanup) {
-      process.exit(exitCode);
+      process.exit(exitCode)
     }
-  });
+  })
 }
 
 /**
@@ -65,60 +65,58 @@ function scheduleForcedExit(
  * diagnostic signal — see `process-cleanup.ts` history at lines 107/118),
  * while shutdown-time bursts (issue #3772) stay silent.
  */
-let _shutdownInProgress = false;
+let _shutdownInProgress = false
 
 function markShutdownStarted(): void {
-  _shutdownInProgress = true;
+  _shutdownInProgress = true
 }
 
 /** @internal test-only seam */
 export function __isShutdownInProgressForTesting(): boolean {
-  return _shutdownInProgress;
+  return _shutdownInProgress
 }
 
 /** @internal test-only seam */
 export function __setShutdownInProgressForTesting(value: boolean): void {
-  _shutdownInProgress = value;
+  _shutdownInProgress = value
 }
 
 function registerProcessSignal(
   signal: ProcessCleanupSignal,
   handler: () => void | Promise<void>,
-  exitAfter: boolean,
+  exitAfter: boolean
 ): () => void {
   const listener = () => {
-    markShutdownStarted();
-    const cleanupResult = handler();
+    markShutdownStarted()
+    const cleanupResult = handler()
     if (exitAfter) {
-      scheduleForcedExit(cleanupResult, 0, true);
+      scheduleForcedExit(cleanupResult, 0, true)
     }
-  };
-  process.on(signal, listener);
-  return listener;
+  }
+  process.on(signal, listener)
+  return listener
 }
 
 /** @internal test-only seam: exposes the error normalizer used by registerErrorEvent. */
-export function describeProcessCleanupError(
-  error: unknown,
-): Record<string, unknown> {
+export function describeProcessCleanupError(error: unknown): Record<string, unknown> {
   if (error instanceof Error) {
     return {
       name: error.name,
       message: error.message,
       stack: error.stack,
-    };
+    }
   }
   if (typeof error === "object" && error !== null) {
     try {
-      const json = JSON.stringify(error);
-      if (json !== "{}") return { raw: json };
+      const json = JSON.stringify(error)
+      if (json !== "{}") return { raw: json }
     } catch (stringifyError) {
-      if (stringifyError instanceof Error) return { raw: String(error) };
-      return { raw: String(error) };
+      if (stringifyError instanceof Error) return { raw: String(error) }
+      return { raw: String(error) }
     }
-    return { raw: String(error) };
+    return { raw: String(error) }
   }
-  return { raw: String(error) };
+  return { raw: String(error) }
 }
 
 /**
@@ -144,24 +142,23 @@ export function describeProcessCleanupError(
  * resets, MCP reconnect failures) must still log — see the in-file diagnostic
  * commentary on registerErrorEvent below.
  */
-const HARMLESS_SHUTDOWN_ERRNO_CODES = new Set(["EPIPE", "ECONNRESET"]);
-const STDIO_WRITE_FDS = new Set([1, 2]);
+const HARMLESS_SHUTDOWN_ERRNO_CODES = new Set(["EPIPE", "ECONNRESET"])
+const STDIO_WRITE_FDS = new Set([1, 2])
 
 function isStdioWriteError(error: object): boolean {
-  const syscall = (error as { syscall?: unknown }).syscall;
-  const fd = (error as { fd?: unknown }).fd;
-  return syscall === "write" && typeof fd === "number" &&
-    STDIO_WRITE_FDS.has(fd);
+  const syscall = (error as { syscall?: unknown }).syscall
+  const fd = (error as { fd?: unknown }).fd
+  return syscall === "write" && typeof fd === "number" && STDIO_WRITE_FDS.has(fd)
 }
 
 /** @internal test-only seam: exposes the harmless-error filter used by registerErrorEvent. */
 export function isHarmlessShutdownError(error: unknown): boolean {
-  if (!error || typeof error !== "object") return false;
-  const code = (error as { code?: unknown }).code;
-  if (typeof code !== "string") return false;
-  if (!HARMLESS_SHUTDOWN_ERRNO_CODES.has(code)) return false;
-  if (isStdioWriteError(error)) return true;
-  return _shutdownInProgress;
+  if (!error || typeof error !== "object") return false
+  const code = (error as { code?: unknown }).code
+  if (typeof code !== "string") return false
+  if (!HARMLESS_SHUTDOWN_ERRNO_CODES.has(code)) return false
+  if (isStdioWriteError(error)) return true
+  return _shutdownInProgress
 }
 
 function registerErrorEvent(
@@ -194,148 +191,133 @@ function registerErrorEvent(
   // crash from #4128. A local re-entry guard still prevents `log()` failures
   // (for example EPIPE while writing during shutdown) from recursing into the
   // 100+ GB log explosion that #3856-era regressions caused.
-  let logging = false;
+  let logging = false
   const listener = (error: unknown) => {
-    if (logging) return;
+    if (logging) return
     // Drop harmless shutdown EPIPE/ECONNRESET without logging. During real
     // shutdown Node can emit thousands of these per second once stdio closes;
     // even one log line per event compounds to multi-GB log files
     // (issue #3772). The signal handlers below still run the actual cleanup
     // path on the genuine shutdown signals.
-    if (isHarmlessShutdownError(error)) return;
-    logging = true;
+    if (isHarmlessShutdownError(error)) return
+    logging = true
     log(
       `[background-agent] ${signal} observed; keeping host alive and skipping cleanup (signal handlers run on real shutdown)`,
       describeProcessCleanupError(error),
-    );
-    logging = false;
-  };
-  process.on(signal, listener);
-  return listener;
+    )
+    logging = false
+  }
+  process.on(signal, listener)
+  return listener
 }
 
 interface CleanupTarget {
-  shutdown(): void | Promise<void>;
+  shutdown(): void | Promise<void>
 }
 
-const cleanupManagers = new Set<CleanupTarget>();
-let cleanupRegistered = false;
-const cleanupSignalHandlers = new Map<ProcessCleanupSignal, () => void>();
-const cleanupErrorHandlers = new Map<
-  ProcessCleanupErrorEvent,
-  (error: unknown) => void
->();
+const cleanupManagers = new Set<CleanupTarget>()
+let cleanupRegistered = false
+const cleanupSignalHandlers = new Map<ProcessCleanupSignal, () => void>()
+const cleanupErrorHandlers = new Map<ProcessCleanupErrorEvent, (error: unknown) => void>()
 
 export function __getProcessCleanupSignalListenerForTesting(
   signal: ProcessCleanupSignal,
 ): (() => void) | undefined {
-  return cleanupSignalHandlers.get(signal);
+  return cleanupSignalHandlers.get(signal)
 }
 
 export function registerManagerForCleanup(manager: CleanupTarget): void {
-  cleanupManagers.add(manager);
+  cleanupManagers.add(manager)
 
-  if (cleanupRegistered) return;
-  cleanupRegistered = true;
+  if (cleanupRegistered) return
+  cleanupRegistered = true
 
-  let cleanupPromise: Promise<void> | undefined;
+  let cleanupPromise: Promise<void> | undefined
 
   const cleanupAll = (): Promise<void> => {
-    if (cleanupPromise) return cleanupPromise;
-    const promises: Promise<void>[] = [];
+    if (cleanupPromise) return cleanupPromise
+    const promises: Promise<void>[] = []
     for (const m of cleanupManagers) {
       try {
         promises.push(
           Promise.resolve(m.shutdown()).catch((error) => {
             // Skip harmless stdio EPIPE during shutdown — see issue #3772.
-            if (isHarmlessShutdownError(error)) return;
-            log(
-              "[background-agent] Error during async shutdown cleanup:",
-              error,
-            );
-          }),
-        );
+            if (isHarmlessShutdownError(error)) return
+            log("[background-agent] Error during async shutdown cleanup:", error)
+          })
+        )
       } catch (error) {
-        const harmless = isHarmlessShutdownError(error);
+        const harmless = isHarmlessShutdownError(error)
         if (error instanceof Error) {
-          if (harmless) continue;
+          if (harmless) continue
         } else if (harmless) {
-          continue;
+          continue
         }
-        log("[background-agent] Error during shutdown cleanup:", error);
+        log("[background-agent] Error during shutdown cleanup:", error)
       }
     }
-    cleanupPromise = Promise.allSettled(promises).then(() => {});
+    cleanupPromise = Promise.allSettled(promises).then(() => {})
     cleanupPromise.then(() => {
-      log("[background-agent] All shutdown cleanup completed");
-    });
+      log("[background-agent] All shutdown cleanup completed")
+    })
 
-    return cleanupPromise;
-  };
-
-  const registerSignal = (
-    signal: ProcessCleanupSignal,
-    exitAfter: boolean,
-  ): void => {
-    const listener = registerProcessSignal(signal, cleanupAll, exitAfter);
-    cleanupSignalHandlers.set(signal, listener);
-  };
-
-  registerSignal("SIGINT", true);
-  registerSignal("SIGTERM", true);
-  if (process.platform === "win32") {
-    registerSignal("SIGBREAK", true);
+    return cleanupPromise
   }
-  registerSignal("beforeExit", false);
-  registerSignal("exit", false);
+
+  const registerSignal = (signal: ProcessCleanupSignal, exitAfter: boolean): void => {
+    const listener = registerProcessSignal(signal, cleanupAll, exitAfter)
+    cleanupSignalHandlers.set(signal, listener)
+  }
+
+  registerSignal("SIGINT", true)
+  registerSignal("SIGTERM", true)
+  if (process.platform === "win32") {
+    registerSignal("SIGBREAK", true)
+  }
+  registerSignal("beforeExit", false)
+  registerSignal("exit", false)
 
   if (isProcessCleanupErrorHandlersDisabled()) {
     log(
-      `[background-agent] ${PROCESS_CLEANUP_DISABLE_ENV} is set; skipping global uncaughtException/unhandledRejection handler registration. ` +
-        "Signal handlers (SIGINT/SIGTERM/beforeExit/exit) remain active.",
-    );
-    return;
+      `[background-agent] ${PROCESS_CLEANUP_DISABLE_ENV} is set; skipping global uncaughtException/unhandledRejection handler registration. `
+        + "Signal handlers (SIGINT/SIGTERM/beforeExit/exit) remain active.",
+    )
+    return
   }
 
-  cleanupErrorHandlers.set(
-    "uncaughtException",
-    registerErrorEvent("uncaughtException"),
-  );
-  cleanupErrorHandlers.set(
-    "unhandledRejection",
-    registerErrorEvent("unhandledRejection"),
-  );
+  cleanupErrorHandlers.set("uncaughtException", registerErrorEvent("uncaughtException"))
+  cleanupErrorHandlers.set("unhandledRejection", registerErrorEvent("unhandledRejection"))
 }
 
 export function unregisterManagerForCleanup(manager: CleanupTarget): void {
-  cleanupManagers.delete(manager);
+  cleanupManagers.delete(manager)
 
-  if (cleanupManagers.size > 0) return;
+  if (cleanupManagers.size > 0) return
 
   for (const [signal, listener] of cleanupSignalHandlers.entries()) {
-    process.off(signal, listener);
+    process.off(signal, listener)
   }
   for (const [signal, listener] of cleanupErrorHandlers.entries()) {
-    process.off(signal, listener);
+    process.off(signal, listener)
   }
-  cleanupSignalHandlers.clear();
-  cleanupErrorHandlers.clear();
-  cleanupRegistered = false;
+  cleanupSignalHandlers.clear()
+  cleanupErrorHandlers.clear()
+  cleanupRegistered = false
 }
 
 /** @internal - test-only reset for module-level singleton state */
 export function _resetForTesting(): void {
   for (const manager of [...cleanupManagers]) {
-    cleanupManagers.delete(manager);
+    cleanupManagers.delete(manager)
   }
   for (const [signal, listener] of cleanupSignalHandlers.entries()) {
-    process.off(signal, listener);
+    process.off(signal, listener)
   }
   for (const [signal, listener] of cleanupErrorHandlers.entries()) {
-    process.off(signal, listener);
+    process.off(signal, listener)
   }
-  cleanupSignalHandlers.clear();
-  cleanupErrorHandlers.clear();
-  cleanupRegistered = false;
-  _shutdownInProgress = false;
+  cleanupSignalHandlers.clear()
+  cleanupErrorHandlers.clear()
+  cleanupRegistered = false
+  _shutdownInProgress = false
 }

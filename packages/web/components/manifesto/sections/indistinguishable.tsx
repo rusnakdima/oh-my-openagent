@@ -1,30 +1,23 @@
-import type { JSX } from "react";
-import { getTranslations } from "next-intl/server";
-import { Check } from "lucide-react";
-import { Section } from "@/components/ui/section";
+import type { JSX } from "react"
+import { getTranslations } from "next-intl/server"
+import { Check } from "lucide-react"
+import { Section } from "@/components/ui/section"
 
 export async function IndistinguishableSection(): Promise<JSX.Element> {
-  const t = await getTranslations("manifesto");
+  const t = await getTranslations("manifesto")
   const indistinguishableKeys = [
     "patterns",
     "errorHandling",
     "tests",
     "noSlop",
     "comments",
-  ] as const;
+  ] as const
 
   return (
-    <Section
-      data-section="manifesto-indistinguishable"
-      className="mx-auto max-w-3xl"
-    >
-      <h2 className="mb-8 text-3xl font-bold md:text-4xl">
-        {t("indistinguishable.title")}
-      </h2>
+    <Section data-section="manifesto-indistinguishable" className="mx-auto max-w-3xl">
+      <h2 className="mb-8 text-3xl font-bold md:text-4xl">{t("indistinguishable.title")}</h2>
 
-      <p className="text-muted-foreground mb-8 text-xl">
-        {t("indistinguishable.subtitle")}
-      </p>
+      <p className="text-muted-foreground mb-8 text-xl">{t("indistinguishable.subtitle")}</p>
 
       <div className="mb-10 grid gap-6">
         {indistinguishableKeys.map((key) => (
@@ -42,5 +35,5 @@ export async function IndistinguishableSection(): Promise<JSX.Element> {
         {t("indistinguishable.quote")}
       </blockquote>
     </Section>
-  );
+  )
 }

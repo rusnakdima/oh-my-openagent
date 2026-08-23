@@ -1,12 +1,12 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test";
-import type { PluginInput } from "@opencode-ai/plugin";
-import { tmpdir } from "node:os";
-import type { BackgroundTaskConfig } from "../../config/schema";
-import { BackgroundManager } from "./manager";
-import type { BackgroundTask } from "./types";
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
+import { describe, expect, test } from "bun:test"
+import type { PluginInput } from "@opencode-ai/plugin"
+import { tmpdir } from "node:os"
+import type { BackgroundTaskConfig } from "../../config/schema"
+import { BackgroundManager } from "./manager"
+import type { BackgroundTask } from "./types"
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 
 function createManager(config?: BackgroundTaskConfig): BackgroundManager {
   const client = {
@@ -15,39 +15,29 @@ function createManager(config?: BackgroundTaskConfig): BackgroundManager {
       promptAsync: async () => ({}),
       abort: async () => ({}),
     },
-  };
+  }
 
-  const manager = new BackgroundManager({
-    pluginContext: unsafeTestValue<PluginInput>({
-      client,
-      directory: tmpdir(),
-    }),
-    config: config,
-  });
+  const manager = new BackgroundManager({ pluginContext: unsafeTestValue<PluginInput>({ client, directory: tmpdir() }), config: config })
   const testManager = unsafeTestValue<{
-    enqueueNotificationForParent: (
-      sessionId: string,
-      fn: () => Promise<void>,
-    ) => Promise<void>;
-    notifyParentSession: (task: BackgroundTask) => Promise<void>;
-    tasks: Map<string, BackgroundTask>;
-  }>(manager);
+    enqueueNotificationForParent: (sessionId: string, fn: () => Promise<void>) => Promise<void>
+    notifyParentSession: (task: BackgroundTask) => Promise<void>
+    tasks: Map<string, BackgroundTask>
+  }>(manager)
 
   testManager.enqueueNotificationForParent = async (_sessionId: string, fn) => {
-    await fn();
-  };
-  testManager.notifyParentSession = async () => {};
+    await fn()
+  }
+  testManager.notifyParentSession = async () => {}
 
-  return manager;
+  return manager
 }
 
 function getTaskMap(manager: BackgroundManager): Map<string, BackgroundTask> {
-  return (unsafeTestValue<{ tasks: Map<string, BackgroundTask> }>(manager))
-    .tasks;
+  return (unsafeTestValue<{ tasks: Map<string, BackgroundTask> }>(manager)).tasks
 }
 
 async function flushAsyncWork() {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  await new Promise(resolve => setTimeout(resolve, 0))
 }
 
 describe("BackgroundManager circuit breaker", () => {
@@ -57,7 +47,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 20,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-loop-1",
         sessionId: "session-loop-1",
@@ -72,22 +62,22 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (let i = 0; i < 20; i++) {
         manager.handleEvent({
           type: "message.part.updated",
           properties: { sessionID: task.sessionId, type: "tool", tool: "read" },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("running");
-      expect(task.progress?.toolCalls).toBe(20);
-    });
-  });
+      expect(task.status).toBe("running")
+      expect(task.progress?.toolCalls).toBe(20)
+    })
+  })
 
   describe("#given recent tool calls are diverse", () => {
     test("#when the window fills #then the task keeps running", async () => {
@@ -95,7 +85,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 10,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-diverse-1",
         sessionId: "session-diverse-1",
@@ -110,39 +100,33 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
-      for (
-        const toolName of [
-          "read",
-          "grep",
-          "edit",
-          "bash",
-          "glob",
-          "read",
-          "lsp_diagnostics",
-          "grep",
-          "edit",
-          "read",
-        ]
-      ) {
+      for (const toolName of [
+        "read",
+        "grep",
+        "edit",
+        "bash",
+        "glob",
+        "read",
+        "lsp_diagnostics",
+        "grep",
+        "edit",
+        "read",
+      ]) {
         manager.handleEvent({
           type: "message.part.updated",
-          properties: {
-            sessionID: task.sessionId,
-            type: "tool",
-            tool: toolName,
-          },
-        });
+          properties: { sessionID: task.sessionId, type: "tool", tool: toolName },
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("running");
-      expect(task.progress?.toolCalls).toBe(10);
-    });
-  });
+      expect(task.status).toBe("running")
+      expect(task.progress?.toolCalls).toBe(10)
+    })
+  })
 
   describe("#given the absolute cap is configured lower than the repetition detector needs", () => {
     test("#when repeated flat-format tool events reach maxToolCalls #then the backstop still cancels the task", async () => {
@@ -151,7 +135,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 95,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-cap-1",
         sessionId: "session-cap-1",
@@ -166,22 +150,22 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (let i = 0; i < 3; i++) {
         manager.handleEvent({
           type: "message.part.updated",
           properties: { sessionID: task.sessionId, type: "tool", tool: "read" },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("cancelled");
-      expect(task.error).toContain("maximum tool call limit (3)");
-    });
-  });
+      expect(task.status).toBe("cancelled")
+      expect(task.error).toContain("maximum tool call limit (3)")
+    })
+  })
 
   describe("#given the same running tool part emits multiple updates", () => {
     test("#when duplicate running updates arrive #then it only counts the tool once", async () => {
@@ -190,7 +174,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 5,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-dedupe-1",
         sessionId: "session-dedupe-1",
@@ -205,8 +189,8 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (let index = 0; index < 3; index += 1) {
         manager.handleEvent({
@@ -220,16 +204,16 @@ describe("BackgroundManager circuit breaker", () => {
               state: { status: "running" },
             },
           },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("running");
-      expect(task.progress?.toolCalls).toBe(1);
-      expect(task.progress?.countedToolPartIDs).toEqual(new Set(["tool-1"]));
-    });
-  });
+      expect(task.status).toBe("running")
+      expect(task.progress?.toolCalls).toBe(1)
+      expect(task.progress?.countedToolPartIDs).toEqual(new Set(["tool-1"]))
+    })
+  })
 
   describe("#given same tool reading different files", () => {
     test("#when tool events arrive with state.input #then task keeps running", async () => {
@@ -237,7 +221,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 20,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-diff-files-1",
         sessionId: "session-diff-files-1",
@@ -252,8 +236,8 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (let i = 0; i < 20; i++) {
         manager.handleEvent({
@@ -263,21 +247,18 @@ describe("BackgroundManager circuit breaker", () => {
               sessionID: task.sessionId,
               type: "tool",
               tool: "read",
-              state: {
-                status: "running",
-                input: { filePath: `/src/file-${i}.ts` },
-              },
+              state: { status: "running", input: { filePath: `/src/file-${i}.ts` } },
             },
           },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("running");
-      expect(task.progress?.toolCalls).toBe(20);
-    });
-  });
+      expect(task.status).toBe("running")
+      expect(task.progress?.toolCalls).toBe(20)
+    })
+  })
 
   describe("#given same tool reading same file repeatedly", () => {
     test("#when tool events arrive with state.input #then task is cancelled with bare tool name in error", async () => {
@@ -285,7 +266,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 20,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-same-file-1",
         sessionId: "session-same-file-1",
@@ -300,8 +281,8 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (let i = 0; i < 20; i++) {
         manager.handleEvent({
@@ -314,16 +295,16 @@ describe("BackgroundManager circuit breaker", () => {
               state: { status: "running", input: { filePath: "/src/same.ts" } },
             },
           },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("cancelled");
-      expect(task.error).toContain("read 20 consecutive times");
-      expect(task.error).not.toContain("::");
-    });
-  });
+      expect(task.status).toBe("cancelled")
+      expect(task.error).toContain("read 20 consecutive times")
+      expect(task.error).not.toContain("::")
+    })
+  })
 
   describe("#given duplicate tool_use blocks arrive without state.input but with top-level input", () => {
     test("#when 20 identical reads arrive #then circuit breaker still detects the loop", async () => {
@@ -337,7 +318,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 20,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-no-state-input-1",
         sessionId: "session-no-state-input-1",
@@ -352,8 +333,8 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (let i = 0; i < 20; i++) {
         manager.handleEvent({
@@ -366,14 +347,14 @@ describe("BackgroundManager circuit breaker", () => {
               input: { filePath: "/src/hooks/tool-pair-validator/hook.ts" },
             },
           },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("cancelled");
-      expect(task.error).toContain("read 20 consecutive times");
-    });
+      expect(task.status).toBe("cancelled")
+      expect(task.error).toContain("read 20 consecutive times")
+    })
 
     test("#when state.input is present #then it takes precedence over top-level input", async () => {
       // Confirm the fallback order: state.input wins when both are present.
@@ -381,7 +362,7 @@ describe("BackgroundManager circuit breaker", () => {
         circuitBreaker: {
           consecutiveThreshold: 20,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-state-input-wins-1",
         sessionId: "session-state-input-wins-1",
@@ -396,8 +377,8 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       // 20 distinct state.input.filePath values but identical top-level input.
       // If state.input takes precedence (correct), signatures differ and the
@@ -412,21 +393,18 @@ describe("BackgroundManager circuit breaker", () => {
               type: "tool",
               tool: "read",
               input: { filePath: "/src/same.ts" },
-              state: {
-                status: "running",
-                input: { filePath: `/src/file-${i}.ts` },
-              },
+              state: { status: "running", input: { filePath: `/src/file-${i}.ts` } },
             },
           },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("running");
-      expect(task.progress?.toolCalls).toBe(20);
-    });
-  });
+      expect(task.status).toBe("running")
+      expect(task.progress?.toolCalls).toBe(20)
+    })
+  })
 
   describe("#given circuit breaker enabled is false", () => {
     test("#when repetitive tools arrive #then task keeps running", async () => {
@@ -435,7 +413,7 @@ describe("BackgroundManager circuit breaker", () => {
           enabled: false,
           consecutiveThreshold: 20,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-disabled-1",
         sessionId: "session-disabled-1",
@@ -450,8 +428,8 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (let i = 0; i < 20; i++) {
         manager.handleEvent({
@@ -461,14 +439,14 @@ describe("BackgroundManager circuit breaker", () => {
             type: "tool",
             tool: "read",
           },
-        });
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("running");
-    });
-  });
+      expect(task.status).toBe("running")
+    })
+  })
 
   describe("#given circuit breaker enabled is false but absolute cap is low", () => {
     test("#when max tool calls exceeded #then task is still cancelled by absolute cap", async () => {
@@ -478,7 +456,7 @@ describe("BackgroundManager circuit breaker", () => {
           enabled: false,
           consecutiveThreshold: 95,
         },
-      });
+      })
       const task: BackgroundTask = {
         id: "task-cap-disabled-1",
         sessionId: "session-cap-disabled-1",
@@ -493,24 +471,20 @@ describe("BackgroundManager circuit breaker", () => {
           toolCalls: 0,
           lastUpdate: new Date(Date.now() - 60_000),
         },
-      };
-      getTaskMap(manager).set(task.id, task);
+      }
+      getTaskMap(manager).set(task.id, task)
 
       for (const toolName of ["read", "grep", "edit"]) {
         manager.handleEvent({
           type: "message.part.updated",
-          properties: {
-            sessionID: task.sessionId,
-            type: "tool",
-            tool: toolName,
-          },
-        });
+          properties: { sessionID: task.sessionId, type: "tool", tool: toolName },
+        })
       }
 
-      await flushAsyncWork();
+      await flushAsyncWork()
 
-      expect(task.status).toBe("cancelled");
-      expect(task.error).toContain("maximum tool call limit (3)");
-    });
-  });
-});
+      expect(task.status).toBe("cancelled")
+      expect(task.error).toContain("maximum tool call limit (3)")
+    })
+  })
+})

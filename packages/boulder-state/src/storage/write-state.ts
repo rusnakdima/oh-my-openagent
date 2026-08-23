@@ -1,37 +1,25 @@
-import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs"
+import { dirname, join } from "node:path"
 
-import type { BoulderState, BoulderWorkState } from "../types";
-import { getBoulderFilePath } from "./path";
-import { getPlanName } from "./plan-progress";
-import { getBoulderWorks, readBoulderState } from "./read-state";
-import {
-  getElapsedMs,
-  normalizeSessionId,
-  nowIsoString,
-  projectWorkToMirror,
-} from "./shared";
+import type { BoulderState, BoulderWorkState } from "../types"
+import { getBoulderFilePath } from "./path"
+import { getPlanName } from "./plan-progress"
+import { getBoulderWorks, readBoulderState } from "./read-state"
+import { getElapsedMs, normalizeSessionId, nowIsoString, projectWorkToMirror } from "./shared"
 
-export function writeBoulderState(
-  directory: string,
-  state: BoulderState,
-): boolean {
-  const filePath = getBoulderFilePath(directory);
+export function writeBoulderState(directory: string, state: BoulderState): boolean {
+  const filePath = getBoulderFilePath(directory)
   try {
-    const dir = dirname(filePath);
+    const dir = dirname(filePath)
     if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+      mkdirSync(dir, { recursive: true })
       // Self-ignoring .gitignore - excludes rules/ which is tracked in git
-      writeFileSync(
-        join(dir, ".gitignore"),
-        ["*", "!/rules/", "!/rules/**", ""].join("\n"),
-        "utf-8",
-      );
+      writeFileSync(join(dir, ".gitignore"), ["*", "!/rules/", "!/rules/**", ""].join("\n"), "utf-8")
     }
 
-    const stateToWrite: BoulderState = { ...state };
+    const stateToWrite: BoulderState = { ...state }
     if (stateToWrite.works && stateToWrite.active_work_id) {
-      const activeWork = stateToWrite.works[stateToWrite.active_work_id];
+      const activeWork = stateToWrite.works[stateToWrite.active_work_id]
       if (activeWork) {
         stateToWrite.works = {
           ...stateToWrite.works,
@@ -45,55 +33,44 @@ export function writeBoulderState(
             elapsed_ms: stateToWrite.elapsed_ms,
             updated_at: stateToWrite.updated_at,
             session_ids: [...stateToWrite.session_ids],
-            session_origins: stateToWrite.session_origins
-              ? { ...stateToWrite.session_origins }
-              : {},
+            session_origins: stateToWrite.session_origins ? { ...stateToWrite.session_origins } : {},
             agent: stateToWrite.agent,
             worktree_path: stateToWrite.worktree_path,
-            task_sessions: stateToWrite.task_sessions
-              ? { ...stateToWrite.task_sessions }
-              : {},
+            task_sessions: stateToWrite.task_sessions ? { ...stateToWrite.task_sessions } : {},
           },
-        };
+        }
       }
     }
 
-    writeFileSync(filePath, JSON.stringify(stateToWrite, null, 2), "utf-8");
-    return true;
+    writeFileSync(filePath, JSON.stringify(stateToWrite, null, 2), "utf-8")
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
 export function clearBoulderState(directory: string): boolean {
-  const filePath = getBoulderFilePath(directory);
+  const filePath = getBoulderFilePath(directory)
   try {
     if (existsSync(filePath)) {
-      unlinkSync(filePath);
+      unlinkSync(filePath)
     }
-    return true;
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
 export function generateWorkId(planName: string): string {
-  const slug = planName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  const randomHex = Math.floor(Math.random() * 0xffffffff).toString(16)
-    .padStart(8, "0");
-  return `${slug.length > 0 ? slug : "work"}-${randomHex}`;
+  const slug = planName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")
+  const randomHex = Math.floor(Math.random() * 0xffffffff).toString(16).padStart(8, "0")
+  return `${slug.length > 0 ? slug : "work"}-${randomHex}`
 }
 
-export function createBoulderState(
-  planPath: string,
-  sessionId: string,
-  agent?: string,
-  worktreePath?: string,
-): BoulderState {
-  const startedAt = nowIsoString();
-  const normalizedSessionId = normalizeSessionId(sessionId);
-  const workId = generateWorkId(getPlanName(planPath));
+export function createBoulderState(planPath: string, sessionId: string, agent?: string, worktreePath?: string): BoulderState {
+  const startedAt = nowIsoString()
+  const normalizedSessionId = normalizeSessionId(sessionId)
+  const workId = generateWorkId(getPlanName(planPath))
   const work: BoulderWorkState = {
     work_id: workId,
     active_plan: planPath,
@@ -106,7 +83,7 @@ export function createBoulderState(
     ...(agent !== undefined ? { agent } : {}),
     ...(worktreePath !== undefined ? { worktree_path: worktreePath } : {}),
     task_sessions: {},
-  };
+  }
 
   return {
     schema_version: 2,
@@ -122,53 +99,43 @@ export function createBoulderState(
     task_sessions: {},
     ...(agent !== undefined ? { agent } : {}),
     ...(worktreePath !== undefined ? { worktree_path: worktreePath } : {}),
-  };
+  }
 }
 
-export function selectActiveWork(
-  directory: string,
-  workId: string,
-): BoulderState | null {
-  const state = readBoulderState(directory);
+export function selectActiveWork(directory: string, workId: string): BoulderState | null {
+  const state = readBoulderState(directory)
   if (!state) {
-    return null;
+    return null
   }
 
-  const works = getBoulderWorks(state);
-  const nextWork = works.find((work) => work.work_id === workId);
+  const works = getBoulderWorks(state)
+  const nextWork = works.find((work) => work.work_id === workId)
   if (!nextWork) {
-    return null;
+    return null
   }
 
   const nextState: BoulderState = {
     ...state,
     schema_version: 2,
     active_work_id: workId,
-    works: state.works ??
-      Object.fromEntries(works.map((work) => [work.work_id, work])),
-  };
-  projectWorkToMirror(nextState, nextWork);
-  return writeBoulderState(directory, nextState) ? nextState : null;
+    works: state.works ?? Object.fromEntries(works.map((work) => [work.work_id, work])),
+  }
+  projectWorkToMirror(nextState, nextWork)
+  return writeBoulderState(directory, nextState) ? nextState : null
 }
 
 export function addBoulderWork(
   directory: string,
-  input: {
-    planPath: string;
-    sessionId: string;
-    agent?: string;
-    worktreePath?: string;
-    startedAt?: string;
-  },
+  input: { planPath: string; sessionId: string; agent?: string; worktreePath?: string; startedAt?: string },
 ): BoulderState | null {
-  const state = readBoulderState(directory);
+  const state = readBoulderState(directory)
   if (!state) {
-    return null;
+    return null
   }
 
-  const workId = generateWorkId(getPlanName(input.planPath));
-  const startedAt = input.startedAt ?? nowIsoString();
-  const normalizedSessionId = normalizeSessionId(input.sessionId);
+  const workId = generateWorkId(getPlanName(input.planPath))
+  const startedAt = input.startedAt ?? nowIsoString()
+  const normalizedSessionId = normalizeSessionId(input.sessionId)
   const nextWork: BoulderWorkState = {
     work_id: workId,
     active_plan: input.planPath,
@@ -179,66 +146,49 @@ export function addBoulderWork(
     session_ids: [normalizedSessionId],
     session_origins: { [normalizedSessionId]: "direct" },
     ...(input.agent !== undefined ? { agent: input.agent } : {}),
-    ...(input.worktreePath !== undefined
-      ? { worktree_path: input.worktreePath }
-      : {}),
+    ...(input.worktreePath !== undefined ? { worktree_path: input.worktreePath } : {}),
     task_sessions: {},
-  };
+  }
 
   const nextState: BoulderState = {
     ...state,
     schema_version: 2,
-    works: {
-      ...Object.fromEntries(
-        getBoulderWorks(state).map((work) => [work.work_id, work]),
-      ),
-      [workId]: nextWork,
-    },
+    works: { ...Object.fromEntries(getBoulderWorks(state).map((work) => [work.work_id, work])), [workId]: nextWork },
     active_work_id: workId,
-  };
-  projectWorkToMirror(nextState, nextWork);
-  return writeBoulderState(directory, nextState) ? nextState : null;
+  }
+  projectWorkToMirror(nextState, nextWork)
+  return writeBoulderState(directory, nextState) ? nextState : null
 }
 
-export function completeBoulder(
-  directory: string,
-  workId?: string,
-  endedAt?: string,
-): BoulderState | null {
-  const state = readBoulderState(directory);
+export function completeBoulder(directory: string, workId?: string, endedAt?: string): BoulderState | null {
+  const state = readBoulderState(directory)
   if (!state) {
-    return null;
+    return null
   }
 
-  const targetWorkId = workId ?? state.active_work_id;
+  const targetWorkId = workId ?? state.active_work_id
   if (!targetWorkId) {
-    return null;
+    return null
   }
 
-  const work = state.works?.[targetWorkId] ??
-    getBoulderWorks(state).find((candidate) =>
-      candidate.work_id === targetWorkId
-    );
+  const work = state.works?.[targetWorkId] ?? getBoulderWorks(state).find((candidate) => candidate.work_id === targetWorkId)
   if (!work) {
-    return null;
+    return null
   }
 
-  if (
-    work.status === "completed" && work.ended_at !== undefined &&
-    work.elapsed_ms !== undefined
-  ) {
-    return state;
+  if (work.status === "completed" && work.ended_at !== undefined && work.elapsed_ms !== undefined) {
+    return state
   }
 
-  const endAt = endedAt ?? nowIsoString();
-  work.ended_at = endAt;
-  work.elapsed_ms = getElapsedMs(work.started_at, endAt);
-  work.status = "completed";
-  work.updated_at = nowIsoString();
+  const endAt = endedAt ?? nowIsoString()
+  work.ended_at = endAt
+  work.elapsed_ms = getElapsedMs(work.started_at, endAt)
+  work.status = "completed"
+  work.updated_at = nowIsoString()
 
   if (state.active_work_id === targetWorkId) {
-    projectWorkToMirror(state, work);
+    projectWorkToMirror(state, work)
   }
 
-  return writeBoulderState(directory, state) ? state : null;
+  return writeBoulderState(directory, state) ? state : null
 }

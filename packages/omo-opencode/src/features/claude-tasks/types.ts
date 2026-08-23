@@ -1,12 +1,7 @@
-import { z } from "zod";
+import { z } from "zod"
 
-export const TaskStatusSchema = z.enum([
-  "pending",
-  "in_progress",
-  "completed",
-  "deleted",
-]);
-export type TaskStatus = z.infer<typeof TaskStatusSchema>;
+export const TaskStatusSchema = z.enum(["pending", "in_progress", "completed", "deleted"])
+export type TaskStatus = z.infer<typeof TaskStatusSchema>
 
 export const TaskSchema = z
   .object({
@@ -20,6 +15,6 @@ export const TaskSchema = z
     owner: z.string().optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
-  .strict();
+  .strict()
 
-export type Task = z.infer<typeof TaskSchema>;
+export type Task = z.infer<typeof TaskSchema>

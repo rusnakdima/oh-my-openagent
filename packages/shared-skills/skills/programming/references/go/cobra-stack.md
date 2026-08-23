@@ -1,7 +1,6 @@
 # CLI Stack — cobra + slog + caarlos0/env + signal handling
 
-The canonical Go CLI skeleton. `cobra` is the de facto framework — Kubernetes,
-Docker CLI, Helm, GitHub CLI, gh, Hugo all use it. Use it.
+The canonical Go CLI skeleton. `cobra` is the de facto framework — Kubernetes, Docker CLI, Helm, GitHub CLI, gh, Hugo all use it. Use it.
 
 ---
 
@@ -64,8 +63,7 @@ func main() {
 }
 ```
 
-`signal.NotifyContext` (Go 1.16+) gives every subcommand a ctx that cancels on
-Ctrl-C. Subcommands plumb the ctx into their workers.
+`signal.NotifyContext` (Go 1.16+) gives every subcommand a ctx that cancels on Ctrl-C. Subcommands plumb the ctx into their workers.
 
 ---
 
@@ -133,13 +131,9 @@ func setupLogger() error {
 
 Notes:
 
-- `RunE` / `PersistentPreRunE` (the `E` variants) return errors. Use these;
-  never use `Run` (no error return, encourages `log.Fatal`).
-- `SilenceUsage: true` + `SilenceErrors: true` together: cobra stops printing
-  the full `--help` on every command failure (the default behavior is rude in
-  production scripts).
-- `ExecuteContext` (cobra 1.8+) plumbs the ctx into every subcommand's
-  `cmd.Context()`.
+- `RunE` / `PersistentPreRunE` (the `E` variants) return errors. Use these; never use `Run` (no error return, encourages `log.Fatal`).
+- `SilenceUsage: true` + `SilenceErrors: true` together: cobra stops printing the full `--help` on every command failure (the default behavior is rude in production scripts).
+- `ExecuteContext` (cobra 1.8+) plumbs the ctx into every subcommand's `cmd.Context()`.
 
 ---
 
@@ -176,9 +170,7 @@ func init() {
 }
 ```
 
-The subcommand is a thin shim — flags + log line + delegate to
-`internal/server`. Anything bigger violates the 250-LOC ceiling and belongs in
-`internal/`.
+The subcommand is a thin shim — flags + log line + delegate to `internal/server`. Anything bigger violates the 250-LOC ceiling and belongs in `internal/`.
 
 ---
 
@@ -203,8 +195,7 @@ var migrateUpCmd = &cobra.Command{
 }
 ```
 
-Use cobra's argument validators (`cobra.ExactArgs`, `cobra.MaximumNArgs`,
-`cobra.OnlyValidArgs`). They produce clean help text.
+Use cobra's argument validators (`cobra.ExactArgs`, `cobra.MaximumNArgs`, `cobra.OnlyValidArgs`). They produce clean help text.
 
 ---
 
@@ -221,8 +212,7 @@ serverCmd.Flags().StringVar(&timeoutStr, "timeout", "30s", "")
 // ...then later: time.ParseDuration(timeoutStr)
 ```
 
-`pflag` (cobra's flag lib) has typed variants for every common type. Use them;
-the parsing and error messages are free.
+`pflag` (cobra's flag lib) has typed variants for every common type. Use them; the parsing and error messages are free.
 
 ---
 
@@ -261,8 +251,7 @@ func init() {
 }
 ```
 
-Precedence: **flag (if set) > env > default**. Document the env var in the flag
-usage string.
+Precedence: **flag (if set) > env > default**. Document the env var in the flag usage string.
 
 ---
 
@@ -322,8 +311,7 @@ go build \
   -o bin/mytool ./
 ```
 
-The `debug.BuildInfo` fallback means a `go install`'d binary also has version
-info — no manual `-ldflags` needed.
+The `debug.BuildInfo` fallback means a `go install`'d binary also has version info — no manual `-ldflags` needed.
 
 ---
 
@@ -374,8 +362,7 @@ err := huh.NewConfirm().
     Run()
 ```
 
-`huh` replaces `survey` (which is no longer maintained). It composes with
-`lipgloss` for styling.
+`huh` replaces `survey` (which is no longer maintained). It composes with `lipgloss` for styling.
 
 ---
 
@@ -429,19 +416,15 @@ func render(v any) error {
 }
 ```
 
-The `text` format uses `lipgloss` tables or `aquasecurity/table` for
-nicely-aligned columns. The `json` format is for `jq`-style piping.
+The `text` format uses `lipgloss` tables or `aquasecurity/table` for nicely-aligned columns. The `json` format is for `jq`-style piping.
 
 ---
 
 ## Error semantics
 
-- Return errors from `RunE`. Cobra catches them and the `Execute` wrapper logs +
-  exits non-zero.
-- `os.Exit(1)` should appear **only in `main.go`**. Anywhere else means a
-  subcommand cannot be tested.
-- For graceful early termination ("user cancelled"), return a sentinel and check
-  it in `Execute`:
+- Return errors from `RunE`. Cobra catches them and the `Execute` wrapper logs + exits non-zero.
+- `os.Exit(1)` should appear **only in `main.go`**. Anywhere else means a subcommand cannot be tested.
+- For graceful early termination ("user cancelled"), return a sentinel and check it in `Execute`:
   ```go
   var ErrCancelled = errors.New("cancelled by user")
   // ... return ErrCancelled
@@ -472,15 +455,13 @@ func TestServerCmd_runs_with_default_addr(t *testing.T) {
 }
 ```
 
-`SetArgs` + `ExecuteContext` is the canonical pattern. Bind a ctx with a short
-deadline for tests that would otherwise block.
+`SetArgs` + `ExecuteContext` is the canonical pattern. Bind a ctx with a short deadline for tests that would otherwise block.
 
 ---
 
 ## Sources
 
-- cobra docs:
-  https://github.com/spf13/cobra/blob/main/site/content/user_guide.md
+- cobra docs: https://github.com/spf13/cobra/blob/main/site/content/user_guide.md
 - pflag: https://github.com/spf13/pflag
 - huh: https://github.com/charmbracelet/huh
 - caarlos0/env: https://github.com/caarlos0/env

@@ -1,12 +1,11 @@
-import type { BuiltinCategoryDefinition } from "./types";
+import type { BuiltinCategoryDefinition } from "./types"
 
 // Ported from packages/omo-opencode/src/tools/delegate-task/anthropic-categories.ts.
 const UNSPECIFIED_HIGH_CATEGORY_PROMPT_APPEND = `<Category_Context>
 You are working on tasks that don't fit specific categories but require substantial effort.
-</Category_Context>`;
+</Category_Context>`
 
-const UNSPECIFIED_HIGH_CATEGORY_CALLER_GUIDANCE =
-  `<Selection_Gate>Use only when no specialist category fits and substantial effort spans systems/modules with broad impact. Use unspecified-low for contained moderate work.</Selection_Gate>`;
+const UNSPECIFIED_HIGH_CATEGORY_CALLER_GUIDANCE = `<Selection_Gate>Use only when no specialist category fits and substantial effort spans systems/modules with broad impact. Use unspecified-low for contained moderate work.</Selection_Gate>`
 
 const ARCHITECT_CATEGORY_PROMPT_APPEND = `<Category_Context>
 You are a big-picture system design consultant, NOT an implementer.
@@ -21,7 +20,7 @@ You are a big-picture system design consultant, NOT an implementer.
 <Advisory_Mode>
 When the caller marks the task advisory-only, produce NO file edits: return the analysis, options, recommendation, and risks as structured text.
 </Advisory_Mode>
-</Category_Context>`;
+</Category_Context>`
 
 export const ANTHROPIC_CATEGORIES = [
   {
@@ -39,4 +38,4 @@ export const ANTHROPIC_CATEGORIES = [
     callerGuidance: UNSPECIFIED_HIGH_CATEGORY_CALLER_GUIDANCE,
     promptAppend: UNSPECIFIED_HIGH_CATEGORY_PROMPT_APPEND,
   },
-] satisfies readonly BuiltinCategoryDefinition[];
+] satisfies readonly BuiltinCategoryDefinition[]

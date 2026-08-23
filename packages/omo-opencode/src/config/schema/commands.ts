@@ -1,19 +1,19 @@
-import { z } from "zod";
+import { z } from "zod"
 
 export const BuiltinCommandNameSchema = z.enum([
-  "goal",
-  "refactor",
-  "start-work",
-  "stop-continuation",
-  "remove-ai-slops",
-  "hyperplan",
-  "wiki-init",
-  "wiki-ingest",
-  "wiki-query",
-  "wiki-lint",
-  "wiki-update",
-  "openspec",
-  "btw",
-]);
+ "goal",
+ "refactor",
+ "start-work",
+ "stop-continuation",
+ "remove-ai-slops",
+ "hyperplan",
+ "wiki-init",
+ "wiki-ingest",
+ "wiki-query",
+ "wiki-lint",
+ "wiki-update",
+ "openspec",
+ "btw",
+])
 
-export type BuiltinCommandName = z.infer<typeof BuiltinCommandNameSchema>;
+export type BuiltinCommandName = z.infer<typeof BuiltinCommandNameSchema>

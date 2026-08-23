@@ -1,10 +1,10 @@
-import { describe, expect, it } from "bun:test";
-import type { OhMyOpenCodeConfig } from "../../config";
-import type { BackgroundManager } from "../../features/background-agent";
-import type { ModelCacheState } from "../../plugin-state";
-import type { PluginContext } from "../types";
-import { createSessionHooks } from "./create-session-hooks";
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
+import { describe, expect, it } from "bun:test"
+import type { OhMyOpenCodeConfig } from "../../config"
+import type { BackgroundManager } from "../../features/background-agent"
+import type { ModelCacheState } from "../../plugin-state"
+import type { PluginContext } from "../types"
+import { createSessionHooks } from "./create-session-hooks"
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 
 const mockContext = unsafeTestValue<PluginContext>({
   directory: "/tmp",
@@ -17,15 +17,15 @@ const mockContext = unsafeTestValue<PluginContext>({
       update: async () => ({}),
     },
   },
-});
+})
 
-const mockModelCacheState = {} as ModelCacheState;
-const mockBackgroundManager = unsafeTestValue<BackgroundManager>({});
+const mockModelCacheState = {} as ModelCacheState
+const mockBackgroundManager = unsafeTestValue<BackgroundManager>({})
 
 describe("createSessionHooks", () => {
   it("keeps model fallback disabled when config is unset", () => {
     // given
-    const pluginConfig = {} as OhMyOpenCodeConfig;
+    const pluginConfig = {} as OhMyOpenCodeConfig
 
     // when
     const result = createSessionHooks({
@@ -35,15 +35,15 @@ describe("createSessionHooks", () => {
       backgroundManager: mockBackgroundManager,
       isHookEnabled: (hookName) => hookName === "model-fallback",
       safeHookEnabled: true,
-    });
+    })
 
     // then
-    expect(result.modelFallback).toBeNull();
-  });
+    expect(result.modelFallback).toBeNull()
+  })
 
   it("creates model fallback hook when config explicitly enables it", () => {
     // given
-    const pluginConfig = { model_fallback: true } as OhMyOpenCodeConfig;
+    const pluginConfig = { model_fallback: true } as OhMyOpenCodeConfig
 
     // when
     const result = createSessionHooks({
@@ -53,15 +53,15 @@ describe("createSessionHooks", () => {
       backgroundManager: mockBackgroundManager,
       isHookEnabled: (hookName) => hookName === "model-fallback",
       safeHookEnabled: true,
-    });
+    })
 
     // then
-    expect(result.modelFallback).not.toBeNull();
-  });
+    expect(result.modelFallback).not.toBeNull()
+  })
 
   it("does not create removed context window monitor hook", () => {
     // given
-    const pluginConfig = {} as OhMyOpenCodeConfig;
+    const pluginConfig = {} as OhMyOpenCodeConfig
 
     // when
     const result = createSessionHooks({
@@ -69,14 +69,13 @@ describe("createSessionHooks", () => {
       pluginConfig,
       modelCacheState: mockModelCacheState,
       backgroundManager: mockBackgroundManager,
-      isHookEnabled: (hookName: string) =>
-        hookName === "context-window-monitor",
+      isHookEnabled: (hookName: string) => hookName === "context-window-monitor",
       safeHookEnabled: true,
-    });
+    })
 
     // then
-    expect("contextWindowMonitor" in result).toBe(false);
-  });
+    expect("contextWindowMonitor" in result).toBe(false)
+  })
 
   it("skips interactive bash session hook when tmux integration is disabled", () => {
     // given
@@ -89,7 +88,7 @@ describe("createSessionHooks", () => {
         agent_pane_min_width: 40,
         isolation: "inline",
       },
-    } as OhMyOpenCodeConfig;
+    } as OhMyOpenCodeConfig
 
     // when
     const result = createSessionHooks({
@@ -99,15 +98,15 @@ describe("createSessionHooks", () => {
       backgroundManager: mockBackgroundManager,
       isHookEnabled: (hookName) => hookName === "interactive-bash-session",
       safeHookEnabled: true,
-    });
+    })
 
     // then
-    expect(result.interactiveBashSession).toBeNull();
-  });
+    expect(result.interactiveBashSession).toBeNull()
+  })
 
   it("skips codegraph bootstrap when disabled hooks exclude it", () => {
     // given
-    const pluginConfig = unsafeTestValue<OhMyOpenCodeConfig>({});
+    const pluginConfig = unsafeTestValue<OhMyOpenCodeConfig>({})
 
     // when
     const result = createSessionHooks({
@@ -117,11 +116,11 @@ describe("createSessionHooks", () => {
       backgroundManager: mockBackgroundManager,
       isHookEnabled: (hookName) => hookName !== "codegraph-bootstrap",
       safeHookEnabled: true,
-    });
+    })
 
     // then
-    expect(result.codegraphBootstrap).toBeNull();
-  });
+    expect(result.codegraphBootstrap).toBeNull()
+  })
 
   it("keeps codegraph bootstrap registered when the hook is enabled", () => {
     // given
@@ -129,7 +128,7 @@ describe("createSessionHooks", () => {
       codegraph: {
         enabled: false,
       },
-    });
+    })
 
     // when
     const result = createSessionHooks({
@@ -139,17 +138,17 @@ describe("createSessionHooks", () => {
       backgroundManager: mockBackgroundManager,
       isHookEnabled: (hookName) => hookName === "codegraph-bootstrap",
       safeHookEnabled: true,
-    });
+    })
 
     // then
-    expect(result.codegraphBootstrap).not.toBeNull();
-  });
+    expect(result.codegraphBootstrap).not.toBeNull()
+  })
 
   it("skips image proxy when multimodal-looker is disabled", () => {
     // given
     const pluginConfig = unsafeTestValue<OhMyOpenCodeConfig>({
       disabled_agents: ["multimodal-looker"],
-    });
+    })
 
     // when
     const result = createSessionHooks({
@@ -159,9 +158,9 @@ describe("createSessionHooks", () => {
       backgroundManager: mockBackgroundManager,
       isHookEnabled: (hookName) => hookName === "image-proxy",
       safeHookEnabled: true,
-    });
+    })
 
     // then
-    expect(result.imageProxy).toBeNull();
-  });
-});
+    expect(result.imageProxy).toBeNull()
+  })
+})

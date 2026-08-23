@@ -1,113 +1,106 @@
-import * as fs from "node:fs/promises";
-import { homedir } from "os";
-import { dirname, extname, isAbsolute, join, relative } from "path";
-import picomatch from "picomatch";
-import type { SkillsConfig } from "../../types";
-import { resolveSymlinkAsync } from "@oh-my-opencode/utils";
-import { normalizeSkillsConfig } from "./merger/skills-config-normalizer";
-import { deduplicateSkillsByName } from "./skill-deduplication";
-import { loadSkillsFromDir } from "./skill-directory-loader";
-import {
-  inferSkillNameFromFileName,
-  loadSkillFromPath,
-} from "./loaded-skill-from-path";
-import type { LoadedSkill } from "./types";
+import * as fs from "node:fs/promises"
+import { homedir } from "os"
+import { dirname, extname, isAbsolute, join, relative } from "path"
+import picomatch from "picomatch"
+import type { SkillsConfig } from "../../types"
+import { resolveSymlinkAsync } from "@oh-my-opencode/utils"
+import { normalizeSkillsConfig } from "./merger/skills-config-normalizer"
+import { deduplicateSkillsByName } from "./skill-deduplication"
+import { loadSkillsFromDir } from "./skill-directory-loader"
+import { inferSkillNameFromFileName, loadSkillFromPath } from "./loaded-skill-from-path"
+import type { LoadedSkill } from "./types"
 
-const MAX_RECURSIVE_DEPTH = 10;
+const MAX_RECURSIVE_DEPTH = 10
 
 function isHttpUrl(path: string): boolean {
-  return path.startsWith("http://") || path.startsWith("https://");
+  return path.startsWith("http://") || path.startsWith("https://")
 }
 
 function toAbsolutePath(path: string, configDir: string): string {
   if (path === "~") {
-    return homedir();
+    return homedir()
   }
 
   if (path.startsWith("~/")) {
-    return join(homedir(), path.slice(2));
+    return join(homedir(), path.slice(2))
   }
 
   if (isAbsolute(path)) {
-    return path;
+    return path
   }
-  return join(configDir, path);
+  return join(configDir, path)
 }
 
 function isMarkdownPath(path: string): boolean {
-  return extname(path).toLowerCase() === ".md";
+  return extname(path).toLowerCase() === ".md"
 }
 
 export function normalizePathForGlob(path: string): string {
-  return path.split("\\").join("/");
+  return path.split("\\").join("/")
 }
 
-function filterByGlob(
-  skills: LoadedSkill[],
-  sourceBaseDir: string,
-  globPattern?: string,
-): LoadedSkill[] {
-  if (!globPattern) return skills;
+function filterByGlob(skills: LoadedSkill[], sourceBaseDir: string, globPattern?: string): LoadedSkill[] {
+  if (!globPattern) return skills
 
   return skills.filter((skill) => {
-    if (!skill.path) return false;
-    const rel = normalizePathForGlob(relative(sourceBaseDir, skill.path));
-    return picomatch.isMatch(rel, globPattern, { dot: true, bash: true });
-  });
+    if (!skill.path) return false
+    const rel = normalizePathForGlob(relative(sourceBaseDir, skill.path))
+    return picomatch.isMatch(rel, globPattern, { dot: true, bash: true })
+  })
 }
 
 async function resolveRealPath(path: string): Promise<string> {
   return resolveSymlinkAsync(path).catch((error) => {
     if (error instanceof Error) {
-      return path;
+      return path
     }
-    throw error;
-  });
+    throw error
+  })
 }
 
 async function loadSourcePath(options: {
-  sourcePath: string;
-  recursive: boolean;
-  globPattern?: string;
-  configDir: string;
+  sourcePath: string
+  recursive: boolean
+  globPattern?: string
+  configDir: string
 }): Promise<LoadedSkill[]> {
   if (isHttpUrl(options.sourcePath)) {
-    return [];
+    return []
   }
 
-  const absolutePath = toAbsolutePath(options.sourcePath, options.configDir);
-  const stat = await fs.stat(absolutePath).catch(() => null);
-  if (!stat) return [];
-  const realSourcePath = await resolveRealPath(absolutePath);
+  const absolutePath = toAbsolutePath(options.sourcePath, options.configDir)
+  const stat = await fs.stat(absolutePath).catch(() => null)
+  if (!stat) return []
+  const realSourcePath = await resolveRealPath(absolutePath)
 
   if (stat.isFile()) {
-    if (!isMarkdownPath(realSourcePath)) return [];
+    if (!isMarkdownPath(realSourcePath)) return []
     const loaded = await loadSkillFromPath({
       skillPath: realSourcePath,
       resolvedPath: dirname(realSourcePath),
       defaultName: inferSkillNameFromFileName(realSourcePath),
       scope: "config",
-    });
-    if (!loaded) return [];
-    return filterByGlob([loaded], dirname(realSourcePath), options.globPattern);
+    })
+    if (!loaded) return []
+    return filterByGlob([loaded], dirname(realSourcePath), options.globPattern)
   }
 
-  if (!stat.isDirectory()) return [];
+  if (!stat.isDirectory()) return []
 
   const directorySkills = await loadSkillsFromDir({
     skillsDir: realSourcePath,
     scope: "config",
     maxDepth: options.recursive ? MAX_RECURSIVE_DEPTH : 0,
-  });
-  return filterByGlob(directorySkills, realSourcePath, options.globPattern);
+  })
+  return filterByGlob(directorySkills, realSourcePath, options.globPattern)
 }
 
 export async function discoverConfigSourceSkills(options: {
-  config: SkillsConfig | undefined;
-  configDir: string;
+  config: SkillsConfig | undefined
+  configDir: string
 }): Promise<LoadedSkill[]> {
-  const normalized = normalizeSkillsConfig(options.config);
-  if (normalized.sources.length === 0) return [];
+  const normalized = normalizeSkillsConfig(options.config)
+  if (normalized.sources.length === 0) return []
 
   const loadedBySource = await Promise.all(
     normalized.sources.map((source) => {
@@ -116,7 +109,7 @@ export async function discoverConfigSourceSkills(options: {
           sourcePath: source,
           recursive: false,
           configDir: options.configDir,
-        });
+        })
       }
 
       return loadSourcePath({
@@ -124,9 +117,9 @@ export async function discoverConfigSourceSkills(options: {
         recursive: source.recursive ?? false,
         globPattern: source.glob,
         configDir: options.configDir,
-      });
+      })
     }),
-  );
+  )
 
-  return deduplicateSkillsByName(loadedBySource.flat());
+  return deduplicateSkillsByName(loadedBySource.flat())
 }

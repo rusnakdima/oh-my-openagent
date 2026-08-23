@@ -1,33 +1,28 @@
 import {
-  type CloseTmuxPaneDependencies,
   closeTmuxPaneWithDependencies,
-} from "@oh-my-opencode/tmux-core";
+  type CloseTmuxPaneDependencies,
+} from "@oh-my-opencode/tmux-core"
 
 function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
 export async function closeTmuxPane(paneId: string): Promise<boolean> {
-  const [
-    { log },
-    { isTmuxPaneCompatible },
-    { getTmuxPath },
-    { runTmuxCommand },
-  ] = await Promise.all([
-    import("../../logger"),
-    import("./environment"),
-    import("../../../tools/interactive-bash/tmux-path-resolver"),
-    import("../runner"),
-  ]);
+	const [{ log }, { isTmuxPaneCompatible }, { getTmuxPath }, { runTmuxCommand }] = await Promise.all([
+		import("../../logger"),
+		import("./environment"),
+		import("../../../tools/interactive-bash/tmux-path-resolver"),
+		import("../runner"),
+	])
 
-  return closeTmuxPaneWithDependencies(paneId, {
-    isInsideTmux: isTmuxPaneCompatible,
-    getTmuxPath,
-    runTmuxCommand,
-    log,
-    delay,
-  });
+	return closeTmuxPaneWithDependencies(paneId, {
+		isInsideTmux: isTmuxPaneCompatible,
+		getTmuxPath,
+		runTmuxCommand,
+		log,
+		delay,
+	})
 }
 
-export { closeTmuxPaneWithDependencies };
-export type { CloseTmuxPaneDependencies };
+export { closeTmuxPaneWithDependencies }
+export type { CloseTmuxPaneDependencies }

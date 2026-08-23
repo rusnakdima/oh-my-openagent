@@ -25,14 +25,10 @@ async function createLauncherFixture(
   await mkdir(join(wrapperPackageRoot, "dist", "cli"), { recursive: true });
   await writeFile(
     join(wrapperPackageRoot, "dist", "cli", "index.js"),
-    bunOutput
-      ? `console.log(${JSON.stringify(bunOutput)})\n`
-      : 'console.log("BUN_CLI_RAN");\n',
+    bunOutput ? `console.log(${JSON.stringify(bunOutput)})\n` : 'console.log("BUN_CLI_RAN");\n',
   );
   if (withNodeCli) {
-    await mkdir(join(wrapperPackageRoot, "dist", "cli-node"), {
-      recursive: true,
-    });
+    await mkdir(join(wrapperPackageRoot, "dist", "cli-node"), { recursive: true });
     await writeFile(
       join(wrapperPackageRoot, "dist", "cli-node", "index.js"),
       'console.log("OMO_NODE_OK", process.argv.slice(2).join(" "));\n',
@@ -43,11 +39,7 @@ async function createLauncherFixture(
   return { launcherPath, wrapperPackageRoot, root };
 }
 
-function runLauncher(
-  fixture: LauncherFixture,
-  env: Record<string, string>,
-  args: readonly string[] = ["--help"],
-) {
+function runLauncher(fixture: LauncherFixture, env: Record<string, string>, args: readonly string[] = ["--help"]) {
   return spawnSync("node", [fixture.launcherPath, ...args], {
     encoding: "utf8",
     env: {
@@ -91,9 +83,7 @@ describe("platform launcher runtime fallback (lazycodex#47)", () => {
 
     if (process.platform === "win32") {
       // given: Windows cannot propagate SIGILL through spawnSync; exercise the error fallback path
-      const result = runLauncher(fixture, {
-        BUN_BINARY: join(fixture.root, "nonexistent-bun.exe"),
-      });
+      const result = runLauncher(fixture, { BUN_BINARY: join(fixture.root, "nonexistent-bun.exe") });
 
       // then: fallback to node CLI still works
       expect(result.status).toBe(0);
@@ -119,10 +109,7 @@ describe("platform launcher runtime fallback (lazycodex#47)", () => {
       // given: Windows spawnSync without shell:true cannot run .sh or .cmd as a bun stand-in;
       // use node (process.execPath) as the fake bun binary, which the launcher invokes as
       // spawnSync(node, [cliPath, ...args]) — effectively running the CLI with node instead of bun
-      const fixture = await createLauncherFixture({
-        withNodeCli: true,
-        bunOutput: "BUN_OK",
-      });
+      const fixture = await createLauncherFixture({ withNodeCli: true, bunOutput: "BUN_OK" });
 
       const result = runLauncher(fixture, { BUN_BINARY: process.execPath });
 
@@ -133,16 +120,8 @@ describe("platform launcher runtime fallback (lazycodex#47)", () => {
     }
 
     // given: POSIX — use a shell script fake bun
-    const fixture = await createLauncherFixture({
-      withNodeCli: true,
-      bunOutput: "BUN_OK",
-    });
-    const fakeBun = await writeFakeBun(
-      fixture.root,
-      "fake-bun",
-      'echo "BUN_OK $2"',
-      "echo BUN_OK %2",
-    );
+    const fixture = await createLauncherFixture({ withNodeCli: true, bunOutput: "BUN_OK" });
+    const fakeBun = await writeFakeBun(fixture.root, "fake-bun", 'echo "BUN_OK $2"', "echo BUN_OK %2");
 
     const result = runLauncher(fixture, { BUN_BINARY: fakeBun });
 
@@ -160,10 +139,7 @@ describe("platform launcher runtime fallback (lazycodex#47)", () => {
       "echo BUN_OK",
     );
 
-    const result = runLauncher(fixture, {
-      BUN_BINARY: fakeBun,
-      OMO_RUNTIME: "node",
-    });
+    const result = runLauncher(fixture, { BUN_BINARY: fakeBun, OMO_RUNTIME: "node" });
 
     expect(result.status).toBe(0);
     expect(result.stdout).toContain("OMO_NODE_OK --help");

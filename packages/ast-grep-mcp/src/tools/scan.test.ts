@@ -7,15 +7,7 @@
  */
 import { afterEach, describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
-import {
-  chmodSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { join } from "node:path";
 import { spawnSync } from "node:child_process";
@@ -26,16 +18,13 @@ import {
   buildScanApplyArgs,
   buildScanArgs,
   executeScan,
+  scanInputSchema,
   type ScanErrorPayload,
   type ScanInput,
-  scanInputSchema,
   type ScanSuccessPayload,
 } from "./scan";
 
-const PINNED_SG_PATH = join(
-  astGrepRuntimeDir(join(homedir(), ".omo")),
-  process.platform === "win32" ? "sg.exe" : "sg",
-);
+const PINNED_SG_PATH = join(astGrepRuntimeDir(join(homedir(), ".omo")), process.platform === "win32" ? "sg.exe" : "sg");
 const LOCAL_SG_PATH = "/opt/homebrew/bin/sg";
 const SG_PATH = existsSync(PINNED_SG_PATH) ? PINNED_SG_PATH : LOCAL_SG_PATH;
 const SG_AVAILABLE = existsSync(SG_PATH);
@@ -57,9 +46,7 @@ rule:
 fix: logger.info($MSG)
 `;
 
-function fixtureRepo(
-  contents = 'console.log("hello");\nconst x = 1;\nconsole.log(x);\n',
-): string {
+function fixtureRepo(contents = 'console.log("hello");\nconst x = 1;\nconsole.log(x);\n'): string {
   const dir = mkdtempSync(join(tmpdir(), "omo-scan-"));
   directories.push(dir);
   mkdirSync(join(dir, "src"), { recursive: true });
@@ -82,20 +69,12 @@ function baseInput(dir: string, overrides: Partial<ScanInput> = {}): ScanInput {
 }
 
 afterEach(() => {
-  for (const dir of directories.splice(0)) {
-    rmSync(dir, { recursive: true, force: true });
-  }
+  for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true });
 });
 
 describe("scan tool: schema and CLI", () => {
   it("#given both rule sources #when parsed #then oneOf rejects the input", () => {
-    expect(() =>
-      scanInputSchema.parse({
-        ruleFile: "rule.yml",
-        inlineRules: RULE,
-        paths: ["src"],
-      })
-    ).toThrow();
+    expect(() => scanInputSchema.parse({ ruleFile: "rule.yml", inlineRules: RULE, paths: ["src"] })).toThrow();
   });
 
   it("#given neither rule source #when parsed #then oneOf rejects the input", () => {
@@ -103,11 +82,7 @@ describe("scan tool: schema and CLI", () => {
   });
 
   it("#given a oneOf violation #when executed #then INVALID_ARGUMENT is returned before spawn", async () => {
-    const both = await executeScan({
-      ruleFile: "rule.yml",
-      inlineRules: RULE,
-      paths: ["src"],
-    }, "/missing/sg");
+    const both = await executeScan({ ruleFile: "rule.yml", inlineRules: RULE, paths: ["src"] }, "/missing/sg");
     const neither = await executeScan({ paths: ["src"] }, "/missing/sg");
     expect(both.ok).toBe(false);
     expect((both as ScanErrorPayload).error.code).toBe("INVALID_ARGUMENT");
@@ -124,49 +99,16 @@ describe("scan tool: schema and CLI", () => {
   });
 
   it("#given values outside search's shared bounds #when parsed #then they are rejected", () => {
-    expect(() =>
-      scanInputSchema.parse({ inlineRules: RULE, paths: ["x".repeat(4_097)] })
-    ).toThrow();
-    expect(() =>
-      scanInputSchema.parse({
-        inlineRules: RULE,
-        paths: ["src"],
-        workdir: "x".repeat(4_097),
-      })
-    ).toThrow();
-    expect(() =>
-      scanInputSchema.parse({
-        inlineRules: RULE,
-        paths: ["src"],
-        globs: ["x".repeat(1_025)],
-      })
-    ).toThrow();
-    expect(() =>
-      scanInputSchema.parse({
-        inlineRules: RULE,
-        paths: ["src"],
-        timeoutMs: 999,
-      })
-    ).toThrow();
-    expect(() =>
-      scanInputSchema.parse({
-        inlineRules: RULE,
-        paths: ["src"],
-        maxMatches: 501,
-      })
-    ).toThrow();
+    expect(() => scanInputSchema.parse({ inlineRules: RULE, paths: ["x".repeat(4_097)] })).toThrow();
+    expect(() => scanInputSchema.parse({ inlineRules: RULE, paths: ["src"], workdir: "x".repeat(4_097) })).toThrow();
+    expect(() => scanInputSchema.parse({ inlineRules: RULE, paths: ["src"], globs: ["x".repeat(1_025)] })).toThrow();
+    expect(() => scanInputSchema.parse({ inlineRules: RULE, paths: ["src"], timeoutMs: 999 })).toThrow();
+    expect(() => scanInputSchema.parse({ inlineRules: RULE, paths: ["src"], maxMatches: 501 })).toThrow();
   });
 
   it("#given oversized explicit rule sources #when parsed #then they are rejected before spawn", () => {
-    expect(() =>
-      scanInputSchema.parse({ ruleFile: "x".repeat(4_097), paths: ["src"] })
-    ).toThrow();
-    expect(() =>
-      scanInputSchema.parse({
-        inlineRules: "x".repeat(64 * 1_024 + 1),
-        paths: ["src"],
-      })
-    ).toThrow();
+    expect(() => scanInputSchema.parse({ ruleFile: "x".repeat(4_097), paths: ["src"] })).toThrow();
+    expect(() => scanInputSchema.parse({ inlineRules: "x".repeat(64 * 1_024 + 1), paths: ["src"] })).toThrow();
   });
 
   it("#given ruleFile #when building dry and apply args #then JSON is preview-only", () => {
@@ -175,26 +117,16 @@ describe("scan tool: schema and CLI", () => {
     const sourcePath = join(project, "src");
     const input = baseInput(project);
     expect(buildScanArgs(input)).toEqual([
-      "scan",
-      "--rule",
-      ruleFile,
-      "--json=stream",
-      sourcePath,
+      "scan", "--rule", ruleFile, "--json=stream", sourcePath,
     ]);
     expect(buildScanApplyArgs(input)).toEqual([
-      "scan",
-      "--rule",
-      ruleFile,
-      "--update-all",
-      sourcePath,
+      "scan", "--rule", ruleFile, "--update-all", sourcePath,
     ]);
   });
 
   it("#given inline rules and scan flags #when building args #then source stays explicit and metadata uses the verified flag", () => {
     const input = scanInputSchema.parse({
-      inlineRules: `${RULE}\n---\n${
-        RULE.replace("no-console", "no-console-2")
-      }`,
+      inlineRules: `${RULE}\n---\n${RULE.replace("no-console", "no-console-2")}`,
       paths: ["src"],
       includeMetadata: true,
       globs: ["*.ts"],
@@ -202,11 +134,7 @@ describe("scan tool: schema and CLI", () => {
       followSymlinks: true,
     });
     const args = buildScanArgs(input);
-    expect(args.slice(0, 3)).toEqual([
-      "scan",
-      "--inline-rules",
-      input.inlineRules!,
-    ]);
+    expect(args.slice(0, 3)).toEqual(["scan", "--inline-rules", input.inlineRules!]);
     expect(args).toContain("--include-metadata");
     expect(args).not.toContain("--report-style");
     expect(args).toContain("--globs");
@@ -218,21 +146,11 @@ describe("scan tool: schema and CLI", () => {
 describe("scan tool: astral per-string bounds", () => {
   // U+1D11E MUSICAL SYMBOL G CLEF: one Unicode code point, two UTF-16 code units.
   const ASTRAL = "\u{1D11E}";
-  const fields: Array<
-    [string, number, (value: string) => Record<string, unknown>]
-  > = [
+  const fields: Array<[string, number, (value: string) => Record<string, unknown>]> = [
     ["ruleFile", 4_096, (value) => ({ ruleFile: value, paths: ["src"] })],
     ["path", 4_096, (value) => ({ inlineRules: RULE, paths: [value] })],
-    [
-      "workdir",
-      4_096,
-      (value) => ({ inlineRules: RULE, paths: ["src"], workdir: value }),
-    ],
-    [
-      "glob",
-      1_024,
-      (value) => ({ inlineRules: RULE, paths: ["src"], globs: [value] }),
-    ],
+    ["workdir", 4_096, (value) => ({ inlineRules: RULE, paths: ["src"], workdir: value })],
+    ["glob", 1_024, (value) => ({ inlineRules: RULE, paths: ["src"], globs: [value] })],
   ];
 
   it("#given the astral boundary character #when measured #then it is one code point and two UTF-16 units", () => {
@@ -258,50 +176,33 @@ describe("scan tool: astral per-string bounds", () => {
 });
 
 describe("scan tool: stderr compatibility", () => {
-  it(
-    "#given the sg deprecation banner starts with WARNING #when scanned #then it is tolerated as a warning",
-    async () => {
-      if (process.platform === "win32") return;
-      const dir = fixtureRepo();
-      const fakeSg = join(dir, "fake-sg.sh");
-      writeFileSync(
-        fakeSg,
-        `#!/bin/sh\nprintf '%s\\n' 'WARNING: the sg command name is deprecated; use ast-grep' >&2\nprintf '%s\\n' '${
-          JSON.stringify({
-            text: "console.log(x)",
-            range: {
-              byteOffset: { start: 0, end: 14 },
-              start: { line: 0, column: 0 },
-              end: { line: 0, column: 14 },
-            },
-            file: "src/a.ts",
-            replacement: "logger.info(x)",
-            replacementOffsets: { start: 0, end: 14 },
-            language: "TypeScript",
-            metaVariables: { single: {}, multi: {}, transformed: {} },
-            ruleId: "no-console",
-            severity: "warning",
-            labels: [],
-          }).replaceAll("'", "'\\''")
-        } ' \n`,
-      );
-      chmodSync(fakeSg, 0o755);
-      const result = await executeScan(baseInput(dir), fakeSg);
-      expect(result.ok).toBe(true);
-      expect((result as ScanSuccessPayload).warnings[0]).toStartWith(
-        "WARNING:",
-      );
-    },
-    { timeout: 15000 },
-  );
+  it("#given the sg deprecation banner starts with WARNING #when scanned #then it is tolerated as a warning", async () => {
+    if (process.platform === "win32") return;
+    const dir = fixtureRepo();
+    const fakeSg = join(dir, "fake-sg.sh");
+    writeFileSync(fakeSg, `#!/bin/sh\nprintf '%s\\n' 'WARNING: the sg command name is deprecated; use ast-grep' >&2\nprintf '%s\\n' '${JSON.stringify({
+      text: "console.log(x)",
+      range: { byteOffset: { start: 0, end: 14 }, start: { line: 0, column: 0 }, end: { line: 0, column: 14 } },
+      file: "src/a.ts",
+      replacement: "logger.info(x)",
+      replacementOffsets: { start: 0, end: 14 },
+      language: "TypeScript",
+      metaVariables: { single: {}, multi: {}, transformed: {} },
+      ruleId: "no-console",
+      severity: "warning",
+      labels: [],
+    }).replaceAll("'", "'\\''")} ' \n`);
+    chmodSync(fakeSg, 0o755);
+    const result = await executeScan(baseInput(dir), fakeSg);
+    expect(result.ok).toBe(true);
+    expect((result as ScanSuccessPayload).warnings[0]).toStartWith("WARNING:");
+  }, { timeout: 15000 });
 });
 
 describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
   it("#given the provisioned runtime #when inspected #then it is the 0.43.0 OMO pin", () => {
     expect(existsSync(PINNED_SG_PATH)).toBe(true);
-    const version = spawnSync(PINNED_SG_PATH, ["--version"], {
-      encoding: "utf8",
-    });
+    const version = spawnSync(PINNED_SG_PATH, ["--version"], { encoding: "utf8" });
     expect(version.status).toBe(0);
     expect(version.stdout).toContain(`ast-grep ${SG_PINNED_VERSION}`);
   });
@@ -310,25 +211,18 @@ describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
     const dir = fixtureRepo();
     const target = join(dir, "src/a.ts");
     const before = sha256(target);
-    const result = await executeScan(
-      scanInputSchema.parse({
-        inlineRules: RULE,
-        paths: [join(dir, "src")],
-        workdir: dir,
-      }),
-      SG_PATH,
-    );
+    const result = await executeScan(scanInputSchema.parse({
+      inlineRules: RULE,
+      paths: [join(dir, "src")],
+      workdir: dir,
+    }), SG_PATH);
 
     expect(result.ok).toBe(true);
     const payload = result as ScanSuccessPayload;
     expect(payload.applied).toBe(false);
     expect(payload.matches).toHaveLength(2);
     expect(payload.matches[0].path).toBe("src/a.ts");
-    expect(payload.matches[0].range.start).toEqual({
-      line: 1,
-      column: 0,
-      byteOffset: 0,
-    });
+    expect(payload.matches[0].range.start).toEqual({ line: 1, column: 0, byteOffset: 0 });
     expect(payload.matches[0].replacement).toBe('logger.info("hello")');
     expect(payload.matches[0].rule).toMatchObject({
       ruleId: "no-console",
@@ -344,16 +238,9 @@ describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
   it("#given includeMetadata #when dry-scanned #then metadata is present only when requested", async () => {
     const dir = fixtureRepo();
     const without = await executeScan(baseInput(dir), SG_PATH);
-    const withMetadata = await executeScan(
-      baseInput(dir, { includeMetadata: true }),
-      SG_PATH,
-    );
-    expect(without.ok && without.matches[0].rule).not.toHaveProperty(
-      "metadata",
-    );
-    expect(withMetadata.ok && withMetadata.matches[0].rule.metadata).toEqual({
-      category: "quality",
-    });
+    const withMetadata = await executeScan(baseInput(dir, { includeMetadata: true }), SG_PATH);
+    expect(without.ok && without.matches[0].rule).not.toHaveProperty("metadata");
+    expect(withMetadata.ok && withMetadata.matches[0].rule.metadata).toEqual({ category: "quality" });
   });
 
   it("#given the apply command matrix #when run #then JSON+update does not mutate but plain update does", () => {
@@ -361,23 +248,14 @@ describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
     const target = join(dir, "src/a.ts");
     const before = sha256(target);
     const combo = spawnSync(SG_PATH, [
-      "scan",
-      "--rule",
-      join(dir, "rule.yml"),
-      "--update-all",
-      "--json=stream",
-      join(dir, "src"),
+      "scan", "--rule", join(dir, "rule.yml"), "--update-all", "--json=stream", join(dir, "src"),
     ], { cwd: dir, encoding: "utf8" });
     expect(combo.status).toBe(0);
     expect(combo.stdout).toContain('"replacement":"logger.info');
     expect(sha256(target)).toBe(before);
 
     const plain = spawnSync(SG_PATH, [
-      "scan",
-      "--rule",
-      join(dir, "rule.yml"),
-      "--update-all",
-      join(dir, "src"),
+      "scan", "--rule", join(dir, "rule.yml"), "--update-all", join(dir, "src"),
     ], { cwd: dir, encoding: "utf8" });
     expect(plain.status).toBe(0);
     expect(sha256(target)).not.toBe(before);
@@ -392,17 +270,12 @@ describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
     expect(payload.applied).toBe(true);
     expect(payload.application.performed).toBe(true);
     expect(payload.application.secondPassExitCode).toBe(0);
-    expect(readFileSync(join(dir, "src/a.ts"), "utf8")).toContain(
-      "logger.info",
-    );
+    expect(readFileSync(join(dir, "src/a.ts"), "utf8")).toContain("logger.info");
   });
 
   it("#given no matching rule #when scanned #then exit 0 plus an empty stream is valid empty success", async () => {
     const dir = fixtureRepo("const x = 1;\n");
-    const direct = spawnSync(SG_PATH, buildScanArgs(baseInput(dir)), {
-      cwd: dir,
-      encoding: "utf8",
-    });
+    const direct = spawnSync(SG_PATH, buildScanArgs(baseInput(dir)), { cwd: dir, encoding: "utf8" });
     expect(direct.status).toBe(0);
     expect(direct.stdout).toBe("");
 
@@ -413,14 +286,11 @@ describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
 
   it("#given unparseable YAML #when scanned #then RULE_PARSE_FAILED is returned", async () => {
     const dir = fixtureRepo();
-    const result = await executeScan(
-      scanInputSchema.parse({
-        inlineRules: "id: [",
-        paths: [join(dir, "src")],
-        workdir: dir,
-      }),
-      SG_PATH,
-    );
+    const result = await executeScan(scanInputSchema.parse({
+      inlineRules: "id: [",
+      paths: [join(dir, "src")],
+      workdir: dir,
+    }), SG_PATH);
     expect(result.ok).toBe(false);
     expect((result as ScanErrorPayload).error.code).toBe("RULE_PARSE_FAILED");
   });
@@ -430,18 +300,12 @@ describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
     const child = join(parent, "child");
     mkdirSync(join(child, "src"), { recursive: true });
     writeFileSync(join(child, "src/a.ts"), 'console.log("isolated");\n');
-    writeFileSync(
-      join(parent, "sgconfig.yml"),
-      "ruleDirs: [definitely-missing-rules]\n",
-    );
-    const result = await executeScan(
-      scanInputSchema.parse({
-        inlineRules: RULE,
-        paths: [join(child, "src")],
-        workdir: child,
-      }),
-      SG_PATH,
-    );
+    writeFileSync(join(parent, "sgconfig.yml"), "ruleDirs: [definitely-missing-rules]\n");
+    const result = await executeScan(scanInputSchema.parse({
+      inlineRules: RULE,
+      paths: [join(child, "src")],
+      workdir: child,
+    }), SG_PATH);
     expect(result.ok).toBe(true);
     expect((result as ScanSuccessPayload).matches).toHaveLength(1);
   });
@@ -450,10 +314,7 @@ describe.skipIf(!SG_AVAILABLE)("scan tool: pinned real-binary fixtures", () => {
     const dir = fixtureRepo();
     const target = join(dir, "src/a.ts");
     const before = sha256(target);
-    const result = await executeScan(
-      baseInput(dir, { apply: true, maxMatches: 1 }),
-      SG_PATH,
-    );
+    const result = await executeScan(baseInput(dir, { apply: true, maxMatches: 1 }), SG_PATH);
     expect(result.ok).toBe(false);
     expect((result as ScanErrorPayload).error.code).toBe("PREVIEW_TRUNCATED");
     expect(sha256(target)).toBe(before);

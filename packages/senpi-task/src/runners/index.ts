@@ -1,11 +1,11 @@
 export {
   DEFAULT_MAX_CHILD_DEPTH,
-  filterSharedParentTools,
   InProcessRunner,
+  RunnerError,
+  filterSharedParentTools,
   isTaskOrTeamFamilyTool,
   mergeChildCustomTools,
-  RunnerError,
-} from "./in-process";
+} from "./in-process"
 export type {
   ChildHandle,
   ChildSession,
@@ -18,14 +18,11 @@ export type {
   RunnerFailure,
   RunnerOutcome,
   SharedToolFilterOptions,
-} from "./in-process";
-export {
-  buildSubagentPrompt,
-  type SubagentPromptInput,
-} from "./in-process/subagent-prompt";
-export { createChildResourceLoader } from "./in-process/child-loader";
-export { RpcProcessRunner } from "./rpc-process";
-export type { RpcProcessRunnerOptions } from "./rpc-process";
+} from "./in-process"
+export { buildSubagentPrompt, type SubagentPromptInput } from "./in-process/subagent-prompt"
+export { createChildResourceLoader } from "./in-process/child-loader"
+export { RpcProcessRunner } from "./rpc-process"
+export type { RpcProcessRunnerOptions } from "./rpc-process"
 export type {
   ChildEventListener,
   ChildExitFacts,
@@ -34,7 +31,7 @@ export type {
   RpcRunnerSpec,
   RunnerErrorFacts,
   TerminateOptions,
-} from "./types";
+} from "./types"
 export {
   buildChildArgs,
   buildRpcSpawn,
@@ -42,26 +39,15 @@ export {
   resolveChildSessionDir,
   resolveSenpiExecutable,
   resolveSenpiLauncher,
-} from "./rpc/spawn";
-export type {
-  RpcSpawnDescriptor,
-  RpcSpawnRuntime,
-  SenpiLauncher,
-} from "./rpc/spawn";
-export { parseExtensionEntries } from "./rpc/parent-extensions";
-export {
-  classifyChildExit,
-  mapExitOutcomeToError,
-  tailStderr,
-} from "./rpc/exit-mapping";
-export type { ChildExitInput } from "./rpc/exit-mapping";
-export { terminateRpcChild } from "./rpc/terminate";
-export { RpcProtocolClient } from "./rpc/protocol-client";
-export type {
-  MalformedLineHandler,
-  RpcProtocolClientOptions,
-} from "./rpc/protocol-client";
-export { createRpcChildHandle } from "./rpc/handle";
-export type { CreateRpcChildHandleOptions } from "./rpc/handle";
-export { RpcCommandError } from "./rpc/errors";
-export { buildAutoUiResponse } from "./rpc/ui-auto-answer";
+} from "./rpc/spawn"
+export type { RpcSpawnDescriptor, RpcSpawnRuntime, SenpiLauncher } from "./rpc/spawn"
+export { parseExtensionEntries } from "./rpc/parent-extensions"
+export { classifyChildExit, mapExitOutcomeToError, tailStderr } from "./rpc/exit-mapping"
+export type { ChildExitInput } from "./rpc/exit-mapping"
+export { terminateRpcChild } from "./rpc/terminate"
+export { RpcProtocolClient } from "./rpc/protocol-client"
+export type { MalformedLineHandler, RpcProtocolClientOptions } from "./rpc/protocol-client"
+export { createRpcChildHandle } from "./rpc/handle"
+export type { CreateRpcChildHandleOptions } from "./rpc/handle"
+export { RpcCommandError } from "./rpc/errors"
+export { buildAutoUiResponse } from "./rpc/ui-auto-answer"

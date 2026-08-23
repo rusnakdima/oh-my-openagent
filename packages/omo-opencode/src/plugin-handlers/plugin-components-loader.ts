@@ -32,23 +32,20 @@ export async function loadPluginComponents(params: {
     return EMPTY_PLUGIN_COMPONENTS;
   }
 
-  const timeoutMs = params.pluginConfig.experimental?.plugin_load_timeout_ms ??
-    10000;
+  const timeoutMs = params.pluginConfig.experimental?.plugin_load_timeout_ms ?? 10000;
 
   try {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<never>((_, reject) => {
       timeoutId = setTimeout(
-        () =>
-          reject(new Error(`Plugin loading timed out after ${timeoutMs}ms`)),
+        () => reject(new Error(`Plugin loading timed out after ${timeoutMs}ms`)),
         timeoutMs,
       );
     });
 
     const pluginComponents = (await Promise.race([
       loadAllPluginComponents({
-        enabledPluginsOverride: params.pluginConfig.claude_code
-          ?.plugins_override,
+        enabledPluginsOverride: params.pluginConfig.claude_code?.plugins_override,
         anthropicProvider: params.pluginConfig.claude_code?.anthropic_provider,
       }),
       timeoutPromise,

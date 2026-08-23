@@ -1,17 +1,17 @@
-import { describe, expect, it, mock, spyOn } from "bun:test";
-import type { ChildSession, RunContext, SessionStatus } from "./types";
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
+import { describe, it, expect, mock, spyOn } from "bun:test"
+import type { RunContext, ChildSession, SessionStatus } from "./types"
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 
 const createMockContext = (overrides: {
-  childrenBySession?: Record<string, ChildSession[]>;
-  statuses?: Record<string, SessionStatus>;
-  verbose?: boolean;
+  childrenBySession?: Record<string, ChildSession[]>
+  statuses?: Record<string, SessionStatus>
+  verbose?: boolean
 } = {}): RunContext => {
   const {
     childrenBySession = { "test-session": [] },
     statuses = {},
     verbose = false,
-  } = overrides;
+  } = overrides
 
   return {
     client: unsafeTestValue<RunContext["client"]>({
@@ -27,14 +27,14 @@ const createMockContext = (overrides: {
     directory: "/test",
     abortController: new AbortController(),
     verbose,
-  };
-};
+  }
+}
 
 describe("checkCompletionConditions verbose waiting logs", () => {
   it("does not print busy waiting line when verbose is disabled", async () => {
     // given
-    const consoleLogSpy = spyOn(console, "log").mockImplementation(() => {});
-    consoleLogSpy.mockClear();
+    const consoleLogSpy = spyOn(console, "log").mockImplementation(() => {})
+    consoleLogSpy.mockClear()
     const ctx = createMockContext({
       childrenBySession: {
         "test-session": [{ id: "child-1" }],
@@ -42,21 +42,21 @@ describe("checkCompletionConditions verbose waiting logs", () => {
       },
       statuses: { "child-1": { type: "busy" } },
       verbose: false,
-    });
-    const { checkCompletionConditions } = await import("./completion");
+    })
+    const { checkCompletionConditions } = await import("./completion")
 
     // when
-    const result = await checkCompletionConditions(ctx);
+    const result = await checkCompletionConditions(ctx)
 
     // then
-    expect(result).toBe(false);
-    expect(consoleLogSpy).not.toHaveBeenCalled();
-  });
+    expect(result).toBe(false)
+    expect(consoleLogSpy).not.toHaveBeenCalled()
+  })
 
   it("prints busy waiting line when verbose is enabled", async () => {
     // given
-    const consoleLogSpy = spyOn(console, "log").mockImplementation(() => {});
-    consoleLogSpy.mockClear();
+    const consoleLogSpy = spyOn(console, "log").mockImplementation(() => {})
+    consoleLogSpy.mockClear()
     const ctx = createMockContext({
       childrenBySession: {
         "test-session": [{ id: "child-1" }],
@@ -64,16 +64,16 @@ describe("checkCompletionConditions verbose waiting logs", () => {
       },
       statuses: { "child-1": { type: "busy" } },
       verbose: true,
-    });
-    const { checkCompletionConditions } = await import("./completion");
+    })
+    const { checkCompletionConditions } = await import("./completion")
 
     // when
-    const result = await checkCompletionConditions(ctx);
+    const result = await checkCompletionConditions(ctx)
 
     // then
-    expect(result).toBe(false);
+    expect(result).toBe(false)
     expect(consoleLogSpy).toHaveBeenCalledWith(
-      expect.stringContaining("Waiting: session child-1... is busy"),
-    );
-  });
-});
+      expect.stringContaining("Waiting: session child-1... is busy")
+    )
+  })
+})

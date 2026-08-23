@@ -1,5 +1,5 @@
-import color from "picocolors";
-import { PUBLISHED_PACKAGE_NAME } from "../../../shared";
+import color from "picocolors"
+import { PUBLISHED_PACKAGE_NAME } from "../../../shared"
 
 export const SYMBOLS = {
   check: color.green("\u2713"),
@@ -9,14 +9,14 @@ export const SYMBOLS = {
   arrow: color.cyan("\u2192"),
   bullet: color.dim("\u2022"),
   skip: color.dim("\u25CB"),
-} as const;
+} as const
 
 export const STATUS_COLORS = {
   pass: color.green,
   fail: color.red,
   warn: color.yellow,
   skip: color.dim,
-} as const;
+} as const
 
 export const CHECK_IDS = {
   SYSTEM: "system",
@@ -27,7 +27,7 @@ export const CHECK_IDS = {
   TELEMETRY: "telemetry",
   TEAM_MODE: "team-mode",
   CODEX: "codex",
-} as const;
+} as const
 
 export const CHECK_NAMES: Record<string, string> = {
   [CHECK_IDS.SYSTEM]: "System",
@@ -38,15 +38,15 @@ export const CHECK_NAMES: Record<string, string> = {
   [CHECK_IDS.TELEMETRY]: "Telemetry",
   [CHECK_IDS.TEAM_MODE]: "Team Mode",
   [CHECK_IDS.CODEX]: "Codex",
-} as const;
+} as const
 
 export const EXIT_CODES = {
   SUCCESS: 0,
   FAILURE: 1,
-} as const;
+} as const
 
-export const MIN_OPENCODE_VERSION = "1.4.0";
+export const MIN_OPENCODE_VERSION = "1.4.0"
 
-export const PACKAGE_NAME = PUBLISHED_PACKAGE_NAME;
+export const PACKAGE_NAME = PUBLISHED_PACKAGE_NAME
 
-export const OPENCODE_BINARIES = ["opencode", "opencode-desktop"] as const;
+export const OPENCODE_BINARIES = ["opencode", "opencode-desktop"] as const

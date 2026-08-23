@@ -24,11 +24,11 @@ akamai_bot_manager:
     body: ["sec-if-cpt-container", "Powered and protected by Akamai"]
   confidence_rules:
     # Multi-signal gating — single marker insufficient.
-    strong: 2 # any 2 signals from above → confidence 0.9
-    weak: 1 # 1 signal → confidence 0.6
+    strong: 2     # any 2 signals from above → confidence 0.9
+    weak: 1       # 1 signal → confidence 0.6
   capabilities_needed:
-    - needs_real_tls_stack # Playwright Chromium (BoringSSL) is detected
-    - needs_js_exec # 2.6KB challenge requires JS sensor
+    - needs_real_tls_stack   # Playwright Chromium (BoringSSL) is detected
+    - needs_js_exec          # 2.6KB challenge requires JS sensor
   tls_impersonate_candidates:
     # Every impersonate target curl_cffi supports that historically yielded
     # at least a challenge page (i.e. IP still alive) rather than an outright
@@ -36,22 +36,7 @@ akamai_bot_manager:
     # Refresh quarterly — vendor WAFs shift which TLS fingerprints they trust.
     - [safari, safari15_3, safari15_5, safari17_0, safari260, safari2601]
     - [safari_ios, safari17_2_ios, safari260_ios]
-    - [
-        chrome99,
-        chrome100,
-        chrome101,
-        chrome104,
-        chrome110,
-        chrome116,
-        chrome119,
-        chrome124,
-        chrome131,
-        chrome133a,
-        chrome136,
-        chrome142,
-        chrome145,
-        chrome146,
-      ]
+    - [chrome99, chrome100, chrome101, chrome104, chrome110, chrome116, chrome119, chrome124, chrome131, chrome133a, chrome136, chrome142, chrome145, chrome146]
     - [chrome_android, chrome131_android]
     - [edge99, edge101]
   tls_impersonate_avoid:
@@ -67,13 +52,13 @@ akamai_bot_manager:
     - firefox133
     - firefox135
   referer_strategies:
-    - self_root # scheme://host/
+    - self_root    # scheme://host/
   url_transform_order:
     - original
-    - mobile_subdomain # www.* → m.* — strong observational win in SSR sites
+    - mobile_subdomain   # www.* → m.* — strong observational win in SSR sites
   fallback_when_challenge:
-    - surrogate_wayback # Phase 2.5: archive/reader copy before a browser spin-up
-    - curl_grid_exhaust # try more impersonate × referer × url combos
+    - surrogate_wayback   # Phase 2.5: archive/reader copy before a browser spin-up
+    - curl_grid_exhaust   # try more impersonate × referer × url combos
     - playwright_real_chrome
   notes: |
     DO NOT encode site-specific selectors or byte-size fingerprints here.
@@ -84,22 +69,17 @@ cloudflare_turnstile:
     cookie: ["cf_clearance", "__cf_bm", "__cfduid"]
     header: ["cf-ray", "cf-cache-status"]
     server_contains: ["cloudflare"]
-    body: [
-      "Just a moment...",
-      "Checking your browser",
-      "cf-chl-bypass",
-      "Attention Required! | Cloudflare",
-    ]
+    body: ["Just a moment...", "Checking your browser", "cf-chl-bypass", "Attention Required! | Cloudflare"]
   capabilities_needed:
-    - needs_js_exec # MCP Playwright Chromium OK — no real-TLS required
+    - needs_js_exec        # MCP Playwright Chromium OK — no real-TLS required
   tls_impersonate_candidates:
     - [chrome, chrome_android]
   referer_strategies:
     - google_search
     - self_root
   fallback_when_challenge:
-    - surrogate_wayback # Phase 2.5: archive/reader copy before a browser spin-up
-    - playwright_mcp # MCP sufficient; Chromium TLS passes CF baseline
+    - surrogate_wayback   # Phase 2.5: archive/reader copy before a browser spin-up
+    - playwright_mcp       # MCP sufficient; Chromium TLS passes CF baseline
     - playwright_real_chrome
 
 f5_big_ip:
@@ -134,7 +114,7 @@ datadome_probable:
   tls_impersonate_candidates:
     - [safari, chrome]
   fallback_when_challenge:
-    - surrogate_wayback # Phase 2.5: archive/reader copy before a browser spin-up
+    - surrogate_wayback   # Phase 2.5: archive/reader copy before a browser spin-up
     - playwright_real_chrome
   notes: |
     "_probable" suffix reminds us this is a growing attack surface — mark
@@ -150,7 +130,7 @@ perimeterx_human:
   tls_impersonate_candidates:
     - [safari, chrome]
   fallback_when_challenge:
-    - surrogate_wayback # Phase 2.5: archive/reader copy before a browser spin-up
+    - surrogate_wayback   # Phase 2.5: archive/reader copy before a browser spin-up
     - playwright_real_chrome
   notes: |
     PerimeterX (now HUMAN Bot Defender). Distinct cookie family from
@@ -161,12 +141,12 @@ perimeterx_human:
 # Safety net: always-valid fallback profile.
 # ---------------------------------------------------------------------------
 unknown_challenge:
-  detectors: {} # never matches actively — used only when no other profile fires
+  detectors: {}   # never matches actively — used only when no other profile fires
   confidence_rules:
     strong: 0
     weak: 0
   capabilities_needed:
-    - needs_js_exec # conservative default
+    - needs_js_exec     # conservative default
   tls_impersonate_candidates:
     - [safari, chrome, firefox]
     - [safari_ios, chrome_android]
@@ -178,7 +158,7 @@ unknown_challenge:
     - original
     - mobile_subdomain
   fallback_when_challenge:
-    - surrogate_wayback # Phase 2.5: archive/reader copy before a browser spin-up
+    - surrogate_wayback   # Phase 2.5: archive/reader copy before a browser spin-up
     - playwright_mcp
     - playwright_real_chrome
   notes: |

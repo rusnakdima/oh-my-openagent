@@ -1,17 +1,17 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import { TeamModeConfigSchema } from "./team-mode";
+import { TeamModeConfigSchema } from "./team-mode"
 
 describe("TeamModeConfigSchema", () => {
   describe("#given all fields are omitted", () => {
     test("#when parsed #then it returns the default team mode config", () => {
       // given
-      const input = {};
+      const input = {}
 
       // when
-      const result = TeamModeConfigSchema.parse(input);
+      const result = TeamModeConfigSchema.parse(input)
 
       // then
       expect(result).toEqual({
@@ -25,9 +25,9 @@ describe("TeamModeConfigSchema", () => {
         message_payload_max_bytes: 32768,
         recipient_unread_max_bytes: 262144,
         mailbox_poll_interval_ms: 3000,
-      });
-    });
-  });
+      })
+    })
+  })
 
   describe("#given invalid bounds are provided", () => {
     test("#when parsed #then it rejects out of range values", () => {
@@ -36,15 +36,13 @@ describe("TeamModeConfigSchema", () => {
         { max_parallel_members: -1 },
         { max_members: 9 },
         { message_payload_max_bytes: 512 },
-      ];
+      ]
 
       // when
-      const results = invalidInputs.map((input) =>
-        TeamModeConfigSchema.safeParse(input)
-      );
+      const results = invalidInputs.map((input) => TeamModeConfigSchema.safeParse(input))
 
       // then
-      expect(results.every((result) => !result.success)).toBe(true);
-    });
-  });
-});
+      expect(results.every((result) => !result.success)).toBe(true)
+    })
+  })
+})

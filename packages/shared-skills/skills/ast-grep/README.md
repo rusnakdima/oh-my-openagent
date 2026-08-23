@@ -1,14 +1,8 @@
 # ast-grep-skill
 
-LLM-neutral skill for **AST-aware search and rewrite** across 25 languages.
-Wraps the [`ast-grep`](https://ast-grep.github.io/) (`sg`) CLI with offline
-pattern validation, the two-pass write trick, binary auto-resolution, and a
-per-OS installer.
+LLM-neutral skill for **AST-aware search and rewrite** across 25 languages. Wraps the [`ast-grep`](https://ast-grep.github.io/) (`sg`) CLI with offline pattern validation, the two-pass write trick, binary auto-resolution, and a per-OS installer.
 
-Same shape as [`web-fetch`](https://github.com/code-yeongyu/web-fetch) and
-[`web-search`](https://github.com/code-yeongyu/web-search), packaged as a
-standalone skill that any Bash-capable agent (Claude Code, OpenCode, pi, hermes,
-openclaw) can load.
+Same shape as [`web-fetch`](https://github.com/code-yeongyu/web-fetch) and [`web-search`](https://github.com/code-yeongyu/web-search), packaged as a standalone skill that any Bash-capable agent (Claude Code, OpenCode, pi, hermes, openclaw) can load.
 
 ## Install
 
@@ -17,10 +11,7 @@ git clone https://github.com/code-yeongyu/ast-grep-skill ~/.agents/skills/ast-gr
 bash ~/.agents/skills/ast-grep/install.sh        # installs the ast-grep binary
 ```
 
-That is it. The wrapper script is single-file Python 3 stdlib; no `pip install`
-needed. The installer tries `brew` → `npm` → `cargo` → `pip` → `nix` → `mise` →
-GitHub release in priority order, picks the first that works, and falls back to
-a cached binary at `<skill>/bin/sg`.
+That is it. The wrapper script is single-file Python 3 stdlib; no `pip install` needed. The installer tries `brew` → `npm` → `cargo` → `pip` → `nix` → `mise` → GitHub release in priority order, picks the first that works, and falls back to a cached binary at `<skill>/bin/sg`.
 
 ### Symlink for active development
 
@@ -30,14 +21,9 @@ ln -s /path/to/your/clone ~/.agents/skills/ast-grep
 
 ### Other agents
 
-- **Claude Code / OpenCode**: drop the directory under `~/.agents/skills/` (or
-  `~/.config/opencode/skills/`) and the skill auto-registers via the `name` +
-  `description` in `SKILL.md` frontmatter.
-- **pi (`~/.senpi/agent`)**: not a `pi` extension — this is a skill. Pi consumes
-  skills via `~/.agents/skills/` symlinks; the actual `pi-ast-grep` extension is
-  at <https://github.com/code-yeongyu/pi-extensions>.
-- **Direct CLI use**:
-  `python3 ~/.agents/skills/ast-grep/scripts/ast_grep_helper.py <subcommand>`.
+- **Claude Code / OpenCode**: drop the directory under `~/.agents/skills/` (or `~/.config/opencode/skills/`) and the skill auto-registers via the `name` + `description` in `SKILL.md` frontmatter.
+- **pi (`~/.senpi/agent`)**: not a `pi` extension — this is a skill. Pi consumes skills via `~/.agents/skills/` symlinks; the actual `pi-ast-grep` extension is at <https://github.com/code-yeongyu/pi-extensions>.
+- **Direct CLI use**: `python3 ~/.agents/skills/ast-grep/scripts/ast_grep_helper.py <subcommand>`.
 
 ## Usage
 
@@ -68,8 +54,7 @@ python3 scripts/ast_grep_helper.py langs
 python3 scripts/ast_grep_helper.py install
 ```
 
-See [SKILL.md](./SKILL.md) for full agent-facing usage and the
-[`references/`](./references/) directory for deep dives.
+See [SKILL.md](./SKILL.md) for full agent-facing usage and the [`references/`](./references/) directory for deep dives.
 
 ## Project layout
 
@@ -98,43 +83,25 @@ ast-grep-skill/
 
 ## What it does
 
-1. **Wraps `sg`** with a single Python 3 stdlib script that works the same on
-   macOS, Linux, Windows, WSL, Git Bash.
-2. **Validates patterns offline** before calling `sg` — catches the regex-misuse
-   class of mistakes (`\w`, `.*`, `|`, `[a-z]`) plus language-specific traps
-   (Python trailing colons, JS/Go/Rust missing function bodies).
-3. **Resolves the binary** through 6 candidate paths: cached → PATH (with Linux
-   `setgroups` collision detection) → Homebrew. Falls through to a clear install
-   hint with copy-paste commands.
-4. **Runs the two-pass write trick** when applying rewrites — `sg run` silently
-   ignores `--update-all` when `--json` is set, so `replace --apply` runs two
-   invocations: pass 1 collects JSON matches, pass 2 mutates files.
-5. **Ships per-OS installers** that try every reasonable package manager and
-   fall back to a GitHub release tarball.
-6. **Documents the failure modes** the model will hit (regex misuse, incomplete
-   patterns, `--update-all` + `--json` trap, scope/type questions ast-grep can't
-   answer) in `references/pitfalls.md`.
+1. **Wraps `sg`** with a single Python 3 stdlib script that works the same on macOS, Linux, Windows, WSL, Git Bash.
+2. **Validates patterns offline** before calling `sg` — catches the regex-misuse class of mistakes (`\w`, `.*`, `|`, `[a-z]`) plus language-specific traps (Python trailing colons, JS/Go/Rust missing function bodies).
+3. **Resolves the binary** through 6 candidate paths: cached → PATH (with Linux `setgroups` collision detection) → Homebrew. Falls through to a clear install hint with copy-paste commands.
+4. **Runs the two-pass write trick** when applying rewrites — `sg run` silently ignores `--update-all` when `--json` is set, so `replace --apply` runs two invocations: pass 1 collects JSON matches, pass 2 mutates files.
+5. **Ships per-OS installers** that try every reasonable package manager and fall back to a GitHub release tarball.
+6. **Documents the failure modes** the model will hit (regex misuse, incomplete patterns, `--update-all` + `--json` trap, scope/type questions ast-grep can't answer) in `references/pitfalls.md`.
 
 ## What it does NOT do
 
-- No type inference, scope analysis, or data flow. ast-grep is a structural
-  matcher; for type-aware questions use TypeScript LSP, Pyright, Semgrep with
-  type inference, or CodeQL.
+- No type inference, scope analysis, or data flow. ast-grep is a structural matcher; for type-aware questions use TypeScript LSP, Pyright, Semgrep with type inference, or CodeQL.
 - No multi-repo federation. Run the helper once per repo.
-- No automatic `sgconfig.yml` discovery — it does what `sg scan` does (walk up
-  from cwd looking for one).
-- No JS/Python rewriter authoring environment — for that, write YAML rules and
-  use `sg test` for snapshot testing (see
-  [`references/yaml-rules.md`](./references/yaml-rules.md)).
+- No automatic `sgconfig.yml` discovery — it does what `sg scan` does (walk up from cwd looking for one).
+- No JS/Python rewriter authoring environment — for that, write YAML rules and use `sg test` for snapshot testing (see [`references/yaml-rules.md`](./references/yaml-rules.md)).
 
 ## Limits
 
 - 5-minute timeout per `sg` invocation (configurable in the helper).
-- ast-grep itself supports 25 languages out-of-the-box. For anything else, use
-  [`customLanguages`](./references/sgconfig.md#customlanguages-experimental) in
-  `sgconfig.yml`.
-- Pattern hint detection is heuristic; pass `--force` to skip validation when
-  you know the pattern is correct.
+- ast-grep itself supports 25 languages out-of-the-box. For anything else, use [`customLanguages`](./references/sgconfig.md#customlanguages-experimental) in `sgconfig.yml`.
+- Pattern hint detection is heuristic; pass `--force` to skip validation when you know the pattern is correct.
 
 ## Requirements
 
@@ -146,8 +113,7 @@ ast-grep-skill/
   - `pip install ast-grep-cli` (any OS with Python)
   - `scoop install main/ast-grep` (Windows)
 
-For older systems and Windows-specific setup, see
-[`references/install.md`](./references/install.md).
+For older systems and Windows-specific setup, see [`references/install.md`](./references/install.md).
 
 ## Testing
 
@@ -156,10 +122,7 @@ bash tests/smoke.sh        # POSIX (macOS / Linux / WSL / Git Bash)
 pwsh tests/smoke.ps1       # Windows (PowerShell 5.1+ or 7+)
 ```
 
-CI runs the matrix on every push:
-`{macos-latest, ubuntu-latest, ubuntu-22.04, windows-latest}` ×
-`{Python 3.9, 3.10, 3.11, 3.12, 3.13}` plus a syntax-floor check on Python 3.9
-and 3.10.
+CI runs the matrix on every push: `{macos-latest, ubuntu-latest, ubuntu-22.04, windows-latest}` × `{Python 3.9, 3.10, 3.11, 3.12, 3.13}` plus a syntax-floor check on Python 3.9 and 3.10.
 
 ## License
 
@@ -167,12 +130,7 @@ and 3.10.
 
 ## Acknowledgments
 
-- [`omo` (oh-my-opencode)](https://github.com/code-yeongyu/oh-my-opencode) —
-  `src/tools/ast-grep/` is the original tool implementation; this skill is a
-  port of its pattern-hint detection and two-pass-write strategy.
-- [`pi-extensions/pi-ast-grep`](https://github.com/code-yeongyu/pi-extensions) —
-  sibling Node port; the helper's binary-resolution cascade is modelled on it.
-- [ast-grep](https://github.com/ast-grep/ast-grep) — the CLI. All structural
-  matching power comes from it.
-- [Anthropic skills](https://docs.anthropic.com/en/docs/claude-code/skills) —
-  the `SKILL.md` + `references/` packaging convention.
+- [`omo` (oh-my-opencode)](https://github.com/code-yeongyu/oh-my-opencode) — `src/tools/ast-grep/` is the original tool implementation; this skill is a port of its pattern-hint detection and two-pass-write strategy.
+- [`pi-extensions/pi-ast-grep`](https://github.com/code-yeongyu/pi-extensions) — sibling Node port; the helper's binary-resolution cascade is modelled on it.
+- [ast-grep](https://github.com/ast-grep/ast-grep) — the CLI. All structural matching power comes from it.
+- [Anthropic skills](https://docs.anthropic.com/en/docs/claude-code/skills) — the `SKILL.md` + `references/` packaging convention.

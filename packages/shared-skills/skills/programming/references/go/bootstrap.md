@@ -1,15 +1,10 @@
 # Bootstrap — Project Layout, Toolchain, Taskfile, CI
 
-What every new Go project gets in the first 60 seconds. Drop the script in
-`scripts/go/new-project.go` does all of this — this document explains _what_ it
-produces and _why_.
+What every new Go project gets in the first 60 seconds. Drop the script in `scripts/go/new-project.go` does all of this — this document explains *what* it produces and *why*.
 
 ## Toolchain pin
 
-`go.work` (monorepo) or just rely on `go.mod`'s `go 1.23` directive (single
-module). Go 1.21+ auto-downloads matching toolchain when the local `go` binary
-is older. **No `.tool-versions` / `asdf` / `mise` indirection required** unless
-your shop standardizes on it.
+`go.work` (monorepo) or just rely on `go.mod`'s `go 1.23` directive (single module). Go 1.21+ auto-downloads matching toolchain when the local `go` binary is older. **No `.tool-versions` / `asdf` / `mise` indirection required** unless your shop standardizes on it.
 
 ```bash
 # Confirm a working toolchain
@@ -93,12 +88,9 @@ myservice/
 **Rules**:
 
 - `cmd/<binary>/main.go` is ≤ 50 LOC. Anything more lives in `internal/cmd/`.
-- `internal/` is **the** business code. Other modules cannot import it (Go
-  compiler-enforced).
-- `pkg/` is for things you genuinely want third parties to import. Empty until
-  proven otherwise.
-- No `utils/`, `helpers/`, `common/`, `shared/`. **REJECT.** Files are named
-  after the concept they own.
+- `internal/` is **the** business code. Other modules cannot import it (Go compiler-enforced).
+- `pkg/` is for things you genuinely want third parties to import. Empty until proven otherwise.
+- No `utils/`, `helpers/`, `common/`, `shared/`. **REJECT.** Files are named after the concept they own.
 - One package per directory. One responsibility per package.
 
 ## `Taskfile.yml` — the entry point for every action
@@ -106,7 +98,7 @@ myservice/
 `go-task/task` is the modern Make replacement. Cross-platform, YAML, fast.
 
 ```yaml
-version: "3"
+version: '3'
 
 vars:
   BINARY: server
@@ -191,8 +183,7 @@ tasks:
     deps: [fmt, lint, test, build]
 ```
 
-`task` (no args) runs format + lint + test in parallel where possible. `task ci`
-runs the full pipeline.
+`task` (no args) runs format + lint + test in parallel where possible. `task ci` runs the full pipeline.
 
 ## `go.mod` template
 
@@ -272,7 +263,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version: '1.23'
           cache: true
 
       - name: Install tools
@@ -298,13 +289,11 @@ jobs:
         run: go build -trimpath ./...
 ```
 
-The order matters: format → lint → nilaway → test → build. Fail fast on the
-cheap checks.
+The order matters: format → lint → nilaway → test → build. Fail fast on the cheap checks.
 
 ## `AGENTS.md` — agent-readable project facts
 
-Every new project gets an `AGENTS.md` at the root. The content is
-**machine-friendly**: short, declarative, no marketing prose. Example:
+Every new project gets an `AGENTS.md` at the root. The content is **machine-friendly**: short, declarative, no marketing prose. Example:
 
 ```markdown
 # AGENTS.md
@@ -312,33 +301,28 @@ Every new project gets an `AGENTS.md` at the root. The content is
 Go 1.23+ HTTP service for {one-line purpose}.
 
 ## Commands
-
 - `task` — fmt + lint + test
 - `task build` — produce ./bin/server
 - `task gen` — regenerate sqlc + mocks + proto
 
 ## Architecture
-
 - `cmd/server/main.go` — entrypoint, ≤50 LOC
 - `internal/api/` — gin handlers + middleware
 - `internal/domain/` — smart-constructor types, no I/O
 - `internal/store/sqlc/` — generated; never hand-edit
 
 ## Conventions
-
 - `slog` for all logs; never `log.*`, never `fmt.Println`
 - `context.Context` first arg for every public function
 - Errors wrapped with `%w`; check with `errors.Is/As`
 - 250 pure LOC ceiling per file — split before adding lines
 ```
 
-The skill's `cmd/new-project.go` writes this file with project-specific values
-filled in.
+The skill's `cmd/new-project.go` writes this file with project-specific values filled in.
 
 ## Sources
 
 - Go modules reference: https://go.dev/ref/mod
 - go-task: https://taskfile.dev
 - golangci-lint v2: https://golangci-lint.run/docs/configuration/
-- Standard project layout debate: https://go.dev/doc/modules/layout (NOT
-  `golang-standards/project-layout` — that repo is community, not official)
+- Standard project layout debate: https://go.dev/doc/modules/layout (NOT `golang-standards/project-layout` — that repo is community, not official)

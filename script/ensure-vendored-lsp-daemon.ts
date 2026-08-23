@@ -1,93 +1,90 @@
-import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
-import { existsSync, type FSWatcher, realpathSync, watch } from "node:fs";
-import { tmpdir } from "node:os";
-import { basename, dirname, join } from "node:path";
+import { createHash } from "node:crypto"
+import { spawnSync } from "node:child_process"
+import {
+  existsSync,
+  realpathSync,
+  watch,
+  type FSWatcher,
+} from "node:fs"
+import { tmpdir } from "node:os"
+import { basename, dirname, join } from "node:path"
 import {
   isProcessAlive,
   readLockPid,
   tryAcquireLock,
-} from "../packages/lsp-daemon/src/lock";
+} from "../packages/lsp-daemon/src/lock"
 
 export type RunVendoredLspCommand = (
   command: string,
   args: string[],
   options: {
-    cwd: string;
-    timeoutMs: number;
+    cwd: string
+    timeoutMs: number
   },
-) => Promise<number | VendoredLspCommandResult>;
+) => Promise<number | VendoredLspCommandResult>
 
 export interface VendoredLspCommandResult {
-  status: number | null;
-  signal?: NodeJS.Signals | null;
-  error?: Error;
+  status: number | null
+  signal?: NodeJS.Signals | null
+  error?: Error
 }
 
 export type WatchBuildLockDirectory = (
   path: string,
   listener: (event: string, filename: string | Buffer | null) => void,
-) => FSWatcher;
+) => FSWatcher
 
 export interface EnsureVendoredLspDaemonOptions {
-  packageDir: string;
-  outputPath?: string;
-  timeoutMs?: number;
-  exists?: (path: string) => boolean;
-  runCommand?: RunVendoredLspCommand;
-  log?: (message: string) => void;
-  lockRoot?: string;
-  watchDirectory?: WatchBuildLockDirectory;
+  packageDir: string
+  outputPath?: string
+  timeoutMs?: number
+  exists?: (path: string) => boolean
+  runCommand?: RunVendoredLspCommand
+  log?: (message: string) => void
+  lockRoot?: string
+  watchDirectory?: WatchBuildLockDirectory
 }
 
-const DEFAULT_TIMEOUT_MS = 300_000;
-const LOCK_RECHECK_INTERVAL_MS = 50;
-const LOCK_FILE_PREFIX = "omo-test-lsp-build-";
+const DEFAULT_TIMEOUT_MS = 300_000
+const LOCK_RECHECK_INTERVAL_MS = 50
+const LOCK_FILE_PREFIX = "omo-test-lsp-build-"
 
-const defaultRunCommand: RunVendoredLspCommand = async (
-  command,
-  args,
-  options,
-) => {
+const defaultRunCommand: RunVendoredLspCommand = async (command, args, options) => {
   const result = spawnSync(command, args, {
     cwd: options.cwd,
     stdio: ["ignore", "ignore", "inherit"],
     timeout: options.timeoutMs,
     shell: process.platform === "win32",
-  });
+  })
   return {
     status: result.status,
     signal: result.signal,
     error: result.error,
-  };
-};
+  }
+}
 
 const defaultWatchDirectory: WatchBuildLockDirectory = (path, listener) =>
-  watch(path, { persistent: false }, listener);
+  watch(path, { persistent: false }, listener)
 
 export async function ensureVendoredLspDaemonBuilt(
   options: EnsureVendoredLspDaemonOptions,
 ): Promise<void> {
-  const outputPath = options.outputPath ??
-    join(options.packageDir, "dist", "cli.js");
-  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const pathExists = options.exists ?? existsSync;
-  const runCommand = options.runCommand ?? defaultRunCommand;
-  const log = options.log ?? console.error;
-  const watchDirectory = options.watchDirectory ?? defaultWatchDirectory;
-  const deadline = Date.now() + timeoutMs;
+  const outputPath = options.outputPath ?? join(options.packageDir, "dist", "cli.js")
+  const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
+  const pathExists = options.exists ?? existsSync
+  const runCommand = options.runCommand ?? defaultRunCommand
+  const log = options.log ?? console.error
+  const watchDirectory = options.watchDirectory ?? defaultWatchDirectory
+  const deadline = Date.now() + timeoutMs
 
   if (pathExists(outputPath)) {
-    return;
+    return
   }
 
-  const lockPath = resolveBuildLockPath(
-    options.packageDir,
-    options.lockRoot ?? tmpdir(),
-  );
+  const lockPath = resolveBuildLockPath(options.packageDir, options.lockRoot ?? tmpdir())
 
   while (!pathExists(outputPath)) {
-    const lock = tryAcquireLock(lockPath);
+    const lock = tryAcquireLock(lockPath)
     if (!lock) {
       await waitForBuildTurn(
         lockPath,
@@ -95,49 +92,46 @@ export async function ensureVendoredLspDaemonBuilt(
         deadline,
         pathExists,
         watchDirectory,
-      );
-      continue;
+      )
+      continue
     }
 
     try {
       if (pathExists(outputPath)) {
-        return;
+        return
       }
 
       log(
         "[test-setup] vendored lsp-daemon dist missing; building once via `npm ci && npm run build`...",
-      );
+      )
 
       const installResult = await runCommand("npm", ["ci"], {
         cwd: options.packageDir,
         timeoutMs: remainingMs(deadline, "npm ci"),
-      });
-      assertCommandSucceeded(installResult, "npm ci");
+      })
+      assertCommandSucceeded(installResult, "npm ci")
 
       const buildResult = await runCommand("npm", ["run", "build"], {
         cwd: options.packageDir,
         timeoutMs: remainingMs(deadline, "npm run build"),
-      });
-      assertCommandSucceeded(buildResult, "build");
+      })
+      assertCommandSucceeded(buildResult, "build")
       if (!pathExists(outputPath)) {
         throw new Error(
           `[test-setup] lsp-daemon build completed without ${outputPath}`,
-        );
+        )
       }
-      return;
+      return
     } finally {
-      lock.release();
+      lock.release()
     }
   }
 }
 
 function resolveBuildLockPath(packageDir: string, lockRoot: string): string {
-  const packagePath = realpathSync.native(packageDir);
-  const digest = createHash("sha256").update(packagePath).digest("hex").slice(
-    0,
-    20,
-  );
-  return join(lockRoot, `${LOCK_FILE_PREFIX}${digest}.lock`);
+  const packagePath = realpathSync.native(packageDir)
+  const digest = createHash("sha256").update(packagePath).digest("hex").slice(0, 20)
+  return join(lockRoot, `${LOCK_FILE_PREFIX}${digest}.lock`)
 }
 
 async function waitForBuildTurn(
@@ -148,58 +142,56 @@ async function waitForBuildTurn(
   watchDirectory: WatchBuildLockDirectory,
 ): Promise<void> {
   if (buildTurnChanged(lockPath, outputPath, pathExists)) {
-    return;
+    return
   }
 
   await new Promise<void>((resolve, reject) => {
-    let watcher: FSWatcher | undefined;
-    let settled = false;
-    const waitMs = remainingMs(deadline, `waiting for ${basename(outputPath)}`);
+    let watcher: FSWatcher | undefined
+    let settled = false
+    const waitMs = remainingMs(deadline, `waiting for ${basename(outputPath)}`)
 
     const settle = (error?: Error) => {
       if (settled) {
-        return;
+        return
       }
-      settled = true;
-      clearTimeout(timeout);
-      clearInterval(stateRecheck);
-      watcher?.close();
+      settled = true
+      clearTimeout(timeout)
+      clearInterval(stateRecheck)
+      watcher?.close()
       if (error) {
-        reject(error);
+        reject(error)
       } else {
-        resolve();
+        resolve()
       }
-    };
+    }
 
     const checkState = () => {
       if (buildTurnChanged(lockPath, outputPath, pathExists)) {
-        settle();
+        settle()
       }
-    };
+    }
 
     const timeout = setTimeout(() => {
-      settle(
-        new Error(`[test-setup] timed out waiting for ${basename(outputPath)}`),
-      );
-    }, waitMs);
-    const stateRecheck = setInterval(checkState, LOCK_RECHECK_INTERVAL_MS);
+      settle(new Error(`[test-setup] timed out waiting for ${basename(outputPath)}`))
+    }, waitMs)
+    const stateRecheck = setInterval(checkState, LOCK_RECHECK_INTERVAL_MS)
 
     try {
       watcher = watchDirectory(dirname(lockPath), (_event, filename) => {
         if (filename === null || filename.toString() === basename(lockPath)) {
-          checkState();
+          checkState()
         }
-      });
+      })
       watcher.on("error", () => {
-        watcher?.close();
-        watcher = undefined;
-      });
+        watcher?.close()
+        watcher = undefined
+      })
     } catch {
-      watcher = undefined;
+      watcher = undefined
     }
 
-    checkState();
-  });
+    checkState()
+  })
 }
 
 function buildTurnChanged(
@@ -208,18 +200,18 @@ function buildTurnChanged(
   pathExists: (path: string) => boolean,
 ): boolean {
   if (pathExists(outputPath) || !pathExists(lockPath)) {
-    return true;
+    return true
   }
-  const ownerPid = readLockPid(lockPath);
-  return ownerPid === null || !isProcessAlive(ownerPid);
+  const ownerPid = readLockPid(lockPath)
+  return ownerPid === null || !isProcessAlive(ownerPid)
 }
 
 function remainingMs(deadline: number, stage: string): number {
-  const remaining = deadline - Date.now();
+  const remaining = deadline - Date.now()
   if (remaining <= 0) {
-    throw new Error(`[test-setup] timed out during ${stage}`);
+    throw new Error(`[test-setup] timed out during ${stage}`)
   }
-  return remaining;
+  return remaining
 }
 
 function assertCommandSucceeded(
@@ -230,20 +222,20 @@ function assertCommandSucceeded(
     if (result !== 0) {
       throw new Error(
         `[test-setup] lsp-daemon ${stage} failed with exit code ${result}`,
-      );
+      )
     }
-    return;
+    return
   }
   if (result.error) {
     throw new Error(
       `[test-setup] lsp-daemon ${stage} failed: ${result.error.message}`,
       { cause: result.error },
-    );
+    )
   }
   if (result.status !== 0) {
     const detail = result.signal
       ? `signal ${result.signal}`
-      : `exit code ${String(result.status)}`;
-    throw new Error(`[test-setup] lsp-daemon ${stage} failed with ${detail}`);
+      : `exit code ${String(result.status)}`
+    throw new Error(`[test-setup] lsp-daemon ${stage} failed with ${detail}`)
   }
 }

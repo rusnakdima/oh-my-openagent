@@ -1,160 +1,110 @@
-import {
-  type PluginInput,
-  tool,
-  type ToolDefinition,
-} from "@opencode-ai/plugin";
-import { ALLOWED_AGENTS, CALL_OMO_AGENT_DESCRIPTION } from "./constants";
-import type { CallOmoAgentArgs, ToolContextWithMetadata } from "./types";
-import type { BackgroundManager } from "../../features/background-agent";
-import type { ModelFallbackControllerAccessor } from "../../hooks/model-fallback";
-import type { AgentOverrides, CategoriesConfig } from "../../config/schema";
-import type { DelegatedModelConfig } from "../../shared/model-resolution-types";
-import type { FallbackEntry } from "../../shared/model-requirements";
-import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements";
-import {
-  getAgentConfigKey,
-  stripInvisibleAgentCharacters,
-} from "../../shared/agent-display-names";
-import { normalizeFallbackModels } from "../../shared/model-resolver";
-import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-models";
-import { log } from "../../shared";
-import { parseModelString } from "../../shared";
-import {
-  getSelectedGlobalModelLive,
-  getSessionModel,
-} from "../../shared/session-model-state";
-import { executeBackground } from "./background-executor";
-import { executeSync } from "./sync-executor";
-import { resolveCallableAgents } from "./agent-resolver";
-import { createOrGetSession } from "./session-creator";
-import { processMessages } from "./message-processor";
-import { waitForCompletion } from "./completion-poller";
+import { tool, type PluginInput, type ToolDefinition } from "@opencode-ai/plugin"
+import { ALLOWED_AGENTS, CALL_OMO_AGENT_DESCRIPTION } from "./constants"
+import type { CallOmoAgentArgs, ToolContextWithMetadata } from "./types"
+import type { BackgroundManager } from "../../features/background-agent"
+import type { ModelFallbackControllerAccessor } from "../../hooks/model-fallback"
+import type { CategoriesConfig, AgentOverrides } from "../../config/schema"
+import type { DelegatedModelConfig } from "../../shared/model-resolution-types"
+import type { FallbackEntry } from "../../shared/model-requirements"
+import { AGENT_MODEL_REQUIREMENTS } from "../../shared/model-requirements"
+import { getAgentConfigKey, stripInvisibleAgentCharacters } from "../../shared/agent-display-names"
+import { normalizeFallbackModels } from "../../shared/model-resolver"
+import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-models"
+import { log } from "../../shared"
+import { parseModelString } from "../../shared"
+import { getSelectedGlobalModelLive } from "../../shared/session-model-state"
+import { executeBackground } from "./background-executor"
+import { executeSync } from "./sync-executor"
+import { resolveCallableAgents } from "./agent-resolver"
+import { createOrGetSession } from "./session-creator"
+import { processMessages } from "./message-processor"
+import { waitForCompletion } from "./completion-poller"
 
-function createSyncExecutorDeps(
-  modelFallbackControllerAccessor?: ModelFallbackControllerAccessor,
-) {
+function createSyncExecutorDeps(modelFallbackControllerAccessor?: ModelFallbackControllerAccessor) {
   return {
     createOrGetSession,
     waitForCompletion,
     processMessages,
-    setSessionFallbackChain: (
-      sessionID: string,
-      fallbackChain: FallbackEntry[] | undefined,
-    ) => {
-      modelFallbackControllerAccessor?.setSessionFallbackChain(
-        sessionID,
-        fallbackChain,
-      );
+    setSessionFallbackChain: (sessionID: string, fallbackChain: FallbackEntry[] | undefined) => {
+      modelFallbackControllerAccessor?.setSessionFallbackChain(sessionID, fallbackChain)
     },
     clearSessionFallbackChain: (sessionID: string) => {
-      modelFallbackControllerAccessor?.clearSessionFallbackChain(sessionID);
+      modelFallbackControllerAccessor?.clearSessionFallbackChain(sessionID)
     },
-  };
+  }
 }
 
 function resolveModelAndFallbackChain(args: {
-  subagentType: string;
-  agentOverrides?: AgentOverrides;
-  userCategories?: CategoriesConfig;
-  parentSessionID?: string;
-}): {
-  model: DelegatedModelConfig | undefined;
-  fallbackChain: FallbackEntry[] | undefined;
-} {
-  const { subagentType, agentOverrides, userCategories, parentSessionID } =
-    args;
-  const agentConfigKey = getAgentConfigKey(subagentType);
-  const agentRequirement = AGENT_MODEL_REQUIREMENTS[agentConfigKey];
+  subagentType: string
+  agentOverrides?: AgentOverrides
+  userCategories?: CategoriesConfig
+}): { model: DelegatedModelConfig | undefined; fallbackChain: FallbackEntry[] | undefined } {
+  const { subagentType, agentOverrides, userCategories } = args
+  const agentConfigKey = getAgentConfigKey(subagentType)
+  const agentRequirement = AGENT_MODEL_REQUIREMENTS[agentConfigKey]
 
-  const agentOverride =
-    agentOverrides?.[agentConfigKey as keyof AgentOverrides] ??
-      (agentOverrides
-        ? Object.entries(agentOverrides).find(([key]) =>
-          key.toLowerCase() === agentConfigKey
-        )?.[1]
-        : undefined);
+  const agentOverride = agentOverrides?.[agentConfigKey as keyof AgentOverrides]
+    ?? (agentOverrides
+      ? Object.entries(agentOverrides).find(([key]) => key.toLowerCase() === agentConfigKey)?.[1]
+      : undefined)
   const agentCategoryModel = agentOverride?.category
     ? userCategories?.[agentOverride.category]?.model
-    : undefined;
+    : undefined
   const agentCategoryVariant = agentOverride?.category
     ? userCategories?.[agentOverride.category]?.variant
-    : undefined;
+    : undefined
 
-  let model: DelegatedModelConfig | undefined;
+  let model: DelegatedModelConfig | undefined
   if (agentOverride?.model) {
-    const normalized = parseModelString(agentOverride.model);
+    const normalized = parseModelString(agentOverride.model)
     if (normalized) {
-      model = agentOverride.variant
-        ? { ...normalized, variant: agentOverride.variant }
-        : normalized;
+      model = agentOverride.variant ? { ...normalized, variant: agentOverride.variant } : normalized
       log("[call_omo_agent] Resolved model override from agent config", {
         agent: subagentType,
         model: agentOverride.model,
         variant: agentOverride.variant,
-      });
+      })
     }
   } else if (agentCategoryModel) {
-    const normalized = parseModelString(agentCategoryModel);
+    const normalized = parseModelString(agentCategoryModel)
     if (normalized) {
-      const variantToUse = agentOverride?.variant ?? agentCategoryVariant;
-      model = variantToUse
-        ? { ...normalized, variant: variantToUse }
-        : normalized;
+      const variantToUse = agentOverride?.variant ?? agentCategoryVariant
+      model = variantToUse ? { ...normalized, variant: variantToUse } : normalized
       log("[call_omo_agent] Resolved model override from agent category", {
         agent: subagentType,
         category: agentOverride?.category,
         model: agentCategoryModel,
         variant: variantToUse,
-      });
+      })
     }
   } else {
-    // SESSION-INHERITED MODEL (Aug 2026): the spawning session's model wins
-    // (e.g. explore spawned by Atlas runs on Atlas's model); global pick is the fallback.
-    const inherited = parentSessionID
-      ? getSessionModel(parentSessionID)
-      : undefined;
-    if (inherited) {
-      model = { providerID: inherited.providerID, modelID: inherited.modelID };
-      log("[call_omo_agent] Resolved model from parent session", {
+    // Global TUI model applies to ALL modes — honor picker for call_omo_agent subagents
+    const global = getSelectedGlobalModelLive()
+    if (global) {
+      model = { providerID: global.providerID, modelID: global.modelID }
+      log("[call_omo_agent] Resolved model from global TUI model", {
         agent: subagentType,
-        parentSessionID: parentSessionID?.slice(0, 8),
-        model: `${inherited.providerID}/${inherited.modelID}`,
-      });
-    } else {
-      const global = getSelectedGlobalModelLive();
-      if (global) {
-        model = { providerID: global.providerID, modelID: global.modelID };
-        log("[call_omo_agent] Resolved model from global TUI model", {
-          agent: subagentType,
-          model: `${global.providerID}/${global.modelID}`,
-        });
-      }
+        model: `${global.providerID}/${global.modelID}`,
+      })
     }
     // No fallback to hardcoded chain when model_fallback_enabled is false — provider default wins.
   }
 
   const normalizedFallbackModels = normalizeFallbackModels(
-    agentOverride?.fallback_models ??
-      (agentOverride?.category
-        ? userCategories?.[agentOverride.category]?.fallback_models
-        : undefined),
-  );
-  const defaultProviderID = model?.providerID ??
-    agentRequirement?.fallbackChain?.[0]?.providers?.[0] ??
-    "opencode";
-  const configuredFallbackChain = buildFallbackChainFromModels(
-    normalizedFallbackModels,
-    defaultProviderID,
-  );
-  const globalForFallback = getSelectedGlobalModelLive();
-  const fallbackChain = globalForFallback
-    ? configuredFallbackChain
-    : (configuredFallbackChain ?? agentRequirement?.fallbackChain);
+    agentOverride?.fallback_models
+    ?? (agentOverride?.category ? userCategories?.[agentOverride.category]?.fallback_models : undefined)
+  )
+  const defaultProviderID = model?.providerID
+    ?? agentRequirement?.fallbackChain?.[0]?.providers?.[0]
+    ?? "opencode"
+  const configuredFallbackChain = buildFallbackChainFromModels(normalizedFallbackModels, defaultProviderID)
+  const globalForFallback = getSelectedGlobalModelLive()
+  const fallbackChain = globalForFallback ? configuredFallbackChain : (configuredFallbackChain ?? agentRequirement?.fallbackChain)
 
   return {
     model,
     fallbackChain,
-  };
+  }
 }
 
 export function createCallOmoAgent(
@@ -203,72 +153,47 @@ export function createCallOmoAgent(
         `[call_omo_agent] Starting with agent: ${args.subagent_type}, background: ${args.run_in_background}`,
       );
 
-      if (
-        typeof args.subagent_type !== "string" ||
-        args.subagent_type.trim() === ""
-      ) {
-        return "Error: subagent_type is required.";
+      if (typeof args.subagent_type !== "string" || args.subagent_type.trim() === "") {
+        return "Error: subagent_type is required."
       }
 
       const callableAgents = await resolveCallableAgents(ctx.client);
 
       // Strip ZWSP and case-insensitive agent validation - allows "Explore", "EXPLORE", "explore" etc.
-      const strippedAgentType = stripInvisibleAgentCharacters(
-        args.subagent_type,
-      );
+      const strippedAgentType = stripInvisibleAgentCharacters(args.subagent_type)
       if (
         !callableAgents.some(
           (name) => name.toLowerCase() === strippedAgentType.toLowerCase(),
         )
       ) {
-        return `Error: Invalid agent type "${args.subagent_type}". Only ${
-          callableAgents.join(", ")
-        } are allowed.`;
+        return `Error: Invalid agent type "${args.subagent_type}". Only ${callableAgents.join(", ")} are allowed.`;
       }
 
       const normalizedAgent = strippedAgentType.toLowerCase();
       args = { ...args, subagent_type: normalizedAgent };
 
       // Check if agent is disabled
-      if (
-        disabledAgents.some((disabled) =>
-          stripInvisibleAgentCharacters(disabled).toLowerCase() ===
-            normalizedAgent
-        )
-      ) {
-        return `Error: Agent "${normalizedAgent}" is disabled via disabled_agents configuration. Remove it from disabled_agents in your .omo/omo.jsonc to use it.`;
+      if (disabledAgents.some((disabled) => stripInvisibleAgentCharacters(disabled).toLowerCase() === normalizedAgent)) {
+        return `Error: Agent "${normalizedAgent}" is disabled via disabled_agents configuration. Remove it from disabled_agents in your .omo/omo.jsonc to use it.`
       }
 
-      const { model: resolvedModel, fallbackChain } =
-        resolveModelAndFallbackChain({
-          subagentType: args.subagent_type,
-          agentOverrides,
-          userCategories,
-          parentSessionID: toolCtx.sessionID,
-        });
+      const { model: resolvedModel, fallbackChain } = resolveModelAndFallbackChain({
+        subagentType: args.subagent_type,
+        agentOverrides,
+        userCategories,
+      })
 
       if (args.run_in_background) {
         if (args.session_id) {
           return `Error: session_id is not supported in background mode. Use run_in_background=false to continue an existing session.`;
         }
-        return await executeBackground(
-          args,
-          toolCtx,
-          backgroundManager,
-          ctx.client,
-          fallbackChain,
-          resolvedModel,
-        );
+        return await executeBackground(args, toolCtx, backgroundManager, ctx.client, fallbackChain, resolvedModel)
       }
 
       if (!args.session_id) {
-        let spawnReservation:
-          | Awaited<ReturnType<BackgroundManager["reserveSubagentSpawn"]>>
-          | undefined;
+        let spawnReservation: Awaited<ReturnType<BackgroundManager["reserveSubagentSpawn"]>> | undefined
         try {
-          spawnReservation = await backgroundManager.reserveSubagentSpawn(
-            toolCtx.sessionID,
-          );
+          spawnReservation = await backgroundManager.reserveSubagentSpawn(toolCtx.sessionID)
           return await executeSync(
             args,
             toolCtx,
@@ -277,12 +202,10 @@ export function createCallOmoAgent(
             fallbackChain,
             spawnReservation,
             resolvedModel,
-          );
+          )
         } catch (error) {
-          spawnReservation?.rollback();
-          return `Error: ${
-            error instanceof Error ? error.message : String(error)
-          }`;
+          spawnReservation?.rollback()
+          return `Error: ${error instanceof Error ? error.message : String(error)}`
         }
       }
 
@@ -294,7 +217,8 @@ export function createCallOmoAgent(
         fallbackChain,
         undefined,
         resolvedModel,
-      );
+      )
     },
   });
 }
+

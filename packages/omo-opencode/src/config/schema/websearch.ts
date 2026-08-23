@@ -1,6 +1,6 @@
-import { z } from "zod";
+import { z } from "zod"
 
-export const WebsearchProviderSchema = z.enum(["exa", "tavily"]);
+export const WebsearchProviderSchema = z.enum(["exa", "tavily"])
 
 export const WebsearchConfigSchema = z.object({
   /**
@@ -9,7 +9,7 @@ export const WebsearchConfigSchema = z.object({
    * - "tavily": Uses Tavily websearch (requires TAVILY_API_KEY)
    */
   provider: WebsearchProviderSchema.optional(),
-});
+})
 
-export type WebsearchProvider = z.infer<typeof WebsearchProviderSchema>;
-export type WebsearchConfig = z.infer<typeof WebsearchConfigSchema>;
+export type WebsearchProvider = z.infer<typeof WebsearchProviderSchema>
+export type WebsearchConfig = z.infer<typeof WebsearchConfigSchema>

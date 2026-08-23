@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod"
 
 export const BuiltinAgentNameSchema = z.enum([
   "sisyphus",
@@ -12,7 +12,7 @@ export const BuiltinAgentNameSchema = z.enum([
   "momus",
   "atlas",
   "sisyphus-junior",
-]);
+])
 
 export const BuiltinSkillNameSchema = z.enum([
   "playwright",
@@ -28,7 +28,7 @@ export const BuiltinSkillNameSchema = z.enum([
   "security-review",
   "visual-qa",
   "team-mode",
-]);
+])
 
 export const OverridableAgentNameSchema = z.enum([
   "build",
@@ -45,9 +45,9 @@ export const OverridableAgentNameSchema = z.enum([
   "explore",
   "multimodal-looker",
   "atlas",
-]);
+])
 
-export const AgentNameSchema = BuiltinAgentNameSchema;
-export type AgentName = z.infer<typeof AgentNameSchema>;
+export const AgentNameSchema = BuiltinAgentNameSchema
+export type AgentName = z.infer<typeof AgentNameSchema>
 
-export type BuiltinSkillName = z.infer<typeof BuiltinSkillNameSchema>;
+export type BuiltinSkillName = z.infer<typeof BuiltinSkillNameSchema>

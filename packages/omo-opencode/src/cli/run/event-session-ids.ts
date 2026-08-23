@@ -1,29 +1,27 @@
-export function getSessionId(
-  props?: { sessionID?: string; sessionId?: string },
-): string | undefined {
-  return props?.sessionID ?? props?.sessionId;
+export function getSessionId(props?: { sessionID?: string; sessionId?: string }): string | undefined {
+  return props?.sessionID ?? props?.sessionId
 }
 
 export function getInfoSessionId(props?: {
-  info?: { sessionID?: string; sessionId?: string };
+  info?: { sessionID?: string; sessionId?: string }
 }): string | undefined {
-  return props?.info?.sessionID ?? props?.info?.sessionId;
+  return props?.info?.sessionID ?? props?.info?.sessionId
 }
 
 export function getPartSessionId(props?: {
-  part?: { sessionID?: string; sessionId?: string };
+  part?: { sessionID?: string; sessionId?: string }
 }): string | undefined {
-  return props?.part?.sessionID ?? props?.part?.sessionId;
+  return props?.part?.sessionID ?? props?.part?.sessionId
 }
 
 export function getPartMessageId(props?: {
-  part?: { messageID?: string };
+  part?: { messageID?: string }
 }): string | undefined {
-  return props?.part?.messageID;
+  return props?.part?.messageID
 }
 
 export function getDeltaMessageId(props?: {
-  messageID?: string;
+  messageID?: string
 }): string | undefined {
-  return props?.messageID;
+  return props?.messageID
 }

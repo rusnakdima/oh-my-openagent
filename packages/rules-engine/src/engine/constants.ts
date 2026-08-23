@@ -5,13 +5,13 @@ import type { RuleSource } from "./types.js";
  * Walks UP from cwd until any of these is found in the directory.
  */
 export const PROJECT_MARKERS: readonly string[] = [
-  ".git",
-  "pnpm-workspace.yaml",
-  "package.json",
-  "pyproject.toml",
-  "Cargo.toml",
-  "go.mod",
-  ".venv",
+	".git",
+	"pnpm-workspace.yaml",
+	"package.json",
+	"pyproject.toml",
+	"Cargo.toml",
+	"go.mod",
+	".venv",
 ];
 
 /**
@@ -19,28 +19,21 @@ export const PROJECT_MARKERS: readonly string[] = [
  * the project root, second is the subdir scanned recursively.
  */
 export const PROJECT_RULE_SUBDIRS: ReadonlyArray<readonly [string, string]> = [
-  [".omo", "rules"],
-  [".claude", "rules"],
-  [".cursor", "rules"],
-  [".github", "instructions"],
+	[".omo", "rules"],
+	[".claude", "rules"],
+	[".cursor", "rules"],
+	[".github", "instructions"],
 ];
 
 /**
  * Single-file project rules (always apply, frontmatter optional).
  */
-export const PROJECT_SINGLE_FILES: readonly string[] = [
-  ".github/copilot-instructions.md",
-  "CONTEXT.md",
-];
+export const PROJECT_SINGLE_FILES: readonly string[] = [".github/copilot-instructions.md", "CONTEXT.md"];
 
 /**
  * User-home rule directories.
  */
-export const USER_HOME_RULE_SUBDIRS: readonly string[] = [
-  ".omo/rules",
-  ".opencode/rules",
-  ".claude/rules",
-];
+export const USER_HOME_RULE_SUBDIRS: readonly string[] = [".omo/rules", ".opencode/rules", ".claude/rules"];
 
 /**
  * User-home single-file rules. The first one to exist wins per "first-match" semantics.
@@ -61,16 +54,16 @@ export const RULE_FILE_EXTENSIONS: readonly string[] = [".md", ".mdc"];
  * Per-rule source priority for deterministic ordering. Lower = earlier.
  */
 export const SOURCE_PRIORITY: ReadonlyMap<RuleSource, number> = new Map([
-  [".omo/rules", 0],
-  [".claude/rules", 1],
-  [".cursor/rules", 2],
-  [".github/instructions", 3],
-  [".github/copilot-instructions.md", 4],
-  ["CONTEXT.md", 7],
-  ["~/.omo/rules", 100],
-  ["~/.opencode/rules", 101],
-  ["~/.claude/rules", 102],
-  ["plugin-bundled", 200],
+	[".omo/rules", 0],
+	[".claude/rules", 1],
+	[".cursor/rules", 2],
+	[".github/instructions", 3],
+	[".github/copilot-instructions.md", 4],
+	["CONTEXT.md", 7],
+	["~/.omo/rules", 100],
+	["~/.opencode/rules", 101],
+	["~/.claude/rules", 102],
+	["plugin-bundled", 200],
 ]);
 
 /**
@@ -119,11 +112,11 @@ export const TRUNCATION_NOTICE = "\n\n[Truncated. Full: {path}]";
  * Directories excluded by the recursive scanner regardless of glob settings.
  */
 export const SCANNER_EXCLUDED_DIRS: readonly string[] = [
-  "node_modules",
-  ".git",
-  "dist",
-  "build",
-  ".turbo",
-  ".next",
-  "coverage",
+	"node_modules",
+	".git",
+	"dist",
+	"build",
+	".turbo",
+	".next",
+	"coverage",
 ];

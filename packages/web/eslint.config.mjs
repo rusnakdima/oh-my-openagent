@@ -1,7 +1,7 @@
-import globals from "globals";
-import nextPlugin from "@next/eslint-plugin-next";
-import prettier from "eslint-config-prettier/flat";
-import tseslint from "typescript-eslint";
+import globals from "globals"
+import nextPlugin from "@next/eslint-plugin-next"
+import prettier from "eslint-config-prettier/flat"
+import tseslint from "typescript-eslint"
 
 const nextCoreWebVitalsConfig = {
   name: "next/core-web-vitals",
@@ -12,7 +12,7 @@ const nextCoreWebVitalsConfig = {
     ...nextPlugin.configs.recommended.rules,
     ...nextPlugin.configs["core-web-vitals"].rules,
   },
-};
+}
 
 export default [
   {
@@ -32,4 +32,4 @@ export default [
   },
   nextCoreWebVitalsConfig,
   prettier,
-];
+]

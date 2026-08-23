@@ -15,7 +15,7 @@
  * memfs/frontmatter.ts like every other seeded memory file.
  */
 
-export const MEMORY_DISCIPLINE_SKILL_PATH = "skills/memory-discipline/SKILL.md";
+export const MEMORY_DISCIPLINE_SKILL_PATH = "skills/memory-discipline/SKILL.md"
 
 export const MEMORY_DISCIPLINE_SKILL_CONTENT = `---
 name: memory-discipline
@@ -62,4 +62,4 @@ Files under system/ are your self-model, projected into every prompt. Edit them 
 - \`Emoji:\` your sigil
 
 It renders inside \`<self>\` beside \`system/persona.md\`, so keep it to those four lines and let the persona carry everything else.
-`;
+`

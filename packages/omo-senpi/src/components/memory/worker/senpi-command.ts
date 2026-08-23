@@ -1,15 +1,15 @@
-import { existsSync } from "node:fs";
-import { createRequire } from "node:module";
-import { isAbsolute, join } from "node:path";
+import { existsSync } from "node:fs"
+import { createRequire } from "node:module"
+import { isAbsolute, join } from "node:path"
 
 import {
   detectBunBinary,
   resolveSenpiLauncher as resolveTaskSenpiLauncher,
   type SenpiLauncher,
-} from "@oh-my-opencode/senpi-task";
+} from "@oh-my-opencode/senpi-task"
 
-const SENPI_PACKAGE_DIR = join("@code-yeongyu", "senpi");
-const CLI_RELATIVE = join("dist", "cli.js");
+const SENPI_PACKAGE_DIR = join("@code-yeongyu", "senpi")
+const CLI_RELATIVE = join("dist", "cli.js")
 
 /**
  * Resolve the senpi CLI to spawn reflection, dream, and facts children with.
@@ -33,17 +33,15 @@ export function resolveSenpiLaunch(
     platform: runtime.platform,
     parentEnv: env,
     resolveRpcEntry: () => "",
-  });
-  if (launcher !== null) return launcher;
-  const installedCli = runtime.resolveInstalledCli();
-  if (installedCli !== null) {
-    return { command: runtime.execPath, prefixArgs: [installedCli] };
-  }
-  const entry = runtime.argv[1];
+  })
+  if (launcher !== null) return launcher
+  const installedCli = runtime.resolveInstalledCli()
+  if (installedCli !== null) return { command: runtime.execPath, prefixArgs: [installedCli] }
+  const entry = runtime.argv[1]
   if (entry !== undefined && isAbsolute(entry) && existsSync(entry)) {
-    return { command: runtime.execPath, prefixArgs: [entry] };
+    return { command: runtime.execPath, prefixArgs: [entry] }
   }
-  throw new Error("Unable to resolve a runnable Senpi launcher");
+  throw new Error("Unable to resolve a runnable Senpi launcher")
 }
 
 /**
@@ -54,35 +52,29 @@ export function resolveSenpiLaunch(
  * interpreter receiving senpi flags, which dies as `node: bad option: --fork`.
  */
 export function resolveMemoryChildLaunch(input: {
-  readonly senpiCommand?: string;
-  readonly senpiPrefixArgs?: readonly string[];
-  readonly env: NodeJS.ProcessEnv;
+  readonly senpiCommand?: string
+  readonly senpiPrefixArgs?: readonly string[]
+  readonly env: NodeJS.ProcessEnv
 }): SenpiLauncher {
-  if (input.senpiCommand === undefined) return resolveSenpiLaunch(input.env);
-  return {
-    command: input.senpiCommand,
-    prefixArgs: input.senpiPrefixArgs ?? [],
-  };
+  if (input.senpiCommand === undefined) return resolveSenpiLaunch(input.env)
+  return { command: input.senpiCommand, prefixArgs: input.senpiPrefixArgs ?? [] }
 }
 
 export type SenpiLaunchRuntime = {
-  readonly isBunBinary: boolean;
-  readonly execPath: string;
-  readonly platform: NodeJS.Platform;
-  readonly argv: readonly string[];
-  readonly resolveInstalledCli: () => string | null;
-};
+  readonly isBunBinary: boolean
+  readonly execPath: string
+  readonly platform: NodeJS.Platform
+  readonly argv: readonly string[]
+  readonly resolveInstalledCli: () => string | null
+}
 
 function resolveInstalledSenpiCli(): string | null {
-  const require = createRequire(import.meta.url);
-  for (
-    const modulesDir
-      of require.resolve.paths(join(SENPI_PACKAGE_DIR, "package.json")) ?? []
-  ) {
-    const candidate = join(modulesDir, SENPI_PACKAGE_DIR, CLI_RELATIVE);
-    if (existsSync(candidate)) return candidate;
+  const require = createRequire(import.meta.url)
+  for (const modulesDir of require.resolve.paths(join(SENPI_PACKAGE_DIR, "package.json")) ?? []) {
+    const candidate = join(modulesDir, SENPI_PACKAGE_DIR, CLI_RELATIVE)
+    if (existsSync(candidate)) return candidate
   }
-  return null;
+  return null
 }
 
 function defaultRuntime(): SenpiLaunchRuntime {
@@ -92,5 +84,5 @@ function defaultRuntime(): SenpiLaunchRuntime {
     platform: process.platform,
     argv: process.argv,
     resolveInstalledCli: resolveInstalledSenpiCli,
-  };
+  }
 }

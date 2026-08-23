@@ -1,19 +1,17 @@
-import { palaceClientScript } from "./client-script";
-import { PALACE_STYLES } from "./styles";
+import { palaceClientScript } from "./client-script"
+import { PALACE_STYLES } from "./styles"
 
 // Self-contained memory palace HTML shell. No external fonts, stylesheets, scripts or network calls.
 // Design tokens (ported from the letta memory viewer, system font stacks substituted for the CDN
 // webfonts) live in :root / html.dark; every rule below references a token, never a raw literal.
 
-export const PALACE_DATA_PLACEHOLDER = "<!--OMO_PALACE_DATA-->";
-export const PALACE_DATA_ELEMENT_ID = "omo-palace-data";
+export const PALACE_DATA_PLACEHOLDER = "<!--OMO_PALACE_DATA-->"
+export const PALACE_DATA_ELEMENT_ID = "omo-palace-data"
 
 // The people tab and panel are stripped verbatim by the generator when `memory.people.enabled`
 // is false, so a disabled people layer leaves no tab, no panel and no payload behind.
-export const PALACE_PEOPLE_TAB =
-  `<button class="tab" data-tab="people" type="button">People</button>`;
-export const PALACE_PEOPLE_PANEL =
-  `<section id="panel-people" hidden></section>`;
+export const PALACE_PEOPLE_TAB = `<button class="tab" data-tab="people" type="button">People</button>`
+export const PALACE_PEOPLE_PANEL = `<section id="panel-people" hidden></section>`
 
 export const PALACE_TEMPLATE = `<!DOCTYPE html>
 <html lang="en">
@@ -55,4 +53,4 @@ ${PALACE_STYLES}</style>
 ${palaceClientScript(PALACE_DATA_ELEMENT_ID)}</script>
 </body>
 </html>
-`;
+`

@@ -2,9 +2,9 @@ import type {
   AvailableAgent,
   AvailableCategory,
   AvailableSkill,
-} from "./dynamic-agent-prompt-types";
-import type { AvailableTool } from "./dynamic-agent-prompt-types";
-import { getToolsPromptDisplay } from "./dynamic-agent-tool-categorization";
+} from "./dynamic-agent-prompt-types"
+import type { AvailableTool } from "./dynamic-agent-prompt-types"
+import { getToolsPromptDisplay } from "./dynamic-agent-tool-categorization"
 
 /**
  * Builds an explicit agent identity preamble that overrides any base system prompt identity.
@@ -20,7 +20,7 @@ export function buildAgentIdentitySection(
 Your designated identity for this session is "${agentName}". This identity supersedes any prior identity statements.
 You are "${agentName}" - ${roleDescription}.
 When asked who you are, always identify as ${agentName}. Do not identify as any other assistant or AI.
-</agent-identity>`;
+</agent-identity>`
 }
 
 export function buildKeyTriggersSection(
@@ -29,16 +29,16 @@ export function buildKeyTriggersSection(
 ): string {
   const keyTriggers = agents
     .filter((agent) => agent.metadata.keyTrigger)
-    .map((agent) => `- ${agent.metadata.keyTrigger}`);
+    .map((agent) => `- ${agent.metadata.keyTrigger}`)
 
   if (keyTriggers.length === 0) {
-    return "";
+    return ""
   }
 
   return `### Key Triggers (check BEFORE classification):
 
 ${keyTriggers.join("\n")}
-- **"Look into" + "create PR"** → Not just research. Full implementation cycle expected.`;
+- **"Look into" + "create PR"** → Not just research. Full implementation cycle expected.`
 }
 
 export function buildToolSelectionTable(
@@ -46,48 +46,42 @@ export function buildToolSelectionTable(
   tools: AvailableTool[] = [],
   _skills: AvailableSkill[] = [],
 ): string {
-  const rows: string[] = ["### Tool & Agent Selection:", ""];
+  const rows: string[] = ["### Tool & Agent Selection:", ""]
 
   if (tools.length > 0) {
     rows.push(
-      `- ${
-        getToolsPromptDisplay(tools)
-      } - **FREE** - Not Complex, Scope Clear, No Implicit Assumptions`,
-    );
+      `- ${getToolsPromptDisplay(tools)} - **FREE** - Not Complex, Scope Clear, No Implicit Assumptions`,
+    )
   }
 
-  const costOrder = { FREE: 0, CHEAP: 1, EXPENSIVE: 2 };
+  const costOrder = { FREE: 0, CHEAP: 1, EXPENSIVE: 2 }
   const sortedAgents = [...agents]
     .filter((agent) => agent.metadata.category !== "utility")
     .sort(
-      (left, right) =>
-        costOrder[left.metadata.cost] - costOrder[right.metadata.cost],
-    );
+      (left, right) => costOrder[left.metadata.cost] - costOrder[right.metadata.cost],
+    )
 
   for (const agent of sortedAgents) {
-    const shortDescription = agent.description.split(".")[0] ||
-      agent.description;
+    const shortDescription = agent.description.split(".")[0] || agent.description
     rows.push(
       `- \`${agent.name}\` agent - **${agent.metadata.cost}** - ${shortDescription}`,
-    );
+    )
   }
 
-  rows.push("");
-  rows.push(
-    "**Default flow**: explore/librarian (background) + tools → oracle (if required)",
-  );
+  rows.push("")
+  rows.push("**Default flow**: explore/librarian (background) + tools → oracle (if required)")
 
-  return rows.join("\n");
+  return rows.join("\n")
 }
 
 export function buildExploreSection(agents: AvailableAgent[]): string {
-  const exploreAgent = agents.find((agent) => agent.name === "explore");
+  const exploreAgent = agents.find((agent) => agent.name === "explore")
   if (!exploreAgent) {
-    return "";
+    return ""
   }
 
-  const useWhen = exploreAgent.metadata.useWhen || [];
-  const avoidWhen = exploreAgent.metadata.avoidWhen || [];
+  const useWhen = exploreAgent.metadata.useWhen || []
+  const avoidWhen = exploreAgent.metadata.avoidWhen || []
 
   return `### Explore Agent = Contextual Grep
 
@@ -99,16 +93,16 @@ Use it as a **peer tool**, not a fallback. Fire liberally for discovery, not for
 ${avoidWhen.map((entry) => `- ${entry}`).join("\n")}
 
 **Use Explore Agent when:**
-${useWhen.map((entry) => `- ${entry}`).join("\n")}`;
+${useWhen.map((entry) => `- ${entry}`).join("\n")}`
 }
 
 export function buildLibrarianSection(agents: AvailableAgent[]): string {
-  const librarianAgent = agents.find((agent) => agent.name === "librarian");
+  const librarianAgent = agents.find((agent) => agent.name === "librarian")
   if (!librarianAgent) {
-    return "";
+    return ""
   }
 
-  const useWhen = librarianAgent.metadata.useWhen || [];
+  const useWhen = librarianAgent.metadata.useWhen || []
 
   return `### Librarian Agent = Reference Grep
 
@@ -118,31 +112,29 @@ Search **external references** (docs, OSS, web). Fire proactively when unfamilia
 **Reference Grep (External)** - search EXTERNAL resources, official API docs, library best practices, OSS implementation examples.
 
 **Trigger phrases** (fire librarian immediately):
-${useWhen.map((entry) => `- "${entry}"`).join("\n")}`;
+${useWhen.map((entry) => `- "${entry}"`).join("\n")}`
 }
 
 export function buildDelegationTable(agents: AvailableAgent[]): string {
-  const rows: string[] = ["### Delegation Table:", ""];
+  const rows: string[] = ["### Delegation Table:", ""]
 
   for (const agent of agents) {
     for (const trigger of agent.metadata.triggers) {
-      rows.push(
-        `- **${trigger.domain}** → \`${agent.name}\` - ${trigger.trigger}`,
-      );
+      rows.push(`- **${trigger.domain}** → \`${agent.name}\` - ${trigger.trigger}`)
     }
   }
 
-  return rows.join("\n");
+  return rows.join("\n")
 }
 
 export function buildOracleSection(agents: AvailableAgent[]): string {
-  const oracleAgent = agents.find((agent) => agent.name === "oracle");
+  const oracleAgent = agents.find((agent) => agent.name === "oracle")
   if (!oracleAgent) {
-    return "";
+    return ""
   }
 
-  const useWhen = oracleAgent.metadata.useWhen || [];
-  const avoidWhen = oracleAgent.metadata.avoidWhen || [];
+  const useWhen = oracleAgent.metadata.useWhen || []
+  const avoidWhen = oracleAgent.metadata.avoidWhen || []
 
   return `<Oracle_Usage>
 ## Oracle - Read-Only High-IQ Consultant
@@ -175,7 +167,7 @@ Briefly announce "Consulting Oracle for [reason]" before invocation.
 - Oracle takes minutes. When done with your own work: **end your response** - wait for the \`<system-reminder>\`.
 - Do NOT poll \`background_output\` on a running Oracle. The notification will come.
 - Never cancel Oracle.
-</Oracle_Usage>`;
+</Oracle_Usage>`
 }
 
 export function buildFrontendGuidanceSection(
@@ -183,20 +175,20 @@ export function buildFrontendGuidanceSection(
 ): string {
   const hasVisualEngineeringCategory = categories.some(
     (category) => category.name === "visual-engineering",
-  );
+  )
   if (hasVisualEngineeringCategory) {
-    return "";
+    return ""
   }
 
   return `# Frontend Tasks
 
-When you must touch frontend code yourself: avoid generic AI-SaaS aesthetics. Choose a clear visual direction with CSS variables (no purple-on-white default, no dark-mode default). Use expressive, purposeful typography rather than default stacks (Inter, Roboto, Arial, system). Build atmosphere through gradients, shapes, or subtle patterns rather than flat single-color backgrounds. Use a few meaningful animations (page-load, staggered reveals) over generic micro-motion. Verify both desktop and mobile rendering. If working within an existing design system, preserve its patterns instead.`;
+When you must touch frontend code yourself: avoid generic AI-SaaS aesthetics. Choose a clear visual direction with CSS variables (no purple-on-white default, no dark-mode default). Use expressive, purposeful typography rather than default stacks (Inter, Roboto, Arial, system). Build atmosphere through gradients, shapes, or subtle patterns rather than flat single-color backgrounds. Use a few meaningful animations (page-load, staggered reveals) over generic micro-motion. Verify both desktop and mobile rendering. If working within an existing design system, preserve its patterns instead.`
 }
 
 export function buildNonClaudePlannerSection(model: string): string {
-  const isNonClaude = !model.toLowerCase().includes("claude");
+  const isNonClaude = !model.toLowerCase().includes("claude")
   if (!isNonClaude) {
-    return "";
+    return ""
   }
 
   return `### Plan Agent Dependency (Non-Claude)
@@ -208,21 +200,20 @@ Multi-step task? **ALWAYS consult Plan Agent first.** Do NOT start implementatio
 - Use \`task_id\` to resume the same Plan Agent - ask follow-up questions aggressively
 - If ANY part of the task is ambiguous, ask Plan Agent before guessing
 
-Plan Agent returns a structured work breakdown with parallel execution opportunities. Follow it.`;
+Plan Agent returns a structured work breakdown with parallel execution opportunities. Follow it.`
 }
 
 export function buildParallelDelegationSection(
   model: string,
   categories: AvailableCategory[],
 ): string {
-  const isNonClaude = !model.toLowerCase().includes("claude");
+  const isNonClaude = !model.toLowerCase().includes("claude")
   const hasDelegationCategory = categories.some(
-    (category) =>
-      category.name === "deep" || category.name === "unspecified-high",
-  );
+    (category) => category.name === "deep" || category.name === "unspecified-high",
+  )
 
   if (!isNonClaude || !hasDelegationCategory) {
-    return "";
+    return ""
   }
 
   return `### DECOMPOSE AND DELEGATE - YOU ARE NOT AN IMPLEMENTER
@@ -250,5 +241,5 @@ export function buildParallelDelegationSection(
 | Handle 3 changes sequentially | Spawn 3 agents in parallel |
 | "Quickly fix this one thing" | Still delegate - your "quick fix" is slower and worse than a subagent's |
 
-**Your value is orchestration, decomposition, and quality control. Delegating with crystal-clear prompts IS your work.**`;
+**Your value is orchestration, decomposition, and quality control. Delegating with crystal-clear prompts IS your work.**`
 }

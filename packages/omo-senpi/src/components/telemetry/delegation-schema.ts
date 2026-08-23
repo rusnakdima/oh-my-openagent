@@ -1,26 +1,18 @@
-import { CURATED_READONLY_AGENT_NAMES } from "@oh-my-opencode/senpi-task/agents-builtin";
-import { BUILTIN_CATEGORY_DEFAULTS } from "@oh-my-opencode/senpi-task/category-builtins";
+import { CURATED_READONLY_AGENT_NAMES } from "@oh-my-opencode/senpi-task/agents-builtin"
+import { BUILTIN_CATEGORY_DEFAULTS } from "@oh-my-opencode/senpi-task/category-builtins"
 
-const NUMBER_PROPERTY = Object.freeze({ type: "number" } as const);
-const STRING_PROPERTY = Object.freeze({ type: "string" } as const);
+const NUMBER_PROPERTY = Object.freeze({ type: "number" } as const)
+const STRING_PROPERTY = Object.freeze({ type: "string" } as const)
 
-function enumProperty<const Values extends readonly string[]>(
-  values: Values,
-): Readonly<{
-  type: "string";
-  values: Values;
+function enumProperty<const Values extends readonly string[]>(values: Values): Readonly<{
+  type: "string"
+  values: Values
 }> {
-  return Object.freeze({ type: "string", values: Object.freeze(values) });
+  return Object.freeze({ type: "string", values: Object.freeze(values) })
 }
 
 /** Terminal statuses a task record can reach; mirrors senpi-task `TERMINAL_STATUSES`. */
-export const DELEGATION_STATUSES = [
-  "completed",
-  "error",
-  "cancelled",
-  "interrupted",
-  "lost",
-] as const;
+export const DELEGATION_STATUSES = ["completed", "error", "cancelled", "interrupted", "lost"] as const
 
 /**
  * Why THIS run of a logical task started. One closed vocabulary instead of a prior-status field plus
@@ -39,64 +31,27 @@ export const DELEGATION_START_REASONS = [
   "revive_after_interrupted",
   "revive_after_lost",
   "unknown",
-] as const;
+] as const
 
 /** Who owns the task. DAG retries and team traffic otherwise inflate user-delegation denominators. */
-export const DELEGATION_OWNER_KINDS = [
-  "plain_child",
-  "dag_node",
-  "team_member",
-  "unknown",
-] as const;
+export const DELEGATION_OWNER_KINDS = ["plain_child", "dag_node", "team_member", "unknown"] as const
 
 /** `notify_on_terminal` alone cannot separate a promoted foreground task from a spawned background one. */
-export const DELEGATION_BACKGROUND_MODES = [
-  "foreground",
-  "background",
-  "promoted",
-  "unknown",
-] as const;
+export const DELEGATION_BACKGROUND_MODES = ["foreground", "background", "promoted", "unknown"] as const
 
 /** Canonical reasoning levels; harness-native presets collapse to `other`, absent reads `none`. */
 export const DELEGATION_REASONING_EFFORTS = [
-  "off",
-  "minimal",
-  "low",
-  "medium",
-  "high",
-  "xhigh",
-  "max",
-  "other",
-  "none",
-] as const;
+  "off", "minimal", "low", "medium", "high", "xhigh", "max", "other", "none",
+] as const
 
-export const DELEGATION_MODEL_SOURCES = [
-  "category",
-  "explicit",
-  "agent",
-  "none",
-] as const;
+export const DELEGATION_MODEL_SOURCES = ["category", "explicit", "agent", "none"] as const
 
 /** Data-quality vocabularies: a missing measurement is never a zero measurement. */
-export const DELEGATION_COVERAGE_STATUSES = [
-  "complete",
-  "partial",
-  "unavailable",
-] as const;
-export const DELEGATION_COST_STATUSES = [
-  "reported",
-  "unavailable",
-  "invalid",
-] as const;
-export const DELEGATION_DURATION_STATUSES = [
-  "monotonic",
-  "wall_clock",
-  "unavailable",
-] as const;
+export const DELEGATION_COVERAGE_STATUSES = ["complete", "partial", "unavailable"] as const
+export const DELEGATION_COST_STATUSES = ["reported", "unavailable", "invalid"] as const
+export const DELEGATION_DURATION_STATUSES = ["monotonic", "wall_clock", "unavailable"] as const
 
-const BUILTIN_CATEGORY_NAMES = BUILTIN_CATEGORY_DEFAULTS.map(({ name }) =>
-  name
-);
+const BUILTIN_CATEGORY_NAMES = BUILTIN_CATEGORY_DEFAULTS.map(({ name }) => name)
 
 /**
  * `delegation_completed`: one row per terminal edge of one run of one delegated task. Every string is
@@ -107,20 +62,16 @@ const BUILTIN_CATEGORY_NAMES = BUILTIN_CATEGORY_DEFAULTS.map(({ name }) =>
  * `maskProviderAndModel` in `product-identity.ts`, which owns this schema.
  */
 export function buildDelegationCompletedSchema(masked: {
-  readonly providers: readonly string[];
-  readonly models: readonly string[];
+  readonly providers: readonly string[]
+  readonly models: readonly string[]
 }) {
   return Object.freeze({
     "$session_id": STRING_PROPERTY,
-    agent_type: enumProperty(
-      [...CURATED_READONLY_AGENT_NAMES, "custom", "none"] as const,
-    ),
+    agent_type: enumProperty([...CURATED_READONLY_AGENT_NAMES, "custom", "none"] as const),
     background_mode: enumProperty(DELEGATION_BACKGROUND_MODES),
     cache_read_tokens: NUMBER_PROPERTY,
     cache_write_tokens: NUMBER_PROPERTY,
-    category: enumProperty(
-      [...BUILTIN_CATEGORY_NAMES, "custom", "none"] as const,
-    ),
+    category: enumProperty([...BUILTIN_CATEGORY_NAMES, "custom", "none"] as const),
     config_generation: NUMBER_PROPERTY,
     cost_status: enumProperty(DELEGATION_COST_STATUSES),
     cost_usd: NUMBER_PROPERTY,
@@ -146,5 +97,5 @@ export function buildDelegationCompletedSchema(masked: {
     tool_calls: NUMBER_PROPERTY,
     total_tokens: NUMBER_PROPERTY,
     turns: NUMBER_PROPERTY,
-  });
+  })
 }

@@ -10,8 +10,7 @@ Codex Rules is automatic once the plugin is enabled. It injects:
 - static project instructions on `SessionStart` and `UserPromptSubmit`
 - matching file-specific rules after Codex `apply_patch` by default
 
-Dynamic `PostToolUse` output is injected as additional context and is
-deduplicated per plugin data session. Codex Rules does not rewrite tool output.
+Dynamic `PostToolUse` output is injected as additional context and is deduplicated per plugin data session. Codex Rules does not rewrite tool output.
 
 Supported project sources:
 
@@ -30,5 +29,4 @@ Supported environment knobs:
 - `CODEX_RULES_MAX_RESULT_CHARS=<number>`
 - `CODEX_RULES_ENABLED_SOURCES=CONTEXT.md,.omo/rules`
 
-The legacy `PI_RULES_*` variables are accepted as fallbacks for users migrating
-from `pi-rules`.
+The legacy `PI_RULES_*` variables are accepted as fallbacks for users migrating from `pi-rules`.

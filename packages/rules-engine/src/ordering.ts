@@ -1,22 +1,14 @@
 import { SOURCE_PRIORITY } from "./constants";
 import type { RuleFileCandidate } from "./types";
 
-export function sortCandidates<T extends RuleFileCandidate>(
-  candidates: readonly T[],
-): T[] {
+export function sortCandidates<T extends RuleFileCandidate>(candidates: readonly T[]): T[] {
   return candidates
     .map((candidate, index) => ({ candidate, index }))
-    .sort((left, right) =>
-      compareCandidates(left.candidate, right.candidate) ||
-      left.index - right.index
-    )
+    .sort((left, right) => compareCandidates(left.candidate, right.candidate) || left.index - right.index)
     .map(({ candidate }) => candidate);
 }
 
-function compareCandidates(
-  left: RuleFileCandidate,
-  right: RuleFileCandidate,
-): number {
+function compareCandidates(left: RuleFileCandidate, right: RuleFileCandidate): number {
   return (
     Number(left.isGlobal) - Number(right.isGlobal) ||
     left.distance - right.distance ||

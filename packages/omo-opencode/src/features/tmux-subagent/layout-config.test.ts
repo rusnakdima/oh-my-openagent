@@ -1,10 +1,6 @@
-import { describe, expect, it } from "bun:test";
-import {
-  decideSpawnActions,
-  findSpawnTarget,
-  type SessionMapping,
-} from "./decision-engine";
-import type { CapacityConfig, WindowState } from "./types";
+import { describe, expect, it } from "bun:test"
+import { decideSpawnActions, findSpawnTarget, type SessionMapping } from "./decision-engine"
+import type { CapacityConfig, WindowState } from "./types"
 
 function createState(
   windowWidth: number,
@@ -24,7 +20,7 @@ function createState(
       isActive: true,
     },
     agentPanes,
-  };
+  }
 }
 
 describe("tmux layout-aware split behavior", () => {
@@ -34,17 +30,17 @@ describe("tmux layout-aware split behavior", () => {
       mainPaneSize: 60,
       mainPaneMinWidth: 120,
       agentPaneWidth: 40,
-    };
-    const state = createState(220, 44, []);
+    }
+    const state = createState(220, 44, [])
 
-    const decision = decideSpawnActions(state, "ses-1", "agent", config, []);
+    const decision = decideSpawnActions(state, "ses-1", "agent", config, [])
 
-    expect(decision.canSpawn).toBe(true);
+    expect(decision.canSpawn).toBe(true)
     expect(decision.actions[0]).toMatchObject({
       type: "spawn",
       splitDirection: "-v",
-    });
-  });
+    })
+  })
 
   it("uses -h for first spawn in main-vertical layout", () => {
     const config: CapacityConfig = {
@@ -52,17 +48,17 @@ describe("tmux layout-aware split behavior", () => {
       mainPaneSize: 60,
       mainPaneMinWidth: 120,
       agentPaneWidth: 40,
-    };
-    const state = createState(220, 44, []);
+    }
+    const state = createState(220, 44, [])
 
-    const decision = decideSpawnActions(state, "ses-1", "agent", config, []);
+    const decision = decideSpawnActions(state, "ses-1", "agent", config, [])
 
-    expect(decision.canSpawn).toBe(true);
+    expect(decision.canSpawn).toBe(true)
     expect(decision.actions[0]).toMatchObject({
       type: "spawn",
       splitDirection: "-h",
-    });
-  });
+    })
+  })
 
   it("prefers horizontal split target in main-horizontal layout", () => {
     const config: CapacityConfig = {
@@ -70,7 +66,7 @@ describe("tmux layout-aware split behavior", () => {
       mainPaneSize: 60,
       mainPaneMinWidth: 120,
       agentPaneWidth: 40,
-    };
+    }
     const state = createState(260, 60, [
       {
         paneId: "%1",
@@ -81,12 +77,12 @@ describe("tmux layout-aware split behavior", () => {
         title: "agent",
         isActive: false,
       },
-    ]);
+    ])
 
-    const target = findSpawnTarget(state, config);
+    const target = findSpawnTarget(state, config)
 
-    expect(target).toEqual({ targetPaneId: "%1", splitDirection: "-h" });
-  });
+    expect(target).toEqual({ targetPaneId: "%1", splitDirection: "-h" })
+  })
 
   it("defers when strict main-horizontal cannot split", () => {
     const config: CapacityConfig = {
@@ -94,7 +90,7 @@ describe("tmux layout-aware split behavior", () => {
       mainPaneSize: 60,
       mainPaneMinWidth: 120,
       agentPaneWidth: 40,
-    };
+    }
     const state = createState(220, 44, [
       {
         paneId: "%1",
@@ -105,23 +101,17 @@ describe("tmux layout-aware split behavior", () => {
         title: "old",
         isActive: false,
       },
-    ]);
+    ])
     const mappings: SessionMapping[] = [
       { sessionId: "old-ses", paneId: "%1", createdAt: new Date("2024-01-01") },
-    ];
+    ]
 
-    const decision = decideSpawnActions(
-      state,
-      "new-ses",
-      "agent",
-      config,
-      mappings,
-    );
+    const decision = decideSpawnActions(state, "new-ses", "agent", config, mappings)
 
-    expect(decision.canSpawn).toBe(false);
-    expect(decision.actions).toHaveLength(0);
-    expect(decision.reason).toContain("defer");
-  });
+    expect(decision.canSpawn).toBe(false)
+    expect(decision.actions).toHaveLength(0)
+    expect(decision.reason).toContain("defer")
+  })
 
   it("still spawns in narrow main-vertical when vertical split is possible", () => {
     const config: CapacityConfig = {
@@ -129,7 +119,7 @@ describe("tmux layout-aware split behavior", () => {
       mainPaneSize: 60,
       mainPaneMinWidth: 120,
       agentPaneWidth: 40,
-    };
+    }
     const state = createState(169, 40, [
       {
         paneId: "%1",
@@ -140,16 +130,16 @@ describe("tmux layout-aware split behavior", () => {
         title: "agent",
         isActive: false,
       },
-    ]);
+    ])
 
-    const decision = decideSpawnActions(state, "new-ses", "agent", config, []);
+    const decision = decideSpawnActions(state, "new-ses", "agent", config, [])
 
-    expect(decision.canSpawn).toBe(true);
-    expect(decision.actions).toHaveLength(1);
+    expect(decision.canSpawn).toBe(true)
+    expect(decision.actions).toHaveLength(1)
     expect(decision.actions[0]).toMatchObject({
       type: "spawn",
       targetPaneId: "%1",
       splitDirection: "-v",
-    });
-  });
-});
+    })
+  })
+})

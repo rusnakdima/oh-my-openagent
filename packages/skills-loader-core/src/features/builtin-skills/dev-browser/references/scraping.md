@@ -1,26 +1,21 @@
 # Data Scraping Guide
 
-For large datasets (followers, posts, search results), **intercept and replay
-network requests** rather than scrolling and parsing the DOM. This is faster,
-more reliable, and handles pagination automatically.
+For large datasets (followers, posts, search results), **intercept and replay network requests** rather than scrolling and parsing the DOM. This is faster, more reliable, and handles pagination automatically.
 
 ## Why Not Scroll?
 
-Scrolling is slow, unreliable, and wastes time. APIs return structured data with
-pagination built in. Always prefer API replay.
+Scrolling is slow, unreliable, and wastes time. APIs return structured data with pagination built in. Always prefer API replay.
 
 ## Start Small, Then Scale
 
 **Don't try to automate everything at once.** Work incrementally:
 
 1. **Capture one request** - verify you're intercepting the right endpoint
-2. **Inspect one response** - understand the schema before writing extraction
-   code
+2. **Inspect one response** - understand the schema before writing extraction code
 3. **Extract a few items** - make sure your parsing logic works
 4. **Then scale up** - add pagination loop only after the basics work
 
-This prevents wasting time debugging a complex script when the issue is a simple
-path like `data.user.timeline` vs `data.user.result.timeline`.
+This prevents wasting time debugging a complex script when the issue is a simple path like `data.user.timeline` vs `data.user.result.timeline`.
 
 ## Step-by-Step Workflow
 
@@ -45,10 +40,7 @@ page.on("request", (request) => {
       headers: request.headers(),
       method: request.method(),
     };
-    fs.writeFileSync(
-      "tmp/request-details.json",
-      JSON.stringify(capturedRequest, null, 2),
-    );
+    fs.writeFileSync("tmp/request-details.json", JSON.stringify(capturedRequest, null, 2));
     console.log("Captured request:", url.substring(0, 80) + "...");
   }
 });
@@ -77,8 +69,7 @@ page.on("response", async (response) => {
 
 Then analyze the structure to find:
 
-- Where the data array lives (e.g.,
-  `data.user.result.timeline.instructions[].entries`)
+- Where the data array lives (e.g., `data.user.result.timeline.instructions[].entries`)
 - Where pagination cursors are (e.g., `cursor-bottom` entries)
 - What fields you need to extract
 
@@ -94,8 +85,7 @@ const client = await connect();
 const page = await client.page("site");
 
 const results = new Map(); // Use Map for deduplication
-const headers =
-  JSON.parse(fs.readFileSync("tmp/request-details.json", "utf8")).headers;
+const headers = JSON.parse(fs.readFileSync("tmp/request-details.json", "utf8")).headers;
 const baseUrl = "https://example.com/api/data";
 
 let cursor = null;
@@ -113,7 +103,7 @@ while (hasMore) {
       const res = await fetch(url, { headers });
       return res.json();
     },
-    { url, headers },
+    { url, headers }
   );
 
   // Extract data and cursor (adjust paths for your API)
@@ -159,10 +149,7 @@ await client.disconnect();
 
 ## Tips
 
-- **Extension mode**: `page.context().cookies()` doesn't work - capture auth
-  headers from intercepted requests instead
+- **Extension mode**: `page.context().cookies()` doesn't work - capture auth headers from intercepted requests instead
 - **Rate limiting**: Add 500ms+ delays between requests to avoid blocks
-- **Stop conditions**: Check for empty results, missing cursor, or reaching a
-  date/ID threshold
-- **GraphQL APIs**: URL params often include `variables` and `features` JSON
-  objects - capture and reuse them
+- **Stop conditions**: Check for empty results, missing cursor, or reaching a date/ID threshold
+- **GraphQL APIs**: URL params often include `variables` and `features` JSON objects - capture and reuse them

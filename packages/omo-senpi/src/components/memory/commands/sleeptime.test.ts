@@ -1,47 +1,29 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { rm } from "node:fs/promises";
+import { afterEach, describe, expect, test } from "bun:test"
+import { rm } from "node:fs/promises"
 
-import { MemoryFakeExtensionAPI, memorySettings } from "../memory.test-support";
-import {
-  fakeCommandContext,
-  fakeDeps,
-  invoke,
-  tempIdentity,
-  TEST_IDENTITY,
-} from "./commands.test-support";
-import {
-  registerSleeptimeCommand,
-  resolveSleeptimeSettings,
-} from "./sleeptime";
+import { MemoryFakeExtensionAPI, memorySettings } from "../memory.test-support"
+import { TEST_IDENTITY, fakeCommandContext, fakeDeps, invoke, tempIdentity } from "./commands.test-support"
+import { registerSleeptimeCommand, resolveSleeptimeSettings } from "./sleeptime"
 
-const tempDirs: string[] = [];
+const tempDirs: string[] = []
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.splice(0).map((dir) =>
-      rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })
-    ),
-  );
-});
+  await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })))
+})
 
 describe("/sleeptime", () => {
   test("#given default settings #when resolved and invoked #then machine values use their defaults without override flags", async () => {
     // given
-    const { root, identity } = await tempIdentity();
-    tempDirs.push(root);
-    const settings = memorySettings();
-    const pi = new MemoryFakeExtensionAPI();
-    registerSleeptimeCommand(
-      pi,
-      fakeDeps(identity, {
-        loadSettings: () => ({ settings, configPath: "/tmp/omo.jsonc" }),
-      }),
-    );
-    const ctx = fakeCommandContext();
+    const { root, identity } = await tempIdentity()
+    tempDirs.push(root)
+    const settings = memorySettings()
+    const pi = new MemoryFakeExtensionAPI()
+    registerSleeptimeCommand(pi, fakeDeps(identity, { loadSettings: () => ({ settings, configPath: "/tmp/omo.jsonc" }) }))
+    const ctx = fakeCommandContext()
 
     // when
-    const resolved = resolveSleeptimeSettings(settings, TEST_IDENTITY);
-    const text = await invoke(pi, "sleeptime", "", ctx);
+    const resolved = resolveSleeptimeSettings(settings, TEST_IDENTITY)
+    const text = await invoke(pi, "sleeptime", "", ctx)
 
     // then
     expect(resolved).toEqual({
@@ -76,16 +58,16 @@ describe("/sleeptime", () => {
         maxEntryChars: { value: 200, overridden: false },
       },
       soul: { editNotice: { value: true, overridden: false } },
-    });
-    expect(text).toContain("Reflection: on");
-    expect(text).toContain("Dream select chars: max 150000 chars");
-    expect(ctx.ui.notifications).toEqual([{ message: text, level: "info" }]);
-  });
+    })
+    expect(text).toContain("Reflection: on")
+    expect(text).toContain("Dream select chars: max 150000 chars")
+    expect(ctx.ui.notifications).toEqual([{ message: text, level: "info" }])
+  })
 
   test("#given per-agent overrides #when resolved and invoked #then override values and flags win field by field", async () => {
     // given
-    const { root, identity } = await tempIdentity();
-    tempDirs.push(root);
+    const { root, identity } = await tempIdentity()
+    tempDirs.push(root)
     const settings = memorySettings({
       agents: {
         [TEST_IDENTITY]: {
@@ -111,19 +93,14 @@ describe("/sleeptime", () => {
           soul: { edit_notice: false },
         },
       },
-    });
-    const pi = new MemoryFakeExtensionAPI();
-    registerSleeptimeCommand(
-      pi,
-      fakeDeps(identity, {
-        loadSettings: () => ({ settings, configPath: "/tmp/omo.jsonc" }),
-      }),
-    );
-    const ctx = fakeCommandContext();
+    })
+    const pi = new MemoryFakeExtensionAPI()
+    registerSleeptimeCommand(pi, fakeDeps(identity, { loadSettings: () => ({ settings, configPath: "/tmp/omo.jsonc" }) }))
+    const ctx = fakeCommandContext()
 
     // when
-    const resolved = resolveSleeptimeSettings(settings, TEST_IDENTITY);
-    const text = await invoke(pi, "sleeptime", "", ctx);
+    const resolved = resolveSleeptimeSettings(settings, TEST_IDENTITY)
+    const text = await invoke(pi, "sleeptime", "", ctx)
 
     // then
     expect(resolved).toEqual({
@@ -158,33 +135,31 @@ describe("/sleeptime", () => {
         maxEntryChars: { value: 100, overridden: true },
       },
       soul: { editNotice: { value: false, overridden: true } },
-    });
-    for (
-      const line of [
-        "Reflection: off [agent override]",
-        "On compaction: off [agent override]",
-        "Category: deep [agent override]",
-        "Sandbox: required [agent override]",
-        "Dream shutdown: shutdown launch off [agent override]",
-        "Dream select: select max 3 [agent override]",
-        "Dream select chars: max 25000 chars [agent override]",
-      ]
-    ) {
-      expect(text).toContain(line);
+    })
+    for (const line of [
+      "Reflection: off [agent override]",
+      "On compaction: off [agent override]",
+      "Category: deep [agent override]",
+      "Sandbox: required [agent override]",
+      "Dream shutdown: shutdown launch off [agent override]",
+      "Dream select: select max 3 [agent override]",
+      "Dream select chars: max 25000 chars [agent override]",
+    ]) {
+      expect(text).toContain(line)
     }
-    expect(ctx.ui.notifications).toEqual([{ message: text, level: "info" }]);
-  });
+    expect(ctx.ui.notifications).toEqual([{ message: text, level: "info" }])
+  })
 
   test("#given an unbound session #when invoked #then the command surfaces a structured error notification", async () => {
     // given
-    const pi = new MemoryFakeExtensionAPI();
-    registerSleeptimeCommand(pi, fakeDeps(undefined));
-    const ctx = fakeCommandContext();
+    const pi = new MemoryFakeExtensionAPI()
+    registerSleeptimeCommand(pi, fakeDeps(undefined))
+    const ctx = fakeCommandContext()
 
     // when
-    const text = await invoke(pi, "sleeptime", "", ctx);
+    const text = await invoke(pi, "sleeptime", "", ctx)
 
     // then
-    expect(ctx.ui.notifications).toEqual([{ message: text, level: "error" }]);
-  });
-});
+    expect(ctx.ui.notifications).toEqual([{ message: text, level: "error" }])
+  })
+})

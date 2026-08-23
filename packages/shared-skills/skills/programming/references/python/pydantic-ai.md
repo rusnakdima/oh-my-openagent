@@ -1,8 +1,7 @@
 # PydanticAI Reference (v1.x, 2026)
 
-> Canonical patterns for wiring PydanticAI agents. Target: production usage,
-> late-2025 / 2026. Source: [ai.pydantic.dev](https://ai.pydantic.dev) and
-> [pydantic/pydantic-ai@`cad9569`](https://github.com/pydantic/pydantic-ai/blob/cad956910079737ea0886b50cef15777208f92e6).
+> Canonical patterns for wiring PydanticAI agents. Target: production usage, late-2025 / 2026.
+> Source: [ai.pydantic.dev](https://ai.pydantic.dev) and [pydantic/pydantic-ai@`cad9569`](https://github.com/pydantic/pydantic-ai/blob/cad956910079737ea0886b50cef15777208f92e6).
 
 ---
 
@@ -26,30 +25,27 @@ agent = Agent(
 )
 ```
 
-**Breaking change (v1.88.0)**: `result_type` was renamed to `output_type`. Use
-`output_type`.
+**Breaking change (v1.88.0)**: `result_type` was renamed to `output_type`. Use `output_type`.
 
 ---
 
 ## 2. Model Strings
 
-Format: `provider:model-name`. The framework infers the provider from the
-prefix.
+Format: `provider:model-name`. The framework infers the provider from the prefix.
 
-| Provider prefix  | Example                                                        |
-| ---------------- | -------------------------------------------------------------- |
-| `openai:`        | `'openai:gpt-5.5'`, `'openai:gpt-4o'`                          |
-| `anthropic:`     | `'anthropic:claude-sonnet-4-6'`, `'anthropic:claude-opus-4-1'` |
-| `google-gla:`    | `'google-gla:gemini-3-flash-preview'`                          |
-| `google-vertex:` | `'google-vertex:gemini-3-pro-preview'`                         |
-| `bedrock:`       | `'bedrock:anthropic.claude-sonnet-4-6'`                        |
-| `xai:` / `grok:` | `'xai:grok-3'`, `'grok:grok-3-fast'`                           |
-| `deepseek:`      | `'deepseek:deepseek-chat'`                                     |
-| `cohere:`        | `'cohere:command-r-08-2024'`                                   |
-| `gateway/...`    | `'gateway/openai:gpt-5.5'` (PydanticAI Gateway)                |
+| Provider prefix | Example |
+|---|---|
+| `openai:` | `'openai:gpt-5.5'`, `'openai:gpt-4o'` |
+| `anthropic:` | `'anthropic:claude-sonnet-4-6'`, `'anthropic:claude-opus-4-1'` |
+| `google-gla:` | `'google-gla:gemini-3-flash-preview'` |
+| `google-vertex:` | `'google-vertex:gemini-3-pro-preview'` |
+| `bedrock:` | `'bedrock:anthropic.claude-sonnet-4-6'` |
+| `xai:` / `grok:` | `'xai:grok-3'`, `'grok:grok-3-fast'` |
+| `deepseek:` | `'deepseek:deepseek-chat'` |
+| `cohere:` | `'cohere:command-r-08-2024'` |
+| `gateway/...` | `'gateway/openai:gpt-5.5'` (PydanticAI Gateway) |
 
-Model can also be omitted at construction and passed per-run:
-`agent.run(prompt, model='openai:gpt-5.5')`.
+Model can also be omitted at construction and passed per-run: `agent.run(prompt, model='openai:gpt-5.5')`.
 
 ---
 
@@ -89,8 +85,7 @@ Use `@agent.tool_plain` when the tool does **not** need any of the above.
 
 ## 4. Structured Output
 
-Pass a Pydantic `BaseModel` (or `bool`, `int`, `list[str]`, etc.) as
-`output_type`. The result is accessed via `.output`.
+Pass a Pydantic `BaseModel` (or `bool`, `int`, `list[str]`, etc.) as `output_type`. The result is accessed via `.output`.
 
 ```python
 from pydantic import BaseModel
@@ -113,11 +108,11 @@ print(result.output.name)       # 'Tokyo'
 
 ## 5. Async vs Sync
 
-| Method                                                  | Mode            | Returns                       |
-| ------------------------------------------------------- | --------------- | ----------------------------- |
-| `await agent.run(prompt, ...)`                          | async           | `AgentRunResult[OutputDataT]` |
-| `agent.run_sync(prompt, ...)`                           | sync            | `AgentRunResult[OutputDataT]` |
-| `async with agent.run_stream(prompt, ...) as response:` | async streaming | `StreamedRunResult`           |
+| Method | Mode | Returns |
+|---|---|---|
+| `await agent.run(prompt, ...)` | async | `AgentRunResult[OutputDataT]` |
+| `agent.run_sync(prompt, ...)` | sync | `AgentRunResult[OutputDataT]` |
+| `async with agent.run_stream(prompt, ...) as response:` | async streaming | `StreamedRunResult` |
 
 ```python
 # Sync
@@ -136,16 +131,13 @@ async with agent.run_stream('What is the capital of the UK?') as response:
     print(response.output)
 ```
 
-`run_sync()` is a convenience wrapper over
-`loop.run_until_complete(self.run(...))`. Do not use it inside an active async
-context.
+`run_sync()` is a convenience wrapper over `loop.run_until_complete(self.run(...))`. Do not use it inside an active async context.
 
 ---
 
 ## 6. Dependencies
 
-Use a `@dataclass` container, pass the **type** to `deps_type`, and pass an
-**instance** to `deps` at run time.
+Use a `@dataclass` container, pass the **type** to `deps_type`, and pass an **instance** to `deps` at run time.
 
 ```python
 from dataclasses import dataclass
@@ -202,19 +194,15 @@ with capture_run_messages() as messages:
         print('Messages:', messages)
 ```
 
-- **`ModelRetry`** — raise from a tool, output validator, or capability hook to
-  ask the model to retry.
-- **`UnexpectedModelBehavior`** — raised when the retry limit is exceeded or the
-  model API returns an unrecoverable error.
-- **`capture_run_messages()`** — context manager that records all messages
-  exchanged during a run for debugging.
+- **`ModelRetry`** — raise from a tool, output validator, or capability hook to ask the model to retry.
+- **`UnexpectedModelBehavior`** — raised when the retry limit is exceeded or the model API returns an unrecoverable error.
+- **`capture_run_messages()`** — context manager that records all messages exchanged during a run for debugging.
 
 ---
 
 ## 8. Logfire Integration
 
-One-line setup if the `logfire` extra is installed (included in the default
-`pydantic-ai` package):
+One-line setup if the `logfire` extra is installed (included in the default `pydantic-ai` package):
 
 ```python
 import logfire
@@ -292,8 +280,6 @@ anyio.run(main)
 
 ## Version Notes
 
-- **V1** reached API stability in September 2025. Breaking changes are reserved
-  for V2 (earliest April 2026).
-- **v1.88.0** renamed `result_type` → `output_type` and `result_tool_name` /
-  `result_tool_description` were removed. Use `output_type`.
+- **V1** reached API stability in September 2025. Breaking changes are reserved for V2 (earliest April 2026).
+- **v1.88.0** renamed `result_type` → `output_type` and `result_tool_name` / `result_tool_description` were removed. Use `output_type`.
 - The canonical accessor for run results is `result.output` (not `result.data`).

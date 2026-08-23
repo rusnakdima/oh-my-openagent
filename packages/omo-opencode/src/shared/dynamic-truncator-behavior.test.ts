@@ -1,12 +1,12 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "bun:test"
 
 import {
   createDynamicTruncator,
   dynamicTruncate,
   truncateToTokenLimit,
-} from "./dynamic-truncator";
+} from "./dynamic-truncator"
 
 function createContextUsageMockContext(inputTokens: number) {
   return {
@@ -31,7 +31,7 @@ function createContextUsageMockContext(inputTokens: number) {
         }),
       },
     },
-  };
+  }
 }
 
 function createNoUsageMockContext() {
@@ -41,7 +41,7 @@ function createNoUsageMockContext() {
         messages: async () => ({ data: [] }),
       },
     },
-  };
+  }
 }
 
 describe("truncateToTokenLimit", () => {
@@ -53,10 +53,10 @@ describe("truncateToTokenLimit", () => {
       "content one",
       "content two ".repeat(80),
       "content three ".repeat(80),
-    ].join("\n");
+    ].join("\n")
 
     // when
-    const result = truncateToTokenLimit(output, 60, 2);
+    const result = truncateToTokenLimit(output, 60, 2)
 
     // then
     expect(result).toEqual({
@@ -69,34 +69,34 @@ describe("truncateToTokenLimit", () => {
       ].join("\n"),
       truncated: true,
       removedCount: 2,
-    });
-  });
+    })
+  })
 
   it("#then truncates by characters when the output has no removable body lines", () => {
     // given
-    const output = "abcdefghijklmnopqrstuvwxyz";
+    const output = "abcdefghijklmnopqrstuvwxyz"
 
     // when
-    const result = truncateToTokenLimit(output, 3, 3);
+    const result = truncateToTokenLimit(output, 3, 3)
 
     // then
     expect(result).toEqual({
       result: "abcdefghijkl\n\n[Output truncated due to context window limit]",
       truncated: true,
-    });
-  });
-});
+    })
+  })
+})
 
 describe("dynamicTruncate", () => {
   it("#then falls back to the target token limit when context usage is unavailable", async () => {
     // given
-    const ctx = createNoUsageMockContext();
+    const ctx = createNoUsageMockContext()
     const output = [
       "header",
       "line one",
       "line two ".repeat(80),
       "line three ".repeat(80),
-    ].join("\n");
+    ].join("\n")
 
     // when
     const result = await dynamicTruncate(
@@ -105,7 +105,7 @@ describe("dynamicTruncate", () => {
       output,
       { targetMaxTokens: 55, preserveHeaderLines: 1 },
       { anthropicContext1MEnabled: false },
-    );
+    )
 
     // then
     expect(result).toEqual({
@@ -117,12 +117,12 @@ describe("dynamicTruncate", () => {
       ].join("\n"),
       truncated: true,
       removedCount: 2,
-    });
-  });
+    })
+  })
 
   it("#then suppresses output when the context window is exhausted", async () => {
     // given
-    const ctx = createContextUsageMockContext(210000);
+    const ctx = createContextUsageMockContext(210000)
 
     // when
     const result = await dynamicTruncate(
@@ -131,37 +131,33 @@ describe("dynamicTruncate", () => {
       "content",
       {},
       { anthropicContext1MEnabled: false },
-    );
+    )
 
     // then
     expect(result).toEqual({
       result: "[Output suppressed - context window exhausted]",
       truncated: true,
-    });
-  });
-});
+    })
+  })
+})
 
 describe("createDynamicTruncator", () => {
   it("#then exposes async usage and sync truncation helpers", async () => {
     // given
-    const ctx = createContextUsageMockContext(100000);
+    const ctx = createContextUsageMockContext(100000)
     const truncator = createDynamicTruncator(ctx as never, {
       anthropicContext1MEnabled: false,
-    });
+    })
 
     // when
-    const usage = await truncator.getUsage("ses_facade_usage");
-    const syncResult = truncator.truncateSync(
-      "abcdefghijklmnopqrstuvwxyz",
-      3,
-      3,
-    );
+    const usage = await truncator.getUsage("ses_facade_usage")
+    const syncResult = truncator.truncateSync("abcdefghijklmnopqrstuvwxyz", 3, 3)
 
     // then
-    expect(usage?.remainingTokens).toBe(100000);
+    expect(usage?.remainingTokens).toBe(100000)
     expect(syncResult).toEqual({
       result: "abcdefghijkl\n\n[Output truncated due to context window limit]",
       truncated: true,
-    });
-  });
-});
+    })
+  })
+})

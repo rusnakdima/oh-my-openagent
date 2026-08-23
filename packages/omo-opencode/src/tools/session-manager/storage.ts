@@ -1,203 +1,152 @@
-import type { PluginInput } from "@opencode-ai/plugin";
-import { isSqliteBackend } from "../../shared/opencode-storage-detection";
-import { log } from "../../shared";
-import {
-  fileSessionExists,
-  getFileAllSessions,
-  getFileMainSessions,
-  getFileSessionInfo,
-  getFileSessionMessages,
-  getFileSessionMetadata,
-  getFileSessionTags,
-  getFileSessionTodos,
-  getFileSessionTranscript,
-  setFileSessionTags,
-} from "./file-storage";
-import {
-  getSdkAllSessions,
-  getSdkMainSessions,
-  getSdkSessionMessages,
-  getSdkSessionTags,
-  getSdkSessionTodos,
-  sdkSessionExists,
-  setSdkSessionTags,
-  shouldFallbackFromSdkError,
-} from "./sdk-storage";
-import type {
-  SessionInfo,
-  SessionMessage,
-  SessionMetadata,
-  TodoItem,
-} from "./types";
+import type { PluginInput } from "@opencode-ai/plugin"
+import { isSqliteBackend } from "../../shared/opencode-storage-detection"
+import { log } from "../../shared"
+import { getFileAllSessions, getFileMainSessions, fileSessionExists, getFileSessionInfo, getFileSessionMessages, getFileSessionTodos, getFileSessionTranscript, getFileSessionTags, setFileSessionTags, getFileSessionMetadata } from "./file-storage"
+import { getSdkAllSessions, getSdkMainSessions, getSdkSessionMessages, getSdkSessionTodos, sdkSessionExists, shouldFallbackFromSdkError, getSdkSessionTags, setSdkSessionTags } from "./sdk-storage"
+import type { SessionInfo, SessionMessage, SessionMetadata, TodoItem } from "./types"
 
 export interface GetMainSessionsOptions {
-  directory?: string;
+  directory?: string
 }
 
 // In multi-project server mode (opencode web / opencode serve) ctx.directory is the
 // filesystem root "/", which never matches a stored session.directory. Treat it as
 // "no project filter" so every session is listed instead of silently dropping all of them.
 function normalizeProjectFilter(directory?: string): string | undefined {
-  if (directory === "/") return undefined;
-  return directory;
+  if (directory === "/") return undefined
+  return directory
 }
 
 function mergeSessionMetadataLists(
   sdkSessions: SessionMetadata[],
   fileSessions: SessionMetadata[],
 ): SessionMetadata[] {
-  const merged = new Map<string, SessionMetadata>();
+  const merged = new Map<string, SessionMetadata>()
 
   for (const session of fileSessions) {
-    merged.set(session.id, session);
+    merged.set(session.id, session)
   }
 
   for (const session of sdkSessions) {
-    merged.set(session.id, session);
+    merged.set(session.id, session)
   }
 
-  return [...merged.values()].sort((a, b) => b.time.updated - a.time.updated);
+  return [...merged.values()].sort((a, b) => b.time.updated - a.time.updated)
 }
 
-function mergeSessionIds(
-  sdkSessionIds: string[],
-  fileSessionIds: string[],
-): string[] {
-  return [...new Set([...sdkSessionIds, ...fileSessionIds])];
+function mergeSessionIds(sdkSessionIds: string[], fileSessionIds: string[]): string[] {
+  return [...new Set([...sdkSessionIds, ...fileSessionIds])]
 }
 
 // SDK client reference for beta mode
-let sdkClient: PluginInput["client"] | null = null;
+let sdkClient: PluginInput["client"] | null = null
 
 export function setStorageClient(client: PluginInput["client"]): void {
-  sdkClient = client;
+  sdkClient = client
 }
 
 export function resetStorageClient(): void {
-  sdkClient = null;
+  sdkClient = null
 }
 
-export async function getMainSessions(
-  options: GetMainSessionsOptions,
-): Promise<SessionMetadata[]> {
-  const directory = normalizeProjectFilter(options.directory);
+export async function getMainSessions(options: GetMainSessionsOptions): Promise<SessionMetadata[]> {
+  const directory = normalizeProjectFilter(options.directory)
   if (isSqliteBackend() && sdkClient) {
     try {
-      const sdkSessions = await getSdkMainSessions(sdkClient, directory);
-      const fileSessions = await getFileMainSessions(directory);
-      return mergeSessionMetadataLists(sdkSessions, fileSessions);
+      const sdkSessions = await getSdkMainSessions(sdkClient, directory)
+      const fileSessions = await getFileMainSessions(directory)
+      return mergeSessionMetadataLists(sdkSessions, fileSessions)
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session list after SDK unavailable error",
-        { error: String(error) },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session list after SDK unavailable error", { error: String(error) })
     }
   }
 
-  return getFileMainSessions(directory);
+  return getFileMainSessions(directory)
 }
 
 export async function getAllSessions(): Promise<string[]> {
   if (isSqliteBackend() && sdkClient) {
     try {
-      const sdkSessionIds = await getSdkAllSessions(sdkClient);
-      const fileSessionIds = await getFileAllSessions();
-      return mergeSessionIds(sdkSessionIds, fileSessionIds);
+      const sdkSessionIds = await getSdkAllSessions(sdkClient)
+      const fileSessionIds = await getFileAllSessions()
+      return mergeSessionIds(sdkSessionIds, fileSessionIds)
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session ids after SDK unavailable error",
-        { error: String(error) },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session ids after SDK unavailable error", { error: String(error) })
     }
   }
 
-  return getFileAllSessions();
+  return getFileAllSessions()
 }
 
-export { getMessageDir } from "../../shared/opencode-message-dir";
+export { getMessageDir } from "../../shared/opencode-message-dir"
 
 export async function sessionExists(sessionID: string): Promise<boolean> {
   if (isSqliteBackend() && sdkClient) {
     try {
-      const existsInSdk = await sdkSessionExists(sdkClient, sessionID);
-      if (existsInSdk) return true;
+      const existsInSdk = await sdkSessionExists(sdkClient, sessionID)
+      if (existsInSdk) return true
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file sessionExists after SDK unavailable error",
-        { error: String(error), sessionID },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file sessionExists after SDK unavailable error", { error: String(error), sessionID })
     }
   }
-  return fileSessionExists(sessionID);
+  return fileSessionExists(sessionID)
 }
 
-export async function readSessionMessages(
-  sessionID: string,
-): Promise<SessionMessage[]> {
+export async function readSessionMessages(sessionID: string): Promise<SessionMessage[]> {
   if (isSqliteBackend() && sdkClient) {
     try {
-      const sdkMessages = await getSdkSessionMessages(sdkClient, sessionID);
-      if (sdkMessages.length > 0) return sdkMessages;
+      const sdkMessages = await getSdkSessionMessages(sdkClient, sessionID)
+      if (sdkMessages.length > 0) return sdkMessages
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session messages after SDK unavailable error",
-        { error: String(error), sessionID },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session messages after SDK unavailable error", { error: String(error), sessionID })
     }
   }
 
-  return getFileSessionMessages(sessionID);
+  return getFileSessionMessages(sessionID)
 }
 
 export async function readSessionTodos(sessionID: string): Promise<TodoItem[]> {
   if (isSqliteBackend() && sdkClient) {
     try {
-      const sdkTodos = await getSdkSessionTodos(sdkClient, sessionID);
-      if (sdkTodos.length > 0) return sdkTodos;
+      const sdkTodos = await getSdkSessionTodos(sdkClient, sessionID)
+      if (sdkTodos.length > 0) return sdkTodos
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session todos after SDK unavailable error",
-        { error: String(error), sessionID },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session todos after SDK unavailable error", { error: String(error), sessionID })
     }
   }
 
-  return getFileSessionTodos(sessionID);
+  return getFileSessionTodos(sessionID)
 }
 
-export async function readSessionTranscript(
-  sessionID: string,
-): Promise<number> {
-  return getFileSessionTranscript(sessionID);
+export async function readSessionTranscript(sessionID: string): Promise<number> {
+  return getFileSessionTranscript(sessionID)
 }
 
-export async function getSessionInfo(
-  sessionID: string,
-): Promise<SessionInfo | null> {
+export async function getSessionInfo(sessionID: string): Promise<SessionInfo | null> {
   if (isSqliteBackend() && sdkClient) {
     try {
-      const sdkMessages = await getSdkSessionMessages(sdkClient, sessionID);
+      const sdkMessages = await getSdkSessionMessages(sdkClient, sessionID)
       if (sdkMessages.length > 0) {
-        const agentsUsed = new Set<string>();
-        let firstMessage: Date | undefined;
-        let lastMessage: Date | undefined;
+        const agentsUsed = new Set<string>()
+        let firstMessage: Date | undefined
+        let lastMessage: Date | undefined
 
         for (const msg of sdkMessages) {
-          if (msg.agent) agentsUsed.add(msg.agent);
+          if (msg.agent) agentsUsed.add(msg.agent)
           if (msg.time?.created) {
-            const date = new Date(msg.time.created);
-            if (!firstMessage || date < firstMessage) firstMessage = date;
-            if (!lastMessage || date > lastMessage) lastMessage = date;
+            const date = new Date(msg.time.created)
+            if (!firstMessage || date < firstMessage) firstMessage = date
+            if (!lastMessage || date > lastMessage) lastMessage = date
           }
         }
 
-        const todos = await readSessionTodos(sessionID);
-        const transcriptEntries = await readSessionTranscript(sessionID);
+        const todos = await readSessionTodos(sessionID)
+        const transcriptEntries = await readSessionTranscript(sessionID)
 
         return {
           id: sessionID,
@@ -209,35 +158,29 @@ export async function getSessionInfo(
           has_transcript: transcriptEntries > 0,
           todos,
           transcript_entries: transcriptEntries,
-        };
+        }
       }
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session info after SDK unavailable error",
-        { error: String(error), sessionID },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session info after SDK unavailable error", { error: String(error), sessionID })
     }
   }
 
-  return getFileSessionInfo(sessionID);
+  return getFileSessionInfo(sessionID)
 }
 
 export async function getSessionTags(sessionID: string): Promise<string[]> {
   if (isSqliteBackend() && sdkClient) {
     try {
-      const sdkTags = await getSdkSessionTags(sdkClient, sessionID);
-      if (sdkTags.length > 0) return sdkTags;
+      const sdkTags = await getSdkSessionTags(sdkClient, sessionID)
+      if (sdkTags.length > 0) return sdkTags
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session tags after SDK unavailable error",
-        { error: String(error), sessionID },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session tags after SDK unavailable error", { error: String(error), sessionID })
     }
   }
 
-  return getFileSessionTags(sessionID);
+  return getFileSessionTags(sessionID)
 }
 
 export async function setSessionTags(
@@ -247,49 +190,36 @@ export async function setSessionTags(
 ): Promise<{ success: boolean; tags: string[] }> {
   if (isSqliteBackend() && sdkClient) {
     try {
-      const sdkResult = await setSdkSessionTags(
-        sdkClient,
-        sessionID,
-        tags,
-        action,
-      );
-      if (sdkResult.success) return sdkResult;
+      const sdkResult = await setSdkSessionTags(sdkClient, sessionID, tags, action)
+      if (sdkResult.success) return sdkResult
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session tags after SDK unavailable error",
-        { error: String(error), sessionID },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session tags after SDK unavailable error", { error: String(error), sessionID })
     }
   }
 
-  return setFileSessionTags(sessionID, tags, action);
+  return setFileSessionTags(sessionID, tags, action)
 }
 
-export async function getSessionMetadata(
-  sessionID: string,
-): Promise<SessionMetadata | null> {
+export async function getSessionMetadata(sessionID: string): Promise<SessionMetadata | null> {
   if (isSqliteBackend() && sdkClient) {
     try {
       // Try SDK first
-      const response = await sdkClient.session.list();
-      const sessions = normalizeSDKResponse(response, [] as SessionMetadata[]);
-      const found = sessions.find((s) => s.id === sessionID);
-      if (found) return found;
+      const response = await sdkClient.session.list()
+      const sessions = normalizeSDKResponse(response, [] as SessionMetadata[])
+      const found = sessions.find((s) => s.id === sessionID)
+      if (found) return found
     } catch (error) {
-      if (!shouldFallbackFromSdkError(error)) throw error;
-      log(
-        "[session-manager] falling back to file session metadata after SDK unavailable error",
-        { error: String(error), sessionID },
-      );
+      if (!shouldFallbackFromSdkError(error)) throw error
+      log("[session-manager] falling back to file session metadata after SDK unavailable error", { error: String(error), sessionID })
     }
   }
 
-  return getFileSessionMetadata(sessionID);
+  return getFileSessionMetadata(sessionID)
 }
 
 function normalizeSDKResponse<T>(response: unknown, fallback: T): T {
-  if (!response || typeof response !== "object") return fallback;
-  const resp = response as { data?: T };
-  return resp.data ?? fallback;
+  if (!response || typeof response !== "object") return fallback
+  const resp = response as { data?: T }
+  return resp.data ?? fallback
 }

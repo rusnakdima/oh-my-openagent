@@ -2,50 +2,48 @@ import type {
   ExtensionRuntime,
   LoadExtensionsResult,
   ResourceLoader,
-} from "@code-yeongyu/senpi";
+} from "@code-yeongyu/senpi"
 
 export type MinimalSenpiResourceLoaderOptions = {
-  readonly runtime: ExtensionRuntime;
-};
+  readonly runtime: ExtensionRuntime
+}
 
-export function createMinimalSenpiResourceLoader(
-  options: MinimalSenpiResourceLoaderOptions,
-): ResourceLoader {
+export function createMinimalSenpiResourceLoader(options: MinimalSenpiResourceLoaderOptions): ResourceLoader {
   const extensionsResult: LoadExtensionsResult = {
     extensions: [],
     errors: [],
     runtime: options.runtime,
-  };
+  }
 
   return {
     getExtensions() {
-      return extensionsResult;
+      return extensionsResult
     },
     getSkills() {
-      return { skills: [], diagnostics: [] };
+      return { skills: [], diagnostics: [] }
     },
     getPrompts() {
-      return { prompts: [], diagnostics: [] };
+      return { prompts: [], diagnostics: [] }
     },
     getThemes() {
-      return { themes: [], diagnostics: [] };
+      return { themes: [], diagnostics: [] }
     },
     getAgentsFiles() {
-      return { agentsFiles: [] };
+      return { agentsFiles: [] }
     },
     getSystemPrompt() {
-      return undefined;
+      return undefined
     },
     getSystemPromptSource() {
-      return undefined;
+      return undefined
     },
     getAppendSystemPrompt() {
-      return [];
+      return []
     },
     getAppendSystemPromptSources() {
-      return [];
+      return []
     },
     extendResources() {},
     async reload() {},
-  };
+  }
 }

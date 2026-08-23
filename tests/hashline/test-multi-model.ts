@@ -133,7 +133,7 @@ async function runModel(model: {
         cwd: resolve(import.meta.dir),
         env: { ...process.env, BUN_INSTALL: process.env.BUN_INSTALL },
         stdio: ["ignore", "pipe", "pipe"],
-      },
+      }
     );
 
     let stdout = "";
@@ -207,13 +207,14 @@ const main = async () => {
     if (result.error) {
       console.log(`  ${RED}ERROR${RESET}: ${result.error} (${timeStr})`);
     } else {
-      const color = result.totalPassed === result.totalTests
-        ? GREEN
-        : result.totalPassed > 0
-        ? YELLOW
-        : RED;
+      const color =
+        result.totalPassed === result.totalTests
+          ? GREEN
+          : result.totalPassed > 0
+            ? YELLOW
+            : RED;
       console.log(
-        `  ${color}${result.totalPassed}/${result.totalTests} passed${RESET} (${timeStr})`,
+        `  ${color}${result.totalPassed}/${result.totalTests} passed${RESET} (${timeStr})`
       );
       for (const t of result.tests) {
         const icon = t.passed ? `${GREEN}✓${RESET}` : `${RED}✗${RESET}`;
@@ -229,19 +230,9 @@ const main = async () => {
   // Per-model results
   for (const r of allResults) {
     const timeStr = `${(r.durationMs / 1000).toFixed(0)}s`;
-    const color = r.error
-      ? RED
-      : r.totalPassed === r.totalTests
-      ? GREEN
-      : r.totalPassed > 0
-      ? YELLOW
-      : RED;
-    const label = r.error
-      ? `ERROR: ${r.error}`
-      : `${r.totalPassed}/${r.totalTests}`;
-    console.log(
-      `  ${r.modelShort.padEnd(8)} ${color}${label}${RESET} (${timeStr})`,
-    );
+    const color = r.error ? RED : r.totalPassed === r.totalTests ? GREEN : r.totalPassed > 0 ? YELLOW : RED;
+    const label = r.error ? `ERROR: ${r.error}` : `${r.totalPassed}/${r.totalTests}`;
+    console.log(`  ${r.modelShort.padEnd(8)} ${color}${label}${RESET} (${timeStr})`);
     for (const t of r.tests) {
       const icon = t.passed ? `${GREEN}✓${RESET}` : `${RED}✗${RESET}`;
       console.log(`    ${icon} ${t.name}`);
@@ -254,25 +245,23 @@ const main = async () => {
   const totalModels = allResults.length;
   const erroredModels = allResults.filter((r) => r.error).length;
   const perfectModels = allResults.filter(
-    (r) => !r.error && r.totalPassed === r.totalTests && r.totalTests > 0,
+    (r) => !r.error && r.totalPassed === r.totalTests && r.totalTests > 0
   ).length;
   console.log(
-    `${BOLD}Models with 100%: ${perfectModels}/${totalModels}${RESET}`,
+    `${BOLD}Models with 100%: ${perfectModels}/${totalModels}${RESET}`
   );
 
   const overallPassed = allResults.reduce((sum, r) => sum + r.totalPassed, 0);
   const overallTotal = allResults.reduce((sum, r) => sum + r.totalTests, 0);
   console.log(
-    `${BOLD}Overall: ${overallPassed}/${overallTotal} (${
-      Math.round((overallPassed / overallTotal) * 100)
-    }%)${RESET}`,
+    `${BOLD}Overall: ${overallPassed}/${overallTotal} (${Math.round((overallPassed / overallTotal) * 100)}%)${RESET}`
   );
 
   console.log();
 
   if (erroredModels > 0) {
     console.log(
-      `${BOLD}${RED}${erroredModels} model(s) errored. See details above.${RESET}\n`,
+      `${BOLD}${RED}${erroredModels} model(s) errored. See details above.${RESET}\n`
     );
     process.exit(1);
   } else if (perfectModels === totalModels) {
@@ -280,7 +269,7 @@ const main = async () => {
     process.exit(0);
   } else {
     console.log(
-      `${BOLD}${YELLOW}Some models have failures. See details above.${RESET}\n`,
+      `${BOLD}${YELLOW}Some models have failures. See details above.${RESET}\n`
     );
     process.exit(1);
   }

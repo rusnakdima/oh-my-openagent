@@ -1,25 +1,25 @@
-import { describe, expect, it } from "bun:test";
-import { mkdirSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { describe, expect, it } from "bun:test"
+import { mkdirSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
-import { resolveRoster } from "./roster-resolver";
+import { resolveRoster } from "./roster-resolver"
 
 type EnvSnapshot = {
-  readonly HOME: string | undefined;
-  readonly OPENCODE_CONFIG_DIR: string | undefined;
-  readonly XDG_CONFIG_HOME: string | undefined;
-};
+  readonly HOME: string | undefined
+  readonly OPENCODE_CONFIG_DIR: string | undefined
+  readonly XDG_CONFIG_HOME: string | undefined
+}
 
-const ENV_KEYS = ["HOME", "OPENCODE_CONFIG_DIR", "XDG_CONFIG_HOME"] as const;
+const ENV_KEYS = ["HOME", "OPENCODE_CONFIG_DIR", "XDG_CONFIG_HOME"] as const
 
 function restoreEnv(snapshot: EnvSnapshot): void {
   for (const key of ENV_KEYS) {
-    const value = snapshot[key];
+    const value = snapshot[key]
     if (value === undefined) {
-      delete process.env[key];
+      delete process.env[key]
     } else {
-      process.env[key] = value;
+      process.env[key] = value
     }
   }
 }
@@ -29,52 +29,47 @@ function withIsolatedConfig<T>(name: string, run: (root: string) => T): T {
     HOME: process.env.HOME,
     OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
     XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
-  };
-  const root = join(
-    tmpdir(),
-    `omo-tui-roster-${name}-${Date.now()}-${
-      Math.random().toString(36).slice(2)
-    }`,
-  );
+  }
+  const root = join(tmpdir(), `omo-tui-roster-${name}-${Date.now()}-${Math.random().toString(36).slice(2)}`)
 
   try {
-    mkdirSync(root, { recursive: true });
-    process.env.HOME = root;
-    process.env.OPENCODE_CONFIG_DIR = join(root, "custom-config");
-    process.env.XDG_CONFIG_HOME = join(root, "xdg-config");
-    return run(root);
+    mkdirSync(root, { recursive: true })
+    process.env.HOME = root
+    process.env.OPENCODE_CONFIG_DIR = join(root, "custom-config")
+    process.env.XDG_CONFIG_HOME = join(root, "xdg-config")
+    return run(root)
   } finally {
-    rmSync(root, { recursive: true, force: true });
-    restoreEnv(original);
+    rmSync(root, { recursive: true, force: true })
+    restoreEnv(original)
   }
 }
 
 function writeJson(filePath: string, value: unknown): void {
-  mkdirSync(join(filePath, ".."), { recursive: true });
-  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf-8");
+  mkdirSync(join(filePath, ".."), { recursive: true })
+  writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf-8")
 }
 
 describe("resolveRoster", () => {
   it("#given no config #when resolving roster #then it returns default resolver rows", () => {
     withIsolatedConfig("defaults", (root) => {
       // given
-      const project = join(root, "project");
-      mkdirSync(project, { recursive: true });
+      const project = join(root, "project")
+      mkdirSync(project, { recursive: true })
 
       // when
-      const rows = resolveRoster(project);
+      const rows = resolveRoster(project)
 
       // then - shows entries with "no model selected" when no TUI session model
-      expect(rows.length).toBeGreaterThan(0);
-      expect(rows.some((row) => row.label === "sisyphus")).toBe(true);
-      expect(rows.some((row) => row.label === "deep")).toBe(true);
-    });
-  });
+      expect(rows.length).toBeGreaterThan(0)
+      expect(rows.some((row) => row.label === "sisyphus")).toBe(true)
+      expect(rows.some((row) => row.label === "deep")).toBe(true)
+    })
+  })
 
   it("#given agent and category overrides #when resolving roster #then it shows per-entry effective models", () => {
     withIsolatedConfig("overrides", (root) => {
       // given
-      const project = join(root, "project");
+      const project = join(root, "project")
       writeJson(join(project, ".omo", "omo.jsonc"), {
         "[opencode]": {
           agents: {
@@ -84,41 +79,39 @@ describe("resolveRoster", () => {
             deep: { model: "simple-model" },
           },
         },
-      });
+      })
 
       // when
-      const rows = resolveRoster(project);
+      const rows = resolveRoster(project)
 
       // then - entries show their own effective models (not a uniform global model)
-      expect(rows).toEqual(
-        [...rows].sort((left, right) => left.label.localeCompare(right.label)),
-      );
-      expect(rows.length).toBeGreaterThan(0);
+      expect(rows).toEqual([...rows].sort((left, right) => left.label.localeCompare(right.label)))
+      expect(rows.length).toBeGreaterThan(0)
       // sisyphus shows its override model; deep shows its override model
-      const sisyphusRow = rows.find((r) => r.label === "sisyphus");
-      const deepRow = rows.find((r) => r.label === "deep");
-      expect(sisyphusRow?.model).toBe("model-leaf");
-      expect(deepRow?.model).toBe("simple-model");
+      const sisyphusRow = rows.find((r) => r.label === "sisyphus")
+      const deepRow = rows.find((r) => r.label === "deep")
+      expect(sisyphusRow?.model).toBe("model-leaf")
+      expect(deepRow?.model).toBe("simple-model")
       // Other entries show their builtin effective models (may differ from sisyphus/deep)
-      const models = [...new Set(rows.map((r) => r.model))];
-      expect(models.length).toBeGreaterThan(1);
-    });
-  });
+      const models = [...new Set(rows.map((r) => r.model))]
+      expect(models.length).toBeGreaterThan(1)
+    })
+  })
 
   it("#given malformed config #when resolving roster #then it still returns resolver rows", () => {
     withIsolatedConfig("malformed", (root) => {
       // given
-      const project = join(root, "project");
+      const project = join(root, "project")
       writeJson(join(project, ".opencode", "omo.json"), {
         agents: { sisyphus: { model: 123 } },
-      });
+      })
 
       // when
-      const rows = resolveRoster(project);
+      const rows = resolveRoster(project)
 
       // then - malformed config still returns rows (malformed model is ignored, uses global)
-      expect(rows.length).toBeGreaterThan(0);
-      expect(rows.some((row) => row.label === "sisyphus")).toBe(true);
-    });
-  });
-});
+      expect(rows.length).toBeGreaterThan(0)
+      expect(rows.some((row) => row.label === "sisyphus")).toBe(true)
+    })
+  })
+})

@@ -1,26 +1,24 @@
-import * as dataPath from "./data-path";
-import { createJsonFileCacheStore } from "./json-file-cache-store";
+import * as dataPath from "./data-path"
+import { createJsonFileCacheStore } from "./json-file-cache-store"
 import {
+  MODELS_DEV_SOURCE_URL,
   buildModelCapabilitiesSnapshotFromModelsDev,
   fetchModelCapabilitiesSnapshot,
-  MODELS_DEV_SOURCE_URL,
-} from "@oh-my-opencode/model-core";
-import type { ModelCapabilitiesSnapshot } from "./model-capabilities";
+} from "@oh-my-opencode/model-core"
+import type { ModelCapabilitiesSnapshot } from "./model-capabilities"
 
 export {
+  MODELS_DEV_SOURCE_URL,
   buildModelCapabilitiesSnapshotFromModelsDev,
   fetchModelCapabilitiesSnapshot,
-  MODELS_DEV_SOURCE_URL,
-};
+}
 
-const MODEL_CAPABILITIES_CACHE_FILE = "model-capabilities.json";
+const MODEL_CAPABILITIES_CACHE_FILE = "model-capabilities.json"
 
 export function createModelCapabilitiesCacheStore(
   getCacheDir: () => string = dataPath.getOmoOpenCodeCacheDir,
 ) {
-  const snapshotCacheStore = createJsonFileCacheStore<
-    ModelCapabilitiesSnapshot
-  >({
+  const snapshotCacheStore = createJsonFileCacheStore<ModelCapabilitiesSnapshot>({
     getCacheDir,
     filename: MODEL_CAPABILITIES_CACHE_FILE,
     logPrefix: "model-capabilities-cache",
@@ -30,29 +28,27 @@ export function createModelCapabilitiesCacheStore(
       generatedAt: snapshot.generatedAt,
     }),
     serialize: (snapshot) => `${JSON.stringify(snapshot, null, 2)}\n`,
-  });
+  })
 
   function readModelCapabilitiesCache(): ModelCapabilitiesSnapshot | null {
-    return snapshotCacheStore.read();
+    return snapshotCacheStore.read()
   }
 
   function hasModelCapabilitiesCache(): boolean {
-    return snapshotCacheStore.has();
+    return snapshotCacheStore.has()
   }
 
-  function writeModelCapabilitiesCache(
-    snapshot: ModelCapabilitiesSnapshot,
-  ): void {
-    snapshotCacheStore.write(snapshot);
+  function writeModelCapabilitiesCache(snapshot: ModelCapabilitiesSnapshot): void {
+    snapshotCacheStore.write(snapshot)
   }
 
   async function refreshModelCapabilitiesCache(args: {
-    sourceUrl?: string;
-    fetchImpl?: (input: string) => Promise<Response>;
+    sourceUrl?: string
+    fetchImpl?: (input: string) => Promise<Response>
   } = {}): Promise<ModelCapabilitiesSnapshot> {
-    const snapshot = await fetchModelCapabilitiesSnapshot(args);
-    writeModelCapabilitiesCache(snapshot);
-    return snapshot;
+    const snapshot = await fetchModelCapabilitiesSnapshot(args)
+    writeModelCapabilitiesCache(snapshot)
+    return snapshot
   }
 
   return {
@@ -60,16 +56,16 @@ export function createModelCapabilitiesCacheStore(
     hasModelCapabilitiesCache,
     writeModelCapabilitiesCache,
     refreshModelCapabilitiesCache,
-  };
+  }
 }
 
 const defaultModelCapabilitiesCacheStore = createModelCapabilitiesCacheStore(
   () => dataPath.getOmoOpenCodeCacheDir(),
-);
+)
 
 export const {
   readModelCapabilitiesCache,
   hasModelCapabilitiesCache,
   writeModelCapabilitiesCache,
   refreshModelCapabilitiesCache,
-} = defaultModelCapabilitiesCacheStore;
+} = defaultModelCapabilitiesCacheStore

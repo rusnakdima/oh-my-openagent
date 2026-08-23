@@ -3,8 +3,8 @@ name: remove-deadcode
 description: "Remove unused code from this project with ultrawork mode, LSP-verified safety, atomic commits. Triggers: remove dead code, dead code, cleanup, remove unused."
 ---
 
-Dead code removal via massively parallel deep agents. You are the ORCHESTRATOR —
-you scan, verify, batch, then delegate ALL removals to parallel agents.
+
+Dead code removal via massively parallel deep agents. You are the ORCHESTRATOR — you scan, verify, batch, then delegate ALL removals to parallel agents.
 
 <rules>
 - **LSP is law.** Verify with `LspFindReferences(includeDeclaration=false)` before ANY removal decision.
@@ -31,13 +31,10 @@ Run ALL of these in parallel:
 <parallel-scan>
 
 **TypeScript strict mode (your primary scanner — run this FIRST):**
-
 ```bash
 bunx tsc --noEmit --noUnusedLocals --noUnusedParameters 2>&1
 ```
-
-This gives you the definitive list of unused locals, imports, parameters, and
-types with exact file:line locations.
+This gives you the definitive list of unused locals, imports, parameters, and types with exact file:line locations.
 
 **Explore agents (fire ALL simultaneously as background):**
 
@@ -62,7 +59,7 @@ Collect all results into a master candidate list.
 For EACH candidate from Phase 1:
 
 ```typescript
-LspFindReferences(filePath, line, character, includeDeclaration = false);
+LspFindReferences(filePath, line, character, includeDeclaration=false)
 // 0 references → CONFIRMED dead
 // 1+ references → NOT dead, drop from list
 ```
@@ -78,10 +75,8 @@ Also apply the false-positive-guards above. Produce a confirmed list:
 ```
 
 **Action types:**
-
 - `REMOVE` — delete the symbol/import/file entirely
-- `PREFIX _` — unused function parameter required by signature → rename to
-  `_paramName`
+- `PREFIX _` — unused function parameter required by signature → rename to `_paramName`
 
 If ZERO confirmed: report "No dead code found" and STOP.
 
@@ -94,13 +89,11 @@ If ZERO confirmed: report "No dead code found" and STOP.
 **Goal: maximize parallel agents with ZERO git conflicts.**
 
 1. Group confirmed dead code items by FILE PATH
-2. All items in the SAME file go to the SAME batch (prevents two agents editing
-   the same file)
+2. All items in the SAME file go to the SAME batch (prevents two agents editing the same file)
 3. If a dead FILE (entire file deletion) exists, it's its own batch
 4. Target 5-15 batches. If fewer than 5 items total, use 1 batch per item.
 
 **Example batching:**
-
 ```
 Batch A: [src/hooks/foo/hook.ts — 3 unused imports]
 Batch B: [src/features/bar/manager.ts — 2 unused constants, 1 dead function]
@@ -108,8 +101,7 @@ Batch C: [src/tools/baz/tool.ts — 1 unused param, src/tools/baz/types.ts — 1
 Batch D: [src/dead-file.ts — entire file deletion]
 ```
 
-Files in the same directory CAN be batched together (they won't conflict as long
-as no two agents edit the same file). Maximize batch count for parallelism.
+Files in the same directory CAN be batched together (they won't conflict as long as no two agents edit the same file). Maximize batch count for parallelism.
 
 </batching-rules>
 
@@ -189,18 +181,15 @@ Produce summary:
 ## Dead Code Removal Complete
 
 ### Removed
-
-| # | Symbol     | File       | Type     | Commit  | Agent   |
-| - | ---------- | ---------- | -------- | ------- | ------- |
+| # | Symbol | File | Type | Commit | Agent |
+|---|--------|------|------|--------|-------|
 | 1 | unusedFunc | src/foo.ts | function | abc1234 | Batch A |
 
 ### Skipped (agent reported failure)
-
 | # | Symbol | File | Reason |
-| - | ------ | ---- | ------ |
+|---|--------|------|--------|
 
 ### Verification
-
 - Typecheck: PASS/FAIL
 - Tests: X passing, Y failing (Z pre-existing)
 - Build: PASS/FAIL
@@ -214,7 +203,6 @@ Produce summary:
 ## SCOPE CONTROL
 
 If `$ARGUMENTS` is provided, narrow the scan:
-
 - File path → only that file
 - Directory → only that directory
 - Symbol name → only that symbol
@@ -223,6 +211,5 @@ If `$ARGUMENTS` is provided, narrow the scan:
 ## ABORT CONDITIONS
 
 STOP and report if:
-
 - More than 50 candidates found (ask user to narrow scope or confirm proceeding)
 - Build breaks and cannot be fixed by reverting

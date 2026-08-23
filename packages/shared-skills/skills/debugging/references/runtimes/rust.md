@@ -1,8 +1,6 @@
 # Rust Debugging
 
-Covers `cargo`, `tokio`, panics, and the fact that you usually don't actually
-need a debugger — Rust's type system, `dbg!`, and logging cover 80% of sessions
-faster than gdb would.
+Covers `cargo`, `tokio`, panics, and the fact that you usually don't actually need a debugger — Rust's type system, `dbg!`, and logging cover 80% of sessions faster than gdb would.
 
 ---
 
@@ -26,9 +24,7 @@ grep -E '"(tokio|async-std|smol)"' Cargo.toml
 grep -E '^\[profile' Cargo.toml
 ```
 
-**The default `cargo run` builds with `dev` profile** which includes debug
-symbols. `cargo run --release` strips them. For debugging, stay in dev unless
-the bug only manifests under optimization.
+**The default `cargo run` builds with `dev` profile** which includes debug symbols. `cargo run --release` strips them. For debugging, stay in dev unless the bug only manifests under optimization.
 
 ---
 
@@ -36,15 +32,10 @@ the bug only manifests under optimization.
 
 Rust's ecosystem has a specific order that's faster than reaching for gdb first:
 
-1. **`dbg!(expr)` macro** — for a single value at a specific spot. Prints
-   file:line + value, returns the value unchanged so you can inline it. Faster
-   than a debugger for 60% of bugs.
-2. **`RUST_LOG=trace` with `tracing` / `env_logger`** — for flow and state
-   across an operation. Zero code change in dev-time.
-3. **`RUST_BACKTRACE=1` / `=full`** — for crashes. Almost always sufficient; you
-   rarely need a live debugger for a panic.
-4. **`rust-gdb` / `rust-lldb`** — when you need to pause execution and inspect
-   memory, especially for unsafe code or FFI.
+1. **`dbg!(expr)` macro** — for a single value at a specific spot. Prints file:line + value, returns the value unchanged so you can inline it. Faster than a debugger for 60% of bugs.
+2. **`RUST_LOG=trace` with `tracing` / `env_logger`** — for flow and state across an operation. Zero code change in dev-time.
+3. **`RUST_BACKTRACE=1` / `=full`** — for crashes. Almost always sufficient; you rarely need a live debugger for a panic.
+4. **`rust-gdb` / `rust-lldb`** — when you need to pause execution and inspect memory, especially for unsafe code or FFI.
 5. **`tokio-console`** — for async deadlocks, stuck tasks, hot loops.
 6. **`cargo-expand`** — when a macro is doing something weird.
 
@@ -60,19 +51,16 @@ let y = dbg!(x * 2);   // prints: [src/main.rs:2] x * 2 = 10
 ```
 
 Inside a complex expression:
-
 ```rust
 let total = items.iter().filter(|i| i.active).map(|i| dbg!(i.cost)).sum::<u64>();
 ```
 
 Multiple values at once:
-
 ```rust
 dbg!(&user, &request, elapsed.as_millis());
 ```
 
-`dbg!` writes to stderr, so it won't corrupt stdout-based pipelines. **Journal
-each `dbg!` you add**; revert at Phase 9.
+`dbg!` writes to stderr, so it won't corrupt stdout-based pipelines. **Journal each `dbg!` you add**; revert at Phase 9.
 
 ---
 
@@ -88,14 +76,12 @@ RUST_LOG=debug,tokio=off cargo run                # silence noisy crates
 ```
 
 For `tracing`-based apps, instrument with spans:
-
 ```rust
 #[tracing::instrument]
 fn handle_request(req: &Request) -> Response { ... }
 ```
 
-This gives you structured per-call entry/exit logs with args and timing, zero
-additional code in the body.
+This gives you structured per-call entry/exit logs with args and timing, zero additional code in the body.
 
 ---
 
@@ -106,8 +92,7 @@ RUST_BACKTRACE=1 cargo run       # backtrace on panic
 RUST_BACKTRACE=full cargo run    # include libstd/tokio frames
 ```
 
-The panic itself usually tells you the file:line. The backtrace tells you how it
-got there. Between the two, most crash bugs are solved without a debugger.
+The panic itself usually tells you the file:line. The backtrace tells you how it got there. Between the two, most crash bugs are solved without a debugger.
 
 ---
 
@@ -155,8 +140,7 @@ Rust symbols are mangled. Use either:
 (gdb) rbreak regex               # breakpoint all functions matching regex
 ```
 
-**Pair with pwndbg** for better layout on native bugs — see
-[tools/pwndbg.md](../tools/pwndbg.md). Pwndbg works with rust-gdb too.
+**Pair with pwndbg** for better layout on native bugs — see [tools/pwndbg.md](../tools/pwndbg.md). Pwndbg works with rust-gdb too.
 
 ---
 
@@ -180,8 +164,7 @@ RUSTFLAGS="--cfg tokio_unstable" cargo run
 tokio-console                     # connects to default port 6669
 ```
 
-Shows live tasks, their state, wake counts, poll durations, parent tasks. The
-single fastest way to find "why is my async thing stuck".
+Shows live tasks, their state, wake counts, poll durations, parent tasks. The single fastest way to find "why is my async thing stuck".
 
 ---
 
@@ -193,9 +176,7 @@ cargo expand                      # expand all macros in the crate
 cargo expand my::module::path     # scope to one item
 ```
 
-If you suspect a macro (especially `#[derive]`, `#[tokio::main]`,
-`#[async_trait]`) is generating code that doesn't match your mental model, this
-shows you exactly what the compiler sees.
+If you suspect a macro (especially `#[derive]`, `#[tokio::main]`, `#[async_trait]`) is generating code that doesn't match your mental model, this shows you exactly what the compiler sees.
 
 ---
 
@@ -213,24 +194,22 @@ If the bug only shows up in `--release`:
 debug = true                                 # add symbols, keep optimizations
 ```
 
-Now `rust-gdb ./target/release/my_binary` works on release builds. This is
-required when optimization-enabled codegen bugs (inlining, LLVM folding) are
-suspected.
+Now `rust-gdb ./target/release/my_binary` works on release builds. This is required when optimization-enabled codegen bugs (inlining, LLVM folding) are suspected.
 
 ---
 
 ## Silent-failure patterns in Rust
 
-| Pattern                                           | Why it's silent                                                         |
-| ------------------------------------------------- | ----------------------------------------------------------------------- |
-| `.unwrap_or_default()`                            | Masks errors as the zero value                                          |
-| `.unwrap_or(fallback)`                            | Same, with a specific fallback                                          |
-| `let _ = fallible_operation()`                    | Explicitly discards the Result, no compiler warning                     |
-| `if let Ok(x) = ... { use(x); } // no else`       | Silent on Err                                                           |
-| `.ok()` chaining                                  | Converts Result to Option, throwing the error away                      |
-| Panic inside a tokio task not `.await`ed          | Task dies silently; runtime usually logs but it's quiet if logs are off |
-| `eprintln!` that goes to a redirected-null stderr | Looks like nothing happened                                             |
-| `Drop` impl that panics under specific condition  | Double-panic aborts process silently if no logging configured           |
+| Pattern | Why it's silent |
+|---|---|
+| `.unwrap_or_default()` | Masks errors as the zero value |
+| `.unwrap_or(fallback)` | Same, with a specific fallback |
+| `let _ = fallible_operation()` | Explicitly discards the Result, no compiler warning |
+| `if let Ok(x) = ... { use(x); } // no else` | Silent on Err |
+| `.ok()` chaining | Converts Result to Option, throwing the error away |
+| Panic inside a tokio task not `.await`ed | Task dies silently; runtime usually logs but it's quiet if logs are off |
+| `eprintln!` that goes to a redirected-null stderr | Looks like nothing happened |
+| `Drop` impl that panics under specific condition | Double-panic aborts process silently if no logging configured |
 
 ---
 

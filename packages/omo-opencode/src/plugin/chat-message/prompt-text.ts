@@ -1,5 +1,5 @@
-import { isRealUserTextPart } from "../../shared";
-import type { ChatMessagePart } from "./types";
+import { isRealUserTextPart } from "../../shared"
+import type { ChatMessagePart } from "./types"
 
 export function extractPromptText(parts: readonly ChatMessagePart[]): string {
   return (
@@ -8,5 +8,5 @@ export function extractPromptText(parts: readonly ChatMessagePart[]): string {
       .map((part) => part.text)
       .join("\n")
       .trim() || ""
-  );
+  )
 }

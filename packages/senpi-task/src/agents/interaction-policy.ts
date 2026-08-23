@@ -6,10 +6,10 @@
 // lookup; behavior wiring lives at the manager/tool boundary, exactly like invocation-guard.ts.
 
 export type AgentInteractionPolicy = {
-  readonly oneShot: true;
-  readonly promptContract: "plan-review";
-  readonly sendDenialReminder: string;
-};
+  readonly oneShot: true
+  readonly promptContract: "plan-review"
+  readonly sendDenialReminder: string
+}
 
 export const AGENT_INTERACTION_POLICIES = {
   momus: {
@@ -25,19 +25,16 @@ Appealing to, briefing, or explaining anything to momus is strictly forbidden. T
 To get another review round after editing the plan, spawn a NEW momus task. Do not attempt to revive or message the completed session.
 </system-reminder>`,
   },
-} as const satisfies Readonly<Record<string, AgentInteractionPolicy>>;
+} as const satisfies Readonly<Record<string, AgentInteractionPolicy>>
 
-const POLICIES: Readonly<Record<string, AgentInteractionPolicy>> =
-  AGENT_INTERACTION_POLICIES;
+const POLICIES: Readonly<Record<string, AgentInteractionPolicy>> = AGENT_INTERACTION_POLICIES
 
 export const ONE_SHOT_AGENT_NAMES: ReadonlySet<string> = new Set(
   Object.entries(POLICIES)
     .filter(([, policy]) => policy.oneShot)
     .map(([name]) => name),
-);
+)
 
-export function interactionPolicyForAgent(
-  agentName: string,
-): AgentInteractionPolicy | undefined {
-  return POLICIES[agentName];
+export function interactionPolicyForAgent(agentName: string): AgentInteractionPolicy | undefined {
+  return POLICIES[agentName]
 }

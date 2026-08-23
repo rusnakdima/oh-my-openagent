@@ -17,102 +17,18 @@ interface PlatformTarget {
 }
 
 export const PLATFORMS: PlatformTarget[] = [
-  {
-    platform: "darwin-arm64",
-    packageName: "oh-my-opencode-darwin-arm64",
-    packageDir: "oh-my-opencode-darwin-arm64",
-    target: "bun-darwin-arm64",
-    binary: "oh-my-opencode.js",
-    description: "macOS ARM64",
-  },
-  {
-    platform: "darwin-x64",
-    packageName: "oh-my-opencode-darwin-x64",
-    packageDir: "oh-my-opencode-darwin-x64",
-    target: "bun-darwin-x64",
-    binary: "oh-my-opencode.js",
-    description: "macOS x64",
-  },
-  {
-    platform: "darwin-x64-baseline",
-    packageName: "oh-my-opencode-darwin-x64-baseline",
-    packageDir: "oh-my-opencode-darwin-x64-baseline",
-    target: "bun-darwin-x64-baseline",
-    binary: "oh-my-opencode.js",
-    description: "macOS x64 (no AVX2)",
-  },
-  {
-    platform: "linux-x64",
-    packageName: "oh-my-opencode-linux-x64",
-    packageDir: "oh-my-opencode-linux-x64",
-    target: "bun-linux-x64",
-    binary: "oh-my-opencode.js",
-    description: "Linux x64 (glibc)",
-  },
-  {
-    platform: "linux-x64-baseline",
-    packageName: "oh-my-opencode-linux-x64-baseline",
-    packageDir: "oh-my-opencode-linux-x64-baseline",
-    target: "bun-linux-x64-baseline",
-    binary: "oh-my-opencode.js",
-    description: "Linux x64 (glibc, no AVX2)",
-  },
-  {
-    platform: "linux-arm64",
-    packageName: "oh-my-opencode-linux-arm64",
-    packageDir: "oh-my-opencode-linux-arm64",
-    target: "bun-linux-arm64",
-    binary: "oh-my-opencode.js",
-    description: "Linux ARM64 (glibc)",
-  },
-  {
-    platform: "linux-x64-musl",
-    packageName: "oh-my-opencode-linux-x64-musl",
-    packageDir: "oh-my-opencode-linux-x64-musl",
-    target: "bun-linux-x64-musl",
-    binary: "oh-my-opencode.js",
-    description: "Linux x64 (musl)",
-  },
-  {
-    platform: "linux-x64-musl-baseline",
-    packageName: "oh-my-opencode-linux-x64-musl-baseline",
-    packageDir: "oh-my-opencode-linux-x64-musl-baseline",
-    target: "bun-linux-x64-musl-baseline",
-    binary: "oh-my-opencode.js",
-    description: "Linux x64 (musl, no AVX2)",
-  },
-  {
-    platform: "linux-arm64-musl",
-    packageName: "oh-my-opencode-linux-arm64-musl",
-    packageDir: "oh-my-opencode-linux-arm64-musl",
-    target: "bun-linux-arm64-musl",
-    binary: "oh-my-opencode.js",
-    description: "Linux ARM64 (musl)",
-  },
-  {
-    platform: "windows-x64",
-    packageName: "oh-my-opencode-windows-x64",
-    packageDir: "oh-my-opencode-windows-x64",
-    target: "bun-windows-x64",
-    binary: "oh-my-opencode.js",
-    description: "Windows x64",
-  },
-  {
-    platform: "windows-x64-baseline",
-    packageName: "oh-my-opencode-windows-x64-baseline",
-    packageDir: "oh-my-opencode-windows-x64-baseline",
-    target: "bun-windows-x64-baseline",
-    binary: "oh-my-opencode.js",
-    description: "Windows x64 (no AVX2)",
-  },
-  {
-    platform: "windows-arm64",
-    packageName: "oh-my-opencode-windows-arm64",
-    packageDir: "oh-my-opencode-windows-arm64",
-    target: "bun-windows-x64",
-    binary: "oh-my-opencode.js",
-    description: "Windows ARM64 (x64 emulation / node fallback)",
-  },
+  { platform: "darwin-arm64", packageName: "oh-my-opencode-darwin-arm64", packageDir: "oh-my-opencode-darwin-arm64", target: "bun-darwin-arm64", binary: "oh-my-opencode.js", description: "macOS ARM64" },
+  { platform: "darwin-x64", packageName: "oh-my-opencode-darwin-x64", packageDir: "oh-my-opencode-darwin-x64", target: "bun-darwin-x64", binary: "oh-my-opencode.js", description: "macOS x64" },
+  { platform: "darwin-x64-baseline", packageName: "oh-my-opencode-darwin-x64-baseline", packageDir: "oh-my-opencode-darwin-x64-baseline", target: "bun-darwin-x64-baseline", binary: "oh-my-opencode.js", description: "macOS x64 (no AVX2)" },
+  { platform: "linux-x64", packageName: "oh-my-opencode-linux-x64", packageDir: "oh-my-opencode-linux-x64", target: "bun-linux-x64", binary: "oh-my-opencode.js", description: "Linux x64 (glibc)" },
+  { platform: "linux-x64-baseline", packageName: "oh-my-opencode-linux-x64-baseline", packageDir: "oh-my-opencode-linux-x64-baseline", target: "bun-linux-x64-baseline", binary: "oh-my-opencode.js", description: "Linux x64 (glibc, no AVX2)" },
+  { platform: "linux-arm64", packageName: "oh-my-opencode-linux-arm64", packageDir: "oh-my-opencode-linux-arm64", target: "bun-linux-arm64", binary: "oh-my-opencode.js", description: "Linux ARM64 (glibc)" },
+  { platform: "linux-x64-musl", packageName: "oh-my-opencode-linux-x64-musl", packageDir: "oh-my-opencode-linux-x64-musl", target: "bun-linux-x64-musl", binary: "oh-my-opencode.js", description: "Linux x64 (musl)" },
+  { platform: "linux-x64-musl-baseline", packageName: "oh-my-opencode-linux-x64-musl-baseline", packageDir: "oh-my-opencode-linux-x64-musl-baseline", target: "bun-linux-x64-musl-baseline", binary: "oh-my-opencode.js", description: "Linux x64 (musl, no AVX2)" },
+  { platform: "linux-arm64-musl", packageName: "oh-my-opencode-linux-arm64-musl", packageDir: "oh-my-opencode-linux-arm64-musl", target: "bun-linux-arm64-musl", binary: "oh-my-opencode.js", description: "Linux ARM64 (musl)" },
+  { platform: "windows-x64", packageName: "oh-my-opencode-windows-x64", packageDir: "oh-my-opencode-windows-x64", target: "bun-windows-x64", binary: "oh-my-opencode.js", description: "Windows x64" },
+  { platform: "windows-x64-baseline", packageName: "oh-my-opencode-windows-x64-baseline", packageDir: "oh-my-opencode-windows-x64-baseline", target: "bun-windows-x64-baseline", binary: "oh-my-opencode.js", description: "Windows x64 (no AVX2)" },
+  { platform: "windows-arm64", packageName: "oh-my-opencode-windows-arm64", packageDir: "oh-my-opencode-windows-arm64", target: "bun-windows-x64", binary: "oh-my-opencode.js", description: "Windows ARM64 (x64 emulation / node fallback)" },
 ];
 
 const CLI_DIST_ENTRY = "dist/cli/index.js";
@@ -255,9 +171,7 @@ async function buildPlatform(platform: PlatformTarget): Promise<boolean> {
   console.log(`   Output: ${outfile}`);
 
   try {
-    await mkdir(join("packages", platform.packageDir, "bin"), {
-      recursive: true,
-    });
+    await mkdir(join("packages", platform.packageDir, "bin"), { recursive: true });
     await writeFile(outfile, createPlatformLauncherSource());
     await chmod(outfile, 0o755);
 
@@ -297,8 +211,8 @@ async function main() {
   console.log("Build Summary:");
   console.log("=".repeat(50));
 
-  const succeeded = results.filter((r) => r.success).length;
-  const failed = results.filter((r) => !r.success).length;
+  const succeeded = results.filter(r => r.success).length;
+  const failed = results.filter(r => !r.success).length;
 
   for (const result of results) {
     const icon = result.success ? "✓" : "✗";

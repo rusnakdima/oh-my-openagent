@@ -22,9 +22,7 @@ describe("findRuleFilesRecursive", () => {
     createdDirectories.push(temporaryDirectory);
 
     const rulesDirectory = join(temporaryDirectory, ".omo", "rules");
-    mkdirSync(join(rulesDirectory, "node_modules", "fake"), {
-      recursive: true,
-    });
+    mkdirSync(join(rulesDirectory, "node_modules", "fake"), { recursive: true });
     mkdirSync(join(rulesDirectory, ".git"), { recursive: true });
     writeFileSync(join(rulesDirectory, "foo.md"), "root rule");
     writeFileSync(

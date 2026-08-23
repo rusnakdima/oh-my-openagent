@@ -1,8 +1,8 @@
 export {
-  applyAppend,
+  applySetLine,
+  applyReplaceLines,
   applyInsertAfter,
   applyInsertBefore,
+  applyAppend,
   applyPrepend,
-  applyReplaceLines,
-  applySetLine,
-} from "@oh-my-opencode/hashline-core";
+} from "@oh-my-opencode/hashline-core"

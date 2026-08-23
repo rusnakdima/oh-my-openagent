@@ -1,83 +1,75 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "fs";
-import { basename, join } from "path";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs"
+import { basename, join } from "path"
 import {
-  discoverPluginCommandDefinitions,
-  EXCLUDED_DIRS,
-  findProjectOpencodeCommandDirs,
-  getOpenCodeCommandDirs,
   parseFrontmatter,
   sanitizeModelField,
-} from "./command-discovery-deps";
-import type { CommandFrontmatter } from "../../features/claude-code-command-loader/types";
-import { isMarkdownFile } from "../../shared/file-utils";
-import { getClaudeConfigDir } from "../../shared/claude-config-dir";
-import { log } from "../../shared/logger";
-import { loadBuiltinCommands } from "../../features/builtin-commands/commands";
-import type { CommandInfo, CommandMetadata, CommandScope } from "./types";
+  findProjectOpencodeCommandDirs,
+  getOpenCodeCommandDirs,
+  discoverPluginCommandDefinitions,
+  EXCLUDED_DIRS,
+} from "./command-discovery-deps"
+import type { CommandFrontmatter } from "../../features/claude-code-command-loader/types"
+import { isMarkdownFile } from "../../shared/file-utils"
+import { getClaudeConfigDir } from "../../shared/claude-config-dir"
+import { log } from "../../shared/logger"
+import { loadBuiltinCommands } from "../../features/builtin-commands/commands"
+import type { CommandInfo, CommandMetadata, CommandScope } from "./types"
 
 export interface CommandDiscoveryOptions {
-  pluginsEnabled?: boolean;
-  enabledPluginsOverride?: Record<string, boolean>;
+  pluginsEnabled?: boolean
+  enabledPluginsOverride?: Record<string, boolean>
 }
 
-const NESTED_COMMAND_SEPARATOR = "/";
+const NESTED_COMMAND_SEPARATOR = "/"
 
 function discoverCommandsFromDir(
   commandsDir: string,
   scope: CommandScope,
   prefix = "",
 ): CommandInfo[] {
-  if (!existsSync(commandsDir)) return [];
+  if (!existsSync(commandsDir)) return []
   if (!statSync(commandsDir).isDirectory()) {
-    log(`[command-discovery] Skipping non-directory path: ${commandsDir}`);
-    return [];
+    log(`[command-discovery] Skipping non-directory path: ${commandsDir}`)
+    return []
   }
 
-  const entries = readdirSync(commandsDir, { withFileTypes: true });
-  const commands: CommandInfo[] = [];
+  const entries = readdirSync(commandsDir, { withFileTypes: true })
+  const commands: CommandInfo[] = []
 
   for (const entry of entries) {
     if (entry.isDirectory()) {
-      if (EXCLUDED_DIRS.has(entry.name)) continue;
-      if (entry.name.startsWith(".")) continue;
+      if (EXCLUDED_DIRS.has(entry.name)) continue
+      if (entry.name.startsWith(".")) continue
       const nestedPrefix = prefix
         ? `${prefix}${NESTED_COMMAND_SEPARATOR}${entry.name}`
-        : entry.name;
+        : entry.name
       commands.push(
-        ...discoverCommandsFromDir(
-          join(commandsDir, entry.name),
-          scope,
-          nestedPrefix,
-        ),
-      );
-      continue;
+        ...discoverCommandsFromDir(join(commandsDir, entry.name), scope, nestedPrefix),
+      )
+      continue
     }
 
-    if (!isMarkdownFile(entry)) continue;
+    if (!isMarkdownFile(entry)) continue
 
-    const commandPath = join(commandsDir, entry.name);
-    const baseCommandName = basename(entry.name, ".md");
+    const commandPath = join(commandsDir, entry.name)
+    const baseCommandName = basename(entry.name, ".md")
     const commandName = prefix
       ? `${prefix}${NESTED_COMMAND_SEPARATOR}${baseCommandName}`
-      : baseCommandName;
+      : baseCommandName
 
     try {
-      const content = readFileSync(commandPath, "utf-8");
-      const { data, body } = parseFrontmatter<CommandFrontmatter>(content);
+      const content = readFileSync(commandPath, "utf-8")
+      const { data, body } = parseFrontmatter<CommandFrontmatter>(content)
 
-      const isOpencodeSource = scope === "opencode" ||
-        scope === "opencode-project";
+      const isOpencodeSource = scope === "opencode" || scope === "opencode-project"
       const metadata: CommandMetadata = {
         name: commandName,
         description: data.description || "",
         argumentHint: data["argument-hint"],
-        model: sanitizeModelField(
-          data.model,
-          isOpencodeSource ? "opencode" : "claude-code",
-        ),
+        model: sanitizeModelField(data.model, isOpencodeSource ? "opencode" : "claude-code"),
         agent: data.agent,
         subtask: Boolean(data.subtask),
-      };
+      }
 
       commands.push({
         name: commandName,
@@ -85,22 +77,20 @@ function discoverCommandsFromDir(
         metadata,
         content: body,
         scope,
-      });
+      })
     } catch (error) {
       if (!(error instanceof Error)) {
-        throw error;
+        throw error
       }
-      continue;
+      continue
     }
   }
 
-  return commands;
+  return commands
 }
 
-function discoverPluginCommands(
-  options?: CommandDiscoveryOptions,
-): CommandInfo[] {
-  const pluginDefinitions = discoverPluginCommandDefinitions(options);
+function discoverPluginCommands(options?: CommandDiscoveryOptions): CommandInfo[] {
+  const pluginDefinitions = discoverPluginCommandDefinitions(options)
 
   return Object.entries(pluginDefinitions).map(([name, definition]) => ({
     name,
@@ -113,57 +103,46 @@ function discoverPluginCommands(
     },
     content: definition.template,
     scope: "plugin",
-  }));
+  }))
 }
 
 function deduplicateCommandInfosByName(commands: CommandInfo[]): CommandInfo[] {
-  const seen = new Set<string>();
-  const deduplicatedCommands: CommandInfo[] = [];
+  const seen = new Set<string>()
+  const deduplicatedCommands: CommandInfo[] = []
 
   for (const command of commands) {
     if (seen.has(command.name)) {
-      continue;
+      continue
     }
 
-    seen.add(command.name);
-    deduplicatedCommands.push(command);
+    seen.add(command.name)
+    deduplicatedCommands.push(command)
   }
 
-  return deduplicatedCommands;
+  return deduplicatedCommands
 }
 
 export function discoverCommandsSync(
   directory?: string,
   options?: CommandDiscoveryOptions,
 ): CommandInfo[] {
-  const userCommandsDir = join(getClaudeConfigDir(), "commands");
-  const projectCommandsDir = join(
-    directory ?? process.cwd(),
-    ".claude",
-    "commands",
-  );
-  const opencodeGlobalDirs = getOpenCodeCommandDirs({ binary: "opencode" });
-  const opencodeProjectDirs = findProjectOpencodeCommandDirs(
-    directory ?? process.cwd(),
-  );
+  const userCommandsDir = join(getClaudeConfigDir(), "commands")
+  const projectCommandsDir = join(directory ?? process.cwd(), ".claude", "commands")
+  const opencodeGlobalDirs = getOpenCodeCommandDirs({ binary: "opencode" })
+  const opencodeProjectDirs = findProjectOpencodeCommandDirs(directory ?? process.cwd())
 
-  const userCommands = discoverCommandsFromDir(userCommandsDir, "user");
+  const userCommands = discoverCommandsFromDir(userCommandsDir, "user")
   const opencodeGlobalCommands = opencodeGlobalDirs.flatMap((commandsDir) =>
     discoverCommandsFromDir(commandsDir, "opencode")
-  );
-  const projectCommands = discoverCommandsFromDir(
-    projectCommandsDir,
-    "project",
-  );
+  )
+  const projectCommands = discoverCommandsFromDir(projectCommandsDir, "project")
   const opencodeProjectCommands = opencodeProjectDirs.flatMap((commandsDir) =>
-    discoverCommandsFromDir(commandsDir, "opencode-project")
-  );
-  const pluginCommands = discoverPluginCommands(options);
+    discoverCommandsFromDir(commandsDir, "opencode-project"),
+  )
+  const pluginCommands = discoverPluginCommands(options)
 
-  const builtinCommandsMap = loadBuiltinCommands();
-  const builtinCommands: CommandInfo[] = Object.values(builtinCommandsMap).map((
-    command,
-  ) => ({
+  const builtinCommandsMap = loadBuiltinCommands()
+  const builtinCommands: CommandInfo[] = Object.values(builtinCommandsMap).map((command) => ({
     name: command.name,
     metadata: {
       name: command.name,
@@ -175,7 +154,7 @@ export function discoverCommandsSync(
     },
     content: command.template,
     scope: "builtin",
-  }));
+  }))
 
   return deduplicateCommandInfosByName([
     ...projectCommands,
@@ -184,5 +163,5 @@ export function discoverCommandsSync(
     ...opencodeGlobalCommands,
     ...builtinCommands,
     ...pluginCommands,
-  ]);
+  ])
 }

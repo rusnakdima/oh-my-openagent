@@ -7,7 +7,7 @@
  * or an on-disk log line.
  */
 
-const MASK = "***";
+const MASK = "***"
 
 /**
  * `scheme://user:pass@` and `scheme://user@` inside arbitrary text.
@@ -15,13 +15,13 @@ const MASK = "***";
  * The userinfo character class deliberately excludes `/` and `@` so the match
  * cannot run past an authority boundary and swallow a path segment.
  */
-const URL_USERINFO = /([a-z][a-z0-9+.-]*:\/\/)([^/@\s:]+)(?::([^/@\s]*))?@/gi;
+const URL_USERINFO = /([a-z][a-z0-9+.-]*:\/\/)([^/@\s:]+)(?::([^/@\s]*))?@/gi
 
 /**
  * scp-style `user@host:path` (no scheme), anchored on a word boundary so a
  * plain email address inside a sentence is not rewritten into a URL shape.
  */
-const SCP_USERINFO = /(^|[\s'"(<])([^\s:/@]+)@([^\s:/@]+):(?=[^\s]*\/)/g;
+const SCP_USERINFO = /(^|[\s'"(<])([^\s:/@]+)@([^\s:/@]+):(?=[^\s]*\/)/g
 
 /**
  * Mask credentials in a URL, or in free text containing URLs.
@@ -33,18 +33,12 @@ const SCP_USERINFO = /(^|[\s'"(<])([^\s:/@]+)@([^\s:/@]+):(?=[^\s]*\/)/g;
  * returned unchanged.
  */
 export function redactUrl(value: string): string {
-  if (!value) return "";
+  if (!value) return ""
   return value
-    .replace(
-      URL_USERINFO,
-      (_match, scheme: string, _user: string, password?: string) =>
-        password === undefined
-          ? `${scheme}${MASK}@`
-          : `${scheme}${MASK}:${MASK}@`,
+    .replace(URL_USERINFO, (_match, scheme: string, _user: string, password?: string) =>
+      password === undefined ? `${scheme}${MASK}@` : `${scheme}${MASK}:${MASK}@`,
     )
-    .replace(
-      SCP_USERINFO,
-      (_match, prefix: string, _user: string, host: string) =>
-        `${prefix}${MASK}@${host}:`,
-    );
+    .replace(SCP_USERINFO, (_match, prefix: string, _user: string, host: string) =>
+      `${prefix}${MASK}@${host}:`,
+    )
 }

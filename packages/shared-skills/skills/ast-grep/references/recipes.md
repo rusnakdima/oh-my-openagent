@@ -1,7 +1,6 @@
 # Recipes — copy-paste patterns by language
 
-Every pattern in this file has been verified against the canonical syntax. They
-are starting points; tweak metavariable names and constraints to fit your case.
+Every pattern in this file has been verified against the canonical syntax. They are starting points; tweak metavariable names and constraints to fit your case.
 
 Use them with the helper:
 
@@ -85,8 +84,7 @@ sg run -p 'oldName($$$A)' -r 'newName($$$A)' --lang ts --update-all .
 
 ## Python
 
-> **Reminder**: never end a Python pattern with `:`. Patterns parse as a
-> complete statement, so `def foo($$$):` is invalid.
+> **Reminder**: never end a Python pattern with `:`. Patterns parse as a complete statement, so `def foo($$$):` is invalid.
 
 ```python
 # Every function definition
@@ -279,15 +277,10 @@ sg run -p 'malloc($N * sizeof($T))' -r 'calloc($N, sizeof($T))' --lang c --updat
 
 ```css
 /* Every rule with a specific property */
-{
-  $$$ color: $VAL;
-  $$$
-}
+{ $$$ color: $VAL; $$$ }
 
 /* Every @media query */
-@media $QUERY {
-  $$$BODY
-}
+@media $QUERY { $$$BODY }
 
 /* Every var() reference */
 var($NAME)
@@ -302,9 +295,7 @@ var($NAME)
 <img $$$ />
 
 <!-- Every script tag -->
-<script $$$>
-$$$BODY;
-</script>
+<script $$$>$$$BODY</script>
 
 <!-- Every link to stylesheet -->
 <link rel="stylesheet" href=$URL />
@@ -332,8 +323,7 @@ $( $$$CMD )
 
 ## YAML rule recipes (for `sg scan`)
 
-These are full YAML rules you can drop in `rules/*.yml` and run via `sg scan`.
-See `references/yaml-rules.md` for the full schema.
+These are full YAML rules you can drop in `rules/*.yml` and run via `sg scan`. See `references/yaml-rules.md` for the full schema.
 
 ### no-console (TypeScript)
 
@@ -407,8 +397,6 @@ rule:
 ## See also
 
 - `references/patterns.md` — meta-variable rules.
-- `references/yaml-rules.md` — full YAML rule schema (atomic / relational /
-  composite / transform / fix).
+- `references/yaml-rules.md` — full YAML rule schema (atomic / relational / composite / transform / fix).
 - `references/cli.md` — `sg run`, `sg scan`, `sg test`, `sg new`.
-- Official catalog: <https://ast-grep.github.io/catalog/> (community-maintained,
-  browse by language).
+- Official catalog: <https://ast-grep.github.io/catalog/> (community-maintained, browse by language).

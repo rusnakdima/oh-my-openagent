@@ -263,15 +263,18 @@
     text-wrap: pretty;
   }
 
-  :where([lang|="ko"], [lang|="ja"], [lang|="zh"]) :where(p, li, blockquote, figcaption, td, th, a, button, span) {
+  :where([lang|="ko"], [lang|="ja"], [lang|="zh"])
+    :where(p, li, blockquote, figcaption, td, th, a, button, span) {
     overflow-wrap: break-word;
   }
 
-  [lang|="ko"] :where(h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, td, th, a, button, span) {
+  [lang|="ko"]
+    :where(h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, td, th, a, button, span) {
     word-break: keep-all;
   }
 
-  :where([lang|="ja"], [lang|="zh"]) :where(h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, td, th, a, button, span) {
+  :where([lang|="ja"], [lang|="zh"])
+    :where(h1, h2, h3, h4, h5, h6, p, li, blockquote, figcaption, td, th, a, button, span) {
     word-break: normal;
     line-break: strict;
   }
@@ -292,8 +295,7 @@
     @apply bg-muted;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-border hover:bg-muted-foreground/50 rounded-full
-      transition-colors;
+    @apply bg-border hover:bg-muted-foreground/50 rounded-full transition-colors;
   }
 }
 
@@ -374,8 +376,7 @@
     @apply bg-muted text-foreground rounded px-1.5 py-0.5 font-mono text-sm;
   }
   .docs-content pre {
-    @apply border-border/50 my-4 overflow-x-auto rounded-lg border bg-[#1e1e2e]
-      p-4 font-mono text-sm text-[#cdd6f4] shadow-sm;
+    @apply border-border/50 my-4 overflow-x-auto rounded-lg border bg-[#1e1e2e] p-4 font-mono text-sm text-[#cdd6f4] shadow-sm;
     background-color: var(--code-bg);
     color: var(--code-text);
   }

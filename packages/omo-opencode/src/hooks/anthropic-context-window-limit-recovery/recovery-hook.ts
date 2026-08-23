@@ -1,30 +1,24 @@
-import type { PluginInput } from "@opencode-ai/plugin";
-import type { Client } from "./client";
-import type { AutoCompactState, ParsedTokenLimitError } from "./types";
-import type { ExperimentalConfig, OhMyOpenCodeConfig } from "../../config";
-import { parseAnthropicTokenLimitError } from "./parser";
-import { executeCompact, getLastAssistant } from "./executor";
-import { attemptDeduplicationRecovery } from "./deduplication-recovery";
-import { clearSessionState } from "./state";
-import {
-  clearAllSessionTimeouts,
-  clearSessionTimeout,
-} from "./session-timeout-map";
-import {
-  resolveMessageEventSessionID,
-  resolveSessionEventID,
-} from "../../shared/event-session-id";
-import { log } from "../../shared/logger";
+import type { PluginInput } from "@opencode-ai/plugin"
+import type { Client } from "./client"
+import type { AutoCompactState, ParsedTokenLimitError } from "./types"
+import type { ExperimentalConfig, OhMyOpenCodeConfig } from "../../config"
+import { parseAnthropicTokenLimitError } from "./parser"
+import { executeCompact, getLastAssistant } from "./executor"
+import { attemptDeduplicationRecovery } from "./deduplication-recovery"
+import { clearSessionState } from "./state"
+import { clearAllSessionTimeouts, clearSessionTimeout } from "./session-timeout-map"
+import { resolveMessageEventSessionID, resolveSessionEventID } from "../../shared/event-session-id"
+import { log } from "../../shared/logger"
 
 export interface AnthropicContextWindowLimitRecoveryOptions {
-  experimental?: ExperimentalConfig;
-  pluginConfig: OhMyOpenCodeConfig;
+  experimental?: ExperimentalConfig
+  pluginConfig: OhMyOpenCodeConfig
   dependencies?: {
-    executeCompact?: typeof executeCompact;
-    getLastAssistant?: typeof getLastAssistant;
-    log?: typeof log;
-    parseAnthropicTokenLimitError?: typeof parseAnthropicTokenLimitError;
-  };
+    executeCompact?: typeof executeCompact
+    getLastAssistant?: typeof getLastAssistant
+    log?: typeof log
+    parseAnthropicTokenLimitError?: typeof parseAnthropicTokenLimitError
+  }
 }
 
 function createRecoveryState(): AutoCompactState {
@@ -36,89 +30,72 @@ function createRecoveryState(): AutoCompactState {
     truncateStateBySession: new Map(),
     emptyContentAttemptBySession: new Map(),
     compactionInProgress: new Set<string>(),
-  };
+  }
 }
+
 
 export function createAnthropicContextWindowLimitRecoveryHook(
   ctx: PluginInput,
   options?: AnthropicContextWindowLimitRecoveryOptions,
 ) {
-  const autoCompactState = createRecoveryState();
-  const experimental = options?.experimental;
-  const pluginConfig = options?.pluginConfig ?? {} as OhMyOpenCodeConfig;
+  const autoCompactState = createRecoveryState()
+  const experimental = options?.experimental
+  const pluginConfig = options?.pluginConfig ?? {} as OhMyOpenCodeConfig
   const dependencies = {
     executeCompact,
     getLastAssistant,
     log,
     parseAnthropicTokenLimitError,
     ...options?.dependencies,
-  };
-  const pendingCompactionTimeoutBySession = new Map<
-    string,
-    ReturnType<typeof setTimeout>
-  >();
+  }
+  const pendingCompactionTimeoutBySession = new Map<string, ReturnType<typeof setTimeout>>()
 
-  const eventHandler = async (
-    { event }: { event: { type: string; properties?: unknown } },
-  ) => {
-    const props = event.properties as Record<string, unknown> | undefined;
+  const eventHandler = async ({ event }: { event: { type: string; properties?: unknown } }) => {
+    const props = event.properties as Record<string, unknown> | undefined
 
     if (event.type === "session.deleted") {
-      const sessionID = resolveSessionEventID(props);
+      const sessionID = resolveSessionEventID(props)
       if (sessionID) {
-        clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID);
+        clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID)
 
-        clearSessionState(autoCompactState, sessionID);
+        clearSessionState(autoCompactState, sessionID)
       }
-      return;
+      return
     }
 
     if (event.type === "session.compacted") {
-      const sessionID = resolveSessionEventID(props);
+      const sessionID = resolveSessionEventID(props)
       if (sessionID) {
-        clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID);
-        clearSessionState(autoCompactState, sessionID);
+        clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID)
+        clearSessionState(autoCompactState, sessionID)
       }
-      return;
+      return
     }
 
     if (event.type === "session.error") {
-      const sessionID = resolveSessionEventID(props);
-      dependencies.log("[auto-compact] session.error received", {
-        sessionID,
-        error: props?.error,
-      });
-      if (!sessionID) return;
+      const sessionID = resolveSessionEventID(props)
+      dependencies.log("[auto-compact] session.error received", { sessionID, error: props?.error })
+      if (!sessionID) return
 
-      const parsed = dependencies.parseAnthropicTokenLimitError(props?.error);
-      dependencies.log("[auto-compact] parsed result", {
-        parsed,
-        hasError: !!props?.error,
-      });
+      const parsed = dependencies.parseAnthropicTokenLimitError(props?.error)
+      dependencies.log("[auto-compact] parsed result", { parsed, hasError: !!props?.error })
       if (parsed) {
-        autoCompactState.pendingCompact.add(sessionID);
-        autoCompactState.errorDataBySession.set(sessionID, parsed);
+        autoCompactState.pendingCompact.add(sessionID)
+        autoCompactState.errorDataBySession.set(sessionID, parsed)
 
         if (autoCompactState.compactionInProgress.has(sessionID)) {
-          await attemptDeduplicationRecovery(
-            sessionID,
-            parsed,
-            experimental,
-            ctx.client,
-          );
-          return;
+          await attemptDeduplicationRecovery(sessionID, parsed, experimental, ctx.client)
+          return
         }
 
         const lastAssistant = await dependencies.getLastAssistant(
           sessionID,
           ctx.client,
           ctx.directory,
-        );
-        const lastAssistantInfo = lastAssistant?.info;
-        const providerID = parsed.providerID ??
-          (lastAssistantInfo?.providerID as string | undefined);
-        const modelID = parsed.modelID ??
-          (lastAssistantInfo?.modelID as string | undefined);
+        )
+        const lastAssistantInfo = lastAssistant?.info
+        const providerID = parsed.providerID ?? (lastAssistantInfo?.providerID as string | undefined)
+        const modelID = parsed.modelID ?? (lastAssistantInfo?.modelID as string | undefined)
 
         await ctx.client.tui
           .showToast({
@@ -129,12 +106,12 @@ export function createAnthropicContextWindowLimitRecoveryHook(
               duration: 3000,
             },
           })
-          .catch(() => {});
+          .catch(() => {})
 
-        clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID);
+        clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID)
 
         const timeoutID = setTimeout(() => {
-          pendingCompactionTimeoutBySession.delete(sessionID);
+          pendingCompactionTimeoutBySession.delete(sessionID)
           dependencies.executeCompact(
             sessionID,
             { providerID, modelID },
@@ -143,62 +120,55 @@ export function createAnthropicContextWindowLimitRecoveryHook(
             ctx.directory,
             pluginConfig,
             experimental,
-          );
-        }, 300);
+          )
+        }, 300)
 
-        pendingCompactionTimeoutBySession.set(sessionID, timeoutID);
+        pendingCompactionTimeoutBySession.set(sessionID, timeoutID)
       }
-      return;
+      return
     }
 
     if (event.type === "message.updated") {
-      const info = props?.info as Record<string, unknown> | undefined;
-      const sessionID = resolveMessageEventSessionID(props);
+      const info = props?.info as Record<string, unknown> | undefined
+      const sessionID = resolveMessageEventSessionID(props)
 
       if (sessionID && info?.role === "assistant" && info.error) {
-        dependencies.log("[auto-compact] message.updated with error", {
-          sessionID,
-          error: info.error,
-        });
-        const parsed = dependencies.parseAnthropicTokenLimitError(info.error);
-        dependencies.log("[auto-compact] message.updated parsed result", {
-          parsed,
-        });
+        dependencies.log("[auto-compact] message.updated with error", { sessionID, error: info.error })
+        const parsed = dependencies.parseAnthropicTokenLimitError(info.error)
+        dependencies.log("[auto-compact] message.updated parsed result", { parsed })
         if (parsed) {
-          parsed.providerID = info.providerID as string | undefined;
-          parsed.modelID = info.modelID as string | undefined;
-          autoCompactState.pendingCompact.add(sessionID);
-          autoCompactState.errorDataBySession.set(sessionID, parsed);
+          parsed.providerID = info.providerID as string | undefined
+          parsed.modelID = info.modelID as string | undefined
+          autoCompactState.pendingCompact.add(sessionID)
+          autoCompactState.errorDataBySession.set(sessionID, parsed)
         }
       }
-      return;
+      return
     }
 
     if (event.type === "session.idle") {
-      const sessionID = resolveSessionEventID(props);
-      if (!sessionID) return;
+      const sessionID = resolveSessionEventID(props)
+      if (!sessionID) return
 
-      if (!autoCompactState.pendingCompact.has(sessionID)) return;
+      if (!autoCompactState.pendingCompact.has(sessionID)) return
 
-      clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID);
+      clearSessionTimeout(pendingCompactionTimeoutBySession, sessionID)
 
-      const errorData = autoCompactState.errorDataBySession.get(sessionID);
+      const errorData = autoCompactState.errorDataBySession.get(sessionID)
       const lastAssistant = await dependencies.getLastAssistant(
         sessionID,
         ctx.client,
         ctx.directory,
-      );
-      const lastAssistantInfo = lastAssistant?.info;
+      )
+      const lastAssistantInfo = lastAssistant?.info
 
       if (lastAssistantInfo?.summary === true && lastAssistant?.hasContent) {
-        clearSessionState(autoCompactState, sessionID);
-        return;
+        clearSessionState(autoCompactState, sessionID)
+        return
       }
 
-      const providerID = errorData?.providerID ??
-        (lastAssistantInfo?.providerID as string | undefined);
-      const modelID = errorData?.modelID ??
-        (lastAssistantInfo?.modelID as string | undefined);
+      const providerID = errorData?.providerID ?? (lastAssistantInfo?.providerID as string | undefined)
+      const modelID = errorData?.modelID ?? (lastAssistantInfo?.modelID as string | undefined)
 
       await ctx.client.tui
         .showToast({
@@ -209,7 +179,7 @@ export function createAnthropicContextWindowLimitRecoveryHook(
             duration: 3000,
           },
         })
-        .catch(() => {});
+        .catch(() => {})
 
       await dependencies.executeCompact(
         sessionID,
@@ -219,15 +189,15 @@ export function createAnthropicContextWindowLimitRecoveryHook(
         ctx.directory,
         pluginConfig,
         experimental,
-      );
+      )
     }
-  };
+  }
 
   return {
     event: eventHandler,
     dispose: (): void => {
-      clearAllSessionTimeouts(pendingCompactionTimeoutBySession);
-      clearAllSessionTimeouts(autoCompactState.retryTimerBySession);
+      clearAllSessionTimeouts(pendingCompactionTimeoutBySession)
+      clearAllSessionTimeouts(autoCompactState.retryTimerBySession)
     },
-  };
+  }
 }

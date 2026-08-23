@@ -1,13 +1,13 @@
-import type { SkillInfo } from "./types";
-import type { LoadedSkill } from "../../features/opencode-skill-loader";
-import { isDisabledSkillAlias } from "../../features/opencode-skill-loader/skill-discovery";
+import type { SkillInfo } from "./types"
+import type { LoadedSkill } from "../../features/opencode-skill-loader"
+import { isDisabledSkillAlias } from "../../features/opencode-skill-loader/skill-discovery"
 
 export type NativeSkillEntry = {
-  name: string;
-  description: string;
-  location: string;
-  content: string;
-};
+  name: string
+  description: string
+  location: string
+  content: string
+}
 
 export function loadedSkillToInfo(skill: LoadedSkill): SkillInfo {
   return {
@@ -19,22 +19,20 @@ export function loadedSkillToInfo(skill: LoadedSkill): SkillInfo {
     compatibility: skill.compatibility,
     metadata: skill.metadata,
     allowedTools: skill.allowedTools,
-  };
+  }
 }
 
 function normalizeSkillName(name: string): string {
-  return name.toLowerCase();
+  return name.toLowerCase()
 }
 
-function normalizeDisabledSkills(
-  disabledSkills: ReadonlySet<string> | undefined,
-): ReadonlySet<string> | undefined {
-  if (!disabledSkills) return undefined;
-  return new Set(Array.from(disabledSkills, normalizeSkillName));
+function normalizeDisabledSkills(disabledSkills: ReadonlySet<string> | undefined): ReadonlySet<string> | undefined {
+  if (!disabledSkills) return undefined
+  return new Set(Array.from(disabledSkills, normalizeSkillName))
 }
 
 function nativeSkillScope(_native: NativeSkillEntry): LoadedSkill["scope"] {
-  return "config";
+  return "config"
 }
 
 function nativeSkillToLoadedSkill(native: NativeSkillEntry): LoadedSkill {
@@ -47,11 +45,11 @@ function nativeSkillToLoadedSkill(native: NativeSkillEntry): LoadedSkill {
       template: native.content,
     },
     scope: nativeSkillScope(native),
-  };
+  }
 }
 
 function nativeSkillToAliasCheckSkill(native: NativeSkillEntry): LoadedSkill {
-  const name = normalizeSkillName(native.name);
+  const name = normalizeSkillName(native.name)
   return {
     ...nativeSkillToLoadedSkill(native),
     name,
@@ -60,7 +58,7 @@ function nativeSkillToAliasCheckSkill(native: NativeSkillEntry): LoadedSkill {
       description: native.description,
       template: native.content,
     },
-  };
+  }
 }
 
 export function mergeNativeSkills(
@@ -68,23 +66,15 @@ export function mergeNativeSkills(
   nativeSkills: NativeSkillEntry[],
   disabledSkills?: ReadonlySet<string>,
 ): void {
-  const knownNames = new Set(
-    skills.map((skill) => normalizeSkillName(skill.name)),
-  );
-  const disabledSkillAliases = normalizeDisabledSkills(disabledSkills);
+  const knownNames = new Set(skills.map((skill) => normalizeSkillName(skill.name)))
+  const disabledSkillAliases = normalizeDisabledSkills(disabledSkills)
   for (const native of nativeSkills) {
-    const nativeName = normalizeSkillName(native.name);
-    if (knownNames.has(nativeName)) continue;
-    const loadedSkill = nativeSkillToLoadedSkill(native);
-    if (
-      disabledSkillAliases &&
-      isDisabledSkillAlias(
-        nativeSkillToAliasCheckSkill(native),
-        disabledSkillAliases,
-      )
-    ) continue;
-    skills.push(loadedSkill);
-    knownNames.add(nativeName);
+    const nativeName = normalizeSkillName(native.name)
+    if (knownNames.has(nativeName)) continue
+    const loadedSkill = nativeSkillToLoadedSkill(native)
+    if (disabledSkillAliases && isDisabledSkillAlias(nativeSkillToAliasCheckSkill(native), disabledSkillAliases)) continue
+    skills.push(loadedSkill)
+    knownNames.add(nativeName)
   }
 }
 
@@ -93,32 +83,22 @@ export function mergeNativeSkillInfos(
   nativeSkills: NativeSkillEntry[],
   disabledSkills?: ReadonlySet<string>,
 ): void {
-  const knownNames = new Set(
-    skillInfos.map((skill) => normalizeSkillName(skill.name)),
-  );
-  const disabledSkillAliases = normalizeDisabledSkills(disabledSkills);
+  const knownNames = new Set(skillInfos.map((skill) => normalizeSkillName(skill.name)))
+  const disabledSkillAliases = normalizeDisabledSkills(disabledSkills)
   for (const native of nativeSkills) {
-    const nativeName = normalizeSkillName(native.name);
-    if (knownNames.has(nativeName)) continue;
-    if (
-      disabledSkillAliases &&
-      isDisabledSkillAlias(
-        nativeSkillToAliasCheckSkill(native),
-        disabledSkillAliases,
-      )
-    ) continue;
+    const nativeName = normalizeSkillName(native.name)
+    if (knownNames.has(nativeName)) continue
+    if (disabledSkillAliases && isDisabledSkillAlias(nativeSkillToAliasCheckSkill(native), disabledSkillAliases)) continue
     skillInfos.push({
       name: native.name,
       description: native.description,
       location: native.location,
       scope: nativeSkillScope(native),
-    });
-    knownNames.add(nativeName);
+    })
+    knownNames.add(nativeName)
   }
 }
 
-export function isPromiseLike<TValue>(
-  value: TValue | Promise<TValue>,
-): value is Promise<TValue> {
-  return typeof value === "object" && value !== null && "then" in value;
+export function isPromiseLike<TValue>(value: TValue | Promise<TValue>): value is Promise<TValue> {
+  return typeof value === "object" && value !== null && "then" in value
 }

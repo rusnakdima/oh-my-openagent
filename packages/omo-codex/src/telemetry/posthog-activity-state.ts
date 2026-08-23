@@ -1,19 +1,22 @@
 import {
   getDailyActiveCaptureState,
   getTelemetryActivityStateFilePath,
-} from "@oh-my-opencode/telemetry-core";
+} from "@oh-my-opencode/telemetry-core"
 import type {
   PostHogActivityCaptureState,
   PostHogActivityState,
-} from "@oh-my-opencode/telemetry-core";
+} from "@oh-my-opencode/telemetry-core"
 
-import { getActivityStateDir } from "./data-path";
-import { writeTelemetryDiagnostic } from "./diagnostics";
+import { getActivityStateDir } from "./data-path"
+import { writeTelemetryDiagnostic } from "./diagnostics"
 
-export type { PostHogActivityCaptureState, PostHogActivityState };
+export type {
+  PostHogActivityCaptureState,
+  PostHogActivityState,
+}
 
 export function getPostHogActivityStateFilePath(): string {
-  return getTelemetryActivityStateFilePath(getActivityStateDir());
+  return getTelemetryActivityStateFilePath(getActivityStateDir())
 }
 
 export function getPostHogActivityCaptureState(
@@ -23,5 +26,5 @@ export function getPostHogActivityCaptureState(
     diagnostics: writeTelemetryDiagnostic,
     now,
     stateDir: getActivityStateDir(),
-  });
+  })
 }

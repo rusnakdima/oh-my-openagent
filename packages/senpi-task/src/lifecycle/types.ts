@@ -1,17 +1,12 @@
-import type { AgentLimitReached } from "./errors";
-import type { DestroyCause } from "./port";
+import type { AgentLimitReached } from "./errors"
+import type { DestroyCause } from "./port"
 
 export type AdmissionResult =
   | { readonly kind: "admitted" }
   | { readonly kind: "evicted"; readonly evicted_task_id: string }
-  | { readonly kind: "rejected"; readonly error: AgentLimitReached };
+  | { readonly kind: "rejected"; readonly error: AgentLimitReached }
 
-export type ReconcileOutcomeKind =
-  | "resumed"
-  | "lost"
-  | "lost_and_terminated"
-  | "foreign_live_owner"
-  | "deferred";
+export type ReconcileOutcomeKind = "resumed" | "lost" | "lost_and_terminated" | "foreign_live_owner" | "deferred"
 
 export type ReconcileDeferredReason =
   | "capacity"
@@ -23,45 +18,45 @@ export type ReconcileDeferredReason =
   | "spawn_spec_unavailable"
   | "team_inactive"
   | "reattach_disabled"
-  | "rollback_failed";
+  | "rollback_failed"
 
 export type ReconcileOutcome = {
-  readonly task_id: string;
-  readonly kind: ReconcileOutcomeKind;
-  readonly reason?: string;
-};
+  readonly task_id: string
+  readonly kind: ReconcileOutcomeKind
+  readonly reason?: string
+}
 
 export type ReconcileResult = {
-  readonly outcomes: readonly ReconcileOutcome[];
-};
+  readonly outcomes: readonly ReconcileOutcome[]
+}
 
 export type CleanupResult = {
-  readonly deleted: readonly string[];
-  readonly retained: readonly string[];
-};
+  readonly deleted: readonly string[]
+  readonly retained: readonly string[]
+}
 
 export type SuspendInput = {
-  readonly parentSessionId: string;
-  readonly reason: string;
-};
+  readonly parentSessionId: string
+  readonly reason: string
+}
 
 export type SuspendFailure = {
-  readonly task_id: string;
-  readonly error: string;
-};
+  readonly task_id: string
+  readonly error: string
+}
 
 export type SuspendSummary = {
-  readonly suspended_in_process: number;
-  readonly suspended_rpc: number;
-  readonly suspended_pending: number;
-  readonly disposed: number;
-  readonly failures: readonly SuspendFailure[];
-};
+  readonly suspended_in_process: number
+  readonly suspended_rpc: number
+  readonly suspended_pending: number
+  readonly disposed: number
+  readonly failures: readonly SuspendFailure[]
+}
 
 export type TaskLifecycle = {
-  destroyResidentTask(taskId: string, cause: DestroyCause): Promise<void>;
-  admitResident(parentSessionId: string): Promise<AdmissionResult>;
-  reconcileOnSessionStart(parentSessionId?: string): Promise<ReconcileResult>;
-  cleanupExpiredRecords(): Promise<CleanupResult>;
-  suspendOnSessionShutdown(input: SuspendInput): Promise<SuspendSummary>;
-};
+  destroyResidentTask(taskId: string, cause: DestroyCause): Promise<void>
+  admitResident(parentSessionId: string): Promise<AdmissionResult>
+  reconcileOnSessionStart(parentSessionId?: string): Promise<ReconcileResult>
+  cleanupExpiredRecords(): Promise<CleanupResult>
+  suspendOnSessionShutdown(input: SuspendInput): Promise<SuspendSummary>
+}

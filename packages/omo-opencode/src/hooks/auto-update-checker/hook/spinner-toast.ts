@@ -1,19 +1,15 @@
-import type { PluginInput } from "@opencode-ai/plugin";
-import { ignoreToastError } from "./ignore-toast-error";
+import type { PluginInput } from "@opencode-ai/plugin"
+import { ignoreToastError } from "./ignore-toast-error"
 
-const SISYPHUS_SPINNER = ["·", "•", "●", "○", "◌", "◦", " "];
+const SISYPHUS_SPINNER = ["·", "•", "●", "○", "◌", "◦", " "]
 
-export async function showSpinnerToast(
-  ctx: PluginInput,
-  version: string,
-  message: string,
-): Promise<void> {
-  const totalDuration = 5000;
-  const frameInterval = 100;
-  const totalFrames = Math.floor(totalDuration / frameInterval);
+export async function showSpinnerToast(ctx: PluginInput, version: string, message: string): Promise<void> {
+  const totalDuration = 5000
+  const frameInterval = 100
+  const totalFrames = Math.floor(totalDuration / frameInterval)
 
   for (let i = 0; i < totalFrames; i++) {
-    const spinner = SISYPHUS_SPINNER[i % SISYPHUS_SPINNER.length];
+    const spinner = SISYPHUS_SPINNER[i % SISYPHUS_SPINNER.length]
     await ctx.client.tui
       .showToast({
         body: {
@@ -23,8 +19,8 @@ export async function showSpinnerToast(
           duration: frameInterval + 50,
         },
       })
-      .catch(ignoreToastError);
+      .catch(ignoreToastError)
 
-    await new Promise((resolve) => setTimeout(resolve, frameInterval));
+    await new Promise((resolve) => setTimeout(resolve, frameInterval))
   }
 }

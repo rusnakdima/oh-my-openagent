@@ -1,21 +1,17 @@
-import { afterAll, describe, expect, it, mock } from "bun:test";
+import { describe, expect, it, mock, afterAll } from "bun:test"
 
-import { applyProviderConfig } from "../plugin-handlers/provider-config-handler";
-import { createModelCacheState } from "../plugin-state";
+import { applyProviderConfig } from "../plugin-handlers/provider-config-handler"
+import { createModelCacheState } from "../plugin-state"
 
-const logMock = mock(() => {});
+const logMock = mock(() => {})
 
 mock.module("../shared/logger", () => ({
   log: logMock,
-}));
+}))
 
-afterAll(() => {
-  mock.restore();
-});
+afterAll(() => { mock.restore() })
 
-const { createPreemptiveCompactionHook } = await import(
-  "./preemptive-compaction"
-);
+const { createPreemptiveCompactionHook } = await import("./preemptive-compaction")
 
 function createMockCtx() {
   return {
@@ -29,15 +25,15 @@ function createMockCtx() {
       },
     },
     directory: "/tmp/test",
-  };
+  }
 }
 
 describe("preemptive-compaction context-limit cache invalidation", () => {
   it("skips compaction after provider config removes a cached model limit", async () => {
     // given
-    const ctx = createMockCtx();
-    const modelCacheState = createModelCacheState();
-    const sessionID = "ses_removed_limit";
+    const ctx = createMockCtx()
+    const modelCacheState = createModelCacheState()
+    const sessionID = "ses_removed_limit"
 
     applyProviderConfig({
       config: {
@@ -52,13 +48,9 @@ describe("preemptive-compaction context-limit cache invalidation", () => {
         },
       },
       modelCacheState,
-    });
+    })
 
-    const hook = createPreemptiveCompactionHook(
-      ctx as never,
-      {} as never,
-      modelCacheState,
-    );
+    const hook = createPreemptiveCompactionHook(ctx as never, {} as never, modelCacheState)
 
     await hook.event({
       event: {
@@ -79,7 +71,7 @@ describe("preemptive-compaction context-limit cache invalidation", () => {
           },
         },
       },
-    });
+    })
 
     applyProviderConfig({
       config: {
@@ -90,15 +82,15 @@ describe("preemptive-compaction context-limit cache invalidation", () => {
         },
       },
       modelCacheState,
-    });
+    })
 
     // when
     await hook["tool.execute.after"](
       { tool: "bash", sessionID, callID: "call_1" },
       { title: "", output: "test", metadata: null },
-    );
+    )
 
     // then
-    expect(ctx.client.session.summarize).not.toHaveBeenCalled();
-  });
-});
+    expect(ctx.client.session.summarize).not.toHaveBeenCalled()
+  })
+})

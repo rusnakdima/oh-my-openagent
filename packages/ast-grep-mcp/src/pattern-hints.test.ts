@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
-  extractMetavars,
   validatePatternHints,
   validateRewriteHints,
+  extractMetavars,
   type ValidationOpts,
 } from "./pattern-hints";
 
@@ -17,61 +17,16 @@ describe("extractMetavars", () => {
   };
 
   const cases: ExtractCase[] = [
-    {
-      name: "single metavar $MSG",
-      text: "console.log($MSG)",
-      single: ["MSG"],
-      multi: [],
-    },
-    {
-      name: "multi metavar $$$ARGS",
-      text: "foo($$$ARGS)",
-      single: [],
-      multi: ["ARGS"],
-    },
-    {
-      name: "mixed single and multi",
-      text: "foo($A, $$$B)",
-      single: ["A"],
-      multi: ["B"],
-    },
-    {
-      name: "wildcard underscore excluded",
-      text: "foo($_)",
-      single: [],
-      multi: [],
-    },
-    {
-      name: "multi wildcard excluded",
-      text: "foo($$$)",
-      single: [],
-      multi: [],
-    },
-    {
-      name: "same name as single and multi",
-      text: "$A + $$$A",
-      single: ["A"],
-      multi: ["A"],
-    },
+    { name: "single metavar $MSG", text: "console.log($MSG)", single: ["MSG"], multi: [] },
+    { name: "multi metavar $$$ARGS", text: "foo($$$ARGS)", single: [], multi: ["ARGS"] },
+    { name: "mixed single and multi", text: "foo($A, $$$B)", single: ["A"], multi: ["B"] },
+    { name: "wildcard underscore excluded", text: "foo($_)", single: [], multi: [] },
+    { name: "multi wildcard excluded", text: "foo($$$)", single: [], multi: [] },
+    { name: "same name as single and multi", text: "$A + $$$A", single: ["A"], multi: ["A"] },
     { name: "no metavars", text: "console.log(42)", single: [], multi: [] },
-    {
-      name: "multiple singles",
-      text: "$A + $B",
-      single: ["A", "B"],
-      multi: [],
-    },
-    {
-      name: "multiple multis",
-      text: "$$$X, $$$Y",
-      single: [],
-      multi: ["X", "Y"],
-    },
-    {
-      name: "double dollar not captured",
-      text: "$$ARGS",
-      single: [],
-      multi: [],
-    },
+    { name: "multiple singles", text: "$A + $B", single: ["A", "B"], multi: [] },
+    { name: "multiple multis", text: "$$$X, $$$Y", single: [], multi: ["X", "Y"] },
+    { name: "double dollar not captured", text: "$$ARGS", single: [], multi: [] },
     { name: "lowercase not captured", text: "$foo", single: [], multi: [] },
   ];
 
@@ -98,102 +53,22 @@ describe("validatePatternHints - hard reject rules", () => {
   };
 
   const cases: HardRejectCase[] = [
-    {
-      name: "regex \\w escape",
-      pattern: "\\w+",
-      language: "typescript",
-      hintCode: "REGEX_BACKSLASH_ESCAPE",
-    },
-    {
-      name: "regex \\d escape",
-      pattern: "\\d+",
-      language: "typescript",
-      hintCode: "REGEX_BACKSLASH_ESCAPE",
-    },
-    {
-      name: "regex \\s escape",
-      pattern: "\\s+",
-      language: "typescript",
-      hintCode: "REGEX_BACKSLASH_ESCAPE",
-    },
-    {
-      name: "regex \\b escape",
-      pattern: "\\bword\\b",
-      language: "typescript",
-      hintCode: "REGEX_BACKSLASH_ESCAPE",
-    },
-    {
-      name: "regex .* wildcard",
-      pattern: ".*foo",
-      language: "typescript",
-      hintCode: "REGEX_DOT_STAR",
-    },
-    {
-      name: "regex .+ wildcard",
-      pattern: ".+foo",
-      language: "typescript",
-      hintCode: "REGEX_DOT_STAR",
-    },
-    {
-      name: "regex char class [a-z]",
-      pattern: "[a-z]",
-      language: "typescript",
-      hintCode: "REGEX_CHAR_CLASS",
-    },
-    {
-      name: "regex char class [a-zA-Z0-9]",
-      pattern: "[a-zA-Z0-9]",
-      language: "typescript",
-      hintCode: "REGEX_CHAR_CLASS",
-    },
-    {
-      name: "python trailing colon def",
-      pattern: "def foo($X):",
-      language: "python",
-      hintCode: "PATTERN_INCOMPLETE_FORM",
-    },
-    {
-      name: "python trailing colon class",
-      pattern: "class Foo($X):",
-      language: "python",
-      hintCode: "PATTERN_INCOMPLETE_FORM",
-    },
-    {
-      name: "JS incomplete function",
-      pattern: "function foo",
-      language: "javascript",
-      hintCode: "PATTERN_INCOMPLETE_FORM",
-    },
-    {
-      name: "TS incomplete function",
-      pattern: "function foo",
-      language: "typescript",
-      hintCode: "PATTERN_INCOMPLETE_FORM",
-    },
-    {
-      name: "Go incomplete function",
-      pattern: "func foo",
-      language: "go",
-      hintCode: "PATTERN_INCOMPLETE_FORM",
-    },
-    {
-      name: "Rust incomplete function",
-      pattern: "fn foo",
-      language: "rust",
-      hintCode: "PATTERN_INCOMPLETE_FORM",
-    },
-    {
-      name: "double dollar $$ARGS",
-      pattern: "$$ARGS",
-      language: "typescript",
-      hintCode: "METAVAR_DOUBLE_DOLLAR",
-    },
-    {
-      name: "invalid metavar name lowercase",
-      pattern: "$foo",
-      language: "typescript",
-      hintCode: "INVALID_METAVAR_NAME",
-    },
+    { name: "regex \\w escape", pattern: "\\w+", language: "typescript", hintCode: "REGEX_BACKSLASH_ESCAPE" },
+    { name: "regex \\d escape", pattern: "\\d+", language: "typescript", hintCode: "REGEX_BACKSLASH_ESCAPE" },
+    { name: "regex \\s escape", pattern: "\\s+", language: "typescript", hintCode: "REGEX_BACKSLASH_ESCAPE" },
+    { name: "regex \\b escape", pattern: "\\bword\\b", language: "typescript", hintCode: "REGEX_BACKSLASH_ESCAPE" },
+    { name: "regex .* wildcard", pattern: ".*foo", language: "typescript", hintCode: "REGEX_DOT_STAR" },
+    { name: "regex .+ wildcard", pattern: ".+foo", language: "typescript", hintCode: "REGEX_DOT_STAR" },
+    { name: "regex char class [a-z]", pattern: "[a-z]", language: "typescript", hintCode: "REGEX_CHAR_CLASS" },
+    { name: "regex char class [a-zA-Z0-9]", pattern: "[a-zA-Z0-9]", language: "typescript", hintCode: "REGEX_CHAR_CLASS" },
+    { name: "python trailing colon def", pattern: "def foo($X):", language: "python", hintCode: "PATTERN_INCOMPLETE_FORM" },
+    { name: "python trailing colon class", pattern: "class Foo($X):", language: "python", hintCode: "PATTERN_INCOMPLETE_FORM" },
+    { name: "JS incomplete function", pattern: "function foo", language: "javascript", hintCode: "PATTERN_INCOMPLETE_FORM" },
+    { name: "TS incomplete function", pattern: "function foo", language: "typescript", hintCode: "PATTERN_INCOMPLETE_FORM" },
+    { name: "Go incomplete function", pattern: "func foo", language: "go", hintCode: "PATTERN_INCOMPLETE_FORM" },
+    { name: "Rust incomplete function", pattern: "fn foo", language: "rust", hintCode: "PATTERN_INCOMPLETE_FORM" },
+    { name: "double dollar $$ARGS", pattern: "$$ARGS", language: "typescript", hintCode: "METAVAR_DOUBLE_DOLLAR" },
+    { name: "invalid metavar name lowercase", pattern: "$foo", language: "typescript", hintCode: "INVALID_METAVAR_NAME" },
   ];
 
   for (const c of cases) {
@@ -212,9 +87,7 @@ describe("validatePatternHints - hard reject rules", () => {
       // given: a pattern with a hard-reject hint issue
       // when: validating with force=true
       // then: not rejected (hint still present but bypassed)
-      const result = validatePatternHints(c.pattern, c.language, {
-        force: true,
-      });
+      const result = validatePatternHints(c.pattern, c.language, { force: true });
       expect(result.rejected).toBe(false);
       expect(result.ok).toBe(true);
       expect(result.code).toBeNull();
@@ -233,11 +106,7 @@ describe("validatePatternHints - warn rules", () => {
     const result = validatePatternHints("a|b", "typescript");
     expect(result.rejected).toBe(false);
     expect(result.ok).toBe(true);
-    expect(
-      result.hints.some((h) =>
-        h.code === "BARE_ALTERNATION" && h.severity === "warn"
-      ),
-    ).toBe(true);
+    expect(result.hints.some((h) => h.code === "BARE_ALTERNATION" && h.severity === "warn")).toBe(true);
   });
 
   it("bare alternation warns even with force=true", () => {
@@ -270,66 +139,15 @@ describe("validatePatternHints - always reject rules", () => {
   };
 
   const cases: AlwaysRejectCase[] = [
-    {
-      name: "empty pattern",
-      pattern: "",
-      language: "typescript",
-      code: "PATTERN_EMPTY",
-    },
-    {
-      name: "whitespace-only pattern",
-      pattern: "   ",
-      language: "typescript",
-      code: "PATTERN_EMPTY",
-    },
-    {
-      name: "unsupported language",
-      pattern: "foo",
-      language: "brainfuck",
-      code: "LANGUAGE_UNSUPPORTED",
-    },
-    {
-      name: "invalid path - empty string",
-      pattern: "foo",
-      language: "typescript",
-      opts: { paths: "" },
-      code: "INVALID_PATH",
-    },
-    {
-      name: "invalid path - empty array",
-      pattern: "foo",
-      language: "typescript",
-      opts: { paths: [] },
-      code: "INVALID_PATH",
-    },
-    {
-      name: "invalid limit - negative",
-      pattern: "foo",
-      language: "typescript",
-      opts: { limit: -1 },
-      code: "INVALID_LIMIT",
-    },
-    {
-      name: "invalid limit - zero",
-      pattern: "foo",
-      language: "typescript",
-      opts: { limit: 0 },
-      code: "INVALID_LIMIT",
-    },
-    {
-      name: "invalid limit - NaN",
-      pattern: "foo",
-      language: "typescript",
-      opts: { limit: NaN },
-      code: "INVALID_LIMIT",
-    },
-    {
-      name: "invalid limit - Infinity",
-      pattern: "foo",
-      language: "typescript",
-      opts: { limit: Infinity },
-      code: "INVALID_LIMIT",
-    },
+    { name: "empty pattern", pattern: "", language: "typescript", code: "PATTERN_EMPTY" },
+    { name: "whitespace-only pattern", pattern: "   ", language: "typescript", code: "PATTERN_EMPTY" },
+    { name: "unsupported language", pattern: "foo", language: "brainfuck", code: "LANGUAGE_UNSUPPORTED" },
+    { name: "invalid path - empty string", pattern: "foo", language: "typescript", opts: { paths: "" }, code: "INVALID_PATH" },
+    { name: "invalid path - empty array", pattern: "foo", language: "typescript", opts: { paths: [] }, code: "INVALID_PATH" },
+    { name: "invalid limit - negative", pattern: "foo", language: "typescript", opts: { limit: -1 }, code: "INVALID_LIMIT" },
+    { name: "invalid limit - zero", pattern: "foo", language: "typescript", opts: { limit: 0 }, code: "INVALID_LIMIT" },
+    { name: "invalid limit - NaN", pattern: "foo", language: "typescript", opts: { limit: NaN }, code: "INVALID_LIMIT" },
+    { name: "invalid limit - Infinity", pattern: "foo", language: "typescript", opts: { limit: Infinity }, code: "INVALID_LIMIT" },
   ];
 
   for (const c of cases) {
@@ -347,10 +165,7 @@ describe("validatePatternHints - always reject rules", () => {
       // given: a pattern with an always-reject issue
       // when: validating with force=true
       // then: still rejected with the same code
-      const result = validatePatternHints(c.pattern, c.language, {
-        ...c.opts,
-        force: true,
-      });
+      const result = validatePatternHints(c.pattern, c.language, { ...c.opts, force: true });
       expect(result.rejected).toBe(true);
       expect(result.code).toBe(c.code);
     });
@@ -367,42 +182,14 @@ describe("validatePatternHints - happy paths", () => {
   };
 
   const cases: HappyCase[] = [
-    {
-      name: "console.log with metavar",
-      pattern: "console.log($MSG)",
-      language: "typescript",
-    },
-    {
-      name: "function with body",
-      pattern: "function $NAME($$$ARGS) { $$$BODY }",
-      language: "typescript",
-    },
-    {
-      name: "python def without trailing colon",
-      pattern: "def $FUNC($$$)",
-      language: "python",
-    },
-    {
-      name: "go func with body",
-      pattern: "func $NAME($$$) { $$$ }",
-      language: "go",
-    },
-    {
-      name: "rust fn with body",
-      pattern: "fn $NAME($$$) -> $RET { $$$ }",
-      language: "rust",
-    },
-    {
-      name: "alias ts -> typescript",
-      pattern: "console.log($MSG)",
-      language: "ts",
-    },
+    { name: "console.log with metavar", pattern: "console.log($MSG)", language: "typescript" },
+    { name: "function with body", pattern: "function $NAME($$$ARGS) { $$$BODY }", language: "typescript" },
+    { name: "python def without trailing colon", pattern: "def $FUNC($$$)", language: "python" },
+    { name: "go func with body", pattern: "func $NAME($$$) { $$$ }", language: "go" },
+    { name: "rust fn with body", pattern: "fn $NAME($$$) -> $RET { $$$ }", language: "rust" },
+    { name: "alias ts -> typescript", pattern: "console.log($MSG)", language: "ts" },
     { name: "alias py -> python", pattern: "def $FUNC($$$)", language: "py" },
-    {
-      name: "alias js -> javascript",
-      pattern: "function $NAME($$$) { $$$ }",
-      language: "js",
-    },
+    { name: "alias js -> javascript", pattern: "function $NAME($$$) { $$$ }", language: "js" },
   ];
 
   for (const c of cases) {
@@ -425,9 +212,7 @@ describe("validateRewriteHints", () => {
     // given: pattern captures $A, rewrite uses $B (not in pattern)
     // when: validating with force=true
     // then: always-rejected with REWRITE_UNBOUND_METAVARIABLE
-    const result = validateRewriteHints("console.log($A)", "$B", "typescript", {
-      force: true,
-    });
+    const result = validateRewriteHints("console.log($A)", "$B", "typescript", { force: true });
     expect(result.rejected).toBe(true);
     expect(result.code).toBe("REWRITE_UNBOUND_METAVARIABLE");
   });
@@ -436,12 +221,7 @@ describe("validateRewriteHints", () => {
     // given: pattern has $ARGS (single), rewrite has $$$ARGS (multi)
     // when: validating with force=true
     // then: always-rejected with REWRITE_CARDINALITY_MISMATCH
-    const result = validateRewriteHints(
-      "foo($ARGS)",
-      "bar($$$ARGS)",
-      "typescript",
-      { force: true },
-    );
+    const result = validateRewriteHints("foo($ARGS)", "bar($$$ARGS)", "typescript", { force: true });
     expect(result.rejected).toBe(true);
     expect(result.code).toBe("REWRITE_CARDINALITY_MISMATCH");
   });
@@ -450,11 +230,7 @@ describe("validateRewriteHints", () => {
     // given: pattern has $$$ARGS (multi), rewrite has $ARGS (single)
     // when: validating
     // then: always-rejected with REWRITE_CARDINALITY_MISMATCH
-    const result = validateRewriteHints(
-      "foo($$$ARGS)",
-      "bar($ARGS)",
-      "typescript",
-    );
+    const result = validateRewriteHints("foo($$$ARGS)", "bar($ARGS)", "typescript");
     expect(result.rejected).toBe(true);
     expect(result.code).toBe("REWRITE_CARDINALITY_MISMATCH");
   });
@@ -463,11 +239,7 @@ describe("validateRewriteHints", () => {
     // given: pattern and rewrite with matching metavars
     // when: validating
     // then: ok, not rejected
-    const result = validateRewriteHints(
-      "console.log($MSG)",
-      "logger.info($MSG)",
-      "typescript",
-    );
+    const result = validateRewriteHints("console.log($MSG)", "logger.info($MSG)", "typescript");
     expect(result.ok).toBe(true);
     expect(result.rejected).toBe(false);
     expect(result.code).toBeNull();
@@ -477,11 +249,7 @@ describe("validateRewriteHints", () => {
     // given: pattern and rewrite with matching multi metavars
     // when: validating
     // then: ok
-    const result = validateRewriteHints(
-      "foo($$$ARGS)",
-      "bar($$$ARGS)",
-      "typescript",
-    );
+    const result = validateRewriteHints("foo($$$ARGS)", "bar($$$ARGS)", "typescript");
     expect(result.ok).toBe(true);
   });
 
@@ -497,11 +265,7 @@ describe("validateRewriteHints", () => {
     // given: pattern has regex misuse (hard-reject), rewrite has no metavars
     // when: validating without force
     // then: rejected with PATTERN_HINT_REJECTED
-    const result = validateRewriteHints(
-      "\\w+",
-      "console.log(42)",
-      "typescript",
-    );
+    const result = validateRewriteHints("\\w+", "console.log(42)", "typescript");
     expect(result.rejected).toBe(true);
     expect(result.code).toBe("PATTERN_HINT_REJECTED");
   });
@@ -510,9 +274,7 @@ describe("validateRewriteHints", () => {
     // given: pattern has regex misuse AND rewrite has unbound metavar
     // when: validating with force=true
     // then: still rejected (unbound is always-reject)
-    const result = validateRewriteHints("\\w+", "$B", "typescript", {
-      force: true,
-    });
+    const result = validateRewriteHints("\\w+", "$B", "typescript", { force: true });
     expect(result.rejected).toBe(true);
     expect(result.code).toBe("REWRITE_UNBOUND_METAVARIABLE");
   });
@@ -521,12 +283,7 @@ describe("validateRewriteHints", () => {
     // given: pattern has regex misuse, rewrite has no metavars
     // when: validating with force=true
     // then: ok (pattern hint bypassed, rewrite valid)
-    const result = validateRewriteHints(
-      "\\w+",
-      "console.log(42)",
-      "typescript",
-      { force: true },
-    );
+    const result = validateRewriteHints("\\w+", "console.log(42)", "typescript", { force: true });
     expect(result.ok).toBe(true);
   });
 
@@ -545,36 +302,12 @@ describe("validateRewriteHints", () => {
 describe("coverage gap 1: metavar name validation (mixed-case)", () => {
   type Case = { name: string; pattern: string; shouldReject: boolean };
   const cases: Case[] = [
-    {
-      name: "$Foo rejected (capital then lower)",
-      pattern: "console.log($Foo)",
-      shouldReject: true,
-    },
-    {
-      name: "$Afoo rejected (upper then lower)",
-      pattern: "console.log($Afoo)",
-      shouldReject: true,
-    },
-    {
-      name: "$foo rejected (all lower)",
-      pattern: "console.log($foo)",
-      shouldReject: true,
-    },
-    {
-      name: "$MSG accepted (all caps)",
-      pattern: "console.log($MSG)",
-      shouldReject: false,
-    },
-    {
-      name: "$_ accepted (wildcard)",
-      pattern: "console.log($_)",
-      shouldReject: false,
-    },
-    {
-      name: "$$$ARGS accepted (multi all caps)",
-      pattern: "foo($$$ARGS)",
-      shouldReject: false,
-    },
+    { name: "$Foo rejected (capital then lower)", pattern: "console.log($Foo)", shouldReject: true },
+    { name: "$Afoo rejected (upper then lower)", pattern: "console.log($Afoo)", shouldReject: true },
+    { name: "$foo rejected (all lower)", pattern: "console.log($foo)", shouldReject: true },
+    { name: "$MSG accepted (all caps)", pattern: "console.log($MSG)", shouldReject: false },
+    { name: "$_ accepted (wildcard)", pattern: "console.log($_)", shouldReject: false },
+    { name: "$$$ARGS accepted (multi all caps)", pattern: "foo($$$ARGS)", shouldReject: false },
   ];
   for (const c of cases) {
     it(c.name, () => {
@@ -585,12 +318,10 @@ describe("coverage gap 1: metavar name validation (mixed-case)", () => {
       if (c.shouldReject) {
         expect(result.rejected).toBe(true);
         expect(result.code).toBe("PATTERN_HINT_REJECTED");
-        expect(result.hints.some((h) => h.code === "INVALID_METAVAR_NAME"))
-          .toBe(true);
+        expect(result.hints.some((h) => h.code === "INVALID_METAVAR_NAME")).toBe(true);
       } else {
         expect(result.ok).toBe(true);
-        expect(result.hints.some((h) => h.code === "INVALID_METAVAR_NAME"))
-          .toBe(false);
+        expect(result.hints.some((h) => h.code === "INVALID_METAVAR_NAME")).toBe(false);
       }
     });
   }
@@ -599,13 +330,9 @@ describe("coverage gap 1: metavar name validation (mixed-case)", () => {
     // given: mixed-case metavar name
     // when: force=true
     // then: bypassed but hint still present
-    const result = validatePatternHints("console.log($Foo)", "typescript", {
-      force: true,
-    });
+    const result = validatePatternHints("console.log($Foo)", "typescript", { force: true });
     expect(result.ok).toBe(true);
-    expect(result.hints.some((h) => h.code === "INVALID_METAVAR_NAME")).toBe(
-      true,
-    );
+    expect(result.hints.some((h) => h.code === "INVALID_METAVAR_NAME")).toBe(true);
   });
 });
 
@@ -632,16 +359,8 @@ describe("coverage gap 2: bare-pipe warning for metavar/call operands", () => {
 describe("coverage gap 3: incomplete function forms with params but no body", () => {
   type FormCase = { name: string; pattern: string; language: string };
   const cases: FormCase[] = [
-    {
-      name: "JS function foo() no body",
-      pattern: "function foo()",
-      language: "javascript",
-    },
-    {
-      name: "TS function foo() no body",
-      pattern: "function foo()",
-      language: "typescript",
-    },
+    { name: "JS function foo() no body", pattern: "function foo()", language: "javascript" },
+    { name: "TS function foo() no body", pattern: "function foo()", language: "typescript" },
     { name: "Go func foo() no body", pattern: "func foo()", language: "go" },
     { name: "Rust fn foo() no body", pattern: "fn foo()", language: "rust" },
   ];
@@ -653,19 +372,15 @@ describe("coverage gap 3: incomplete function forms with params but no body", ()
       const result = validatePatternHints(c.pattern, c.language);
       expect(result.rejected).toBe(true);
       expect(result.code).toBe("PATTERN_HINT_REJECTED");
-      expect(result.hints.some((h) => h.code === "PATTERN_INCOMPLETE_FORM"))
-        .toBe(true);
+      expect(result.hints.some((h) => h.code === "PATTERN_INCOMPLETE_FORM")).toBe(true);
     });
     it(`${c.name} - force=true bypasses`, () => {
       // given: same incomplete form
       // when: force=true
       // then: bypassed but hint present
-      const result = validatePatternHints(c.pattern, c.language, {
-        force: true,
-      });
+      const result = validatePatternHints(c.pattern, c.language, { force: true });
       expect(result.ok).toBe(true);
-      expect(result.hints.some((h) => h.code === "PATTERN_INCOMPLETE_FORM"))
-        .toBe(true);
+      expect(result.hints.some((h) => h.code === "PATTERN_INCOMPLETE_FORM")).toBe(true);
     });
   }
 
@@ -675,9 +390,7 @@ describe("coverage gap 3: incomplete function forms with params but no body", ()
     // then: no incomplete-form hint
     const result = validatePatternHints("function foo() { $$$ }", "javascript");
     expect(result.ok).toBe(true);
-    expect(result.hints.some((h) => h.code === "PATTERN_INCOMPLETE_FORM")).toBe(
-      false,
-    );
+    expect(result.hints.some((h) => h.code === "PATTERN_INCOMPLETE_FORM")).toBe(false);
   });
 });
 
@@ -686,58 +399,18 @@ describe("coverage gap 4: character-class detection breadth (round 2 decision ta
   const cases: CharCase[] = [
     // MUST FIRE — regex char classes
     { name: "[a_] detected", pattern: "[a_]", shouldDetect: true },
-    {
-      name: "[^a-z] detected (negated class)",
-      pattern: "[^a-z]",
-      shouldDetect: true,
-    },
-    {
-      name: "[a. ] detected (dot+space)",
-      pattern: "[a. ]",
-      shouldDetect: true,
-    },
-    {
-      name: "[a-z] detected (hyphen range)",
-      pattern: "[a-z]",
-      shouldDetect: true,
-    },
+    { name: "[^a-z] detected (negated class)", pattern: "[^a-z]", shouldDetect: true },
+    { name: "[a. ] detected (dot+space)", pattern: "[a. ]", shouldDetect: true },
+    { name: "[a-z] detected (hyphen range)", pattern: "[a-z]", shouldDetect: true },
     { name: "[A-Z0-9_] detected", pattern: "[A-Z0-9_]", shouldDetect: true },
     // MUST NOT FIRE — valid TypeScript/code patterns
-    {
-      name: "[a, b] not detected (tuple/array literal)",
-      pattern: "[a, b]",
-      shouldDetect: false,
-    },
-    {
-      name: "const x = [a, b] not detected",
-      pattern: "const x = [a, b]",
-      shouldDetect: false,
-    },
-    {
-      name: "const [a, b] = pair not detected (destructuring)",
-      pattern: "const [a, b] = pair",
-      shouldDetect: false,
-    },
-    {
-      name: "obj[foo_bar] not detected (computed index)",
-      pattern: "obj[foo_bar]",
-      shouldDetect: false,
-    },
-    {
-      name: "type T = [A, B] not detected (tuple type)",
-      pattern: "type T = [A, B]",
-      shouldDetect: false,
-    },
-    {
-      name: "arr[0] not detected (indexing)",
-      pattern: "arr[0]",
-      shouldDetect: false,
-    },
-    {
-      name: 'obj["key"] not detected (string index)',
-      pattern: 'obj["key"]',
-      shouldDetect: false,
-    },
+    { name: "[a, b] not detected (tuple/array literal)", pattern: "[a, b]", shouldDetect: false },
+    { name: "const x = [a, b] not detected", pattern: "const x = [a, b]", shouldDetect: false },
+    { name: "const [a, b] = pair not detected (destructuring)", pattern: "const [a, b] = pair", shouldDetect: false },
+    { name: "obj[foo_bar] not detected (computed index)", pattern: "obj[foo_bar]", shouldDetect: false },
+    { name: "type T = [A, B] not detected (tuple type)", pattern: "type T = [A, B]", shouldDetect: false },
+    { name: "arr[0] not detected (indexing)", pattern: "arr[0]", shouldDetect: false },
+    { name: "obj[\"key\"] not detected (string index)", pattern: "obj[\"key\"]", shouldDetect: false },
   ];
   for (const c of cases) {
     it(c.name, () => {
@@ -766,26 +439,10 @@ describe("coverage gap 4: character-class detection breadth (round 2 decision ta
   // Round 3: external caret leak + mixed alnum range
   type Round3Case = { name: string; pattern: string; shouldDetect: boolean };
   const round3: Round3Case[] = [
-    {
-      name: "^[a-z] NOT detected (external caret)",
-      pattern: "^[a-z]",
-      shouldDetect: false,
-    },
-    {
-      name: "^[a_] NOT detected (external caret)",
-      pattern: "^[a_]",
-      shouldDetect: false,
-    },
-    {
-      name: "[0-Z] detected (mixed alnum range)",
-      pattern: "[0-Z]",
-      shouldDetect: true,
-    },
-    {
-      name: "[a-z] control still detected",
-      pattern: "[a-z]",
-      shouldDetect: true,
-    },
+    { name: "^[a-z] NOT detected (external caret)", pattern: "^[a-z]", shouldDetect: false },
+    { name: "^[a_] NOT detected (external caret)", pattern: "^[a_]", shouldDetect: false },
+    { name: "[0-Z] detected (mixed alnum range)", pattern: "[0-Z]", shouldDetect: true },
+    { name: "[a-z] control still detected", pattern: "[a-z]", shouldDetect: true },
   ];
   for (const c of round3) {
     it(`round 3: ${c.name}`, () => {

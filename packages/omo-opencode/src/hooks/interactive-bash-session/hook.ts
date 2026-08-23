@@ -1,16 +1,9 @@
 import type { PluginInput } from "@opencode-ai/plugin";
-import {
-  clearInteractiveBashSessionState,
-  saveInteractiveBashSessionState,
-} from "./storage";
+import { saveInteractiveBashSessionState, clearInteractiveBashSessionState } from "./storage";
 import { buildSessionReminderMessage } from "./constants";
 import type { InteractiveBashSessionState } from "./types";
 import { parseTmuxCommand } from "./tmux-command-parser";
-import {
-  getOrCreateState,
-  isOmoSession,
-  killAllTrackedSessions,
-} from "./state-manager";
+import { getOrCreateState, isOmoSession, killAllTrackedSessions } from "./state-manager";
 import { subagentSessions } from "../../features/claude-code-session-state";
 import { resolveSessionEventID } from "../../shared/event-session-id";
 
@@ -37,9 +30,7 @@ interface EventInput {
 export function createInteractiveBashSessionHook(ctx: PluginInput) {
   const sessionStates = new Map<string, InteractiveBashSessionState>();
 
-  function getOrCreateStateLocal(
-    sessionID: string,
-  ): InteractiveBashSessionState {
+  function getOrCreateStateLocal(sessionID: string): InteractiveBashSessionState {
     return getOrCreateState(sessionID, sessionStates);
   }
 
@@ -47,9 +38,9 @@ export function createInteractiveBashSessionHook(ctx: PluginInput) {
     state: InteractiveBashSessionState,
   ): Promise<void> {
     await killAllTrackedSessions(state);
-
+    
     for (const sessionId of subagentSessions) {
-      ctx.client.session.abort({ path: { id: sessionId } }).catch(() => {});
+      ctx.client.session.abort({ path: { id: sessionId } }).catch(() => {})
     }
   }
 
@@ -73,9 +64,9 @@ export function createInteractiveBashSessionHook(ctx: PluginInput) {
     const state = getOrCreateStateLocal(sessionID);
     let stateChanged = false;
 
-    const toolOutput = output?.output ?? "";
+    const toolOutput = output?.output ?? ""
     if (toolOutput.startsWith("Error:")) {
-      return;
+      return
     }
 
     const isNewSession = subCommand === "new-session";

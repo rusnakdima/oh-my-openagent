@@ -1,1 +1,1 @@
-export { TEAM_MESSAGE, TEAM_PATTERN } from "./default";
+export { TEAM_PATTERN, TEAM_MESSAGE } from "./default"

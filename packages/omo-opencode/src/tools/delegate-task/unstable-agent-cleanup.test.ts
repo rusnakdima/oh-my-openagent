@@ -1,7 +1,7 @@
-declare const require: (name: string) => any;
-const { describe, test, expect, beforeEach, afterEach } = require("bun:test");
+declare const require: (name: string) => any
+const { describe, test, expect, beforeEach, afterEach } = require("bun:test")
 
-import { __resetTimingConfig, __setTimingConfig } from "./timing";
+import { __resetTimingConfig, __setTimingConfig } from "./timing"
 
 function createArgs() {
   return {
@@ -11,13 +11,13 @@ function createArgs() {
     run_in_background: false,
     load_skills: [],
     command: undefined,
-  };
+  }
 }
 
 function createToolContext(aborted = false) {
-  const controller = new AbortController();
+  const controller = new AbortController()
   if (aborted) {
-    controller.abort();
+    controller.abort()
   }
 
   return {
@@ -26,7 +26,7 @@ function createToolContext(aborted = false) {
     agent: "test-agent",
     abort: controller.signal,
     metadata: () => Promise.resolve(),
-  };
+  }
 }
 
 function createParentContext() {
@@ -35,7 +35,7 @@ function createParentContext() {
     messageID: "parent-message",
     model: "gpt-test",
     agent: "test-agent",
-  };
+  }
 }
 
 describe("executeUnstableAgentTask cleanup", () => {
@@ -46,36 +46,26 @@ describe("executeUnstableAgentTask cleanup", () => {
       STABILITY_POLLS_REQUIRED: 1,
       WAIT_FOR_SESSION_TIMEOUT_MS: 100,
       WAIT_FOR_SESSION_INTERVAL_MS: 10,
-    });
-  });
+    })
+  })
 
   afterEach(() => {
-    __resetTimingConfig();
-  });
+    __resetTimingConfig()
+  })
 
   test("cancels launched task when parent aborts during monitoring", async () => {
     // given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task");
-    const cancelCalls: Array<
-      { taskId: string; options?: Record<string, unknown> }
-    > = [];
+    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const cancelCalls: Array<{ taskId: string; options?: Record<string, unknown> }> = []
 
     const mockManager = {
-      launch: async () => ({
-        id: "bg_abort_monitoring",
-        sessionId: "ses_abort_monitoring",
-        status: "running",
-      }),
-      getTask: () => ({
-        id: "bg_abort_monitoring",
-        sessionId: "ses_abort_monitoring",
-        status: "running",
-      }),
+      launch: async () => ({ id: "bg_abort_monitoring", sessionId: "ses_abort_monitoring", status: "running" }),
+      getTask: () => ({ id: "bg_abort_monitoring", sessionId: "ses_abort_monitoring", status: "running" }),
       cancelTask: async (taskId: string, options?: Record<string, unknown>) => {
-        cancelCalls.push({ taskId, options });
-        return true;
+        cancelCalls.push({ taskId, options })
+        return true
       },
-    };
+    }
 
     // when
     const result = await executeUnstableAgentTask(
@@ -94,38 +84,28 @@ describe("executeUnstableAgentTask cleanup", () => {
       "test-agent",
       undefined,
       undefined,
-      "gpt-test",
-    );
+      "gpt-test"
+    )
 
     // then
-    expect(result).toContain("Task aborted (was running in background mode).");
-    expect(cancelCalls).toHaveLength(1);
-    expect(cancelCalls[0]?.taskId).toBe("bg_abort_monitoring");
-  });
+    expect(result).toContain("Task aborted (was running in background mode).")
+    expect(cancelCalls).toHaveLength(1)
+    expect(cancelCalls[0]?.taskId).toBe("bg_abort_monitoring")
+  })
 
   test("cancels launched task when monitored timeout budget is exhausted", async () => {
     // given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task");
-    const cancelCalls: Array<
-      { taskId: string; options?: Record<string, unknown> }
-    > = [];
+    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const cancelCalls: Array<{ taskId: string; options?: Record<string, unknown> }> = []
 
     const mockManager = {
-      launch: async () => ({
-        id: "bg_timeout_cleanup",
-        sessionId: "ses_timeout_cleanup",
-        status: "running",
-      }),
-      getTask: () => ({
-        id: "bg_timeout_cleanup",
-        sessionId: "ses_timeout_cleanup",
-        status: "running",
-      }),
+      launch: async () => ({ id: "bg_timeout_cleanup", sessionId: "ses_timeout_cleanup", status: "running" }),
+      getTask: () => ({ id: "bg_timeout_cleanup", sessionId: "ses_timeout_cleanup", status: "running" }),
       cancelTask: async (taskId: string, options?: Record<string, unknown>) => {
-        cancelCalls.push({ taskId, options });
-        return true;
+        cancelCalls.push({ taskId, options })
+        return true
       },
-    };
+    }
 
     // when
     const result = await executeUnstableAgentTask(
@@ -135,9 +115,7 @@ describe("executeUnstableAgentTask cleanup", () => {
         manager: mockManager,
         client: {
           session: {
-            status: async () => ({
-              data: { ses_timeout_cleanup: { type: "busy" } },
-            }),
+            status: async () => ({ data: { ses_timeout_cleanup: { type: "busy" } } }),
             messages: async () => ({ data: [] }),
           },
         },
@@ -147,30 +125,28 @@ describe("executeUnstableAgentTask cleanup", () => {
       "test-agent",
       undefined,
       undefined,
-      "gpt-test",
-    );
+      "gpt-test"
+    )
 
     // then
-    expect(result).toContain("SUPERVISED TASK TIMED OUT");
-    expect(cancelCalls).toHaveLength(1);
-    expect(cancelCalls[0]?.taskId).toBe("bg_timeout_cleanup");
-  });
+    expect(result).toContain("SUPERVISED TASK TIMED OUT")
+    expect(cancelCalls).toHaveLength(1)
+    expect(cancelCalls[0]?.taskId).toBe("bg_timeout_cleanup")
+  })
 
   test("cancels launched task when parent aborts while waiting for session start", async () => {
     // given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task");
-    const cancelCalls: Array<
-      { taskId: string; options?: Record<string, unknown> }
-    > = [];
+    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const cancelCalls: Array<{ taskId: string; options?: Record<string, unknown> }> = []
 
     const mockManager = {
       launch: async () => ({ id: "bg_wait_abort", status: "pending" }),
       getTask: () => ({ id: "bg_wait_abort", status: "pending" }),
       cancelTask: async (taskId: string, options?: Record<string, unknown>) => {
-        cancelCalls.push({ taskId, options });
-        return true;
+        cancelCalls.push({ taskId, options })
+        return true
       },
-    };
+    }
 
     // when
     const result = await executeUnstableAgentTask(
@@ -189,14 +165,12 @@ describe("executeUnstableAgentTask cleanup", () => {
       "test-agent",
       undefined,
       undefined,
-      "gpt-test",
-    );
+      "gpt-test"
+    )
 
     // then
-    expect(result).toContain(
-      "Task aborted while waiting for session to start.",
-    );
-    expect(cancelCalls).toHaveLength(1);
-    expect(cancelCalls[0]?.taskId).toBe("bg_wait_abort");
-  });
-});
+    expect(result).toContain("Task aborted while waiting for session to start.")
+    expect(cancelCalls).toHaveLength(1)
+    expect(cancelCalls[0]?.taskId).toBe("bg_wait_abort")
+  })
+})

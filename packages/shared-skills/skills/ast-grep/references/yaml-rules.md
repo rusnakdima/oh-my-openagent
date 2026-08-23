@@ -1,9 +1,6 @@
 # YAML rule reference — atomic, relational, composite, transform, fix
 
-Use this when you outgrow inline `sg run -p ...` patterns and need a reusable,
-testable rule. A YAML rule is the unit of work for `sg scan`. Drop one or more
-files in `ruleDirs/` (configured via `sgconfig.yml`) and they get loaded
-automatically.
+Use this when you outgrow inline `sg run -p ...` patterns and need a reusable, testable rule. A YAML rule is the unit of work for `sg scan`. Drop one or more files in `ruleDirs/` (configured via `sgconfig.yml`) and they get loaded automatically.
 
 This page is the practical reference. The full upstream docs live at:
 
@@ -35,12 +32,12 @@ fix: logger.$METHOD($$$ARGS)
 constraints:
   METHOD:
     not:
-      regex: "^(error|warn)$"
+      regex: '^(error|warn)$'
 
 files:
-  - "src/**/*.ts"
+  - 'src/**/*.ts'
 ignores:
-  - "src/**/*.test.ts"
+  - 'src/**/*.test.ts'
 
 metadata:
   category: logging
@@ -50,24 +47,24 @@ metadata:
 
 ## Top-level fields
 
-| Field         | Required | Description                                                                                                                                                                                                                                                                                           |
-| ------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `id`          | yes      | Unique identifier. Use `kebab-case`.                                                                                                                                                                                                                                                                  |
-| `language`    | yes      | One of: `Bash`, `C`, `Cpp`, `CSharp`, `Css`, `Elixir`, `Go`, `Haskell`, `Html`, `Java`, `JavaScript`, `Json`, `Kotlin`, `Lua`, `Nix`, `Php`, `Python`, `Ruby`, `Rust`, `Scala`, `Solidity`, `Swift`, `TypeScript`, `Tsx`, `Yaml`. **Capitalized PascalCase** is canonical, but lowercase often works. |
-| `rule`        | yes      | The matching logic. Object containing one or more atomic / relational / composite rules.                                                                                                                                                                                                              |
-| `constraints` | no       | Filter on captured single-metavariables (`$VAR`, not `$$$`).                                                                                                                                                                                                                                          |
-| `utils`       | no       | Local utility rules referenced by `matches:` in this file.                                                                                                                                                                                                                                            |
-| `transform`   | no       | Manipulate metavariable strings before `fix`.                                                                                                                                                                                                                                                         |
-| `fix`         | no       | String or `FixConfig` for auto-rewrite.                                                                                                                                                                                                                                                               |
-| `rewriters`   | no       | Rewriter rules for the `rewrite` transform.                                                                                                                                                                                                                                                           |
-| `severity`    | no       | `hint` \| `info` \| `warning` \| `error` \| `off` (default: `hint`).                                                                                                                                                                                                                                  |
-| `message`     | no       | Concise lint message. May reference `$VAR` capture text.                                                                                                                                                                                                                                              |
-| `note`        | no       | Detailed markdown explanation (no `$VAR` interpolation).                                                                                                                                                                                                                                              |
-| `labels`      | no       | Custom diagnostic highlighting per-metavariable.                                                                                                                                                                                                                                                      |
-| `files`       | no       | Glob include list.                                                                                                                                                                                                                                                                                    |
-| `ignores`     | no       | Glob exclude list.                                                                                                                                                                                                                                                                                    |
-| `url`         | no       | Doc link shown in editor diagnostics.                                                                                                                                                                                                                                                                 |
-| `metadata`    | no       | Free-form data ignored by `sg`, useful for external tooling.                                                                                                                                                                                                                                          |
+| Field | Required | Description |
+|---|---|---|
+| `id` | yes | Unique identifier. Use `kebab-case`. |
+| `language` | yes | One of: `Bash`, `C`, `Cpp`, `CSharp`, `Css`, `Elixir`, `Go`, `Haskell`, `Html`, `Java`, `JavaScript`, `Json`, `Kotlin`, `Lua`, `Nix`, `Php`, `Python`, `Ruby`, `Rust`, `Scala`, `Solidity`, `Swift`, `TypeScript`, `Tsx`, `Yaml`. **Capitalized PascalCase** is canonical, but lowercase often works. |
+| `rule` | yes | The matching logic. Object containing one or more atomic / relational / composite rules. |
+| `constraints` | no | Filter on captured single-metavariables (`$VAR`, not `$$$`). |
+| `utils` | no | Local utility rules referenced by `matches:` in this file. |
+| `transform` | no | Manipulate metavariable strings before `fix`. |
+| `fix` | no | String or `FixConfig` for auto-rewrite. |
+| `rewriters` | no | Rewriter rules for the `rewrite` transform. |
+| `severity` | no | `hint` \| `info` \| `warning` \| `error` \| `off` (default: `hint`). |
+| `message` | no | Concise lint message. May reference `$VAR` capture text. |
+| `note` | no | Detailed markdown explanation (no `$VAR` interpolation). |
+| `labels` | no | Custom diagnostic highlighting per-metavariable. |
+| `files` | no | Glob include list. |
+| `ignores` | no | Glob exclude list. |
+| `url` | no | Doc link shown in editor diagnostics. |
+| `metadata` | no | Free-form data ignored by `sg`, useful for external tooling. |
 
 ---
 
@@ -85,9 +82,9 @@ rule:
 # Object form (when context is needed)
 rule:
   pattern:
-    context: "class C { $FIELD = $INIT }"
+    context: 'class C { $FIELD = $INIT }'
     selector: field_definition
-    strictness: relaxed # optional, default: smart
+    strictness: relaxed   # optional, default: smart
 ```
 
 ### `kind`
@@ -103,10 +100,10 @@ ast-grep 0.39+ supports limited ESQuery selectors:
 
 ```yaml
 rule:
-  kind: call_expression > identifier # direct child
-  kind: call_expression + identifier # next sibling
-  kind: call_expression ~ identifier # following sibling
-  kind: call_expression identifier # descendant
+  kind: call_expression > identifier   # direct child
+  kind: call_expression + identifier   # next sibling
+  kind: call_expression ~ identifier   # following sibling
+  kind: call_expression identifier     # descendant
 ```
 
 To find the right `kind`, parse a known-good file:
@@ -117,14 +114,13 @@ sg run -p '$_' --lang ts --debug-query=cst src/foo.ts | head -40
 
 ### `regex`
 
-Match node text against a Rust regex. Whole-text match (no partial). Always
-combine with `kind` or `pattern` for performance.
+Match node text against a Rust regex. Whole-text match (no partial). Always combine with `kind` or `pattern` for performance.
 
 ```yaml
 rule:
   all:
     - kind: identifier
-    - regex: "^[A-Z][a-z]+$" # PascalCase
+    - regex: '^[A-Z][a-z]+$'   # PascalCase
 ```
 
 Inline flags work: `(?i)apple`, `(?m)^foo`. No look-around, no backreferences.
@@ -135,17 +131,17 @@ Match by 1-based index among **named** siblings. Inspired by CSS `:nth-child`.
 
 ```yaml
 rule:
-  nthChild: 1 # first sibling
+  nthChild: 1                # first sibling
 
 # Functional form
 rule:
-  nthChild: 2n+1 # odd siblings
+  nthChild: 2n+1             # odd siblings
 
 # With reverse and ofRule
 rule:
   nthChild:
     position: 1
-    reverse: true # last
+    reverse: true            # last
     ofRule:
       kind: function_declaration
 ```
@@ -158,15 +154,14 @@ Match by character range. Useful for tooling that pinpoints a known location.
 rule:
   range:
     start: { line: 0, column: 0 }
-    end: { line: 0, column: 11 }
+    end:   { line: 0, column: 11 }
 ```
 
 ---
 
 ## Relational rules — match by relation to other nodes
 
-All four take a sub-rule object plus optional `stopBy` and (for `inside`/`has`)
-`field`.
+All four take a sub-rule object plus optional `stopBy` and (for `inside`/`has`) `field`.
 
 ### `inside` — target is inside parent/ancestor matching sub-rule
 
@@ -175,7 +170,7 @@ rule:
   pattern: this.$PROP
   inside:
     kind: class_body
-    stopBy: end # walk up to file root, default: neighbor
+    stopBy: end                # walk up to file root, default: neighbor
 ```
 
 ### `has` — target has child/descendant matching sub-rule
@@ -208,35 +203,34 @@ rule:
 
 ### `stopBy`
 
-| Value                  | Behavior                                             |
-| ---------------------- | ---------------------------------------------------- |
-| `"neighbor"` (default) | Stop at immediate parent/child/sibling.              |
-| `"end"`                | Walk all the way to root / leaf / sequence boundary. |
-| Rule object            | Stop when sub-rule matches (inclusive).              |
+| Value | Behavior |
+|---|---|
+| `"neighbor"` (default) | Stop at immediate parent/child/sibling. |
+| `"end"` | Walk all the way to root / leaf / sequence boundary. |
+| Rule object | Stop when sub-rule matches (inclusive). |
 
 ### `field`
 
-Specify the semantic role of the target inside its parent (e.g. `name`, `body`,
-`value`, `key`).
+Specify the semantic role of the target inside its parent (e.g. `name`, `body`, `value`, `key`).
 
 ```yaml
 rule:
   kind: pair
   has:
     field: key
-    regex: "^password$"
+    regex: '^password$'
 ```
 
 ---
 
 ## Composite rules — combine sub-rules
 
-| Rule      | Meaning                                                                                |
-| --------- | -------------------------------------------------------------------------------------- |
-| `all`     | All sub-rules must match the same target node. Metavariables from all sub-rules merge. |
-| `any`     | At least one sub-rule must match. Only metavars from the matched branch survive.       |
-| `not`     | Inverse: target must NOT match the sub-rule.                                           |
-| `matches` | Reference a utility rule by id.                                                        |
+| Rule | Meaning |
+|---|---|
+| `all` | All sub-rules must match the same target node. Metavariables from all sub-rules merge. |
+| `any` | At least one sub-rule must match. Only metavars from the matched branch survive. |
+| `not` | Inverse: target must NOT match the sub-rule. |
+| `matches` | Reference a utility rule by id. |
 
 ```yaml
 rule:
@@ -267,9 +261,7 @@ rule:
   matches: is-react-component
 ```
 
-> Composites apply to a **single** target. To express "node X has BOTH a number
-> child AND a string child," use two relational rules at the top level, not
-> `all` inside `has`. See `references/pitfalls.md` §10.
+> Composites apply to a **single** target. To express "node X has BOTH a number child AND a string child," use two relational rules at the top level, not `all` inside `has`. See `references/pitfalls.md` §10.
 
 ---
 
@@ -289,15 +281,13 @@ rule:
     - inside: { kind: class_body }
 ```
 
-Use the explicit `all` array when capture order matters (rare, but possible with
-downstream `transform`).
+Use the explicit `all` array when capture order matters (rare, but possible with downstream `transform`).
 
 ---
 
 ## `constraints` — post-match metavariable filtering
 
-After the main `rule` matches, additional checks on captured single
-metavariables:
+After the main `rule` matches, additional checks on captured single metavariables:
 
 ```yaml
 rule:
@@ -305,9 +295,9 @@ rule:
 
 constraints:
   NAME:
-    regex: "^[a-z][a-zA-Z0-9]*$" # camelCase only
+    regex: '^[a-z][a-zA-Z0-9]*$'   # camelCase only
     not:
-      regex: "^_" # not starting with _
+      regex: '^_'                   # not starting with _
 ```
 
 Constraints **only apply to single metavars** (`$VAR`), not multi (`$$$VAR`).
@@ -322,18 +312,17 @@ utils:
     any:
       - kind: number
       - kind: string
-      - kind: "true"
-      - kind: "false"
+      - kind: 'true'
+      - kind: 'false'
 
 rule:
   all:
     - pattern: $X = $Y
     - has:
-        matches: is-literal # references utils.is-literal
+        matches: is-literal      # references utils.is-literal
 ```
 
-For utils accessible across multiple rule files, use `utilDirs` in
-`sgconfig.yml` and put each util in its own YAML file with `id` and `language`.
+For utils accessible across multiple rule files, use `utilDirs` in `sgconfig.yml` and put each util in its own YAML file with `id` and `language`.
 
 ---
 
@@ -348,13 +337,13 @@ rule:
   pattern: $OLD_FN($$$A)
 constraints:
   OLD_FN:
-    regex: "^debug_"
+    regex: '^debug_'
 transform:
   NEW_FN:
     replace:
       source: $OLD_FN
-      replace: "^debug_"
-      by: "release_"
+      replace: '^debug_'
+      by: 'release_'
 fix: $NEW_FN($$$A)
 ```
 
@@ -376,10 +365,8 @@ transform:
   KEBAB:
     convert:
       source: $CAMEL
-      toCase: kebabCase # camelCase | snakeCase | kebabCase | pascalCase | upperCase | lowerCase | capitalize
-      separatedBy: [
-        underscore,
-      ] # optional: dash | dot | space | slash | underscore | caseChange
+      toCase: kebabCase   # camelCase | snakeCase | kebabCase | pascalCase | upperCase | lowerCase | capitalize
+      separatedBy: [underscore]   # optional: dash | dot | space | slash | underscore | caseChange
 ```
 
 ### `rewrite` — apply other rewriter rules (experimental)
@@ -412,8 +399,8 @@ transform:
   PREFIXED:
     replace:
       source: $KEBABED
-      replace: "^"
-      by: "css-"
+      replace: '^'
+      by: 'css-'
 fix: $PREFIXED
 ```
 
@@ -432,24 +419,22 @@ fix: ""
 
 ### FixConfig form (for list-item deletion that needs to expand the range)
 
-When deleting one item from a comma-separated list, you also need to remove the
-trailing comma. Use `expandEnd`:
+When deleting one item from a comma-separated list, you also need to remove the trailing comma. Use `expandEnd`:
 
 ```yaml
 rule:
   kind: pair
   has:
     field: key
-    regex: "^password$"
+    regex: '^password$'
 
 fix:
-  template: ""
+  template: ''
   expandEnd:
-    regex: ","
+    regex: ','
 ```
 
-`expandStart` and `expandEnd` accept `regex` matching characters that should be
-absorbed into the rewrite range.
+`expandStart` and `expandEnd` accept `regex` matching characters that should be absorbed into the rewrite range.
 
 ---
 
@@ -461,11 +446,11 @@ Top-level field defining one or more named rewriters:
 rewriters:
   - id: nullable-to-optional
     rule: { pattern: $X | null }
-    fix: "$X | undefined"
+    fix: '$X | undefined'
 
   - id: stringify
     rule: { pattern: "'' + $A" }
-    fix: "String($A)"
+    fix: 'String($A)'
 ```
 
 Used inside `transform` via the `rewrite` operation (see above).
@@ -487,8 +472,7 @@ labels:
     message: "with these arguments"
 ```
 
-Editor extensions render the diagnostic with these labels. Defaults are usually
-fine.
+Editor extensions render the diagnostic with these labels. Defaults are usually fine.
 
 ---
 
@@ -496,22 +480,21 @@ fine.
 
 ```yaml
 files:
-  - "src/**/*.ts"
-  - "lib/**/*.ts"
+  - 'src/**/*.ts'
+  - 'lib/**/*.ts'
 
 ignores:
-  - "src/**/*.test.ts"
-  - "**/__generated__/**"
+  - 'src/**/*.test.ts'
+  - '**/__generated__/**'
 ```
 
-If omitted, the rule runs on every file matching its `language`. These globs
-override `sgconfig.yml`-level globs for this rule only.
+If omitted, the rule runs on every file matching its `language`. These globs override `sgconfig.yml`-level globs for this rule only.
 
 Object form (rare):
 
 ```yaml
 files:
-  - pattern: "src/**/*.ts"
+  - pattern: 'src/**/*.ts'
     case_sensitive: true
 ```
 
@@ -523,5 +506,4 @@ files:
 - `references/cli.md` — `sg scan`, `sg test`.
 - `references/sgconfig.md` — project-level configuration.
 - Official rule reference: <https://ast-grep.github.io/reference/rule.html>
-- Cheat sheets: <https://ast-grep.github.io/cheatsheet/rule.html>,
-  <https://ast-grep.github.io/cheatsheet/yaml.html>
+- Cheat sheets: <https://ast-grep.github.io/cheatsheet/rule.html>, <https://ast-grep.github.io/cheatsheet/yaml.html>

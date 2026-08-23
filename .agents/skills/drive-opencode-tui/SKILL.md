@@ -5,13 +5,11 @@ description: "Drive OpenCode's TUI programmatically using tmux primitives. Use w
 
 # drive-opencode-tui
 
-Teach agents to programmatically drive OpenCode's TUI using tmux primitives,
-enabling autonomous testing and verification.
+Teach agents to programmatically drive OpenCode's TUI using tmux primitives, enabling autonomous testing and verification.
 
 ## Core Primitives
 
 ### Session Lifecycle
-
 ```bash
 # Launch OpenCode in isolated tmux session
 tmux new-session -d -s <session_name> 'cd <project> && opencode'
@@ -21,7 +19,6 @@ tmux kill-session -t <session_name>
 ```
 
 ### Screen Capture
-
 ```bash
 # Capture current pane content
 tmux capture-pane -t <session> -p
@@ -34,7 +31,6 @@ tmux capture-pane -t <session> -p | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g'
 ```
 
 ### Input
-
 ```bash
 # Type text
 tmux send-keys -t <session> 'text to type' 
@@ -62,7 +58,6 @@ tmux send-keys -t <session> "C-MouseDragN1 x y"
 ```
 
 ### Waiting
-
 ```bash
 # Poll until pattern appears
 for i in {1..20}; do
@@ -89,7 +84,6 @@ done
 ## Common Test Patterns
 
 ### Pattern 1: Smoke Test (Did it boot?)
-
 ```bash
 tmux new-session -d -s omo-qa 'opencode'
 for i in {1..30}; do
@@ -104,7 +98,6 @@ tmux kill-session -t omo-qa
 ```
 
 ### Pattern 2: Send Slash Command
-
 ```bash
 # Escape to clear any modal
 tmux send-keys -t omo-qa Escape
@@ -125,7 +118,6 @@ fi
 ```
 
 ### Pattern 3: Check Sidebar State
-
 ```bash
 # Press Tab to switch to sidebar
 tmux send-keys -t omo-qa Tab
@@ -141,7 +133,6 @@ fi
 ```
 
 ### Pattern 4: Interrupt Running Agent
-
 ```bash
 tmux send-keys -t omo-qa C-c
 sleep 2
@@ -149,7 +140,6 @@ tmux capture-pane -t omo-qa -p | grep -q "interrupt"
 ```
 
 ### Pattern 5: Interactive Menu Selection
-
 ```bash
 # Model picker opens in separate window
 menu_win=$(tmux list-windows -t omo-qa | grep omo-menu | cut -d: -f1)
@@ -164,7 +154,6 @@ fi
 ## XDG Isolation (IMPORTANT)
 
 When testing OpenCode for QA, ALWAYS run in isolated XDG sandbox:
-
 ```bash
 export XDG_DATA_HOME=$(mktemp -d)
 export XDG_CONFIG_HOME=$(mktemp -d)
@@ -175,25 +164,20 @@ export HOME=/home/dmitriy  # Keep HOME for config access
 tmux new-session -d -s omo-qa 'opencode'
 ```
 
-This prevents writing sessions to the real database at
-`~/.local/share/opencode/`.
+This prevents writing sessions to the real database at `~/.local/share/opencode/`.
 
 ## Safety Rules
 
-1. **Always kill tmux sessions** after test — orphaned sessions consume
-   resources
+1. **Always kill tmux sessions** after test — orphaned sessions consume resources
 2. **Use timeout polls** — never wait indefinitely for a state change
 3. **Use isolated XDG** — never pollute real OpenCode database during QA
-4. **Kill old sessions first** —
-   `tmux kill-session -t <name> 2>/dev/null || true`
+4. **Kill old sessions first** — `tmux kill-session -t <name> 2>/dev/null || true`
 
 ## Integration with oh-my-openagent
 
 When testing oh-my-openagent plugin changes:
-
 1. Build the plugin: `bun run build` in project root
-2. OpenCode auto-loads from `dist/index.js` (file:// URL in
-   `.opencode/opencode.json`)
+2. OpenCode auto-loads from `dist/index.js` (file:// URL in `.opencode/opencode.json`)
 3. Restart OpenCode to pick up changes
 4. Run test pattern above
 5. Check logs: `tail -f /tmp/oh-my-opencode.log`

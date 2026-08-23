@@ -1,4 +1,4 @@
-import { stripInvisibleAgentCharacters } from "./agent-display-names";
+import { stripInvisibleAgentCharacters } from "./agent-display-names"
 
 /**
  * Agent tool restrictions for session.prompt calls.
@@ -19,22 +19,19 @@ const TEAM_TOOL_DENYLIST: Record<string, boolean> = {
   team_task_get: false,
   team_status: false,
   team_list: false,
-};
+}
 
 const EXPLORATION_AGENT_DENYLIST: Record<string, boolean> = {
   write: false,
   edit: false,
   task: false,
   call_omo_agent: false,
-};
+}
 
-type AgentRestrictionsRecord = Record<string, boolean>;
-type AgentRestrictionsDenyList = { deny: readonly string[] };
+type AgentRestrictionsRecord = Record<string, boolean>
+type AgentRestrictionsDenyList = { deny: readonly string[] }
 
-const AGENT_RESTRICTIONS: Record<
-  string,
-  AgentRestrictionsRecord | AgentRestrictionsDenyList
-> = {
+const AGENT_RESTRICTIONS: Record<string, AgentRestrictionsRecord | AgentRestrictionsDenyList> = {
   explore: EXPLORATION_AGENT_DENYLIST,
 
   librarian: EXPLORATION_AGENT_DENYLIST,
@@ -78,42 +75,35 @@ const AGENT_RESTRICTIONS: Record<
   "sisyphus-junior": {
     task: false,
   },
-};
+}
 
 type AgentToolRestrictionsOptions = {
-  includeTeamToolDenylist?: boolean;
-};
+  includeTeamToolDenylist?: boolean
+}
 
-export function getAgentToolRestrictions(
-  agentName: string,
-  options: AgentToolRestrictionsOptions = {},
-): Record<string, boolean> {
-  const stripped = stripInvisibleAgentCharacters(agentName);
-  const rawRestrictions = AGENT_RESTRICTIONS[stripped] ??
-    Object.entries(AGENT_RESTRICTIONS).find(([key]) =>
-      key.toLowerCase() === stripped.toLowerCase()
-    )?.[1];
+export function getAgentToolRestrictions(agentName: string, options: AgentToolRestrictionsOptions = {}): Record<string, boolean> {
+  const stripped = stripInvisibleAgentCharacters(agentName)
+  const rawRestrictions = AGENT_RESTRICTIONS[stripped]
+    ?? Object.entries(AGENT_RESTRICTIONS).find(([key]) => key.toLowerCase() === stripped.toLowerCase())?.[1]
 
   // Handle deny-list format (multimodal-looker uses this for explicit denies)
   if (rawRestrictions && "deny" in rawRestrictions) {
-    const denyList = rawRestrictions.deny as readonly string[];
-    const agentDenyRecord = Object.fromEntries(
-      denyList.map((t) => [t, false] as [string, boolean]),
-    );
+    const denyList = rawRestrictions.deny as readonly string[]
+    const agentDenyRecord = Object.fromEntries(denyList.map((t) => [t, false] as [string, boolean]))
     return {
       ...(options.includeTeamToolDenylist === false ? {} : TEAM_TOOL_DENYLIST),
       ...agentDenyRecord,
-    };
+    }
   }
 
-  const agentRestrictions = (rawRestrictions ?? {}) as AgentRestrictionsRecord;
+  const agentRestrictions = (rawRestrictions ?? {}) as AgentRestrictionsRecord
   return {
     ...(options.includeTeamToolDenylist === false ? {} : TEAM_TOOL_DENYLIST),
     ...agentRestrictions,
-  };
+  }
 }
 
 export function hasAgentToolRestrictions(agentName: string): boolean {
-  const restrictions = getAgentToolRestrictions(agentName);
-  return Object.keys(restrictions).length > 0;
+  const restrictions = getAgentToolRestrictions(agentName)
+  return Object.keys(restrictions).length > 0
 }

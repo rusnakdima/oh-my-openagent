@@ -1,4 +1,4 @@
-import type { TaskRecord, TaskRecordStore } from "@oh-my-opencode/senpi-task";
+import type { TaskRecord, TaskRecordStore } from "@oh-my-opencode/senpi-task"
 
 /**
  * Stamp the planning-time category config generation onto records as they are persisted, which is
@@ -16,28 +16,22 @@ export function createConfigGenerationStampingStore(
   currentGeneration: () => number | undefined,
 ): TaskRecordStore {
   const stamp = (record: TaskRecord): TaskRecord => {
-    if (record.config_generation !== undefined) return record;
-    const generation = persistedGeneration(backing, record.task_id) ??
-      currentGeneration();
-    return generation === undefined
-      ? record
-      : { ...record, config_generation: generation };
-  };
+    if (record.config_generation !== undefined) return record
+    const generation = persistedGeneration(backing, record.task_id) ?? currentGeneration()
+    return generation === undefined ? record : { ...record, config_generation: generation }
+  }
   return {
     ...backing,
     save: (record) => backing.save(stamp(record)),
     replace: (record) => backing.replace(stamp(record)),
-  };
+  }
 }
 
 // An unreadable or absent record simply has no generation to inherit; the write must not fail for it.
-function persistedGeneration(
-  backing: TaskRecordStore,
-  taskId: string,
-): number | undefined {
+function persistedGeneration(backing: TaskRecordStore, taskId: string): number | undefined {
   try {
-    return backing.load(taskId)?.config_generation;
+    return backing.load(taskId)?.config_generation
   } catch {
-    return undefined;
+    return undefined
   }
 }

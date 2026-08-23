@@ -62,17 +62,10 @@ export function buildSisyphusDynamicPromptSections(
     librarianSection: buildLibrarianSection(availableAgents),
     nonClaudePlannerSection: buildNonClaudePlannerSection(model),
     oracleSection: buildOracleSection(availableAgents),
-    parallelDelegationSection: buildParallelDelegationSection(
-      model,
-      availableCategories,
-    ),
+    parallelDelegationSection: buildParallelDelegationSection(model, availableCategories),
     taskManagementSection: buildTaskManagementSection(useTaskSystem),
     todoHookNote: buildTodoHookNote(useTaskSystem),
-    toolSelection: buildToolSelectionTable(
-      availableAgents,
-      availableTools,
-      availableSkills,
-    ),
+    toolSelection: buildToolSelectionTable(availableAgents, availableTools, availableSkills),
   };
 }
 

@@ -1,264 +1,192 @@
-import type { HookName, OhMyOpenCodeConfig } from "../../config";
-import type { ModelCacheState } from "../../plugin-state";
-import type { PluginContext } from "../types";
+import type { HookName, OhMyOpenCodeConfig } from "../../config"
+import type { ModelCacheState } from "../../plugin-state"
+import type { PluginContext } from "../types"
 
 import {
-  type BtwToolGuardDeps,
-  createBashFileReadGuardHook,
-  createBtwToolGuardHook,
   createCommentCheckerHooks,
+  createToolOutputTruncatorHook,
   createDirectoryAgentsInjectorHook,
   createDirectoryReadmeInjectorHook,
   createEmptyTaskResponseDetectorHook,
-  createFsyncSkipWarningHook,
-  createGitPostCommitHook,
-  createGitPreCommitHook,
-  createHashlineReadEnhancerHook,
-  createJsonErrorRecoveryHook,
-  createLongRunningNotificationHooks,
-  createNotepadWriteGuardHook,
-  createPlanFormatValidatorHook,
-  createReadImageResizerHook,
   createRulesInjectorHook,
   createTasksTodowriteDisablerHook,
-  createTeamToolGating,
-  createTodoDescriptionOverrideHook,
-  createToolOutputTruncatorHook,
-  createWebFetchRedirectGuardHook,
-  createWorktreeIsolationHook,
   createWriteExistingFileGuardHook,
-} from "../../hooks";
+  createBashFileReadGuardHook,
+  createHashlineReadEnhancerHook,
+  createReadImageResizerHook,
+  createJsonErrorRecoveryHook,
+  createTodoDescriptionOverrideHook,
+  createWebFetchRedirectGuardHook,
+  createTeamToolGating,
+  createFsyncSkipWarningHook,
+  createNotepadWriteGuardHook,
+  createPlanFormatValidatorHook,
+  createBtwToolGuardHook,
+  type BtwToolGuardDeps,
+  createLongRunningNotificationHooks,
+  createGitPreCommitHook,
+  createGitPostCommitHook,
+  createWorktreeIsolationHook,
+} from "../../hooks"
 import {
   getOpenCodeVersion,
   isOpenCodeVersionAtLeast,
   log,
   OPENCODE_NATIVE_AGENTS_INJECTION_VERSION,
-} from "../../shared";
-import { safeCreateHook } from "../../shared/safe-create-hook";
+} from "../../shared"
+import { safeCreateHook } from "../../shared/safe-create-hook"
 
 export type ToolGuardHooks = {
-  commentChecker: ReturnType<typeof createCommentCheckerHooks> | null;
-  toolOutputTruncator: ReturnType<typeof createToolOutputTruncatorHook> | null;
-  directoryAgentsInjector:
-    | ReturnType<typeof createDirectoryAgentsInjectorHook>
-    | null;
-  directoryReadmeInjector:
-    | ReturnType<typeof createDirectoryReadmeInjectorHook>
-    | null;
-  emptyTaskResponseDetector:
-    | ReturnType<typeof createEmptyTaskResponseDetectorHook>
-    | null;
-  rulesInjector: ReturnType<typeof createRulesInjectorHook> | null;
-  tasksTodowriteDisabler:
-    | ReturnType<typeof createTasksTodowriteDisablerHook>
-    | null;
-  writeExistingFileGuard:
-    | ReturnType<typeof createWriteExistingFileGuardHook>
-    | null;
-  bashFileReadGuard: ReturnType<typeof createBashFileReadGuardHook> | null;
-  hashlineReadEnhancer:
-    | ReturnType<typeof createHashlineReadEnhancerHook>
-    | null;
-  jsonErrorRecovery: ReturnType<typeof createJsonErrorRecoveryHook> | null;
-  readImageResizer: ReturnType<typeof createReadImageResizerHook> | null;
-  todoDescriptionOverride:
-    | ReturnType<typeof createTodoDescriptionOverrideHook>
-    | null;
-  webfetchRedirectGuard:
-    | ReturnType<typeof createWebFetchRedirectGuardHook>
-    | null;
-  fsyncSkipWarning: ReturnType<typeof createFsyncSkipWarningHook> | null;
-  teamToolGating: ReturnType<typeof createTeamToolGating> | null;
-  notepadWriteGuard: ReturnType<typeof createNotepadWriteGuardHook> | null;
-  planFormatValidator: ReturnType<typeof createPlanFormatValidatorHook> | null;
-  btwToolGuard: ReturnType<typeof createBtwToolGuardHook> | null;
-  longRunningNotification:
-    | ReturnType<typeof createLongRunningNotificationHooks>
-    | null;
-  gitPreCommit: ReturnType<typeof createGitPreCommitHook> | null;
-  gitPostCommit: ReturnType<typeof createGitPostCommitHook> | null;
-  worktreeIsolation: ReturnType<typeof createWorktreeIsolationHook> | null;
-};
+  commentChecker: ReturnType<typeof createCommentCheckerHooks> | null
+  toolOutputTruncator: ReturnType<typeof createToolOutputTruncatorHook> | null
+  directoryAgentsInjector: ReturnType<typeof createDirectoryAgentsInjectorHook> | null
+  directoryReadmeInjector: ReturnType<typeof createDirectoryReadmeInjectorHook> | null
+  emptyTaskResponseDetector: ReturnType<typeof createEmptyTaskResponseDetectorHook> | null
+  rulesInjector: ReturnType<typeof createRulesInjectorHook> | null
+  tasksTodowriteDisabler: ReturnType<typeof createTasksTodowriteDisablerHook> | null
+  writeExistingFileGuard: ReturnType<typeof createWriteExistingFileGuardHook> | null
+  bashFileReadGuard: ReturnType<typeof createBashFileReadGuardHook> | null
+  hashlineReadEnhancer: ReturnType<typeof createHashlineReadEnhancerHook> | null
+  jsonErrorRecovery: ReturnType<typeof createJsonErrorRecoveryHook> | null
+  readImageResizer: ReturnType<typeof createReadImageResizerHook> | null
+  todoDescriptionOverride: ReturnType<typeof createTodoDescriptionOverrideHook> | null
+  webfetchRedirectGuard: ReturnType<typeof createWebFetchRedirectGuardHook> | null
+  fsyncSkipWarning: ReturnType<typeof createFsyncSkipWarningHook> | null
+  teamToolGating: ReturnType<typeof createTeamToolGating> | null
+  notepadWriteGuard: ReturnType<typeof createNotepadWriteGuardHook> | null
+  planFormatValidator: ReturnType<typeof createPlanFormatValidatorHook> | null
+  btwToolGuard: ReturnType<typeof createBtwToolGuardHook> | null
+  longRunningNotification: ReturnType<typeof createLongRunningNotificationHooks> | null
+  gitPreCommit: ReturnType<typeof createGitPreCommitHook> | null
+  gitPostCommit: ReturnType<typeof createGitPostCommitHook> | null
+  worktreeIsolation: ReturnType<typeof createWorktreeIsolationHook> | null
+}
 
 export function createToolGuardHooks(args: {
-  ctx: PluginContext;
-  pluginConfig: OhMyOpenCodeConfig;
-  modelCacheState: ModelCacheState;
-  isHookEnabled: (hookName: HookName) => boolean;
-  safeHookEnabled: boolean;
+  ctx: PluginContext
+  pluginConfig: OhMyOpenCodeConfig
+  modelCacheState: ModelCacheState
+  isHookEnabled: (hookName: HookName) => boolean
+  safeHookEnabled: boolean
 }): ToolGuardHooks {
-  const { ctx, pluginConfig, modelCacheState, isHookEnabled, safeHookEnabled } =
-    args;
+  const { ctx, pluginConfig, modelCacheState, isHookEnabled, safeHookEnabled } = args
   const safeHook = <T>(hookName: HookName, factory: () => T): T | null =>
-    safeCreateHook(hookName, factory, { enabled: safeHookEnabled });
+    safeCreateHook(hookName, factory, { enabled: safeHookEnabled })
 
   const commentChecker = isHookEnabled("comment-checker")
-    ? safeHook(
-      "comment-checker",
-      () => createCommentCheckerHooks(pluginConfig.comment_checker),
-    )
-    : null;
+    ? safeHook("comment-checker", () => createCommentCheckerHooks(pluginConfig.comment_checker))
+    : null
 
   const toolOutputTruncator = isHookEnabled("tool-output-truncator")
-    ? safeHook(
-      "tool-output-truncator",
-      () =>
+    ? safeHook("tool-output-truncator", () =>
         createToolOutputTruncatorHook(ctx, {
           modelCacheState,
           experimental: pluginConfig.experimental,
-        }),
-    )
-    : null;
+        }))
+    : null
 
-  let directoryAgentsInjector:
-    | ReturnType<typeof createDirectoryAgentsInjectorHook>
-    | null = null;
+  let directoryAgentsInjector: ReturnType<typeof createDirectoryAgentsInjectorHook> | null = null
   if (isHookEnabled("directory-agents-injector")) {
-    const currentVersion = getOpenCodeVersion();
-    const hasNativeSupport = currentVersion !== null &&
-      isOpenCodeVersionAtLeast(OPENCODE_NATIVE_AGENTS_INJECTION_VERSION);
+    const currentVersion = getOpenCodeVersion()
+    const hasNativeSupport =
+      currentVersion !== null && isOpenCodeVersionAtLeast(OPENCODE_NATIVE_AGENTS_INJECTION_VERSION)
     if (hasNativeSupport) {
-      log(
-        "directory-agents-injector auto-disabled due to native OpenCode support",
-        {
-          currentVersion,
-          nativeVersion: OPENCODE_NATIVE_AGENTS_INJECTION_VERSION,
-        },
-      );
+      log("directory-agents-injector auto-disabled due to native OpenCode support", {
+        currentVersion,
+        nativeVersion: OPENCODE_NATIVE_AGENTS_INJECTION_VERSION,
+      })
     } else {
-      directoryAgentsInjector = safeHook(
-        "directory-agents-injector",
-        () => createDirectoryAgentsInjectorHook(ctx, modelCacheState),
-      );
+      directoryAgentsInjector = safeHook("directory-agents-injector", () =>
+        createDirectoryAgentsInjectorHook(ctx, modelCacheState))
     }
   }
 
   const directoryReadmeInjector = isHookEnabled("directory-readme-injector")
-    ? safeHook(
-      "directory-readme-injector",
-      () => createDirectoryReadmeInjectorHook(ctx, modelCacheState),
-    )
-    : null;
+    ? safeHook("directory-readme-injector", () =>
+        createDirectoryReadmeInjectorHook(ctx, modelCacheState))
+    : null
 
-  const emptyTaskResponseDetector =
-    isHookEnabled("empty-task-response-detector")
-      ? safeHook(
-        "empty-task-response-detector",
-        () => createEmptyTaskResponseDetectorHook(ctx),
-      )
-      : null;
+  const emptyTaskResponseDetector = isHookEnabled("empty-task-response-detector")
+    ? safeHook("empty-task-response-detector", () => createEmptyTaskResponseDetectorHook(ctx))
+    : null
 
-  const cc = pluginConfig.claude_code;
-  const skipClaudeUserRules = cc?.hooks === false;
+  const cc = pluginConfig.claude_code
+  const skipClaudeUserRules = cc?.hooks === false
   const rulesInjector = isHookEnabled("rules-injector")
-    ? safeHook(
-      "rules-injector",
-      () =>
+    ? safeHook("rules-injector", () =>
         createRulesInjectorHook(ctx, modelCacheState, {
           skipClaudeUserRules,
-        }),
-    )
-    : null;
+        }))
+    : null
 
   const tasksTodowriteDisabler = isHookEnabled("tasks-todowrite-disabler")
-    ? safeHook(
-      "tasks-todowrite-disabler",
-      () =>
-        createTasksTodowriteDisablerHook({
-          experimental: pluginConfig.experimental,
-        }),
-    )
-    : null;
+    ? safeHook("tasks-todowrite-disabler", () =>
+        createTasksTodowriteDisablerHook({ experimental: pluginConfig.experimental }))
+    : null
 
   const writeExistingFileGuard = isHookEnabled("write-existing-file-guard")
-    ? safeHook(
-      "write-existing-file-guard",
-      () => createWriteExistingFileGuardHook(ctx),
-    )
-    : null;
+    ? safeHook("write-existing-file-guard", () => createWriteExistingFileGuardHook(ctx))
+    : null
 
   const bashFileReadGuard = isHookEnabled("bash-file-read-guard")
     ? safeHook("bash-file-read-guard", () => createBashFileReadGuardHook())
-    : null;
+    : null
 
   const hashlineReadEnhancer = isHookEnabled("hashline-read-enhancer")
-    ? safeHook(
-      "hashline-read-enhancer",
-      () =>
-        createHashlineReadEnhancerHook(ctx, {
-          hashline_edit: { enabled: pluginConfig.hashline_edit ?? false },
-        }),
-    )
-    : null;
+    ? safeHook("hashline-read-enhancer", () => createHashlineReadEnhancerHook(ctx, { hashline_edit: { enabled: pluginConfig.hashline_edit ?? false } }))
+    : null
 
   const jsonErrorRecovery = isHookEnabled("json-error-recovery")
     ? safeHook("json-error-recovery", () => createJsonErrorRecoveryHook(ctx))
-    : null;
+    : null
 
   const readImageResizer = isHookEnabled("read-image-resizer")
     ? safeHook("read-image-resizer", () => createReadImageResizerHook(ctx))
-    : null;
+    : null
 
   const todoDescriptionOverride = isHookEnabled("todo-description-override")
-    ? safeHook(
-      "todo-description-override",
-      () => createTodoDescriptionOverrideHook(),
-    )
-    : null;
+    ? safeHook("todo-description-override", () => createTodoDescriptionOverrideHook())
+    : null
 
   const webfetchRedirectGuard = isHookEnabled("webfetch-redirect-guard")
-    ? safeHook(
-      "webfetch-redirect-guard",
-      () => createWebFetchRedirectGuardHook(ctx),
-    )
-    : null;
+    ? safeHook("webfetch-redirect-guard", () => createWebFetchRedirectGuardHook(ctx))
+    : null
 
   const teamToolGating = isHookEnabled("team-tool-gating")
-    ? safeHook(
-      "team-tool-gating",
-      () => createTeamToolGating(ctx, pluginConfig.team_mode),
-    )
-    : null;
+    ? safeHook("team-tool-gating", () => createTeamToolGating(ctx, pluginConfig.team_mode))
+    : null
 
   const fsyncSkipWarning = isHookEnabled("fsync-skip-warning")
     ? safeHook("fsync-skip-warning", () => createFsyncSkipWarningHook())
-    : null;
+    : null
 
   const planFormatValidator = isHookEnabled("plan-format-validator")
-    ? safeHook(
-      "plan-format-validator",
-      () => createPlanFormatValidatorHook(ctx),
-    )
-    : null;
+    ? safeHook("plan-format-validator", () => createPlanFormatValidatorHook(ctx))
+    : null
 
   const notepadWriteGuard = isHookEnabled("notepad-write-guard")
     ? safeHook("notepad-write-guard", () => createNotepadWriteGuardHook())
-    : null;
+    : null
 
   // btwToolGuard is always enabled (context-shielded /btw command; no config gate)
   const btwToolGuardDeps: BtwToolGuardDeps = {
     client: ctx.client as BtwToolGuardDeps["client"],
-  };
-  const btwToolGuard = createBtwToolGuardHook(btwToolGuardDeps);
+  }
+  const btwToolGuard = createBtwToolGuardHook(btwToolGuardDeps)
 
-  const longRunningNotification = createLongRunningNotificationHooks(
-    pluginConfig.notification,
-  );
+  const longRunningNotification = createLongRunningNotificationHooks(pluginConfig.notification)
 
   const gitPreCommit = isHookEnabled("git-pre-commit")
-    ? safeHook(
-      "git-pre-commit",
-      () => createGitPreCommitHook(pluginConfig.git_master),
-    )
-    : null;
+    ? safeHook("git-pre-commit", () => createGitPreCommitHook(pluginConfig.git_master))
+    : null
 
   const gitPostCommit = isHookEnabled("git-post-commit")
     ? safeHook("git-post-commit", () => createGitPostCommitHook())
-    : null;
+    : null
 
   const worktreeIsolation = isHookEnabled("worktree-isolation")
     ? safeHook("worktree-isolation", () => createWorktreeIsolationHook())
-    : null;
+    : null
 
   return {
     commentChecker,
@@ -284,5 +212,5 @@ export function createToolGuardHooks(args: {
     gitPreCommit,
     gitPostCommit,
     worktreeIsolation,
-  };
+  }
 }

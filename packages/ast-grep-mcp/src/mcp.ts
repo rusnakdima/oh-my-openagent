@@ -13,36 +13,19 @@ import type { Readable, Writable } from "node:stream";
 import {
   errorResponse,
   isPlainRecord,
-  type JsonRpcId,
   jsonRpcId,
+  runJsonRpcStdioServer,
+  successResponse,
+  type JsonRpcId,
   type JsonRpcResponse,
   type McpLifecycleLog,
   type McpToolDescriptor,
   type ParentWatchdogConfig,
-  runJsonRpcStdioServer,
-  successResponse,
 } from "@oh-my-opencode/mcp-stdio-core";
 import { resolveSgBinarySync } from "@oh-my-opencode/utils";
-import {
-  executeSearch,
-  SEARCH_TOOL_DESCRIPTION,
-  SEARCH_TOOL_NAME,
-  type SearchInput,
-  searchInputSchema,
-  type SearchPayload,
-} from "./tools/search";
-import {
-  executeRewrite,
-  REWRITE_TOOL_DESCRIPTION,
-  REWRITE_TOOL_NAME,
-  type RewritePayload,
-} from "./tools/rewrite";
-import {
-  executeScan,
-  SCAN_TOOL_DESCRIPTION,
-  SCAN_TOOL_NAME,
-  type ScanPayload,
-} from "./tools/scan";
+import { executeSearch, searchInputSchema, SEARCH_TOOL_DESCRIPTION, SEARCH_TOOL_NAME, type SearchInput, type SearchPayload } from "./tools/search";
+import { executeRewrite, REWRITE_TOOL_DESCRIPTION, REWRITE_TOOL_NAME, type RewritePayload } from "./tools/rewrite";
+import { executeScan, SCAN_TOOL_DESCRIPTION, SCAN_TOOL_NAME, type ScanPayload } from "./tools/scan";
 
 export const AST_GREP_SERVER_NAME = "ast_grep" as const;
 export const AST_GREP_SERVER_VERSION = "0.1.0" as const;
@@ -79,31 +62,9 @@ export type AstGrepErrorCode = (typeof AST_GREP_ERROR_CODES)[number];
 // ---- tool descriptors ----
 
 const LANGUAGES = [
-  "bash",
-  "c",
-  "cpp",
-  "csharp",
-  "css",
-  "elixir",
-  "go",
-  "haskell",
-  "html",
-  "java",
-  "javascript",
-  "json",
-  "kotlin",
-  "lua",
-  "nix",
-  "php",
-  "python",
-  "ruby",
-  "rust",
-  "scala",
-  "solidity",
-  "swift",
-  "typescript",
-  "tsx",
-  "yaml",
+  "bash", "c", "cpp", "csharp", "css", "elixir", "go", "haskell", "html",
+  "java", "javascript", "json", "kotlin", "lua", "nix", "php", "python",
+  "ruby", "rust", "scala", "solidity", "swift", "typescript", "tsx", "yaml",
 ] as const;
 
 const STRICTNESS = ["cst", "smart", "ast", "relaxed", "signature"] as const;
@@ -112,20 +73,16 @@ const STRICTNESS = ["cst", "smart", "ast", "relaxed", "signature"] as const;
 // BYTES) while JSON Schema `maxLength` counts Unicode CODE POINTS, so a maxLength keyword
 // cannot express these budgets faithfully — a 10k-code-point CJK pattern is 30k bytes.
 // The budget is therefore published in the description and the parser stays authoritative.
-const PATTERN_BYTES_NOTE =
-  "Max 16 KiB (16384 BYTES, UTF-8) — the limit counts bytes, not characters.";
-const REWRITE_BYTES_NOTE =
-  "Max 64 KiB (65536 BYTES, UTF-8) — the limit counts bytes, not characters.";
-const INLINE_RULES_BYTES_NOTE =
-  "Max 64 KiB (65536 BYTES, UTF-8) — the limit counts bytes, not characters.";
+const PATTERN_BYTES_NOTE = "Max 16 KiB (16384 BYTES, UTF-8) — the limit counts bytes, not characters.";
+const REWRITE_BYTES_NOTE = "Max 64 KiB (65536 BYTES, UTF-8) — the limit counts bytes, not characters.";
+const INLINE_RULES_BYTES_NOTE = "Max 64 KiB (65536 BYTES, UTF-8) — the limit counts bytes, not characters.";
 
 const pathsSchema = {
   type: "array",
   minItems: 1,
   maxItems: 64,
   items: { type: "string", minLength: 1, maxLength: 4096 },
-  description:
-    "Files or directories to search. Required — there is no implicit '.' default.",
+  description: "Files or directories to search. Required — there is no implicit '.' default.",
 } as const;
 
 const globsSchema = {
@@ -139,8 +96,7 @@ const workdirSchema = {
   type: "string",
   minLength: 1,
   maxLength: 4096,
-  description:
-    "Working directory for the sg process. Defaults to the server's cwd.",
+  description: "Working directory for the sg process. Defaults to the server's cwd.",
 } as const;
 
 const maxMatchesSchema = {
@@ -157,14 +113,8 @@ const timeoutMsSchema = {
   description: "Whole-call timeout budget in milliseconds (default 300000).",
 } as const;
 
-const includeHiddenSchema = {
-  type: "boolean",
-  description: "Include hidden files (--no-ignore hidden).",
-} as const;
-const followSymlinksSchema = {
-  type: "boolean",
-  description: "Follow symlinks (--follow).",
-} as const;
+const includeHiddenSchema = { type: "boolean", description: "Include hidden files (--no-ignore hidden)." } as const;
+const followSymlinksSchema = { type: "boolean", description: "Follow symlinks (--follow)." } as const;
 
 export const AST_GREP_MCP_TOOLS: readonly McpToolDescriptor[] = [
   {
@@ -173,39 +123,18 @@ export const AST_GREP_MCP_TOOLS: readonly McpToolDescriptor[] = [
     inputSchema: {
       type: "object",
       properties: {
-        pattern: {
-          type: "string",
-          minLength: 1,
-          description:
-            `ast-grep pattern — code, not regex. ${PATTERN_BYTES_NOTE}`,
-        },
-        language: {
-          type: "string",
-          enum: [...LANGUAGES],
-          description: "Language the pattern must parse in.",
-        },
+        pattern: { type: "string", minLength: 1, description: `ast-grep pattern — code, not regex. ${PATTERN_BYTES_NOTE}` },
+        language: { type: "string", enum: [...LANGUAGES], description: "Language the pattern must parse in." },
         paths: pathsSchema,
         workdir: workdirSchema,
         globs: globsSchema,
-        selector: {
-          type: "string",
-          minLength: 1,
-          maxLength: 128,
-          description: "Optional sub-node selector.",
-        },
-        strictness: {
-          type: "string",
-          enum: [...STRICTNESS],
-          description: "Match strictness (default smart).",
-        },
+        selector: { type: "string", minLength: 1, maxLength: 128, description: "Optional sub-node selector." },
+        strictness: { type: "string", enum: [...STRICTNESS], description: "Match strictness (default smart)." },
         maxMatches: maxMatchesSchema,
         timeoutMs: timeoutMsSchema,
         includeHidden: includeHiddenSchema,
         followSymlinks: followSymlinksSchema,
-        force: {
-          type: "boolean",
-          description: "Bypass non-fatal pattern hint rejections.",
-        },
+        force: { type: "boolean", description: "Bypass non-fatal pattern hint rejections." },
       },
       required: ["pattern", "language", "paths"],
       additionalProperties: false,
@@ -217,48 +146,20 @@ export const AST_GREP_MCP_TOOLS: readonly McpToolDescriptor[] = [
     inputSchema: {
       type: "object",
       properties: {
-        pattern: {
-          type: "string",
-          minLength: 1,
-          description:
-            `ast-grep pattern — code, not regex. ${PATTERN_BYTES_NOTE}`,
-        },
-        rewrite: {
-          type: "string",
-          description:
-            `Replacement code; empty deletes the match. ${REWRITE_BYTES_NOTE}`,
-        },
-        language: {
-          type: "string",
-          enum: [...LANGUAGES],
-          description: "Language the pattern must parse in.",
-        },
+        pattern: { type: "string", minLength: 1, description: `ast-grep pattern — code, not regex. ${PATTERN_BYTES_NOTE}` },
+        rewrite: { type: "string", description: `Replacement code; empty deletes the match. ${REWRITE_BYTES_NOTE}` },
+        language: { type: "string", enum: [...LANGUAGES], description: "Language the pattern must parse in." },
         paths: pathsSchema,
         workdir: workdirSchema,
         globs: globsSchema,
-        selector: {
-          type: "string",
-          minLength: 1,
-          maxLength: 128,
-          description: "Optional sub-node selector.",
-        },
-        strictness: {
-          type: "string",
-          enum: [...STRICTNESS],
-          description: "Match strictness (default smart).",
-        },
-        apply: {
-          type: "boolean",
-          description: "Write the rewrite to disk. Default false (dry run).",
-        },
+        selector: { type: "string", minLength: 1, maxLength: 128, description: "Optional sub-node selector." },
+        strictness: { type: "string", enum: [...STRICTNESS], description: "Match strictness (default smart)." },
+        apply: { type: "boolean", description: "Write the rewrite to disk. Default false (dry run)." },
         maxMatches: maxMatchesSchema,
         timeoutMs: timeoutMsSchema,
         includeHidden: includeHiddenSchema,
         followSymlinks: followSymlinksSchema,
-        force: {
-          type: "boolean",
-          description: "Bypass non-fatal pattern hint rejections.",
-        },
+        force: { type: "boolean", description: "Bypass non-fatal pattern hint rejections." },
       },
       required: ["pattern", "rewrite", "language", "paths"],
       additionalProperties: false,
@@ -270,18 +171,11 @@ export const AST_GREP_MCP_TOOLS: readonly McpToolDescriptor[] = [
     inputSchema: {
       type: "object",
       properties: {
-        ruleFile: {
-          type: "string",
-          minLength: 1,
-          maxLength: 4096,
-          description:
-            "Path to a YAML rule file. Mutually exclusive with inlineRules.",
-        },
+        ruleFile: { type: "string", minLength: 1, maxLength: 4096, description: "Path to a YAML rule file. Mutually exclusive with inlineRules." },
         inlineRules: {
           type: "string",
           minLength: 1,
-          description:
-            `Inline YAML rule text. Mutually exclusive with ruleFile. ${INLINE_RULES_BYTES_NOTE}`,
+          description: `Inline YAML rule text. Mutually exclusive with ruleFile. ${INLINE_RULES_BYTES_NOTE}`,
         },
         paths: pathsSchema,
         workdir: workdirSchema,
@@ -290,14 +184,8 @@ export const AST_GREP_MCP_TOOLS: readonly McpToolDescriptor[] = [
         timeoutMs: timeoutMsSchema,
         includeHidden: includeHiddenSchema,
         followSymlinks: followSymlinksSchema,
-        includeMetadata: {
-          type: "boolean",
-          description: "Include rule metadata in each match.",
-        },
-        apply: {
-          type: "boolean",
-          description: "Write rule fixes to disk. Default false (dry run).",
-        },
+        includeMetadata: { type: "boolean", description: "Include rule metadata in each match." },
+        apply: { type: "boolean", description: "Write rule fixes to disk. Default false (dry run)." },
       },
       required: ["paths"],
       // Exactly one explicit rule source per call (ub §11): ruleFile XOR inlineRules.
@@ -342,9 +230,7 @@ export async function handleAstGrepMcpRequest(
   input: unknown,
   options: AstGrepMcpOptions = {},
 ): Promise<JsonRpcResponse | undefined> {
-  if (!isPlainRecord(input)) {
-    return errorResponse(null, -32600, "Invalid Request");
-  }
+  if (!isPlainRecord(input)) return errorResponse(null, -32600, "Invalid Request");
 
   const id = jsonRpcId(input["id"]);
   const method = input["method"];
@@ -354,19 +240,12 @@ export async function handleAstGrepMcpRequest(
   if (method === "initialize") {
     return successResponse(id, {
       capabilities: { tools: { listChanged: false } },
-      serverInfo: {
-        name: AST_GREP_SERVER_NAME,
-        version: AST_GREP_SERVER_VERSION,
-      },
+      serverInfo: { name: AST_GREP_SERVER_NAME, version: AST_GREP_SERVER_VERSION },
       protocolVersion: requestedProtocolVersion(input["params"]),
     });
   }
-  if (method === "tools/list") {
-    return successResponse(id, { tools: [...AST_GREP_MCP_TOOLS] });
-  }
-  if (method === "tools/call") {
-    return await handleToolCall(id, input["params"], options);
-  }
+  if (method === "tools/list") return successResponse(id, { tools: [...AST_GREP_MCP_TOOLS] });
+  if (method === "tools/call") return await handleToolCall(id, input["params"], options);
 
   return errorResponse(id, -32601, `Method not found: ${String(method)}`);
 }
@@ -387,10 +266,7 @@ export async function runMcpStdioServer(
       const controller = new AbortController();
       active = controller;
       try {
-        return await handleAstGrepMcpRequest(request, {
-          ...options,
-          signal: controller.signal,
-        });
+        return await handleAstGrepMcpRequest(request, { ...options, signal: controller.signal });
       } finally {
         if (active === controller) active = null;
       }
@@ -417,16 +293,11 @@ async function handleToolCall(
   const name = params["name"];
   const args = coerceToolArguments(params["arguments"]);
 
-  if (
-    name !== SEARCH_TOOL_NAME && name !== REWRITE_TOOL_NAME &&
-    name !== SCAN_TOOL_NAME
-  ) {
+  if (name !== SEARCH_TOOL_NAME && name !== REWRITE_TOOL_NAME && name !== SCAN_TOOL_NAME) {
     return toolFailure(
       id,
       "INVALID_ARGUMENT",
-      `Unknown ast_grep tool: ${name}. Available tools: ${
-        AST_GREP_MCP_TOOLS.map((tool) => tool.name).join(", ")
-      }.`,
+      `Unknown ast_grep tool: ${name}. Available tools: ${AST_GREP_MCP_TOOLS.map((tool) => tool.name).join(", ")}.`,
     );
   }
 
@@ -434,12 +305,7 @@ async function handleToolCall(
   try {
     sgPath = resolveSgPath(options);
   } catch (error) {
-    return toolFailure(
-      id,
-      "BINARY_NOT_FOUND",
-      messageOf(error),
-      hintsOf(error),
-    );
+    return toolFailure(id, "BINARY_NOT_FOUND", messageOf(error), hintsOf(error));
   }
 
   try {
@@ -447,9 +313,7 @@ async function handleToolCall(
     return toolResponse(id, payload, payload.ok !== true);
   } catch (error) {
     if (error instanceof ToolArgumentError) {
-      return toolFailure(id, "INVALID_ARGUMENT", error.message, [], {
-        language: error.language,
-      });
+      return toolFailure(id, "INVALID_ARGUMENT", error.message, [], { language: error.language });
     }
     return toolFailure(id, "SG_FAILED", messageOf(error));
   }
@@ -467,10 +331,7 @@ class ToolArgumentError extends Error {
 }
 
 async function dispatch(
-  name:
-    | typeof SEARCH_TOOL_NAME
-    | typeof REWRITE_TOOL_NAME
-    | typeof SCAN_TOOL_NAME,
+  name: typeof SEARCH_TOOL_NAME | typeof REWRITE_TOOL_NAME | typeof SCAN_TOOL_NAME,
   args: Record<string, unknown>,
   sgPath: string,
   options: AstGrepMcpOptions,
@@ -487,17 +348,14 @@ async function dispatch(
     } catch (error) {
       throw new ToolArgumentError(messageOf(error), languageOf(args));
     }
-    const execute = executors.search ??
-      ((value, path, signal) => executeSearch(value, path, signal));
+    const execute = executors.search ?? ((value, path, signal) => executeSearch(value, path, signal));
     return await execute(parsed as never, sgPath, options.signal);
   }
   if (name === REWRITE_TOOL_NAME) {
-    const execute = executors.rewrite ??
-      ((value, path, signal) => executeRewrite(value, path, signal));
+    const execute = executors.rewrite ?? ((value, path, signal) => executeRewrite(value, path, signal));
     return await execute(input, sgPath, options.signal);
   }
-  const execute = executors.scan ??
-    ((value, path, signal) => executeScan(value, path, signal));
+  const execute = executors.scan ?? ((value, path, signal) => executeScan(value, path, signal));
   return await execute(input, sgPath, options.signal);
 }
 
@@ -509,18 +367,12 @@ function resolveSgPath(options: AstGrepMcpOptions): string {
   if (options.resolveSgPath !== undefined) return options.resolveSgPath();
   const resolution = resolveSgBinarySync();
   if (!resolution.found) {
-    throw Object.assign(new Error(resolution.error.message), {
-      hints: resolution.error.hints,
-    });
+    throw Object.assign(new Error(resolution.error.message), { hints: resolution.error.hints });
   }
   return resolution.path;
 }
 
-function toolResponse(
-  id: JsonRpcId,
-  payload: unknown,
-  isError: boolean,
-): JsonRpcResponse {
+function toolResponse(id: JsonRpcId, payload: unknown, isError: boolean): JsonRpcResponse {
   return successResponse(id, {
     content: [{ type: "text", text: JSON.stringify(payload) }],
     isError,
@@ -563,14 +415,10 @@ function messageOf(error: unknown): string {
 function hintsOf(error: unknown): readonly string[] {
   if (!(error instanceof Error) || !("hints" in error)) return [];
   const hints = (error as { hints?: unknown }).hints;
-  return Array.isArray(hints)
-    ? hints.filter((hint): hint is string => typeof hint === "string")
-    : [];
+  return Array.isArray(hints) ? hints.filter((hint): hint is string => typeof hint === "string") : [];
 }
 
 function requestedProtocolVersion(params: unknown): string {
-  if (!isPlainRecord(params) || typeof params["protocolVersion"] !== "string") {
-    return DEFAULT_PROTOCOL_VERSION;
-  }
+  if (!isPlainRecord(params) || typeof params["protocolVersion"] !== "string") return DEFAULT_PROTOCOL_VERSION;
   return params["protocolVersion"];
 }

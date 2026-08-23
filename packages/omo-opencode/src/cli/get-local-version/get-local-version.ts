@@ -4,20 +4,19 @@ import {
   getLatestVersion,
   getLocalDevVersion,
   isLocalDevMode,
-} from "../../hooks/auto-update-checker/checker";
+} from "../../hooks/auto-update-checker/checker"
 
-import type { GetLocalVersionOptions, VersionInfo } from "./types";
-import { formatJsonOutput, formatVersionOutput } from "./formatter";
+import type { GetLocalVersionOptions, VersionInfo } from "./types"
+import { formatJsonOutput, formatVersionOutput } from "./formatter"
 
 export async function getLocalVersion(
-  options: GetLocalVersionOptions = {},
+  options: GetLocalVersionOptions = {}
 ): Promise<number> {
-  const directory = options.directory ?? process.cwd();
+  const directory = options.directory ?? process.cwd()
 
   try {
     if (isLocalDevMode(directory)) {
-      const currentVersion = getLocalDevVersion(directory) ??
-        getCachedVersion();
+      const currentVersion = getLocalDevVersion(directory) ?? getCachedVersion()
       const info: VersionInfo = {
         currentVersion,
         latestVersion: null,
@@ -26,19 +25,16 @@ export async function getLocalVersion(
         isPinned: false,
         pinnedVersion: null,
         status: "local-dev",
-      };
+      }
 
-      console.log(
-        options.json ? formatJsonOutput(info) : formatVersionOutput(info),
-      );
-      return 0;
+      console.log(options.json ? formatJsonOutput(info) : formatVersionOutput(info))
+      return 0
     }
 
-    const pluginInfo = findPluginEntry(directory);
+    const pluginInfo = findPluginEntry(directory)
     if (pluginInfo?.isPinned) {
-      const actualVersion = getCachedVersion();
-      const isMismatch = actualVersion !== null &&
-        actualVersion !== pluginInfo.pinnedVersion;
+      const actualVersion = getCachedVersion()
+      const isMismatch = actualVersion !== null && actualVersion !== pluginInfo.pinnedVersion
       const info: VersionInfo = {
         currentVersion: isMismatch ? actualVersion : pluginInfo.pinnedVersion,
         latestVersion: null,
@@ -47,15 +43,13 @@ export async function getLocalVersion(
         isPinned: true,
         pinnedVersion: pluginInfo.pinnedVersion,
         status: isMismatch ? "pinned-mismatch" : "pinned",
-      };
+      }
 
-      console.log(
-        options.json ? formatJsonOutput(info) : formatVersionOutput(info),
-      );
-      return 0;
+      console.log(options.json ? formatJsonOutput(info) : formatVersionOutput(info))
+      return 0
     }
 
-    const currentVersion = getCachedVersion();
+    const currentVersion = getCachedVersion()
     if (!currentVersion) {
       const info: VersionInfo = {
         currentVersion: null,
@@ -65,12 +59,10 @@ export async function getLocalVersion(
         isPinned: false,
         pinnedVersion: null,
         status: "unknown",
-      };
+      }
 
-      console.log(
-        options.json ? formatJsonOutput(info) : formatVersionOutput(info),
-      );
-      return 1;
+      console.log(options.json ? formatJsonOutput(info) : formatVersionOutput(info))
+      return 1
     }
 
     if (!/^\d+\.\d+\.\d+/.test(currentVersion)) {
@@ -82,19 +74,15 @@ export async function getLocalVersion(
         isPinned: false,
         pinnedVersion: null,
         status: "dev",
-      };
+      }
 
-      console.log(
-        options.json ? formatJsonOutput(info) : formatVersionOutput(info),
-      );
-      return 0;
+      console.log(options.json ? formatJsonOutput(info) : formatVersionOutput(info))
+      return 0
     }
 
-    const { extractChannel } = await import(
-      "../../hooks/auto-update-checker/index"
-    );
-    const channel = extractChannel(pluginInfo?.pinnedVersion ?? currentVersion);
-    const latestVersion = await getLatestVersion(channel);
+    const { extractChannel } = await import("../../hooks/auto-update-checker/index")
+    const channel = extractChannel(pluginInfo?.pinnedVersion ?? currentVersion)
+    const latestVersion = await getLatestVersion(channel)
 
     if (!latestVersion) {
       const info: VersionInfo = {
@@ -105,15 +93,13 @@ export async function getLocalVersion(
         isPinned: false,
         pinnedVersion: null,
         status: "error",
-      };
+      }
 
-      console.log(
-        options.json ? formatJsonOutput(info) : formatVersionOutput(info),
-      );
-      return 0;
+      console.log(options.json ? formatJsonOutput(info) : formatVersionOutput(info))
+      return 0
     }
 
-    const isUpToDate = currentVersion === latestVersion;
+    const isUpToDate = currentVersion === latestVersion
     const info: VersionInfo = {
       currentVersion,
       latestVersion,
@@ -122,12 +108,10 @@ export async function getLocalVersion(
       isPinned: false,
       pinnedVersion: null,
       status: isUpToDate ? "up-to-date" : "outdated",
-    };
+    }
 
-    console.log(
-      options.json ? formatJsonOutput(info) : formatVersionOutput(info),
-    );
-    return 0;
+    console.log(options.json ? formatJsonOutput(info) : formatVersionOutput(info))
+    return 0
   } catch (error) {
     const info: VersionInfo = {
       currentVersion: null,
@@ -137,11 +121,9 @@ export async function getLocalVersion(
       isPinned: false,
       pinnedVersion: null,
       status: "error",
-    };
+    }
 
-    console.log(
-      options.json ? formatJsonOutput(info) : formatVersionOutput(info),
-    );
-    return 1;
+    console.log(options.json ? formatJsonOutput(info) : formatVersionOutput(info))
+    return 1
   }
 }

@@ -1,42 +1,28 @@
 # Bubbletea v2 — TUI with First-Class CJK / IME Support
 
-The TUI stack for 2026. Use **v2 RC**, not v1. If your users include Korean,
-Japanese, or Chinese speakers, v1 is broken — IME composition lands in the wrong
-cells. v2 fixes this. This document is the canonical setup.
+The TUI stack for 2026. Use **v2 RC**, not v1. If your users include Korean, Japanese, or Chinese speakers, v1 is broken — IME composition lands in the wrong cells. v2 fixes this. This document is the canonical setup.
 
-The reference implementation this document is distilled from:
-[`code-yeongyu/bubbletea-wm`](https://github.com/code-yeongyu/bubbletea-wm) — a
-floating window manager built specifically to nail down v2 + IME.
+The reference implementation this document is distilled from: [`code-yeongyu/bubbletea-wm`](https://github.com/code-yeongyu/bubbletea-wm) — a floating window manager built specifically to nail down v2 + IME.
 
 ---
 
 ## Why v2 (not v1) — the IME story
 
-Bubbletea v1 manages cursor positioning in software ("virtual cursor"). It draws
-a `█` at the cursor position. The terminal's _real_ cursor stays at `(0, 0)`.
+Bubbletea v1 manages cursor positioning in software ("virtual cursor"). It draws a `█` at the cursor position. The terminal's *real* cursor stays at `(0, 0)`.
 
-This breaks every CJK input method. IME candidate windows (the popup showing
-Hangul composition choices for Korean, kana → kanji for Japanese, and pinyin
-lookup for Chinese) anchor to the terminal's **real** cursor position. With v1,
-the candidate window appears at top-left while you are typing somewhere in the
-middle of the screen.
+This breaks every CJK input method. IME candidate windows (the popup showing Hangul composition choices for Korean, kana → kanji for Japanese, and pinyin lookup for Chinese) anchor to the terminal's **real** cursor position. With v1, the candidate window appears at top-left while you are typing somewhere in the middle of the screen.
 
 Bubbletea v2 fixes this with two changes:
 
-1. **`tea.View{Cursor: *tea.Cursor}`** — your `View()` method returns a view
-   that _includes_ the desired cursor position. The framework moves the
-   terminal's real cursor there.
-2. **`textarea.SetVirtualCursor(false)`** — textareas no longer draw their own
-   `█`. They expose `.Cursor()` so you can read where they want the real cursor.
+1. **`tea.View{Cursor: *tea.Cursor}`** — your `View()` method returns a view that *includes* the desired cursor position. The framework moves the terminal's real cursor there.
+2. **`textarea.SetVirtualCursor(false)`** — textareas no longer draw their own `█`. They expose `.Cursor()` so you can read where they want the real cursor.
 
 Together: IME popups appear where the user is typing. As they should.
 
 ### Other v2 wins (incidental)
 
-- `tea.MouseClickMsg` / `MouseMotionMsg` / `MouseReleaseMsg` instead of one
-  coarse `MouseMsg`.
-- Cleaner `View` struct with `AltScreen`, `MouseMode` fields instead of
-  `tea.Cmd` setters.
+- `tea.MouseClickMsg` / `MouseMotionMsg` / `MouseReleaseMsg` instead of one coarse `MouseMsg`.
+- Cleaner `View` struct with `AltScreen`, `MouseMode` fields instead of `tea.Cmd` setters.
 - Pluggable rendering pipeline; better performance under high message volume.
 
 ---
@@ -56,9 +42,7 @@ require (
 )
 ```
 
-The packages live under `charm.land/` (NOT `github.com/charmbracelet/...`) for
-v2. This is the Charm team's deliberate import-path break to keep v2 separate
-from v1 until stable.
+The packages live under `charm.land/` (NOT `github.com/charmbracelet/...`) for v2. This is the Charm team's deliberate import-path break to keep v2 separate from v1 until stable.
 
 ---
 
@@ -129,8 +113,7 @@ func main() {
 The two lines that matter:
 
 1. `ta.SetVirtualCursor(false)` — disables the virtual `█`.
-2. `view.Cursor = cursor` (where `cursor = m.ta.Cursor()`) — exports the real
-   cursor position to the framework.
+2. `view.Cursor = cursor` (where `cursor = m.ta.Cursor()`) — exports the real cursor position to the framework.
 
 Without **both**, IME breaks.
 
@@ -138,10 +121,7 @@ Without **both**, IME breaks.
 
 ## CJK width — go-runewidth, not `len()`
 
-Korean, Japanese, Chinese characters render as **two terminal cells** (wide
-characters per Unicode East Asian Width). Naive `len(string)` returns byte
-count, not display width. `utf8.RuneCountInString` returns rune count, also not
-display width.
+Korean, Japanese, Chinese characters render as **two terminal cells** (wide characters per Unicode East Asian Width). Naive `len(string)` returns byte count, not display width. `utf8.RuneCountInString` returns rune count, also not display width.
 
 Use `github.com/mattn/go-runewidth`:
 
@@ -163,9 +143,7 @@ for _, r := range s {
 }
 ```
 
-`lipgloss/v2` uses `go-runewidth` internally — `lipgloss.Width("\u4e2d\u6587")`
-returns 4, not 2. **If you measure outside lipgloss, you must call runewidth
-directly.**
+`lipgloss/v2` uses `go-runewidth` internally — `lipgloss.Width("\u4e2d\u6587")` returns 4, not 2. **If you measure outside lipgloss, you must call runewidth directly.**
 
 ---
 
@@ -189,8 +167,7 @@ Enable mouse via the `View`:
 view.MouseMode = tea.MouseModeCellMotion  // or MouseModeAll
 ```
 
-`CellMotion` reports clicks + motion-while-button-pressed (drag). `MouseModeAll`
-reports motion always — heavier, only when you need hover.
+`CellMotion` reports clicks + motion-while-button-pressed (drag). `MouseModeAll` reports motion always — heavier, only when you need hover.
 
 ---
 
@@ -209,9 +186,7 @@ import (
 )
 ```
 
-All v2 components support `SetVirtualCursor(false)` where they accept text
-input. Use it for every text input that users might type CJK into — and "might"
-should be assumed _yes_.
+All v2 components support `SetVirtualCursor(false)` where they accept text input. Use it for every text input that users might type CJK into — and "might" should be assumed *yes*.
 
 ---
 
@@ -231,8 +206,7 @@ titleStyle := lipgloss.NewStyle().
 rendered := titleStyle.Render("\u4e2d\u6587")
 ```
 
-`lipgloss/v2` width and padding correctly account for CJK display width. v1 did
-too — this is not a v2-specific fix, just a reminder.
+`lipgloss/v2` width and padding correctly account for CJK display width. v1 did too — this is not a v2-specific fix, just a reminder.
 
 ---
 
@@ -253,15 +227,10 @@ too — this is not a v2-specific fix, just a reminder.
 
 Rules:
 
-- **Model is a value type, not a pointer.** Bubbletea calls `Update` with a
-  value receiver and expects a new value returned. Pointer receivers cause
-  subtle bugs where state mutation leaks across draws.
-- **`Update` is pure.** No I/O. No goroutines started inline. Any I/O returns a
-  `tea.Cmd` — Bubbletea runs it in a goroutine and feeds the result back as a
-  message.
+- **Model is a value type, not a pointer.** Bubbletea calls `Update` with a value receiver and expects a new value returned. Pointer receivers cause subtle bugs where state mutation leaks across draws.
+- **`Update` is pure.** No I/O. No goroutines started inline. Any I/O returns a `tea.Cmd` — Bubbletea runs it in a goroutine and feeds the result back as a message.
 - **`View` is read-only.** It returns a `tea.View` without modifying state.
-- **`tea.Cmd` is `func() tea.Msg`.** It runs once, returns a message, exits. For
-  repeating work, use `tea.Tick` or a self-resending command.
+- **`tea.Cmd` is `func() tea.Msg`.** It runs once, returns a message, exits. For repeating work, use `tea.Tick` or a self-resending command.
 
 ```go
 // One-shot command
@@ -309,8 +278,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 ```
 
-`tea.Batch` runs commands concurrently. The framework collects their results in
-the order they arrive.
+`tea.Batch` runs commands concurrently. The framework collects their results in the order they arrive.
 
 When the model exceeds 250 LOC, split by sub-model into separate files:
 
@@ -346,46 +314,38 @@ func TestModel_typing_cjk_keeps_cursor_in_position(t *testing.T) {
 }
 ```
 
-`teatest` lets you drive the model through synthetic messages and inspect the
-rendered output. Pair with `autogold` snapshots for full-view regression tests.
+`teatest` lets you drive the model through synthetic messages and inspect the rendered output. Pair with `autogold` snapshots for full-view regression tests.
 
 ---
 
 ## Common antipatterns
 
-| Bad                                       | Why                               | Good                                         |
-| ----------------------------------------- | --------------------------------- | -------------------------------------------- |
-| `tea.Program` with `tea.WithoutSignals()` | Ctrl-C does not work              | Default signal handling                      |
-| Pointer receivers on Model                | Bubbletea expects value semantics | Value receivers, return new model            |
-| `time.Sleep` inside `Update`              | Blocks the event loop             | `tea.Tick` or async `tea.Cmd`                |
-| `fmt.Println` for debug                   | Corrupts the rendered output      | `tea.Printf` for logging, or write to a file |
-| `len(s)` for CJK width                    | Off by 2x                         | `runewidth.StringWidth(s)`                   |
-| `Bubbletea v1` for an app with text input | Korean/Japanese IME breaks        | v2 + `SetVirtualCursor(false)`               |
-| Drawing your own `█` block cursor in v2   | Conflicts with `view.Cursor`      | Let the terminal handle it                   |
+| Bad | Why | Good |
+|---|---|---|
+| `tea.Program` with `tea.WithoutSignals()` | Ctrl-C does not work | Default signal handling |
+| Pointer receivers on Model | Bubbletea expects value semantics | Value receivers, return new model |
+| `time.Sleep` inside `Update` | Blocks the event loop | `tea.Tick` or async `tea.Cmd` |
+| `fmt.Println` for debug | Corrupts the rendered output | `tea.Printf` for logging, or write to a file |
+| `len(s)` for CJK width | Off by 2x | `runewidth.StringWidth(s)` |
+| `Bubbletea v1` for an app with text input | Korean/Japanese IME breaks | v2 + `SetVirtualCursor(false)` |
+| Drawing your own `█` block cursor in v2 | Conflicts with `view.Cursor` | Let the terminal handle it |
 
 ---
 
 ## Performance — when v2 starts to crawl
 
-- **Reduce View frequency.** If the model changes 60 times/sec but the rendered
-  view changes once/sec, gate redraws on a "dirty" flag.
-- **`viewport.Model` for scrollable content.** Avoid re-rendering thousands of
-  lines on every keystroke.
-- **`Batch` your commands.** A series of synchronous `tea.Cmd` returns
-  serializes; `tea.Batch` parallelizes.
+- **Reduce View frequency.** If the model changes 60 times/sec but the rendered view changes once/sec, gate redraws on a "dirty" flag.
+- **`viewport.Model` for scrollable content.** Avoid re-rendering thousands of lines on every keystroke.
+- **`Batch` your commands.** A series of synchronous `tea.Cmd` returns serializes; `tea.Batch` parallelizes.
 - **Profile with `tea.WithFPS(N)`** to cap repaint rate during development.
 
 ---
 
 ## When NOT to use Bubbletea
 
-- The app is one prompt + one answer. Use `huh` (also from Charm) — simpler, no
-  Model–Update–View ceremony.
-- The app is a long-running daemon with occasional status output. Use `slog` to
-  stderr and `tea.Program` only if interactivity becomes necessary.
-- The app must run as a non-tty subprocess (CI, redirected stdin). `tea.Program`
-  requires a tty for input. Detect via `term.IsTerminal(int(os.Stdin.Fd()))` and
-  fall back to a non-interactive path.
+- The app is one prompt + one answer. Use `huh` (also from Charm) — simpler, no Model–Update–View ceremony.
+- The app is a long-running daemon with occasional status output. Use `slog` to stderr and `tea.Program` only if interactivity becomes necessary.
+- The app must run as a non-tty subprocess (CI, redirected stdin). `tea.Program` requires a tty for input. Detect via `term.IsTerminal(int(os.Stdin.Fd()))` and fall back to a non-interactive path.
 
 ---
 

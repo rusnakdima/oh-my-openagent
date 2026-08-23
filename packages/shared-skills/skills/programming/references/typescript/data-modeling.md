@@ -37,15 +37,15 @@ The default for structured data inside your codebase. Zero runtime cost.
 
 ```typescript
 type User = {
-  readonly id: UserId;
-  readonly name: string;
-  readonly email: string;
-};
+  readonly id: UserId
+  readonly name: string
+  readonly email: string
+}
 
 type Point = {
-  readonly x: number;
-  readonly y: number;
-};
+  readonly x: number
+  readonly y: number
+}
 ```
 
 All properties `readonly`. Mutable only when mutation is the documented purpose.
@@ -56,64 +56,62 @@ Use when you need declaration merging or `extends`.
 
 ```typescript
 interface Repository<T> {
-  get(id: string): Promise<T | null>;
-  save(entity: T): Promise<void>;
+  get(id: string): Promise<T | null>
+  save(entity: T): Promise<void>
 }
 
 interface UserRepository extends Repository<User> {
-  findByEmail(email: string): Promise<User | null>;
+  findByEmail(email: string): Promise<User | null>
 }
 ```
 
 ### interface vs type — when to use which
 
-| Use         | When                                                                             |
-| ----------- | -------------------------------------------------------------------------------- |
-| `type`      | Union types, intersections, mapped types, utility types, internal data shapes    |
+| Use | When |
+|---|---|
+| `type` | Union types, intersections, mapped types, utility types, internal data shapes |
 | `interface` | Contracts that will be `implements`ed or `extends`ed, declaration merging needed |
-| **Default** | **`type` — unless you have a specific reason for `interface`**                   |
+| **Default** | **`type` — unless you have a specific reason for `interface`** |
 
 ### Zod schema — trust boundary guardian
 
-Use when data enters your system. Validates at runtime, infers types at compile
-time.
+Use when data enters your system. Validates at runtime, infers types at compile time.
 
 ```typescript
-import { z } from "zod";
+import { z } from "zod"
 
 const CreateUserSchema = z.object({
   name: z.string().min(1),
   email: z.string().email(),
   age: z.number().int().min(0),
-});
-type CreateUser = z.infer<typeof CreateUserSchema>;
+})
+type CreateUser = z.infer<typeof CreateUserSchema>
 
 const UserResponseSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
   email: z.string(),
-});
-type UserResponse = z.infer<typeof UserResponseSchema>;
+})
+type UserResponse = z.infer<typeof UserResponseSchema>
 ```
 
-**The one rule**: data crosses a trust boundary → Zod. Everything else → plain
-type/interface. Never use Zod for internal-only data. The runtime validation
-cost and Zod coupling are unnecessary.
+**The one rule**: data crosses a trust boundary → Zod. Everything else → plain type/interface.
+Never use Zod for internal-only data. The runtime validation cost and Zod coupling are unnecessary.
 
 ### as const — fixed constants
 
 Replaces `enum` entirely. Type-safe, tree-shakeable, no runtime overhead.
 
 ```typescript
-const ROLES = ["admin", "user", "guest"] as const;
-type Role = (typeof ROLES)[number];
+const ROLES = ["admin", "user", "guest"] as const
+type Role = (typeof ROLES)[number]
 
 const STATUS = {
   ACTIVE: "active",
   INACTIVE: "inactive",
   DELETED: "deleted",
-} as const;
-type Status = (typeof STATUS)[keyof typeof STATUS];
+} as const
+type Status = (typeof STATUS)[keyof typeof STATUS]
 ```
 
 ### Discriminated union — multiple outcomes
@@ -122,25 +120,24 @@ type Status = (typeof STATUS)[keyof typeof STATUS];
 type GetUserResult =
   | { readonly kind: "found"; readonly user: User }
   | { readonly kind: "not_found"; readonly id: UserId }
-  | { readonly kind: "forbidden"; readonly reason: string };
+  | { readonly kind: "forbidden"; readonly reason: string }
 ```
 
-Each variant has a `kind` discriminant. TypeScript narrows on
-`switch (result.kind)`.
+Each variant has a `kind` discriminant. TypeScript narrows on `switch (result.kind)`.
 
 ---
 
 ## Quick lookup
 
-| Situation                              | Use                               |
-| -------------------------------------- | --------------------------------- |
-| User input, API request/response       | Zod schema + `z.infer`            |
-| Internal value object                  | `type` with `readonly` properties |
-| Function with multiple outcomes        | Discriminated union               |
-| Contract for implementations           | `interface`                       |
-| Fixed constants                        | `as const` + literal union        |
-| Distinct primitive (UserId vs OrderId) | Branded type                      |
-| Dict shape / key-value map             | `Record<K, V>` or index signature |
+| Situation | Use |
+|---|---|
+| User input, API request/response | Zod schema + `z.infer` |
+| Internal value object | `type` with `readonly` properties |
+| Function with multiple outcomes | Discriminated union |
+| Contract for implementations | `interface` |
+| Fixed constants | `as const` + literal union |
+| Distinct primitive (UserId vs OrderId) | Branded type |
+| Dict shape / key-value map | `Record<K, V>` or index signature |
 
 ---
 
@@ -168,8 +165,8 @@ For mutable state (rare), document why:
 ```typescript
 /** Counter state — mutation is the entire purpose. */
 type CounterState = {
-  count: number; // intentionally mutable
-};
+  count: number  // intentionally mutable
+}
 ```
 
 ---
@@ -200,8 +197,6 @@ sendWelcome(parsed)  // no re-validation needed
 
 ## Sources
 
-- TypeScript Handbook:
-  [Object Types](https://www.typescriptlang.org/docs/handbook/2/objects.html)
+- TypeScript Handbook: [Object Types](https://www.typescriptlang.org/docs/handbook/2/objects.html)
 - Zod: [docs](https://zod.dev)
-- Total TypeScript:
-  [Type vs Interface](https://www.totaltypescript.com/type-vs-interface-which-should-you-use)
+- Total TypeScript: [Type vs Interface](https://www.totaltypescript.com/type-vs-interface-which-should-you-use)

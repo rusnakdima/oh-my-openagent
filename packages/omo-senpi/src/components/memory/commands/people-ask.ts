@@ -6,60 +6,55 @@
 // never enters model context. Abstention is the default register: an honest
 // "I don't know" outranks a guess.
 
-import { spawn } from "node:child_process";
+import { spawn } from "node:child_process"
 
-import type { OmoConfig } from "@oh-my-opencode/omo-config-core";
-import type {
-  SenpiModelPort,
-  SenpiModelRegistryPort,
-} from "@oh-my-opencode/senpi-task";
+import type { OmoConfig } from "@oh-my-opencode/omo-config-core"
+import type { SenpiModelPort, SenpiModelRegistryPort } from "@oh-my-opencode/senpi-task"
 
-import { resolveSenpiLaunch } from "../worker/senpi-command";
-import { resolveReflectionModel } from "../worker/resolve-model";
+import { resolveSenpiLaunch } from "../worker/senpi-command"
+import { resolveReflectionModel } from "../worker/resolve-model"
 
-const QUICK_CATEGORY = "quick";
-const DEFAULT_DEADLINE_MS = 120_000;
-const MAX_OUTPUT_BYTES = 32 * 1024;
+const QUICK_CATEGORY = "quick"
+const DEFAULT_DEADLINE_MS = 120_000
+const MAX_OUTPUT_BYTES = 32 * 1024
 
-export const ABSTENTION_LINE =
-  "I don't know: the memory holds no evidence that answers this.";
+export const ABSTENTION_LINE = "I don't know: the memory holds no evidence that answers this."
 
 export interface PeopleAskEvidence {
-  readonly card: readonly string[];
-  readonly observations: readonly string[];
-  readonly searchHits: readonly string[];
+  readonly card: readonly string[]
+  readonly observations: readonly string[]
+  readonly searchHits: readonly string[]
 }
 export interface PeopleAskRequest {
-  readonly slug: string;
-  readonly displayName: string;
-  readonly question: string;
-  readonly evidence: PeopleAskEvidence;
+  readonly slug: string
+  readonly displayName: string
+  readonly question: string
+  readonly evidence: PeopleAskEvidence
 }
 
-export type PeopleAskRunner = (request: PeopleAskRequest) => Promise<string>;
+export type PeopleAskRunner = (request: PeopleAskRequest) => Promise<string>
 
 export interface PeopleAskOptions {
-  readonly config: OmoConfig;
-  readonly registry: SenpiModelRegistryPort<SenpiModelPort> | undefined;
-  readonly env?: NodeJS.ProcessEnv;
-  readonly senpiCommand?: string;
-  readonly senpiPrefixArgs?: readonly string[];
-  readonly deadlineMs?: number;
+  readonly config: OmoConfig
+  readonly registry: SenpiModelRegistryPort<SenpiModelPort> | undefined
+  readonly env?: NodeJS.ProcessEnv
+  readonly senpiCommand?: string
+  readonly senpiPrefixArgs?: readonly string[]
+  readonly deadlineMs?: number
 }
 
 /** True when nothing in the memory can support an answer, so the child is never launched. */
 export function hasNoEvidence(evidence: PeopleAskEvidence): boolean {
-  return evidence.card.length === 0 && evidence.observations.length === 0 &&
-    evidence.searchHits.length === 0;
+  return evidence.card.length === 0 && evidence.observations.length === 0 && evidence.searchHits.length === 0
 }
 
 const PERSONA = [
   "You answer one question about one person using ONLY the evidence supplied below.",
-  'A confident "I don\'t know" is always correct: when the evidence does not settle the question, say so plainly and stop.',
+  "A confident \"I don't know\" is always correct: when the evidence does not settle the question, say so plainly and stop.",
   "Never invent a fact, never infer a trait the evidence does not state, and never speculate about intent.",
   "Cite the evidence you relied on by quoting its line. Keep the answer under 120 words.",
   "Explicit observations are stated facts; deductive, inductive, and contradiction observations are weaker and MUST be labelled as such when used.",
-].join("\n");
+].join("\n")
 
 export function buildAskPrompt(request: PeopleAskRequest): string {
   const sections = [
@@ -67,21 +62,15 @@ export function buildAskPrompt(request: PeopleAskRequest): string {
     `Question: ${request.question}`,
     "",
     "CARD",
-    ...(request.evidence.card.length === 0
-      ? ["(none)"]
-      : request.evidence.card),
+    ...(request.evidence.card.length === 0 ? ["(none)"] : request.evidence.card),
     "",
     "OBSERVATIONS",
-    ...(request.evidence.observations.length === 0
-      ? ["(none)"]
-      : request.evidence.observations),
+    ...(request.evidence.observations.length === 0 ? ["(none)"] : request.evidence.observations),
     "",
     "SEARCH HITS",
-    ...(request.evidence.searchHits.length === 0
-      ? ["(none)"]
-      : request.evidence.searchHits),
-  ];
-  return sections.join("\n");
+    ...(request.evidence.searchHits.length === 0 ? ["(none)"] : request.evidence.searchHits),
+  ]
+  return sections.join("\n")
 }
 
 /**
@@ -89,48 +78,34 @@ export function buildAskPrompt(request: PeopleAskRequest): string {
  * Returns the abstention line when no quick model is available, because a
  * missing model is exactly a state in which nothing is known.
  */
-export function createPeopleAskRunner(
-  options: PeopleAskOptions,
-): PeopleAskRunner {
+export function createPeopleAskRunner(options: PeopleAskOptions): PeopleAskRunner {
   return async (request: PeopleAskRequest): Promise<string> => {
-    const resolution = resolveReflectionModel(
-      QUICK_CATEGORY,
-      options.config,
-      options.registry,
-    );
-    if (resolution.kind !== "resolved") return ABSTENTION_LINE;
-    const env = options.env ?? process.env;
+    const resolution = resolveReflectionModel(QUICK_CATEGORY, options.config, options.registry)
+    if (resolution.kind !== "resolved") return ABSTENTION_LINE
+    const env = options.env ?? process.env
     const args = [
       "-p",
-      "--system-prompt",
-      PERSONA,
-      "--tools",
-      "none",
+      "--system-prompt", PERSONA,
+      "--tools", "none",
       "--no-extensions",
       "--no-skills",
       "--no-prompt-templates",
       "--no-context-files",
-      "--model",
-      resolution.model,
-      ...(resolution.thinking === undefined
-        ? []
-        : ["--thinking", resolution.thinking]),
+      "--model", resolution.model,
+      ...(resolution.thinking === undefined ? [] : ["--thinking", resolution.thinking]),
       buildAskPrompt(request),
-    ];
+    ]
     const launch = options.senpiCommand === undefined
       ? resolveSenpiLaunch(env)
-      : {
-        command: options.senpiCommand,
-        prefixArgs: options.senpiPrefixArgs ?? [],
-      };
+      : { command: options.senpiCommand, prefixArgs: options.senpiPrefixArgs ?? [] }
     const answer = await runChild(
       launch.command,
       [...launch.prefixArgs, ...args],
       env,
       options.deadlineMs ?? DEFAULT_DEADLINE_MS,
-    );
-    return answer.length === 0 ? ABSTENTION_LINE : answer;
-  };
+    )
+    return answer.length === 0 ? ABSTENTION_LINE : answer
+  }
 }
 
 function runChild(
@@ -145,31 +120,31 @@ function runChild(
       env: { ...env, SENPI_PTY_FORCE_PIPE: "1" },
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
-    });
-    let stdout = "";
-    let settled = false;
+    })
+    let stdout = ""
+    let settled = false
     const timer = setTimeout(() => {
-      if (settled) return;
-      settled = true;
-      child.kill("SIGKILL");
-      resolve(ABSTENTION_LINE);
-    }, deadlineMs);
-    timer.unref?.();
+      if (settled) return
+      settled = true
+      child.kill("SIGKILL")
+      resolve(ABSTENTION_LINE)
+    }, deadlineMs)
+    timer.unref?.()
 
     child.stdout?.on("data", (chunk: Buffer) => {
-      if (stdout.length < MAX_OUTPUT_BYTES) stdout += chunk.toString("utf8");
-    });
+      if (stdout.length < MAX_OUTPUT_BYTES) stdout += chunk.toString("utf8")
+    })
     child.on("error", (error: Error) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(error);
-    });
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      reject(error)
+    })
     child.on("close", (code: number | null) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      resolve(code === 0 ? stdout.trim() : ABSTENTION_LINE);
-    });
-  });
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(code === 0 ? stdout.trim() : ABSTENTION_LINE)
+    })
+  })
 }

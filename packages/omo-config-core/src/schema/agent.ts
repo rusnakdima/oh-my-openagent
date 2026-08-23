@@ -1,20 +1,17 @@
-import * as z from "zod";
+import * as z from "zod"
 
 import {
-  normalizeLegacyModelFields,
   OmoFallbackModelObjectSchema,
   OmoReasoningEffortSchema,
-} from "./fallback-models";
-import { OmoReasoningSchema } from "./model-ref";
+  normalizeLegacyModelFields,
+} from "./fallback-models"
+import { OmoReasoningSchema } from "./model-ref"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-export const OmoAgentModelEntrySchema = z.union([
-  z.string(),
-  OmoFallbackModelObjectSchema,
-]);
+export const OmoAgentModelEntrySchema = z.union([z.string(), OmoFallbackModelObjectSchema])
 
 const OmoAgentDefInputSchema = z.object({
   description: z.string().optional(),
@@ -35,15 +32,15 @@ const OmoAgentDefInputSchema = z.object({
   max_turns: z.number().int().nonnegative().optional(),
   temperature: z.number().min(0).max(2).optional(),
   disable: z.boolean().optional(),
-}).strict();
+}).strict()
 
 export const OmoAgentDefSchema = z.preprocess(
   (value) => isRecord(value) ? normalizeLegacyModelFields(value) : value,
   OmoAgentDefInputSchema,
-);
+)
 
-export const OmoAgentsConfigSchema = z.record(z.string(), OmoAgentDefSchema);
+export const OmoAgentsConfigSchema = z.record(z.string(), OmoAgentDefSchema)
 
-export type OmoAgentModelEntry = z.infer<typeof OmoAgentModelEntrySchema>;
-export type OmoAgentDef = z.infer<typeof OmoAgentDefSchema>;
-export type OmoAgentsConfig = z.infer<typeof OmoAgentsConfigSchema>;
+export type OmoAgentModelEntry = z.infer<typeof OmoAgentModelEntrySchema>
+export type OmoAgentDef = z.infer<typeof OmoAgentDefSchema>
+export type OmoAgentsConfig = z.infer<typeof OmoAgentsConfigSchema>

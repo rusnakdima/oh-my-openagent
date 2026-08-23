@@ -1,5 +1,4 @@
-export const STOP_CONTINUATION_TEMPLATE =
-  `Stop all continuation mechanisms for the current session.
+export const STOP_CONTINUATION_TEMPLATE = `Stop all continuation mechanisms for the current session.
 
 This command will:
 1. Stop the todo-continuation-enforcer from automatically continuing incomplete tasks
@@ -12,4 +11,4 @@ After running this command:
 - You can manually continue work when ready
 - The stop state is per-session and clears when the session ends
 
-Use this when you need to pause automated continuation and take manual control.`;
+Use this when you need to pause automated continuation and take manual control.`

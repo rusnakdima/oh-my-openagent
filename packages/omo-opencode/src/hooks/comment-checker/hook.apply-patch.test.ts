@@ -1,36 +1,29 @@
-import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
+import { describe, it, expect, mock, beforeEach, afterAll } from "bun:test"
 
-const processApplyPatchEditsWithCli = mock(async () => {});
+const processApplyPatchEditsWithCli = mock(async () => {})
 
 mock.module("./cli-runner", () => ({
   initializeCommentCheckerCli: () => {},
-  getCommentCheckerCliPathPromise: () =>
-    Promise.resolve("/tmp/fake-comment-checker"),
+  getCommentCheckerCliPathPromise: () => Promise.resolve("/tmp/fake-comment-checker"),
   isCliPathUsable: () => true,
   processWithCli: async () => {},
   processApplyPatchEditsWithCli,
-}));
+}))
 
-afterAll(() => {
-  mock.restore();
-});
+afterAll(() => { mock.restore() })
 
-const { createCommentCheckerHooks } = await import("./hook");
+const { createCommentCheckerHooks } = await import("./hook")
 
 describe("comment-checker apply_patch integration", () => {
   beforeEach(() => {
-    processApplyPatchEditsWithCli.mockClear();
-  });
+    processApplyPatchEditsWithCli.mockClear()
+  })
 
   it("runs comment checker using apply_patch metadata.files", async () => {
     // given
-    const hooks = createCommentCheckerHooks();
+    const hooks = createCommentCheckerHooks()
 
-    const input = {
-      tool: "apply_patch",
-      sessionID: "ses_test",
-      callID: "call_test",
-    };
+    const input = { tool: "apply_patch", sessionID: "ses_test", callID: "call_test" }
     const output = {
       title: "ok",
       output: "Success. Updated the following files:\nM src/a.ts",
@@ -57,59 +50,43 @@ describe("comment-checker apply_patch integration", () => {
           },
         ],
       },
-    };
+    }
 
     // when
-    await hooks["tool.execute.after"](input, output);
+    await hooks["tool.execute.after"](input, output)
 
     // then
-    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1);
+    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1)
     expect(processApplyPatchEditsWithCli).toHaveBeenCalledWith(
       "ses_test",
       [
-        {
-          filePath: "/repo/src/a.ts",
-          before: "const a = 1\n",
-          after: "// comment\nconst a = 1\n",
-        },
-        {
-          filePath: "/repo/src/new.ts",
-          before: "const b = 1\n",
-          after: "// moved comment\nconst b = 1\n",
-        },
+        { filePath: "/repo/src/a.ts", before: "const a = 1\n", after: "// comment\nconst a = 1\n" },
+        { filePath: "/repo/src/new.ts", before: "const b = 1\n", after: "// moved comment\nconst b = 1\n" },
       ],
       expect.any(Object),
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
-    );
-  });
+    )
+  })
 
   it("skips when apply_patch metadata.files is missing", async () => {
     // given
-    const hooks = createCommentCheckerHooks();
-    const input = {
-      tool: "apply_patch",
-      sessionID: "ses_test",
-      callID: "call_test",
-    };
-    const output = { title: "ok", output: "ok", metadata: {} };
+    const hooks = createCommentCheckerHooks()
+    const input = { tool: "apply_patch", sessionID: "ses_test", callID: "call_test" }
+    const output = { title: "ok", output: "ok", metadata: {} }
 
     // when
-    await hooks["tool.execute.after"](input, output);
+    await hooks["tool.execute.after"](input, output)
 
     // then
-    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(0);
-  });
+    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(0)
+  })
 
   it("#given apply_patch metadata nested under result #when hook runs #then checks edited files", async () => {
     // given
-    const hooks = createCommentCheckerHooks();
-    const input = {
-      tool: "apply_patch",
-      sessionID: "ses_test",
-      callID: "call_test",
-    };
+    const hooks = createCommentCheckerHooks()
+    const input = { tool: "apply_patch", sessionID: "ses_test", callID: "call_test" }
     const output = {
       title: "ok",
       output: "Success",
@@ -125,13 +102,13 @@ describe("comment-checker apply_patch integration", () => {
           ],
         },
       },
-    };
+    }
 
     // when
-    await hooks["tool.execute.after"](input, output);
+    await hooks["tool.execute.after"](input, output)
 
     // then
-    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1);
+    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1)
     expect(processApplyPatchEditsWithCli).toHaveBeenCalledWith(
       "ses_test",
       [
@@ -145,17 +122,13 @@ describe("comment-checker apply_patch integration", () => {
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
-    );
-  });
+    )
+  })
 
   it("#given apply_patch metadata nested under metadata #when hook runs #then checks edited files", async () => {
     // given
-    const hooks = createCommentCheckerHooks();
-    const input = {
-      tool: "apply_patch",
-      sessionID: "ses_test",
-      callID: "call_test",
-    };
+    const hooks = createCommentCheckerHooks()
+    const input = { tool: "apply_patch", sessionID: "ses_test", callID: "call_test" }
     const output = {
       title: "ok",
       output: "Success",
@@ -171,13 +144,13 @@ describe("comment-checker apply_patch integration", () => {
           ],
         },
       },
-    };
+    }
 
     // when
-    await hooks["tool.execute.after"](input, output);
+    await hooks["tool.execute.after"](input, output)
 
     // then
-    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1);
+    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1)
     expect(processApplyPatchEditsWithCli).toHaveBeenCalledWith(
       "ses_test",
       [
@@ -191,12 +164,12 @@ describe("comment-checker apply_patch integration", () => {
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
-    );
-  });
+    )
+  })
 
   it("#given apply_patch patchText args without metadata #when hook runs #then parses patch edits", async () => {
     // given
-    const hooks = createCommentCheckerHooks();
+    const hooks = createCommentCheckerHooks()
     const input = {
       tool: "apply_patch",
       sessionID: "ses_test",
@@ -212,14 +185,14 @@ describe("comment-checker apply_patch integration", () => {
           "*** End Patch",
         ].join("\n"),
       },
-    };
-    const output = { title: "ok", output: "Success", metadata: {} };
+    }
+    const output = { title: "ok", output: "Success", metadata: {} }
 
     // when
-    await hooks["tool.execute.after"](input, output);
+    await hooks["tool.execute.after"](input, output)
 
     // then
-    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1);
+    expect(processApplyPatchEditsWithCli).toHaveBeenCalledTimes(1)
     expect(processApplyPatchEditsWithCli).toHaveBeenCalledWith(
       "ses_test",
       [
@@ -233,6 +206,6 @@ describe("comment-checker apply_patch integration", () => {
       "/tmp/fake-comment-checker",
       undefined,
       expect.any(Function),
-    );
-  });
-});
+    )
+  })
+})

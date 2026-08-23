@@ -1,57 +1,40 @@
-import { rm } from "node:fs/promises";
+import { rm } from "node:fs/promises"
 
-import { log } from "@oh-my-opencode/utils";
-import type { RuntimeState, TeamSpec } from "@oh-my-opencode/team-core/types";
+import { log } from "@oh-my-opencode/utils"
+import type { RuntimeState, TeamSpec } from "@oh-my-opencode/team-core/types"
 import {
   createRuntimeState,
   loadRuntimeState,
   transitionRuntimeState,
-} from "@oh-my-opencode/team-core/team-state-store";
+} from "@oh-my-opencode/team-core/team-state-store"
 
+import { readMemberTaskMap, writeMemberTaskMap, type MemberTaskMap } from "./member-map"
+import { resolveStateDir } from "../store"
+import type { TeamSpecSource } from "./registry"
+import { toTeamCoreConfig, toTeamCoreSpecSource, type TeamCoreConfig } from "./runtime-config"
 import {
-  type MemberTaskMap,
-  readMemberTaskMap,
-  writeMemberTaskMap,
-} from "./member-map";
-import { resolveStateDir } from "../store";
-import type { TeamSpecSource } from "./registry";
-import {
-  type TeamCoreConfig,
-  toTeamCoreConfig,
-  toTeamCoreSpecSource,
-} from "./runtime-config";
-import {
-  type CreatedMemberInfo,
+  SenpiTeamRuntimeError,
   type CreateTeamDeps,
   type CreateTeamResult,
+  type CreatedMemberInfo,
   type DeleteTeamDeps,
   type DeleteTeamResult,
-  SenpiTeamRuntimeError,
-} from "./runtime-types";
-import {
-  memberTaskName,
-  type SpawnedMember,
-  type SpawnMembersResult,
-  spawnTeamMembers,
-} from "./spawn-members";
-import {
-  ensureTeamRuntimeDirs,
-  resolveTeamRuntimeDirs,
-  teamStorageBaseDir,
-} from "./storage";
+} from "./runtime-types"
+import { memberTaskName, spawnTeamMembers, type SpawnMembersResult, type SpawnedMember } from "./spawn-members"
+import { ensureTeamRuntimeDirs, resolveTeamRuntimeDirs, teamStorageBaseDir } from "./storage"
 
-const MS_PER_MINUTE = 60_000;
+const MS_PER_MINUTE = 60_000
 
-export { SenpiTeamRuntimeError } from "./runtime-types";
+export { SenpiTeamRuntimeError } from "./runtime-types"
 export type {
-  CreatedMemberInfo,
-  CreatedMemberRole,
   CreateTeamDeps,
   CreateTeamResult,
+  CreatedMemberInfo,
+  CreatedMemberRole,
   DeleteTeamDeps,
   DeleteTeamResult,
   TeamRuntimeManagerPort,
-} from "./runtime-types";
+} from "./runtime-types"
 
 /**
  * Creates a team run over the task manager: enforce the `max_members` bound BEFORE any spawn, seed
@@ -65,32 +48,20 @@ export async function createTeam(
   source: TeamSpecSource,
   deps: CreateTeamDeps,
 ): Promise<CreateTeamResult> {
-  const maxMembers = deps.taskSettings.team.max_members;
+  const maxMembers = deps.taskSettings.team.max_members
   if (spec.members.length > maxMembers) {
     throw new SenpiTeamRuntimeError(
       `team '${spec.name}' declares ${spec.members.length} members, exceeding max_members ${maxMembers}`,
       "bounds_exceeded",
       spec.name,
-    );
+    )
   }
 
-  const now = deps.now ?? Date.now;
-  const config = toTeamCoreConfig(
-    deps.taskSettings,
-    teamStorageBaseDir(deps.stateDir),
-  );
-  const runtimeState = await createRuntimeState(
-    spec,
-    deps.leadSessionId,
-    toTeamCoreSpecSource(source),
-    config,
-  );
-  const teamRunId = runtimeState.teamRunId;
-  await ensureTeamRuntimeDirs(
-    deps.stateDir,
-    teamRunId,
-    spec.members.map((member) => member.name),
-  );
+  const now = deps.now ?? Date.now
+  const config = toTeamCoreConfig(deps.taskSettings, teamStorageBaseDir(deps.stateDir))
+  const runtimeState = await createRuntimeState(spec, deps.leadSessionId, toTeamCoreSpecSource(source), config)
+  const teamRunId = runtimeState.teamRunId
+  await ensureTeamRuntimeDirs(deps.stateDir, teamRunId, spec.members.map((member) => member.name))
 
   const result = await spawnTeamMembers({
     spec,
@@ -99,64 +70,50 @@ export async function createTeam(
     leadSessionId: deps.leadSessionId,
     spawnDepth: deps.spawnDepth,
     maxParallel: deps.taskSettings.team.max_parallel_members,
-    deadlineAt: now() +
-      deps.taskSettings.team.max_wall_clock_minutes * MS_PER_MINUTE,
+    deadlineAt: now() + deps.taskSettings.team.max_wall_clock_minutes * MS_PER_MINUTE,
     now,
-    ...(deps.memberExtension !== undefined
-      ? {
-        memberExtension: {
-          ...deps.memberExtension,
-          teamConfig: JSON.stringify({
-            ...config,
-            stateDir: resolveStateDir(deps.stateDir),
-            members: spec.members.map((member) => member.name),
-          }),
-        },
-      }
-      : {}),
-  });
+    ...(deps.memberExtension !== undefined ? {
+      memberExtension: {
+        ...deps.memberExtension,
+        teamConfig: JSON.stringify({
+          ...config,
+          stateDir: resolveStateDir(deps.stateDir),
+          members: spec.members.map((member) => member.name),
+        }),
+      },
+    } : {}),
+  })
 
   if (result.failure !== undefined) {
-    await rollbackFailedCreate(teamRunId, result, deps, config);
-    throw result.failure;
+    await rollbackFailedCreate(teamRunId, result, deps, config)
+    throw result.failure
   }
 
-  const memberTaskIds = toMemberTaskMap(result.spawned);
-  const writeMemberMap = deps.writeMemberMap ?? writeMemberTaskMap;
+  const memberTaskIds = toMemberTaskMap(result.spawned)
+  const writeMemberMap = deps.writeMemberMap ?? writeMemberTaskMap
   // Persist the member sidecar AFTER spawn success but BEFORE the ->active transition (W3-V F4): an
   // active team with no discoverable/cancellable members is a leak, so a write failure rolls the whole
   // create back (cancel spawned members + ->failed) instead of activating an orphaned run.
   try {
-    await writeMemberMap(
-      resolveTeamRuntimeDirs(deps.stateDir, teamRunId).runtimeDir,
-      memberTaskIds,
-    );
+    await writeMemberMap(resolveTeamRuntimeDirs(deps.stateDir, teamRunId).runtimeDir, memberTaskIds)
   } catch (error) {
-    await rollbackFailedCreate(teamRunId, result, deps, config);
+    await rollbackFailedCreate(teamRunId, result, deps, config)
     throw new SenpiTeamRuntimeError(
-      `team '${spec.name}' member sidecar write failed: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      `team '${spec.name}' member sidecar write failed: ${error instanceof Error ? error.message : String(error)}`,
       "sidecar_write_failed",
       spec.name,
-    );
+    )
   }
 
-  const activated = await activateTeam(teamRunId, result.spawned, config);
-  return {
-    runtimeState: activated,
-    memberTaskIds,
-    members: toCreatedMemberInfos(spec, result.spawned, activated),
-  };
+  const activated = await activateTeam(teamRunId, result.spawned, config)
+  return { runtimeState: activated, memberTaskIds, members: toCreatedMemberInfos(spec, result.spawned, activated) }
 }
 
-const PROMPT_EXCERPT_MAX = 120;
+const PROMPT_EXCERPT_MAX = 120
 
 function excerptPrompt(prompt: string): string {
-  const collapsed = prompt.replace(/\s+/g, " ").trim();
-  return collapsed.length <= PROMPT_EXCERPT_MAX
-    ? collapsed
-    : `${collapsed.slice(0, PROMPT_EXCERPT_MAX)}...`;
+  const collapsed = prompt.replace(/\s+/g, " ").trim()
+  return collapsed.length <= PROMPT_EXCERPT_MAX ? collapsed : `${collapsed.slice(0, PROMPT_EXCERPT_MAX)}...`
 }
 
 // Builds the caller-facing per-member views from the spec (role, prompt), the spawn outcomes (task
@@ -168,11 +125,9 @@ function toCreatedMemberInfos(
   state: RuntimeState,
 ): CreatedMemberInfo[] {
   return spec.members.flatMap((member) => {
-    const outcome = spawned.get(member.name);
-    if (outcome === undefined) return [];
-    const stateMember = state.members.find((candidate) =>
-      candidate.name === member.name
-    );
+    const outcome = spawned.get(member.name)
+    if (outcome === undefined) return []
+    const stateMember = state.members.find((candidate) => candidate.name === member.name)
     return [{
       name: member.name,
       taskId: outcome.taskId,
@@ -180,17 +135,11 @@ function toCreatedMemberInfos(
       role: member.kind === "category"
         ? { kind: "category", category: member.category }
         : { kind: "subagent_type", subagentType: member.subagent_type },
-      ...(outcome.resolvedModel !== undefined
-        ? { model: outcome.resolvedModel }
-        : {}),
-      ...(member.prompt !== undefined
-        ? { promptExcerpt: excerptPrompt(member.prompt) }
-        : {}),
-      ...(member.task_summary !== undefined
-        ? { taskSummary: member.task_summary }
-        : {}),
-    }];
-  });
+      ...(outcome.resolvedModel !== undefined ? { model: outcome.resolvedModel } : {}),
+      ...(member.prompt !== undefined ? { promptExcerpt: excerptPrompt(member.prompt) } : {}),
+      ...(member.task_summary !== undefined ? { taskSummary: member.task_summary } : {}),
+    }]
+  })
 }
 
 async function activateTeam(
@@ -203,24 +152,14 @@ async function activateTeam(
     (state) => ({
       ...state,
       members: state.members.map((member) => {
-        const outcome = spawned.get(member.name);
-        if (outcome === undefined) return member;
-        return {
-          ...member,
-          status: outcome.status,
-          ...(outcome.sessionId !== undefined
-            ? { sessionId: outcome.sessionId }
-            : {}),
-        };
+        const outcome = spawned.get(member.name)
+        if (outcome === undefined) return member
+        return { ...member, status: outcome.status, ...(outcome.sessionId !== undefined ? { sessionId: outcome.sessionId } : {}) }
       }),
     }),
     config,
-  );
-  return transitionRuntimeState(
-    teamRunId,
-    (state) => ({ ...state, status: "active" }),
-    config,
-  );
+  )
+  return transitionRuntimeState(teamRunId, (state) => ({ ...state, status: "active" }), config)
 }
 
 async function rollbackFailedCreate(
@@ -230,31 +169,18 @@ async function rollbackFailedCreate(
   config: TeamCoreConfig,
 ): Promise<void> {
   for (const member of result.spawned.values()) {
-    const outcome = await deps.manager.cancelTask(
-      member.taskId,
-      `team ${teamRunId} create rollback`,
-    );
+    const outcome = await deps.manager.cancelTask(member.taskId, `team ${teamRunId} create rollback`)
     if (outcome.kind !== "cancelled") {
-      log("senpi-task team create rollback cancel skipped", {
-        teamRunId,
-        taskId: member.taskId,
-        outcome: outcome.kind,
-      });
+      log("senpi-task team create rollback cancel skipped", { teamRunId, taskId: member.taskId, outcome: outcome.kind })
     }
   }
-  await transitionRuntimeState(
-    teamRunId,
-    (state) => ({ ...state, status: "failed" }),
-    config,
-  );
+  await transitionRuntimeState(teamRunId, (state) => ({ ...state, status: "failed" }), config)
 }
 
-function toMemberTaskMap(
-  spawned: ReadonlyMap<string, SpawnedMember>,
-): MemberTaskMap {
-  const map: Record<string, string> = {};
-  for (const [name, member] of spawned) map[name] = member.taskId;
-  return map;
+function toMemberTaskMap(spawned: ReadonlyMap<string, SpawnedMember>): MemberTaskMap {
+  const map: Record<string, string> = {}
+  for (const [name, member] of spawned) map[name] = member.taskId
+  return map
 }
 
 /**
@@ -266,90 +192,52 @@ function toMemberTaskMap(
  * second delete can crash on the removed runtime directory or tear down the same resident twice,
  * so concurrent callers share one promise keyed by the resolved runtime directory.
  */
-const deleteOperations = new Map<string, Promise<DeleteTeamResult>>();
+const deleteOperations = new Map<string, Promise<DeleteTeamResult>>()
 
-export function deleteTeam(
-  teamRunId: string,
-  deps: DeleteTeamDeps,
-): Promise<DeleteTeamResult> {
-  const key = resolveTeamRuntimeDirs(deps.stateDir, teamRunId).runtimeDir;
-  const current = deleteOperations.get(key);
-  if (current !== undefined) return current;
-  const operation = performDeleteTeam(teamRunId, deps).finally(() =>
-    deleteOperations.delete(key)
-  );
-  deleteOperations.set(key, operation);
-  return operation;
+export function deleteTeam(teamRunId: string, deps: DeleteTeamDeps): Promise<DeleteTeamResult> {
+  const key = resolveTeamRuntimeDirs(deps.stateDir, teamRunId).runtimeDir
+  const current = deleteOperations.get(key)
+  if (current !== undefined) return current
+  const operation = performDeleteTeam(teamRunId, deps).finally(() => deleteOperations.delete(key))
+  deleteOperations.set(key, operation)
+  return operation
 }
 
-async function performDeleteTeam(
-  teamRunId: string,
-  deps: DeleteTeamDeps,
-): Promise<DeleteTeamResult> {
-  const config = toTeamCoreConfig(
-    deps.taskSettings,
-    teamStorageBaseDir(deps.stateDir),
-  );
-  const runtimeDir =
-    resolveTeamRuntimeDirs(deps.stateDir, teamRunId).runtimeDir;
+async function performDeleteTeam(teamRunId: string, deps: DeleteTeamDeps): Promise<DeleteTeamResult> {
+  const config = toTeamCoreConfig(deps.taskSettings, teamStorageBaseDir(deps.stateDir))
+  const runtimeDir = resolveTeamRuntimeDirs(deps.stateDir, teamRunId).runtimeDir
 
-  const runtimeState = await loadRuntimeStateOrNull(teamRunId, config);
-  if (runtimeState === null) return { teamRunId, cancelledTaskIds: [] };
+  const runtimeState = await loadRuntimeStateOrNull(teamRunId, config)
+  if (runtimeState === null) return { teamRunId, cancelledTaskIds: [] }
 
-  if (
-    runtimeState.status === "active" ||
-    runtimeState.status === "shutdown_requested"
-  ) {
-    await transitionRuntimeState(
-      teamRunId,
-      (state) => ({ ...state, status: "deleting" }),
-      config,
-    );
-  } else if (
-    runtimeState.status !== "deleting" && runtimeState.status !== "deleted"
-  ) {
+  if (runtimeState.status === "active" || runtimeState.status === "shutdown_requested") {
+    await transitionRuntimeState(teamRunId, (state) => ({ ...state, status: "deleting" }), config)
+  } else if (runtimeState.status !== "deleting" && runtimeState.status !== "deleted") {
     throw new SenpiTeamRuntimeError(
       `team '${teamRunId}' cannot be deleted from status '${runtimeState.status}'`,
       "invalid_delete_state",
       teamRunId,
-    );
+    )
   }
 
-  const cancelledTaskIds = await cancelMemberTasks(teamRunId, runtimeDir, deps);
+  const cancelledTaskIds = await cancelMemberTasks(teamRunId, runtimeDir, deps)
 
   if (runtimeState.status !== "deleted") {
-    await transitionRuntimeState(
-      teamRunId,
-      (
-        state,
-      ) => (state.status === "deleted"
-        ? state
-        : { ...state, status: "deleted" }),
-      config,
-    );
+    await transitionRuntimeState(teamRunId, (state) => (state.status === "deleted" ? state : { ...state, status: "deleted" }), config)
   }
-  await rm(runtimeDir, { recursive: true, force: true });
-  return { teamRunId, cancelledTaskIds };
+  await rm(runtimeDir, { recursive: true, force: true })
+  return { teamRunId, cancelledTaskIds }
 }
 
-async function cancelMemberTasks(
-  teamRunId: string,
-  runtimeDir: string,
-  deps: DeleteTeamDeps,
-): Promise<string[]> {
-  const map = await readMemberTaskMap(runtimeDir);
-  const cancelled: string[] = [];
+async function cancelMemberTasks(teamRunId: string, runtimeDir: string, deps: DeleteTeamDeps): Promise<string[]> {
+  const map = await readMemberTaskMap(runtimeDir)
+  const cancelled: string[] = []
   for (const [memberName, taskId] of Object.entries(map)) {
-    if (
-      deps.manager.get(taskId)?.name !== memberTaskName(teamRunId, memberName)
-    ) continue;
-    const outcome = await deps.manager.cancelTask(
-      taskId,
-      `delete team ${teamRunId}`,
-    );
+    if (deps.manager.get(taskId)?.name !== memberTaskName(teamRunId, memberName)) continue
+    const outcome = await deps.manager.cancelTask(taskId, `delete team ${teamRunId}`)
     if (outcome.kind === "cancelled") {
-      cancelled.push(taskId);
-      continue;
+      cancelled.push(taskId)
+      continue
     }
     // Terminal cancellation is an intentional noop (completed residents stay revivable), but team
     // deletion owns member teardown: route the resident through the lifecycle single-writer port.
@@ -357,33 +245,27 @@ async function cancelMemberTasks(
     // non-resident record has nothing left to tear down, so neither path may destroy again. Re-read
     // immediately before destruction so a revive between the noop and residency checks wins; a
     // narrower revive window remains after this final read and is serialized by lifecycle teardown.
-    const observed = deps.manager.get(taskId);
-    if (
-      outcome.kind === "noop" && outcome.status !== "cancelled" &&
-      observed?.residency_state === "resident"
-    ) {
-      const current = deps.manager.get(taskId);
+    const observed = deps.manager.get(taskId)
+    if (outcome.kind === "noop" && outcome.status !== "cancelled" && observed?.residency_state === "resident") {
+      const current = deps.manager.get(taskId)
       if (
-        current !== undefined &&
-        current.status !== "pending" &&
-        current.status !== "running" &&
-        current.residency_state === "resident"
+        current !== undefined
+        && current.status !== "pending"
+        && current.status !== "running"
+        && current.residency_state === "resident"
       ) {
-        await deps.destruction.destroyResidentTask(taskId, "cancel");
+        await deps.destruction.destroyResidentTask(taskId, "cancel")
       }
     }
   }
-  return cancelled;
+  return cancelled
 }
 
-async function loadRuntimeStateOrNull(
-  teamRunId: string,
-  config: TeamCoreConfig,
-): Promise<RuntimeState | null> {
+async function loadRuntimeStateOrNull(teamRunId: string, config: TeamCoreConfig): Promise<RuntimeState | null> {
   try {
-    return await loadRuntimeState(teamRunId, config);
+    return await loadRuntimeState(teamRunId, config)
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null
+    throw error
   }
 }

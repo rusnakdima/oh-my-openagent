@@ -36,27 +36,17 @@ type FallbackContinuationDedupeState = {
 };
 
 export function applyUserConfiguredFallbackChain(
-  modelFallback:
-    | Pick<ModelFallbackHook, "setSessionFallbackChain">
-    | null
-    | undefined,
+  modelFallback: Pick<ModelFallbackHook, "setSessionFallbackChain"> | null | undefined,
   sessionID: string,
   agentName: string,
   currentProviderID: string,
   pluginConfig: OhMyOpenCodeConfig,
 ): void {
   const agentKey = getAgentConfigKey(agentName);
-  const rawFallbackModels = getRawFallbackModels(
-    sessionID,
-    agentKey,
-    pluginConfig,
-  );
+  const rawFallbackModels = getRawFallbackModels(sessionID, agentKey, pluginConfig);
   if (!rawFallbackModels || rawFallbackModels.length === 0) return;
 
-  const fallbackChain = buildFallbackChainFromModels(
-    rawFallbackModels,
-    currentProviderID,
-  );
+  const fallbackChain = buildFallbackChainFromModels(rawFallbackModels, currentProviderID);
 
   if (fallbackChain && fallbackChain.length > 0 && modelFallback) {
     setSessionFallbackChain(modelFallback, sessionID, fallbackChain);
@@ -70,18 +60,10 @@ export function createModelFallbackContinuationController(args: {
   continuationsInFlight: Set<string>;
   lastDispatchedContinuationKeys: Map<string, FallbackContinuationDedupeState>;
 }) {
-  const {
-    pluginConfig,
-    pluginContext,
-    lastKnownModelBySession,
-    continuationsInFlight,
-  } = args;
+  const { pluginConfig, pluginContext, lastKnownModelBySession, continuationsInFlight } = args;
   const lastDispatchedContinuationKeys = args.lastDispatchedContinuationKeys;
 
-  const resolveFallbackProviderID = (
-    sessionID: string,
-    providerHint?: string,
-  ): string => {
+  const resolveFallbackProviderID = (sessionID: string, providerHint?: string): string => {
     const normalizedProviderHint = providerHint?.trim();
     if (normalizedProviderHint) return normalizedProviderHint;
 
@@ -103,23 +85,18 @@ export function createModelFallbackContinuationController(args: {
     const agentKey = fallbackContext?.agentName
       ? getAgentConfigKey(fallbackContext.agentName).trim().toLowerCase()
       : "";
-    const providerID =
-      fallbackContext?.dedupeProviderID?.trim().toLowerCase() ?? "";
+    const providerID = fallbackContext?.dedupeProviderID?.trim().toLowerCase() ?? "";
     const modelID = fallbackContext?.modelID?.trim().toLowerCase() ?? "";
 
     if (!agentKey || !modelID) return {};
 
     return {
       modelKey: `${agentKey}:${modelID}`,
-      ...(providerID
-        ? { providerModelKey: `${agentKey}:${providerID}:${modelID}` }
-        : {}),
+      ...(providerID ? { providerModelKey: `${agentKey}:${providerID}:${modelID}` } : {}),
     };
   };
 
-  const getDedupeState = (
-    sessionID: string,
-  ): FallbackContinuationDedupeState => {
+  const getDedupeState = (sessionID: string): FallbackContinuationDedupeState => {
     const existingState = lastDispatchedContinuationKeys.get(sessionID);
     if (existingState) return existingState;
 
@@ -138,8 +115,7 @@ export function createModelFallbackContinuationController(args: {
   ): boolean => {
     if (!state || !keys.modelKey) return false;
     if (!keys.providerModelKey) return state.modelKeys.has(keys.modelKey);
-    return state.providerModelKeys.has(keys.providerModelKey) ||
-      state.providerlessModelKeys.has(keys.modelKey);
+    return state.providerModelKeys.has(keys.providerModelKey) || state.providerlessModelKeys.has(keys.modelKey);
   };
 
   const shouldSkipFallbackContinuation = (
@@ -150,32 +126,23 @@ export function createModelFallbackContinuationController(args: {
     const fallbackKeys = getFallbackContinuationKeys(fallbackContext);
 
     if (continuationsInFlight.has(sessionID)) {
-      log(
-        "[event] model-fallback continuation skipped because one is already in flight",
-        { sessionID, source },
-      );
+      log("[event] model-fallback continuation skipped because one is already in flight", { sessionID, source });
       return true;
     }
 
     const lastDispatchedKeys = lastDispatchedContinuationKeys.get(sessionID);
     if (wasAlreadyDispatched(lastDispatchedKeys, fallbackKeys)) {
-      log(
-        "[event] model-fallback continuation skipped because matching fallback was already dispatched",
-        {
-          sessionID,
-          source,
-        },
-      );
+      log("[event] model-fallback continuation skipped because matching fallback was already dispatched", {
+        sessionID,
+        source,
+      });
       return true;
     }
 
     return false;
   };
 
-  const markDispatched = (
-    sessionID: string,
-    fallbackContext?: FallbackContinuationContext,
-  ): void => {
+  const markDispatched = (sessionID: string, fallbackContext?: FallbackContinuationContext): void => {
     const fallbackKeys = getFallbackContinuationKeys(fallbackContext);
     if (!fallbackKeys.modelKey) return;
 
@@ -193,9 +160,7 @@ export function createModelFallbackContinuationController(args: {
     source: string,
     fallbackContext?: FallbackContinuationContext,
   ): Promise<void> => {
-    if (shouldSkipFallbackContinuation(sessionID, source, fallbackContext)) {
-      return;
-    }
+    if (shouldSkipFallbackContinuation(sessionID, source, fallbackContext)) return;
 
     continuationsInFlight.add(sessionID);
     let dispatched = false;
@@ -210,37 +175,22 @@ export function createModelFallbackContinuationController(args: {
         });
         return;
       }
-      releasePromptAsyncReservation(
-        sessionID,
-        `model-fallback-abort:${source}`,
-        {
-          reservedBy: [
-            `model-fallback:${source}`,
-            `model-fallback:${source}:sync`,
-          ],
-          reservedByPrefix: "model-fallback:",
-        },
-      );
+      releasePromptAsyncReservation(sessionID, `model-fallback-abort:${source}`, {
+        reservedBy: [`model-fallback:${source}`, `model-fallback:${source}:sync`],
+        reservedByPrefix: "model-fallback:",
+      });
 
       const launchAgent = fallbackContext?.agentName
         ? resolveRegisteredAgentName(fallbackContext.agentName)
         : undefined;
-      const launchModel =
-        fallbackContext?.providerID && fallbackContext?.modelID
-          ? {
-            providerID: fallbackContext.providerID,
-            modelID: fallbackContext.modelID,
-          }
-          : undefined;
-      const agentConfigKey = fallbackContext?.agentName
-        ? getAgentConfigKey(fallbackContext.agentName)
+      const launchModel = fallbackContext?.providerID && fallbackContext?.modelID
+        ? { providerID: fallbackContext.providerID, modelID: fallbackContext.modelID }
         : undefined;
+      const agentConfigKey = fallbackContext?.agentName ? getAgentConfigKey(fallbackContext.agentName) : undefined;
       const agentSettings = agentConfigKey
-        ? pluginConfig.agents
-          ?.[agentConfigKey as keyof NonNullable<typeof pluginConfig.agents>]
+        ? pluginConfig.agents?.[agentConfigKey as keyof NonNullable<typeof pluginConfig.agents>]
         : undefined;
-      const launchVariant = (agentSettings as { variant?: string } | undefined)
-        ?.variant;
+      const launchVariant = (agentSettings as { variant?: string } | undefined)?.variant;
       const promptBody = {
         path: { id: sessionID },
         body: {
@@ -252,47 +202,30 @@ export function createModelFallbackContinuationController(args: {
         query: { directory: pluginContext.directory },
       };
 
-      const mode =
-        typeof pluginContext.client.session.promptAsync === "function"
-          ? "async"
-          : "sync";
+      const mode = typeof pluginContext.client.session.promptAsync === "function" ? "async" : "sync";
       const promptResult = await dispatchInternalPrompt({
         mode,
         client: pluginContext.client,
         sessionID,
-        source: mode === "async"
-          ? `model-fallback:${source}`
-          : `model-fallback:${source}:sync`,
+        source: mode === "async" ? `model-fallback:${source}` : `model-fallback:${source}:sync`,
         queueBehavior: "defer",
         input: promptBody,
       });
       if (isInternalPromptDispatchAccepted(promptResult)) {
         dispatched = true;
       } else if (promptResult.status === "failed") {
-        if (isAmbiguousPostDispatchPromptFailure(promptResult)) {
-          dispatched = true;
-        }
-        log(
-          `[event] model-fallback ${
-            mode === "async" ? "promptAsync" : "prompt"
-          } failed`,
-          {
-            sessionID,
-            source,
-            error: promptResult.error,
-          },
-        );
+        if (isAmbiguousPostDispatchPromptFailure(promptResult)) dispatched = true;
+        log(`[event] model-fallback ${mode === "async" ? "promptAsync" : "prompt"} failed`, {
+          sessionID,
+          source,
+          error: promptResult.error,
+        });
       } else {
-        log(
-          `[event] model-fallback ${
-            mode === "async" ? "promptAsync" : "prompt"
-          } skipped by gate`,
-          {
-            sessionID,
-            source,
-            status: promptResult.status,
-          },
-        );
+        log(`[event] model-fallback ${mode === "async" ? "promptAsync" : "prompt"} skipped by gate`, {
+          sessionID,
+          source,
+          status: promptResult.status,
+        });
       }
     } finally {
       if (dispatched) markDispatched(sessionID, fallbackContext);

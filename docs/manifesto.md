@@ -4,14 +4,10 @@ The principles and philosophy behind oh-my-openagent (OmO).
 
 Project reality check:
 
-- Name: oh-my-openagent (renamed from oh-my-opencode; both npm packages still
-  publish in tandem during the transition)
-- Domain: https://omo.dev (legacy https://ohmyopenagent.com,
-  https://ohmyopencode.org, https://ulw.dev, https://ultrawork.ai,
-  https://ultrawork.dev, https://ultrawork.engineer all 301 to omo.dev)
+- Name: oh-my-openagent (renamed from oh-my-opencode; both npm packages still publish in tandem during the transition)
+- Domain: https://omo.dev (legacy https://ohmyopenagent.com, https://ohmyopencode.org, https://ulw.dev, https://ultrawork.ai, https://ultrawork.dev, https://ultrawork.engineer all 301 to omo.dev)
 - Building in Public: https://discord.gg/PUwSMR9XNk
-- Maintained by Jobdori, an AI assistant running on a heavily customized
-  OpenClaw fork
+- Maintained by Jobdori, an AI assistant running on a heavily customized OpenClaw fork
 - Sisyphus Labs: https://sisyphuslabs.ai
 
 ---
@@ -20,14 +16,11 @@ Project reality check:
 
 **HUMAN IN THE LOOP = BOTTLENECK**
 
-Think about autonomous driving. When a human has to take over the wheel, that's
-not a feature. It's a failure of the system. The car couldn't handle the
-situation on its own.
+Think about autonomous driving. When a human has to take over the wheel, that's not a feature. It's a failure of the system. The car couldn't handle the situation on its own.
 
 **Why is coding any different?**
 
 When you find yourself:
-
 - Fixing the AI's half-finished code
 - Manually correcting obvious mistakes
 - Guiding the agent step-by-step through a task
@@ -35,30 +28,24 @@ When you find yourself:
 
 That's not "human-AI collaboration." That's the AI failing to do its job.
 
-**Oh My OpenAgent is built on this premise**: Human intervention during agentic
-work is fundamentally a wrong signal. If the system is designed correctly, the
-agent should complete the work without requiring you to babysit it.
+**Oh My OpenAgent is built on this premise**: Human intervention during agentic work is fundamentally a wrong signal. If the system is designed correctly, the agent should complete the work without requiring you to babysit it.
 
 ---
 
 ## Indistinguishable Code
 
-**Goal: Code written by the agent should be indistinguishable from code written
-by a senior engineer.**
+**Goal: Code written by the agent should be indistinguishable from code written by a senior engineer.**
 
-Not "AI-generated code that needs cleanup." Not "a good starting point." The
-actual, final, production-ready code.
+Not "AI-generated code that needs cleanup." Not "a good starting point." The actual, final, production-ready code.
 
 This means:
-
 - Following existing codebase patterns exactly
 - Proper error handling without being asked
 - Tests that actually test the right things
 - No AI slop (over-engineering, unnecessary abstractions, scope creep)
 - Comments only when they add value
 
-If you can tell whether a commit was made by a human or an agent, the agent has
-failed.
+If you can tell whether a commit was made by a human or an agent, the agent has failed.
 
 ---
 
@@ -67,34 +54,28 @@ failed.
 **Higher token usage is acceptable if it significantly increases productivity.**
 
 Using more tokens to:
-
 - Have multiple specialized agents research in parallel
 - Get the job done completely without human intervention
 - Verify work thoroughly before completion
 - Accumulate knowledge across tasks
 
-That's a worthwhile investment when it means 10x, 20x, or 100x productivity
-gains.
+That's a worthwhile investment when it means 10x, 20x, or 100x productivity gains.
 
 **However:**
 
 Unnecessary token waste is not pursued. The system optimizes for:
-
-- Using cheaper, faster models for simple tasks (the `quick` category: Kimi
-  highspeed, or GPT-5.6 Luna Fast on OpenAI-only)
+- Using cheaper, faster models for simple tasks (the `quick` category: Kimi highspeed, or GPT-5.6 Luna Fast on OpenAI-only)
 - Avoiding redundant exploration
 - Caching learnings across sessions
 - Stopping research when sufficient context is gathered
 
-Token efficiency matters. But not at the cost of work quality or human cognitive
-load.
+Token efficiency matters. But not at the cost of work quality or human cognitive load.
 
 ---
 
 ## Minimize Human Cognitive Load
 
-**The human should only need to say what they want. Everything else is the
-agent's job.**
+**The human should only need to say what they want. Everything else is the agent's job.**
 
 Two approaches achieve this:
 
@@ -103,7 +84,6 @@ Two approaches achieve this:
 You say: "I want to add authentication."
 
 Prometheus:
-
 - Researches your codebase to understand existing patterns
 - Asks clarifying questions based on actual findings
 - Surfaces edge cases you hadn't considered
@@ -117,7 +97,6 @@ Prometheus:
 You say: "ulw add authentication"
 
 The agent:
-
 - Figures out the right approach
 - Researches best practices
 - Implements following conventions
@@ -126,34 +105,27 @@ The agent:
 
 **You provide intent. The agent handles everything.**
 
-In both cases, the human's job is to **express what they want**, not to manage
-how it gets done.
+In both cases, the human's job is to **express what they want**, not to manage how it gets done.
 
 ---
 
 ## Predictable, Continuous, Delegatable
 
-**The ideal agent should work like a compiler**: markdown document goes in,
-working code comes out.
+**The ideal agent should work like a compiler**: markdown document goes in, working code comes out.
 
 ### Predictable
 
 Given the same inputs:
-
 - Same codebase patterns
 - Same requirements
 - Same constraints
 
-The output should be consistent. Not random, not surprising, not "creative" in
-ways you didn't ask for.
+The output should be consistent. Not random, not surprising, not "creative" in ways you didn't ask for.
 
 ### Continuous
 
 Work should survive interruptions:
-
-- Session crash on a Prometheus plan? Resume with `/start-work` (Atlas +
-  boulder). Otherwise use `/handoff` for a new session or `/goal resume` for a
-  paused goal
+- Session crash on a Prometheus plan? Resume with `/start-work` (Atlas + boulder). Otherwise use `/handoff` for a new session or `/goal resume` for a paused goal
 - Need to step away? Progress is tracked
 - Multi-day project? Context is preserved
 
@@ -161,11 +133,9 @@ The agent maintains state. You don't have to.
 
 ### Delegatable
 
-Just like you can assign a task to a capable team member and trust them to
-handle it, you should be able to delegate to the agent.
+Just like you can assign a task to a capable team member and trust them to handle it, you should be able to delegate to the agent.
 
 This means:
-
 - Clear acceptance criteria, verified independently
 - Self-correcting behavior when something goes wrong
 - Escalation (to Oracle, to user) only when truly needed
@@ -184,16 +154,16 @@ Human Intent → Agent Execution → Verified Result
 
 Everything in Oh My OpenAgent is designed to make this loop work:
 
-| Feature             | Purpose                                       |
-| ------------------- | --------------------------------------------- |
-| Prometheus          | Extract intent through intelligent interview  |
-| Metis               | Catch ambiguities before they become bugs     |
-| Momus               | Verify plans are complete before execution    |
-| Orchestrator        | Coordinate work without human micromanagement |
-| Todo Continuation   | Force completion, prevent "I'm done" lies     |
-| Category System     | Route to optimal model without human decision |
-| Background Agents   | Parallel research without blocking user       |
-| Wisdom Accumulation | Learn from work, don't repeat mistakes        |
+| Feature | Purpose |
+|---------|---------|
+| Prometheus | Extract intent through intelligent interview |
+| Metis | Catch ambiguities before they become bugs |
+| Momus | Verify plans are complete before execution |
+| Orchestrator | Coordinate work without human micromanagement |
+| Todo Continuation | Force completion, prevent "I'm done" lies |
+| Category System | Route to optimal model without human decision |
+| Background Agents | Parallel research without blocking user |
+| Wisdom Accumulation | Learn from work, don't repeat mistakes |
 
 ---
 
@@ -214,15 +184,12 @@ Everything in Oh My OpenAgent is designed to make this loop work:
 ## The Future We're Building
 
 A world where:
-
 - Human developers focus on **what** to build, not **how** to get AI to build it
 - Code quality is independent of who (or what) wrote it
 - Complex projects are as easy as simple ones (just take longer)
 - "Prompt engineering" becomes as obsolete as "compiler debugging"
 
-**The agent should be invisible.** Not in the sense that it's hidden, but in the
-sense that it just works. Like electricity, like running water, like the
-internet.
+**The agent should be invisible.** Not in the sense that it's hidden, but in the sense that it just works. Like electricity, like running water, like the internet.
 
 You flip the switch. The light turns on. You don't think about the power grid.
 

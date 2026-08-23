@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { createAtlasAgent, type OrchestratorContext } from "./agent";
+import { describe, expect, test } from "bun:test"
+import { createAtlasAgent, type OrchestratorContext } from "./agent"
 
 const RUNTIME_PLACEHOLDERS = [
   "{CATEGORY_SECTION}",
@@ -7,7 +7,7 @@ const RUNTIME_PLACEHOLDERS = [
   "{DECISION_MATRIX}",
   "{SKILLS_SECTION}",
   "{{CATEGORY_SKILLS_DELEGATION_GUIDE}}",
-] as const;
+] as const
 
 describe("Atlas prompt runtime section injection", () => {
   test("#given unique live context markers #when prompt renders #then placeholders are resolved", () => {
@@ -37,19 +37,19 @@ describe("Atlas prompt runtime section injection", () => {
           temperature: 0.4,
         },
       },
-    });
+    })
 
-    expect(prompt).toContain("UNIQUE_CATEGORY_SECTION_VALUE");
-    expect(prompt).toContain("UNIQUE_AGENT_SECTION_VALUE");
-    expect(prompt).toContain("unique-guide-skill-marker");
+    expect(prompt).toContain("UNIQUE_CATEGORY_SECTION_VALUE")
+    expect(prompt).toContain("UNIQUE_AGENT_SECTION_VALUE")
+    expect(prompt).toContain("unique-guide-skill-marker")
     for (const placeholder of RUNTIME_PLACEHOLDERS) {
-      expect(prompt).not.toContain(placeholder);
+      expect(prompt).not.toContain(placeholder)
     }
-  });
-});
+  })
+})
 
 function getAtlasPromptText(ctx: OrchestratorContext): string {
-  const prompt = createAtlasAgent(ctx).prompt;
-  if (typeof prompt === "string") return prompt;
-  throw new TypeError("Atlas prompt must be a string");
+  const prompt = createAtlasAgent(ctx).prompt
+  if (typeof prompt === "string") return prompt
+  throw new TypeError("Atlas prompt must be a string")
 }

@@ -1,22 +1,20 @@
-import { normalizeModelID } from "./model-normalization";
-import { parseVariantFromModelID } from "./model-string-parser";
+import { normalizeModelID } from "./model-normalization"
+import { parseVariantFromModelID } from "./model-string-parser"
 
 export type HeuristicModelFamilyDefinition = {
-  family: string;
-  includes?: string[];
-  pattern?: RegExp;
-  variants?: string[];
-  reasoningEfforts?: string[];
-  reasoningEffortAliases?: Record<string, string>;
-  supportsTemperature?: boolean;
-  supportsThinking?: boolean;
+  family: string
+  includes?: string[]
+  pattern?: RegExp
+  variants?: string[]
+  reasoningEfforts?: string[]
+  reasoningEffortAliases?: Record<string, string>
+  supportsTemperature?: boolean
+  supportsThinking?: boolean
   /** Actual provider prefix when family name differs from the provider ID (e.g. gpt-5 → "openai") */
-  provider?: string;
-};
+  provider?: string
+}
 
-export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<
-  HeuristicModelFamilyDefinition
-> = [
+export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<HeuristicModelFamilyDefinition> = [
   {
     family: "claude-opus",
     pattern: /claude(?:-\d+(?:-\d+)*)?-opus/,
@@ -47,15 +45,7 @@ export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<
     family: "gpt-5",
     includes: ["gpt-5"],
     variants: ["low", "medium", "high", "xhigh"],
-    reasoningEfforts: [
-      "none",
-      "minimal",
-      "low",
-      "medium",
-      "high",
-      "xhigh",
-      "max",
-    ],
+    reasoningEfforts: ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
     provider: "openai",
   },
   {
@@ -83,8 +73,7 @@ export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<
     includes: ["kimi-thinking", "k2-thinking", "k2-think"],
     // Matches models with -thinking/-think suffix, OR k2p* models (k2p5, k2p6, k2-p6, k2.p6)
     // which are kimi-for-coding provider models that support thinking (#3945, #4418, #4707).
-    pattern:
-      /(?:kimi.*-(?:thinking|think)|k2(?:.*-(?:thinking|think)|[-.]?p\d))/,
+    pattern: /(?:kimi.*-(?:thinking|think)|k2(?:.*-(?:thinking|think)|[-.]?p\d))/,
     variants: ["low", "medium", "high"],
     supportsThinking: true,
   },
@@ -134,27 +123,21 @@ export const HEURISTIC_MODEL_FAMILY_REGISTRY: ReadonlyArray<
     includes: ["llama"],
     variants: ["low", "medium", "high"],
   },
-];
+]
 
-export function detectHeuristicModelFamily(
-  modelID: string,
-): HeuristicModelFamilyDefinition | undefined {
-  const parsedModel = parseVariantFromModelID(modelID, {
-    allowMaxSuffix: true,
-  });
-  const normalizedModelID = normalizeModelID(parsedModel.modelID).toLowerCase();
+export function detectHeuristicModelFamily(modelID: string): HeuristicModelFamilyDefinition | undefined {
+  const parsedModel = parseVariantFromModelID(modelID, { allowMaxSuffix: true })
+  const normalizedModelID = normalizeModelID(parsedModel.modelID).toLowerCase()
 
   for (const definition of HEURISTIC_MODEL_FAMILY_REGISTRY) {
     if (definition.pattern?.test(normalizedModelID)) {
-      return definition;
+      return definition
     }
 
-    if (
-      definition.includes?.some((value) => normalizedModelID.includes(value))
-    ) {
-      return definition;
+    if (definition.includes?.some((value) => normalizedModelID.includes(value))) {
+      return definition
     }
   }
 
-  return undefined;
+  return undefined
 }

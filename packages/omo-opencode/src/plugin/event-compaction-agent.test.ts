@@ -1,17 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "bun:test"
 
-import {
-  _resetForTesting,
-  getSessionAgent,
-  updateSessionAgent,
-} from "../features/claude-code-session-state";
-import {
-  clearSessionModel,
-  getSessionModel,
-  setSessionModel,
-} from "../shared/session-model-state";
-import { clearSessionPromptParams } from "../shared/session-prompt-params-state";
-import { createEventHandler } from "./event";
+import { _resetForTesting, getSessionAgent, updateSessionAgent } from "../features/claude-code-session-state"
+import { clearSessionModel, getSessionModel, setSessionModel } from "../shared/session-model-state"
+import { clearSessionPromptParams } from "../shared/session-prompt-params-state"
+import { createEventHandler } from "./event"
 
 function createMinimalEventHandler() {
   return createEventHandler({
@@ -53,25 +45,25 @@ function createMinimalEventHandler() {
       writeExistingFileGuard: { event: async () => {} },
       atlasHook: { handler: async () => {} },
     } as never,
-  });
+  })
 }
 
 describe("createEventHandler compaction agent filtering", () => {
   afterEach(() => {
-    _resetForTesting();
-    clearSessionModel("ses_compaction_poisoning");
-    clearSessionModel("ses_compaction_model_poisoning");
-    clearSessionModel("ses_compaction_trim_poisoning");
-    clearSessionPromptParams("ses_compaction_poisoning");
-    clearSessionPromptParams("ses_compaction_model_poisoning");
-    clearSessionPromptParams("ses_compaction_trim_poisoning");
-  });
+    _resetForTesting()
+    clearSessionModel("ses_compaction_poisoning")
+    clearSessionModel("ses_compaction_model_poisoning")
+    clearSessionModel("ses_compaction_trim_poisoning")
+    clearSessionPromptParams("ses_compaction_poisoning")
+    clearSessionPromptParams("ses_compaction_model_poisoning")
+    clearSessionPromptParams("ses_compaction_trim_poisoning")
+  })
 
   it("does not overwrite the stored session agent with compaction", async () => {
     // given
-    const sessionID = "ses_compaction_poisoning";
-    updateSessionAgent(sessionID, "atlas");
-    const eventHandler = createMinimalEventHandler();
+    const sessionID = "ses_compaction_poisoning"
+    updateSessionAgent(sessionID, "atlas")
+    const eventHandler = createMinimalEventHandler()
     const input: Parameters<ReturnType<typeof createEventHandler>>[0] = {
       event: {
         type: "message.updated",
@@ -86,20 +78,20 @@ describe("createEventHandler compaction agent filtering", () => {
           },
         },
       },
-    };
+    }
 
     // when
-    await eventHandler(input);
+    await eventHandler(input)
 
     // then
-    expect(getSessionAgent(sessionID)).toBe("atlas");
-  });
+    expect(getSessionAgent(sessionID)).toBe("atlas")
+  })
 
   it("does not overwrite the stored session model with compaction", async () => {
     // given
-    const sessionID = "ses_compaction_model_poisoning";
-    setSessionModel(sessionID, { providerID: "openai", modelID: "gpt-5" });
-    const eventHandler = createMinimalEventHandler();
+    const sessionID = "ses_compaction_model_poisoning"
+    setSessionModel(sessionID, { providerID: "openai", modelID: "gpt-5" })
+    const eventHandler = createMinimalEventHandler()
     const input: Parameters<ReturnType<typeof createEventHandler>>[0] = {
       event: {
         type: "message.updated",
@@ -115,23 +107,23 @@ describe("createEventHandler compaction agent filtering", () => {
           },
         },
       },
-    };
+    }
 
     // when
-    await eventHandler(input);
+    await eventHandler(input)
 
     // then
     expect(getSessionModel(sessionID)).toEqual({
       providerID: "openai",
       modelID: "gpt-5",
-    });
-  });
+    })
+  })
 
   it("does not overwrite the stored session model with whitespace around compaction marker", async () => {
     // given
-    const sessionID = "ses_compaction_trim_poisoning";
-    setSessionModel(sessionID, { providerID: "openai", modelID: "gpt-5" });
-    const eventHandler = createMinimalEventHandler();
+    const sessionID = "ses_compaction_trim_poisoning"
+    setSessionModel(sessionID, { providerID: "openai", modelID: "gpt-5" })
+    const eventHandler = createMinimalEventHandler()
     const input: Parameters<ReturnType<typeof createEventHandler>>[0] = {
       event: {
         type: "message.updated",
@@ -147,15 +139,15 @@ describe("createEventHandler compaction agent filtering", () => {
           },
         },
       },
-    };
+    }
 
     // when
-    await eventHandler(input);
+    await eventHandler(input)
 
     // then
     expect(getSessionModel(sessionID)).toEqual({
       providerID: "openai",
       modelID: "gpt-5",
-    });
-  });
-});
+    })
+  })
+})

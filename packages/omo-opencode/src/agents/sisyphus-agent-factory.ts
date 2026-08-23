@@ -36,8 +36,8 @@ import {
   isGptNativeSisyphusModel,
   isGrok45Model,
   isGrok46Model,
-  isKimiK27Model,
   isKimiK2Model,
+  isKimiK27Model,
   isKimiK3Model,
 } from "./types";
 
@@ -64,9 +64,7 @@ export type SisyphusPromptFamily =
   | "grok-4"
   | "fallback";
 
-export function resolveSisyphusPromptFamily(
-  model: string,
-): SisyphusPromptFamily {
+export function resolveSisyphusPromptFamily(model: string): SisyphusPromptFamily {
   if (isKimiK3Model(model)) return "kimi-k3";
   if (isKimiK27Model(model)) return "kimi-k2-7";
   if (isKimiK2Model(model)) return "kimi-k2-6";
@@ -99,144 +97,67 @@ export function createSisyphusAgent(
       return buildGptSisyphusAgentConfig(
         MODE,
         model,
-        buildKimiK3SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildKimiK3SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "kimi-k2-7":
       return buildGptSisyphusAgentConfig(
         MODE,
         model,
-        buildKimiK27SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildKimiK27SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "kimi-k2-6":
       return buildGptSisyphusAgentConfig(
         MODE,
         model,
-        buildKimiK26SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildKimiK26SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "gpt-5-5":
       return buildGptSisyphusAgentConfig(
         MODE,
         model,
-        buildGpt55SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildGpt55SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "gpt-5-4":
       return buildGptSisyphusAgentConfig(
         MODE,
         model,
-        buildGpt54SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildGpt54SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "claude-fable-5":
       return buildClaudeSisyphusAgentConfig(
         MODE,
         model,
-        buildClaudeFable5SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildClaudeFable5SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "claude-opus-5":
       return buildClaudeSisyphusAgentConfig(
         MODE,
         model,
-        buildClaudeOpus5SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildClaudeOpus5SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "claude-opus-4-8":
       return buildClaudeSisyphusAgentConfig(
         MODE,
         model,
-        buildClaudeOpus48SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildClaudeOpus48SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "claude-opus-4-7":
       return buildClaudeSisyphusAgentConfig(
         MODE,
         model,
-        buildClaudeOpus47SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildClaudeOpus47SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "glm-5-2":
       return buildGlmSisyphusAgentConfig(
         MODE,
         model,
-        buildGlm52SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildGlm52SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "grok-4":
       return buildGrokSisyphusAgentConfig(
         MODE,
         model,
-        buildGrok4SisyphusPrompt(
-          model,
-          agents,
-          tools,
-          skills,
-          categories,
-          useTaskSystem,
-        ),
+        buildGrok4SisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
       );
     case "fallback": {
       const prompt = buildFallbackSisyphusPrompt(

@@ -1,9 +1,9 @@
-declare const require: (name: string) => any;
-const { describe, expect, test, mock } = require("bun:test");
+declare const require: (name: string) => any
+const { describe, expect, test, mock } = require("bun:test")
 
-import { DEFAULT_MESSAGE_STALENESS_TIMEOUT_MS } from "./constants";
-import { checkAndInterruptStaleTasks } from "./task-poller";
-import type { BackgroundTask } from "./types";
+import { DEFAULT_MESSAGE_STALENESS_TIMEOUT_MS } from "./constants"
+import { checkAndInterruptStaleTasks } from "./task-poller"
+import type { BackgroundTask } from "./types"
 
 function createRunningTask(startedAt: Date): BackgroundTask {
   return {
@@ -17,33 +17,33 @@ function createRunningTask(startedAt: Date): BackgroundTask {
     status: "running",
     startedAt,
     progress: undefined,
-  };
+  }
 }
 
 describe("DEFAULT_MESSAGE_STALENESS_TIMEOUT_MS", () => {
   test("uses a 60 minute default", () => {
     // #given
-    const expectedTimeout = 60 * 60 * 1000;
+    const expectedTimeout = 60 * 60 * 1000
 
     // #when
-    const timeout = DEFAULT_MESSAGE_STALENESS_TIMEOUT_MS;
+    const timeout = DEFAULT_MESSAGE_STALENESS_TIMEOUT_MS
 
     // #then
-    expect(timeout).toBe(expectedTimeout);
-  });
+    expect(timeout).toBe(expectedTimeout)
+  })
 
   test("does not interrupt a never-updated task after 15 minutes when config is omitted", async () => {
     // #given
-    const task = createRunningTask(new Date(Date.now() - 15 * 60 * 1000));
+    const task = createRunningTask(new Date(Date.now() - 15 * 60 * 1000))
     const client = {
       session: {
         abort: mock(() => Promise.resolve()),
       },
-    };
+    }
     const concurrencyManager = {
       release: mock(() => {}),
-    };
-    const notifyParentSession = mock(() => Promise.resolve());
+    }
+    const notifyParentSession = mock(() => Promise.resolve())
 
     // #when
     await checkAndInterruptStaleTasks({
@@ -52,9 +52,9 @@ describe("DEFAULT_MESSAGE_STALENESS_TIMEOUT_MS", () => {
       config: undefined,
       concurrencyManager: concurrencyManager as never,
       notifyParentSession,
-    });
+    })
 
     // #then
-    expect(task.status).toBe("running");
-  });
-});
+    expect(task.status).toBe("running")
+  })
+})

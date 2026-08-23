@@ -4,40 +4,30 @@
 // cancel, fix the definition, and re-start under a new key.
 
 export type DagLintNode = {
-  readonly id: string;
-  readonly prompt: string;
-};
+  readonly id: string
+  readonly prompt: string
+}
 
-const TASK_MARKER = /TASK:/;
-const STOP_MARKER = /STOP WHEN/;
-const VERIFICATION_SHAPE =
-  /\b(verify|verification|verifier|audit|validate|validation|qa)\b/i;
+const TASK_MARKER = /TASK:/
+const STOP_MARKER = /STOP WHEN/
+const VERIFICATION_SHAPE = /\b(verify|verification|verifier|audit|validate|validation|qa)\b/i
 
-export function lintDagDefinitionNodes(
-  nodes: readonly DagLintNode[],
-): readonly string[] {
-  const warnings: string[] = [];
+export function lintDagDefinitionNodes(nodes: readonly DagLintNode[]): readonly string[] {
+  const warnings: string[] = []
   for (const node of nodes) {
     if (!TASK_MARKER.test(node.prompt)) {
       warnings.push(
         `node "${node.id}": prompt is missing the TASK: marker from the mass-ulw node prompt contract (TASK/DELIVERABLE/SCOPE/VERIFY/STOP WHEN)`,
-      );
+      )
     }
     if (!STOP_MARKER.test(node.prompt)) {
-      warnings.push(
-        `node "${node.id}": prompt is missing a STOP WHEN condition from the mass-ulw node prompt contract`,
-      );
+      warnings.push(`node "${node.id}": prompt is missing a STOP WHEN condition from the mass-ulw node prompt contract`)
     }
   }
-  if (
-    nodes.length >= 2 &&
-    !nodes.some((node) =>
-      VERIFICATION_SHAPE.test(node.id) || VERIFICATION_SHAPE.test(node.prompt)
-    )
-  ) {
+  if (nodes.length >= 2 && !nodes.some((node) => VERIFICATION_SHAPE.test(node.id) || VERIFICATION_SHAPE.test(node.prompt))) {
     warnings.push(
       `run has ${nodes.length} nodes but no verification node; a graph that produces work ends with a verification wave (mass-ulw planning reference)`,
-    );
+    )
   }
-  return warnings;
+  return warnings
 }

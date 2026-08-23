@@ -1,5 +1,4 @@
-export const GIT_MASTER_COMMIT_ATOMIC_PLANNING_SECTION =
-  `## PHASE 3: Atomic Unit Planning (BLOCKING - MUST OUTPUT BEFORE PROCEEDING)
+export const GIT_MASTER_COMMIT_ATOMIC_PLANNING_SECTION = `## PHASE 3: Atomic Unit Planning (BLOCKING - MUST OUTPUT BEFORE PROCEEDING)
 
 <atomic_planning>
 **THIS PHASE HAS MANDATORY OUTPUT** - You MUST print the commit plan before moving to Phase 4.
@@ -179,4 +178,4 @@ Execution order: Commit 1 -> Commit 2 -> Commit 3
 - Total commits >= min_commits
 
 **IF ANY CHECK FAILS, DO NOT PROCEED. REPLAN.**
-</atomic_planning>`;
+</atomic_planning>`

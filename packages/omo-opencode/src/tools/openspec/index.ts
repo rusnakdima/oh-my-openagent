@@ -9,39 +9,39 @@
  * config.openspec.spec_dir (default "openspec") as the spec root.
  */
 
-import type { PluginInput } from "@opencode-ai/plugin";
-import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool";
-import { z } from "zod";
+import type { PluginInput } from "@opencode-ai/plugin"
+import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
+import { z } from "zod"
 
-import { join } from "node:path";
+import { join } from "node:path"
 import {
+  resolveSpecRoot,
+  resolveSpecFile,
+  resolveRootSpecFile,
+  specExists,
   isDirectory,
+  readSpecFile,
+  writeSpecFile,
   listSpecs,
   parseTaskStats,
-  readSpecFile,
-  resolveRootSpecFile,
-  resolveSpecFile,
-  resolveSpecRoot,
-  specExists,
-  writeSpecFile,
-} from "./store";
-import { verifySpec } from "./verify";
-import { applySpec } from "./apply";
+} from "./store"
+import { verifySpec } from "./verify"
+import { applySpec } from "./apply"
 import type {
+  OpenSpecReadArgs,
+  OpenSpecVerifyArgs,
+  OpenSpecStatusArgs,
+  OpenSpecProposeArgs,
   OpenSpecApplyArgs,
   OpenSpecArchiveArgs,
-  OpenSpecProposeArgs,
-  OpenSpecReadArgs,
-  OpenSpecStatusArgs,
-  OpenSpecVerifyArgs,
-} from "./types";
+} from "./types"
 
 // ─── Tool arg schemas (local TypeScript types for execute callbacks) ───────────
 
 interface OpenSpecToolContext {
-  directory: string;
-  sessionID: string;
-  openspecSpecDir: string;
+  directory: string
+  sessionID: string
+  openspecSpecDir: string
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -51,15 +51,16 @@ function formatTaskLine(
   description: string,
   status: "pending" | "in_progress" | "completed" | "blocked",
 ): string {
-  const marker = status === "pending"
-    ? " "
-    : status === "in_progress"
-    ? "~"
-    : status === "completed"
-    ? "x"
-    : "!!";
-  const safe = description.replace(/\|/g, "\\|").replace(/\n/g, " ");
-  return `| [${marker}] | ${safe} |`;
+  const marker =
+    status === "pending"
+      ? " "
+      : status === "in_progress"
+        ? "~"
+        : status === "completed"
+          ? "x"
+          : "!!"
+  const safe = description.replace(/\|/g, "\\|").replace(/\n/g, " ")
+  return `| [${marker}] | ${safe} |`
 }
 
 // ─── Tool definitions ─────────────────────────────────────────────────────────
@@ -82,20 +83,18 @@ function createOpenSpecReadTool(
         ),
     },
     execute: async (args) => {
-      const projectDir = (ctx as unknown as OpenSpecToolContext).directory;
-      const specDir = (ctx as unknown as OpenSpecToolContext).openspecSpecDir;
+      const projectDir = (ctx as unknown as OpenSpecToolContext).directory
+      const specDir = (ctx as unknown as OpenSpecToolContext).openspecSpecDir
       const filePath = args.spec_name
         ? resolveSpecFile(projectDir, specDir, args.spec_name, args.file)
-        : resolveRootSpecFile(projectDir, specDir, args.file);
-      const content = await readSpecFile(filePath);
+        : resolveRootSpecFile(projectDir, specDir, args.file)
+      const content = await readSpecFile(filePath)
       if (!content) {
-        return `No ${args.file} found${
-          args.spec_name ? ` at ${args.spec_name}/` : ""
-        }.`;
+        return `No ${args.file} found${args.spec_name ? ` at ${args.spec_name}/` : ""}.`
       }
-      return content;
+      return content
     },
-  });
+  })
 }
 
 function createOpenSpecVerifyTool(
@@ -111,32 +110,32 @@ function createOpenSpecVerifyTool(
         .describe("Specific spec to verify. If omitted, verifies all specs."),
     },
     execute: async (args, _execCtx) => {
-      const projectDir = (_ctx as unknown as OpenSpecToolContext).directory;
-      const specDir = (_ctx as unknown as OpenSpecToolContext).openspecSpecDir;
-      const results = await verifySpec(projectDir, specDir, args.spec_name);
+      const projectDir = (_ctx as unknown as OpenSpecToolContext).directory
+      const specDir = (_ctx as unknown as OpenSpecToolContext).openspecSpecDir
+      const results = await verifySpec(projectDir, specDir, args.spec_name)
 
       if (results.length === 0) {
-        return "No specs found.";
+        return "No specs found."
       }
 
-      const lines: string[] = ["## OpenSpec Verification Results\n"];
+      const lines: string[] = ["## OpenSpec Verification Results\n"]
       for (const r of results) {
-        const icon = r.valid ? "✅" : "❌";
-        lines.push(`### ${icon} ${r.specName}`);
+        const icon = r.valid ? "✅" : "❌"
+        lines.push(`### ${icon} ${r.specName}`)
         for (const f of r.files) {
-          const status = !f.exists ? "MISSING" : !f.nonEmpty ? "EMPTY" : "OK";
-          lines.push(`  - ${f.name}: ${status}`);
+          const status = !f.exists ? "MISSING" : !f.nonEmpty ? "EMPTY" : "OK"
+          lines.push(`  - ${f.name}: ${status}`)
         }
         if (r.taskStats) {
-          const { open, in_progress, completed, blocked } = r.taskStats;
+          const { open, in_progress, completed, blocked } = r.taskStats
           lines.push(
             `  - Tasks: ${open} open, ${in_progress} in-progress, ${completed} done, ${blocked} blocked`,
-          );
+          )
         }
       }
-      return lines.join("\n");
+      return lines.join("\n")
     },
-  });
+  })
 }
 
 function createOpenSpecStatusTool(
@@ -152,37 +151,29 @@ function createOpenSpecStatusTool(
         .describe("Specific spec to check. If omitted, checks all specs."),
     },
     execute: async (args, execCtx) => {
-      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory;
-      const specDir =
-        (execCtx as unknown as OpenSpecToolContext).openspecSpecDir;
-      const specRoot = resolveSpecRoot(projectDir, specDir);
-      const toCheck = args.spec_name
-        ? [args.spec_name]
-        : await listSpecs(specRoot);
+      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory
+      const specDir = (execCtx as unknown as OpenSpecToolContext).openspecSpecDir
+      const specRoot = resolveSpecRoot(projectDir, specDir)
+      const toCheck = args.spec_name ? [args.spec_name] : await listSpecs(specRoot)
 
       if (toCheck.length === 0) {
-        return "No specs found.";
+        return "No specs found."
       }
 
-      const lines: string[] = ["## OpenSpec Status\n"];
+      const lines: string[] = ["## OpenSpec Status\n"]
       for (const spec of toCheck) {
-        const tasksFile = resolveSpecFile(
-          projectDir,
-          specDir,
-          spec,
-          "tasks.md",
-        );
-        const content = await readSpecFile(tasksFile) ?? "";
-        const stats = parseTaskStats(content);
-        lines.push(`### ${spec}`);
-        lines.push(`- spec: \`${specDir}/${spec}/spec.md\``);
+        const tasksFile = resolveSpecFile(projectDir, specDir, spec, "tasks.md")
+        const content = await readSpecFile(tasksFile) ?? ""
+        const stats = parseTaskStats(content)
+        lines.push(`### ${spec}`)
+        lines.push(`- spec: \`${specDir}/${spec}/spec.md\``)
         lines.push(
           `- tasks: ${stats.open} open, ${stats.in_progress} in-progress, ${stats.completed} done, ${stats.blocked} blocked`,
-        );
+        )
       }
-      return lines.join("\n");
+      return lines.join("\n")
     },
-  });
+  })
 }
 
 function createOpenSpecProposeTool(
@@ -218,46 +209,44 @@ function createOpenSpecProposeTool(
         .describe("List of tasks for tasks.md."),
     },
     execute: async (args, execCtx) => {
-      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory;
-      const specDir =
-        (execCtx as unknown as OpenSpecToolContext).openspecSpecDir;
-      const specPath = join(projectDir, specDir, args.spec_name);
+      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory
+      const specDir = (execCtx as unknown as OpenSpecToolContext).openspecSpecDir
+      const specPath = join(projectDir, specDir, args.spec_name)
 
       // Check spec doesn't already exist
       if (await specExists(specPath)) {
-        return `Spec "${args.spec_name}" already exists at ${specDir}/${args.spec_name}/. Use a different spec_name or archive the existing spec first.`;
+        return `Spec "${args.spec_name}" already exists at ${specDir}/${args.spec_name}/. Use a different spec_name or archive the existing spec first.`
       }
 
       // Create spec directory
       await isDirectory(specPath) ||
-        (await import("node:fs/promises")).mkdir(specPath, { recursive: true });
+        (await import("node:fs/promises")).mkdir(specPath, { recursive: true })
 
-      const specContent = `# ${args.title}\n\n${args.requirements}\n`;
-      const planContent =
-        `# ${args.title} — Technical Plan\n\n${args.plan_summary}\n`;
+      const specContent = `# ${args.title}\n\n${args.requirements}\n`
+      const planContent = `# ${args.title} — Technical Plan\n\n${args.plan_summary}\n`
 
       const taskLines: string[] = [
         "# Tasks\n",
         "\n",
         "| Status | Description |\n",
         "| ------ | ------------- |\n",
-      ];
+      ]
       for (const t of args.tasks ?? []) {
-        taskLines.push(formatTaskLine(t.description, t.status) + "\n");
+        taskLines.push(formatTaskLine(t.description, t.status) + "\n")
       }
 
-      await writeSpecFile(join(specPath, "spec.md"), specContent);
-      await writeSpecFile(join(specPath, "plan.md"), planContent);
-      await writeSpecFile(join(specPath, "tasks.md"), taskLines.join(""));
+      await writeSpecFile(join(specPath, "spec.md"), specContent)
+      await writeSpecFile(join(specPath, "plan.md"), planContent)
+      await writeSpecFile(join(specPath, "tasks.md"), taskLines.join(""))
 
       return [
         `Spec "${args.title}" created at ${specDir}/${args.spec_name}/`,
         `- spec.md: ${specContent.split("\n").length} lines`,
         `- plan.md: ${planContent.split("\n").length} lines`,
         `- tasks.md: ${(args.tasks ?? []).length} tasks`,
-      ].join("\n");
+      ].join("\n")
     },
-  });
+  })
 }
 
 function createOpenSpecApplyTool(
@@ -270,19 +259,13 @@ function createOpenSpecApplyTool(
       spec_name: tool.schema.string().describe("Name of the spec to apply."),
     },
     execute: async (args, execCtx) => {
-      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory;
-      const specDir =
-        (execCtx as unknown as OpenSpecToolContext).openspecSpecDir;
-      const sessionID = (execCtx as unknown as OpenSpecToolContext).sessionID;
-      const result = await applySpec(
-        projectDir,
-        specDir,
-        args.spec_name,
-        sessionID,
-      );
-      return result.message;
+      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory
+      const specDir = (execCtx as unknown as OpenSpecToolContext).openspecSpecDir
+      const sessionID = (execCtx as unknown as OpenSpecToolContext).sessionID
+      const result = await applySpec(projectDir, specDir, args.spec_name, sessionID)
+      return result.message
     },
-  });
+  })
 }
 
 function createOpenSpecArchiveTool(
@@ -294,50 +277,49 @@ function createOpenSpecArchiveTool(
       spec_name: tool.schema.string().describe("Name of the spec to archive."),
     },
     execute: async (args, execCtx) => {
-      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory;
-      const specDir =
-        (execCtx as unknown as OpenSpecToolContext).openspecSpecDir;
-      const specRoot = resolveSpecRoot(projectDir, specDir);
-      const srcPath = join(specRoot, args.spec_name);
-      const archivePath = join(specRoot, "ARCHIVE");
-      const destPath = join(archivePath, args.spec_name);
+      const projectDir = (execCtx as unknown as OpenSpecToolContext).directory
+      const specDir = (execCtx as unknown as OpenSpecToolContext).openspecSpecDir
+      const specRoot = resolveSpecRoot(projectDir, specDir)
+      const srcPath = join(specRoot, args.spec_name)
+      const archivePath = join(specRoot, "ARCHIVE")
+      const destPath = join(archivePath, args.spec_name)
 
       if (!(await specExists(srcPath))) {
-        return `Spec "${args.spec_name}" not found.`;
+        return `Spec "${args.spec_name}" not found.`
       }
       if (await specExists(destPath)) {
-        return `Archived spec "${args.spec_name}" already exists in ARCHIVE/.`;
+        return `Archived spec "${args.spec_name}" already exists in ARCHIVE/.`
       }
 
       await (await import("node:fs/promises")).mkdir(archivePath, {
         recursive: true,
-      });
-      await (await import("node:fs/promises")).rename(srcPath, destPath);
+      })
+      await (await import("node:fs/promises")).rename(srcPath, destPath)
 
-      return `Spec "${args.spec_name}" archived to ${specDir}/ARCHIVE/${args.spec_name}/`;
+      return `Spec "${args.spec_name}" archived to ${specDir}/ARCHIVE/${args.spec_name}/`
     },
-  });
+  })
 }
 
 // ─── Factory ─────────────────────────────────────────────────────────────────
 
 export interface OpenSpecToolsOptions {
-  readonly openspecSpecDir?: string;
+  readonly openspecSpecDir?: string
 }
 
 export function createOpenSpecTools(
   ctx: PluginInput,
   options: OpenSpecToolsOptions = {},
 ): Record<string, ToolDefinition> {
-  const specDir = options.openspecSpecDir ?? "openspec";
+  const specDir = options.openspecSpecDir ?? "openspec"
 
   // Augment the tool context with openspec config
-  const toolCtx = ctx as unknown as OpenSpecToolContext;
+  const toolCtx = ctx as unknown as OpenSpecToolContext
   const augmentedCtx = {
     ...ctx,
     ...toolCtx,
     openspecSpecDir: specDir,
-  };
+  }
 
   return {
     openspec_read: createOpenSpecReadTool(augmentedCtx as PluginInput),
@@ -346,5 +328,5 @@ export function createOpenSpecTools(
     openspec_propose: createOpenSpecProposeTool(augmentedCtx as PluginInput),
     openspec_apply: createOpenSpecApplyTool(augmentedCtx as PluginInput),
     openspec_archive: createOpenSpecArchiveTool(augmentedCtx as PluginInput),
-  };
+  }
 }

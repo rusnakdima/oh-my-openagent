@@ -1,15 +1,8 @@
-import * as childProcess from "node:child_process";
-import {
-  existsSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  unlinkSync,
-  writeFileSync,
-} from "node:fs";
-import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { log } from "../../shared";
+import * as childProcess from "node:child_process"
+import { existsSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { dirname, join } from "node:path"
+import { log } from "../../shared"
 
 const SUPPORTED_FORMATS = new Set([
   "image/jpeg",
@@ -18,7 +11,7 @@ const SUPPORTED_FORMATS = new Set([
   "image/gif",
   "image/bmp",
   "image/tiff",
-]);
+])
 
 const UNSUPPORTED_FORMATS = new Set([
   "image/heic",
@@ -37,174 +30,148 @@ const UNSUPPORTED_FORMATS = new Set([
   "image/x-adobe-dng",
   "image/vnd.adobe.photoshop",
   "image/x-photoshop",
-]);
+])
 
-const CONVERSION_TIMEOUT_MS = 30_000;
+const CONVERSION_TIMEOUT_MS = 30_000
 
 function cleanupTemporaryFileAfterFailure(filePath: string): void {
   try {
     if (existsSync(filePath)) {
-      unlinkSync(filePath);
+      unlinkSync(filePath)
     }
   } catch (cleanupError) {
-    const cleanupErrorDescription = cleanupError instanceof Error
-      ? cleanupError.message
-      : String(cleanupError);
+    const cleanupErrorDescription =
+      cleanupError instanceof Error ? cleanupError.message : String(cleanupError)
     log(
-      `[image-converter] Ignored temporary cleanup failure for ${filePath}: ${cleanupErrorDescription}`,
-    );
+      `[image-converter] Ignored temporary cleanup failure for ${filePath}: ${cleanupErrorDescription}`
+    )
   }
 }
 
 export function needsConversion(mimeType: string): boolean {
   if (SUPPORTED_FORMATS.has(mimeType)) {
-    return false;
+    return false
   }
-
+  
   if (UNSUPPORTED_FORMATS.has(mimeType)) {
-    return true;
+    return true
   }
-
-  return mimeType.startsWith("image/");
+  
+  return mimeType.startsWith("image/")
 }
 
-export function convertImageToJpeg(
-  inputPath: string,
-  mimeType: string,
-): string {
+export function convertImageToJpeg(inputPath: string, mimeType: string): string {
   if (!existsSync(inputPath)) {
-    throw new Error(`File not found: ${inputPath}`);
+    throw new Error(`File not found: ${inputPath}`)
   }
 
-  const tempDir = mkdtempSync(join(tmpdir(), "opencode-img-"));
-  const outputPath = join(tempDir, "converted.jpg");
+  const tempDir = mkdtempSync(join(tmpdir(), "opencode-img-"))
+  const outputPath = join(tempDir, "converted.jpg")
 
-  log(`[image-converter] Converting ${mimeType} to JPEG: ${inputPath}`);
+  log(`[image-converter] Converting ${mimeType} to JPEG: ${inputPath}`)
 
   try {
     if (process.platform === "darwin") {
       try {
-        childProcess.execFileSync("sips", [
-          "-s",
-          "format",
-          "jpeg",
-          "--",
-          inputPath,
-          "--out",
-          outputPath,
-        ], {
+        childProcess.execFileSync("sips", ["-s", "format", "jpeg", "--", inputPath, "--out", outputPath], {
           stdio: "pipe",
           encoding: "utf-8",
           timeout: CONVERSION_TIMEOUT_MS,
-        });
-
+        })
+        
         if (existsSync(outputPath)) {
-          log(`[image-converter] Converted using sips: ${outputPath}`);
-          return outputPath;
+          log(`[image-converter] Converted using sips: ${outputPath}`)
+          return outputPath
         }
       } catch (sipsError) {
-        const sipsErrorDescription = sipsError instanceof Error
-          ? sipsError.message
-          : String(sipsError);
-        log(`[image-converter] sips failed: ${sipsErrorDescription}`);
+        const sipsErrorDescription =
+          sipsError instanceof Error ? sipsError.message : String(sipsError)
+        log(`[image-converter] sips failed: ${sipsErrorDescription}`)
       }
     }
 
     try {
-      const imagemagickCommand = process.platform === "darwin"
-        ? "convert"
-        : "magick";
-      childProcess.execFileSync(imagemagickCommand, [
-        "--",
-        inputPath,
-        outputPath,
-      ], {
+      const imagemagickCommand = process.platform === "darwin" ? "convert" : "magick"
+      childProcess.execFileSync(imagemagickCommand, ["--", inputPath, outputPath], {
         stdio: "pipe",
         encoding: "utf-8",
         timeout: CONVERSION_TIMEOUT_MS,
-      });
-
+      })
+      
       if (existsSync(outputPath)) {
-        log(`[image-converter] Converted using ImageMagick: ${outputPath}`);
-        return outputPath;
+        log(`[image-converter] Converted using ImageMagick: ${outputPath}`)
+        return outputPath
       }
     } catch (convertError) {
-      const convertErrorDescription = convertError instanceof Error
-        ? convertError.message
-        : String(convertError);
-      log(
-        `[image-converter] ImageMagick convert failed: ${convertErrorDescription}`,
-      );
+      const convertErrorDescription =
+        convertError instanceof Error ? convertError.message : String(convertError)
+      log(`[image-converter] ImageMagick convert failed: ${convertErrorDescription}`)
     }
 
     throw new Error(
       `No image conversion tool available. Please install ImageMagick:\n` +
-        `  macOS: brew install imagemagick\n` +
-        `  Ubuntu/Debian: sudo apt install imagemagick\n` +
-        `  RHEL/CentOS: sudo yum install ImageMagick`,
-    );
+      `  macOS: brew install imagemagick\n` +
+      `  Ubuntu/Debian: sudo apt install imagemagick\n` +
+      `  RHEL/CentOS: sudo yum install ImageMagick`
+    )
   } catch (error) {
-    cleanupTemporaryFileAfterFailure(outputPath);
+    cleanupTemporaryFileAfterFailure(outputPath)
 
     if (error instanceof Error) {
-      const conversionError = error as Error & { temporaryOutputPath?: string };
-      conversionError.temporaryOutputPath = outputPath;
+      const conversionError = error as Error & { temporaryOutputPath?: string }
+      conversionError.temporaryOutputPath = outputPath
     }
-
-    throw error;
+    
+    throw error
   }
 }
 
 export function cleanupConvertedImage(filePath: string): void {
   try {
-    const tempDirectory = dirname(filePath);
+    const tempDirectory = dirname(filePath)
     if (existsSync(filePath)) {
-      unlinkSync(filePath);
-      log(`[image-converter] Cleaned up temporary file: ${filePath}`);
+      unlinkSync(filePath)
+      log(`[image-converter] Cleaned up temporary file: ${filePath}`)
     }
     if (existsSync(tempDirectory)) {
-      rmSync(tempDirectory, { recursive: true, force: true });
-      log(`[image-converter] Cleaned up temporary directory: ${tempDirectory}`);
+      rmSync(tempDirectory, { recursive: true, force: true })
+      log(`[image-converter] Cleaned up temporary directory: ${tempDirectory}`)
     }
   } catch (error) {
-    const cleanupErrorDescription = error instanceof Error
-      ? error.message
-      : String(error);
-    log(
-      `[image-converter] Failed to cleanup ${filePath}: ${cleanupErrorDescription}`,
-    );
+    const cleanupErrorDescription = error instanceof Error ? error.message : String(error)
+    log(`[image-converter] Failed to cleanup ${filePath}: ${cleanupErrorDescription}`)
   }
 }
 
 export function convertBase64ImageToJpeg(
   base64Data: string,
-  mimeType: string,
+  mimeType: string
 ): { base64: string; tempFiles: string[] } {
-  const tempDir = mkdtempSync(join(tmpdir(), "opencode-b64-"));
-  const inputExt = mimeType.split("/")[1] || "bin";
-  const inputPath = join(tempDir, `input.${inputExt}`);
-  const tempFiles: string[] = [inputPath];
+  const tempDir = mkdtempSync(join(tmpdir(), "opencode-b64-"))
+  const inputExt = mimeType.split("/")[1] || "bin"
+  const inputPath = join(tempDir, `input.${inputExt}`)
+  const tempFiles: string[] = [inputPath]
 
   try {
-    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "");
-    const buffer = Buffer.from(cleanBase64, "base64");
-    writeFileSync(inputPath, buffer);
+    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, "")
+    const buffer = Buffer.from(cleanBase64, "base64")
+    writeFileSync(inputPath, buffer)
 
-    log(`[image-converter] Converting Base64 ${mimeType} to JPEG`);
+    log(`[image-converter] Converting Base64 ${mimeType} to JPEG`)
+    
+    const outputPath = convertImageToJpeg(inputPath, mimeType)
+    tempFiles.push(outputPath)
 
-    const outputPath = convertImageToJpeg(inputPath, mimeType);
-    tempFiles.push(outputPath);
+    const convertedBuffer = readFileSync(outputPath)
+    const convertedBase64 = convertedBuffer.toString("base64")
 
-    const convertedBuffer = readFileSync(outputPath);
-    const convertedBase64 = convertedBuffer.toString("base64");
-
-    log(`[image-converter] Base64 conversion successful`);
-
-    return { base64: convertedBase64, tempFiles };
+    log(`[image-converter] Base64 conversion successful`)
+    
+    return { base64: convertedBase64, tempFiles }
   } catch (error) {
     for (const file of tempFiles) {
-      cleanupTemporaryFileAfterFailure(file);
+      cleanupTemporaryFileAfterFailure(file)
     }
-    throw error;
+    throw error
   }
 }

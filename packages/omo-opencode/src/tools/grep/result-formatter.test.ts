@@ -1,9 +1,9 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import { formatGrepResult } from "./result-formatter";
-import type { GrepResult } from "./types";
+import { formatGrepResult } from "./result-formatter"
+import type { GrepResult } from "./types"
 
 describe("formatGrepResult", () => {
   describe("#given grep result has error", () => {
@@ -15,14 +15,14 @@ describe("formatGrepResult", () => {
           filesSearched: 0,
           truncated: false,
           error: "ripgrep failed",
-        };
+        }
 
-        const formatted = formatGrepResult(result);
+        const formatted = formatGrepResult(result)
 
-        expect(formatted).toBe("Error: ripgrep failed");
-      });
-    });
-  });
+        expect(formatted).toBe("Error: ripgrep failed")
+      })
+    })
+  })
 
   describe("#given grep result has no matches", () => {
     describe("#when formatting result", () => {
@@ -32,14 +32,14 @@ describe("formatGrepResult", () => {
           totalMatches: 0,
           filesSearched: 0,
           truncated: false,
-        };
+        }
 
-        const formatted = formatGrepResult(result);
+        const formatted = formatGrepResult(result)
 
-        expect(formatted).toBe("No matches found");
-      });
-    });
-  });
+        expect(formatted).toBe("No matches found")
+      })
+    })
+  })
 
   describe("#given grep result is files-with-matches mode", () => {
     describe("#when formatting result", () => {
@@ -53,19 +53,19 @@ describe("formatGrepResult", () => {
           totalMatches: 3,
           filesSearched: 3,
           truncated: false,
-        };
+        }
 
-        const formatted = formatGrepResult(result);
+        const formatted = formatGrepResult(result)
 
         expect(formatted).toBe(
           "Found 3 match(es) in 3 file(s)\n\n" +
             "src/foo.ts\n\n" +
             "src/bar.ts\n\n" +
             "src/baz.ts\n",
-        );
-      });
-    });
-  });
+        )
+      })
+    })
+  })
 
   describe("#given grep result is content mode", () => {
     describe("#when formatting result", () => {
@@ -74,18 +74,14 @@ describe("formatGrepResult", () => {
           matches: [
             { file: "src/foo.ts", line: 10, text: " function hello() {" },
             { file: "src/foo.ts", line: 25, text: " function world() {" },
-            {
-              file: "src/bar.ts",
-              line: 5,
-              text: ' import { hello } from "./foo"',
-            },
+            { file: "src/bar.ts", line: 5, text: ' import { hello } from "./foo"' },
           ],
           totalMatches: 3,
           filesSearched: 2,
           truncated: false,
-        };
+        }
 
-        const formatted = formatGrepResult(result);
+        const formatted = formatGrepResult(result)
 
         expect(formatted).toBe(
           "Found 3 match(es) in 2 file(s)\n\n" +
@@ -94,10 +90,10 @@ describe("formatGrepResult", () => {
             "  25: function world() {\n\n" +
             "src/bar.ts\n" +
             '  5: import { hello } from "./foo"\n',
-        );
-      });
-    });
-  });
+        )
+      })
+    })
+  })
 
   describe("#given grep result has mixed file-only and content matches", () => {
     describe("#when formatting result", () => {
@@ -111,17 +107,17 @@ describe("formatGrepResult", () => {
           totalMatches: 3,
           filesSearched: 2,
           truncated: false,
-        };
+        }
 
-        const formatted = formatGrepResult(result);
+        const formatted = formatGrepResult(result)
 
         expect(formatted).toBe(
           "Found 3 match(es) in 2 file(s)\n\n" +
             "src/foo.ts\n" +
             "  10: function hello() {\n\n" +
             "src/bar.ts\n",
-        );
-      });
-    });
-  });
-});
+        )
+      })
+    })
+  })
+})

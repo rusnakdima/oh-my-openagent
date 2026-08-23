@@ -2,17 +2,17 @@
 export {
   BACKGROUND_MODES,
   COST_REPORT_STATUSES,
-  createTaskRecord,
   DURATION_SOURCE_STATUSES,
   isSpawnSpecV1,
-  markRecordLostForReconciliation,
-  messageability,
   RESIDENCY_STATES,
   RESOLVED_MODEL_SOURCES,
   TASK_STATUSES,
   TOKEN_COVERAGE_STATUSES,
+  createTaskRecord,
+  markRecordLostForReconciliation,
+  messageability,
   transitionTaskRecord,
-} from "./state";
+} from "./state"
 export type {
   BackgroundMode,
   CostReportStatus,
@@ -34,19 +34,15 @@ export type {
   TaskTransitionAudit,
   TaskTransitionResult,
   TokenCoverageStatus,
-} from "./state";
-export {
-  createTaskRecordStore,
-  resolveStateDir,
-  TaskRecordCollisionError,
-} from "./store";
+} from "./state"
+export { TaskRecordCollisionError, createTaskRecordStore, resolveStateDir } from "./store"
 export type {
   ListTaskRecordsResult,
   PersistedTaskEvent,
   StateDirConfig,
   TaskRecordDiagnostic,
   TaskRecordStore,
-} from "./store";
+} from "./store"
 export {
   composeStatusLine,
   formatLiveSpend,
@@ -56,36 +52,31 @@ export {
   formatTargetWithModel,
   taskIdentityLabel,
   toolCountSuffix,
-} from "./status-line";
-export type {
-  StatusLineInput,
-  StatusLineStats,
-  StatusTargetInput,
-  TaskIdentityInput,
-} from "./status-line";
-export { clampTaskSummary, TASK_SUMMARY_MAX_LENGTH } from "./task-summary";
+} from "./status-line"
+export type { StatusLineInput, StatusLineStats, StatusTargetInput, TaskIdentityInput } from "./status-line"
+export { TASK_SUMMARY_MAX_LENGTH, clampTaskSummary } from "./task-summary"
 export {
   assistantLastLine,
   createChildProgress,
   formatToolActivity,
   type ToolProgressDetails,
-} from "./progress";
-export { createMinimalSenpiResourceLoader } from "./senpi/minimal-resource-loader";
-export type { MinimalSenpiResourceLoaderOptions } from "./senpi/minimal-resource-loader";
+} from "./progress"
+export { createMinimalSenpiResourceLoader } from "./senpi/minimal-resource-loader"
+export type { MinimalSenpiResourceLoaderOptions } from "./senpi/minimal-resource-loader"
 export {
+  MEMBER_IDENTITY_ENV,
+  SenpiTeamSpecError,
+  TEAM_LEAD_SENTINEL,
   ensureTeamRuntimeDirs,
   isTeamMemberProcess,
   loadTeamRegistry,
-  MEMBER_IDENTITY_ENV,
   normalizeSenpiTeamSpec,
   resolveProjectTeamSpecPath,
   resolveTeamMemberInboxDir,
   resolveTeamRuntimeDirs,
-  SenpiTeamSpecError,
-  TEAM_LEAD_SENTINEL,
   teamStorageBaseDir,
   validateSenpiTeamMembers,
-} from "./team";
+} from "./team"
 export type {
   LoadTeamRegistryInput,
   LoadTeamRegistryResult,
@@ -96,7 +87,7 @@ export type {
   TeamRegistryError,
   TeamRuntimeDirs,
   TeamSpecSource,
-} from "./team";
+} from "./team"
 export {
   BUILTIN_CATEGORY_DEFAULTS,
   CATEGORY_DESCRIPTIONS,
@@ -104,7 +95,7 @@ export {
   DEFAULT_CATEGORIES,
   resolveAvailableCategoryNames,
   resolveCategory,
-} from "./category";
+} from "./category"
 export type {
   BuiltinCategoryDefinition,
   CategoryModelSelection,
@@ -112,17 +103,17 @@ export type {
   ResolvedChildSpec,
   SenpiModelPort,
   SenpiModelRegistryPort,
-} from "./category";
+} from "./category"
 export {
+  DEFAULT_MAX_CHILD_DEPTH,
+  InProcessRunner,
+  RunnerError,
   buildSubagentPrompt,
   createChildResourceLoader,
-  DEFAULT_MAX_CHILD_DEPTH,
   filterSharedParentTools,
-  InProcessRunner,
   isTaskOrTeamFamilyTool,
   mergeChildCustomTools,
-  RunnerError,
-} from "./runners";
+} from "./runners"
 export type {
   ChildHandle,
   ChildSession,
@@ -136,8 +127,11 @@ export type {
   RunnerOutcome,
   SharedToolFilterOptions,
   SubagentPromptInput,
-} from "./runners";
+} from "./runners"
 export {
+  RpcCommandError,
+  RpcProcessRunner,
+  RpcProtocolClient,
   buildAutoUiResponse,
   buildChildArgs,
   buildRpcSpawn,
@@ -149,12 +143,9 @@ export {
   resolveChildSessionDir,
   resolveSenpiExecutable,
   resolveSenpiLauncher,
-  RpcCommandError,
-  RpcProcessRunner,
-  RpcProtocolClient,
   tailStderr,
   terminateRpcChild,
-} from "./runners";
+} from "./runners"
 export type {
   ChildEventListener,
   ChildExitFacts,
@@ -168,11 +159,13 @@ export type {
   RpcRunnerSpec,
   RpcSpawnDescriptor,
   RpcSpawnRuntime,
-  RunnerErrorFacts,
   SenpiLauncher,
+  RunnerErrorFacts,
   TerminateOptions,
-} from "./runners";
+} from "./runners"
 export {
+  NameRegistry,
+  TaskConcurrency,
   adaptInProcessHandle,
   adaptRpcHandle,
   createInProcessManagedRunner,
@@ -181,10 +174,8 @@ export {
   createTaskManager,
   decideDepthPolicy,
   findModelReference,
-  NameRegistry,
   resolveExecutionMode,
-  TaskConcurrency,
-} from "./manager";
+} from "./manager"
 export type {
   AdmitResident,
   ChildModelRegistry,
@@ -198,8 +189,8 @@ export type {
   InProcessRunnerLike,
   InProcessSessionContext,
   InProcessSessionContextProvider,
-  ListedTask,
   ListScope,
+  ListedTask,
   ManagedChildEvent,
   ManagedChildHandle,
   ManagedChildListener,
@@ -219,34 +210,34 @@ export type {
   TaskManagerOptions,
   TrustedRespawnLaunch,
   TrustedRespawnLaunchResolver,
-} from "./manager";
+} from "./manager"
 export {
   AGENT_INVOCATION_CONDITIONS,
-  BUILTIN_AGENT_DEFAULTS,
   BUILTIN_AGENTS,
+  BUILTIN_AGENT_DEFAULTS,
   CURATED_READONLY_AGENT_NAMES,
-  defineAgent,
   EMPTY_SKILL_INVOCATIONS,
+  PLAN_GATED_AGENT_NAMES,
+  defineAgent,
   evaluateInvocationGuard,
   invocationConditionForAgent,
   loadAgents,
   mapOmoConfigAgents,
-  PLAN_GATED_AGENT_NAMES,
   registerAgent,
   resolveAgent,
   resolveToolRule,
-} from "./agents";
+} from "./agents"
 export type {
-  AgentDefinition,
-  AgentDefinitionInput,
   AgentInvocationCondition,
-  AgentLoaderDiagnostic,
-  AgentLoaderDiagnosticKind,
   AgentModelCandidate,
   AgentModelEntry,
   AgentModelUnavailableResult,
   AgentNotFoundResult,
   AgentResolutionResult,
+  AgentDefinition,
+  AgentDefinitionInput,
+  AgentLoaderDiagnostic,
+  AgentLoaderDiagnosticKind,
   AgentToolRule,
   InvocationGuardVerdict,
   LoadAgentsOptions,
@@ -254,14 +245,9 @@ export type {
   ResolveAgentOptions,
   ResolvedAgentResult,
   SkillInvocationState,
-} from "./agents";
-export { buildNoticeBox, noticeTone } from "./notice-box";
-export type {
-  NoticeLine,
-  NoticeSpec,
-  NoticeTheme,
-  NoticeTone,
-} from "./notice-box";
+} from "./agents"
+export { buildNoticeBox, noticeTone } from "./notice-box"
+export type { NoticeLine, NoticeSpec, NoticeTheme, NoticeTone } from "./notice-box"
 export {
   buildCompletionDetails,
   buildCompletionMessage,
@@ -270,7 +256,7 @@ export {
   DAG_VERIFICATION_DIRECTIVE,
   routeCompletion,
   shouldNotifyStatus,
-} from "./completion";
+} from "./completion"
 export type {
   CompletionDetails,
   CompletionNotifier,
@@ -287,13 +273,13 @@ export type {
   RoutingDecision,
   SkipReason,
   TransitionReason,
-} from "./completion";
+} from "./completion"
 export {
   AgentLimitReached,
   createTaskLifecycle,
   getLifecycleReattachPorts,
   registerLifecycleReattachPorts,
-} from "./lifecycle";
+} from "./lifecycle"
 export type {
   AdmissionResult,
   CleanupResult,
@@ -306,17 +292,17 @@ export type {
   ReconcileOutcome,
   ReconcileOutcomeKind,
   ReconcileResult,
-  ResidencyRegistry,
   ResidentHandle,
   ResidentSummary,
+  ResidencyRegistry,
   RespawnPort,
   RespawnResult,
   SuspendFailure,
   SuspendInput,
   SuspendSummary,
   TaskLifecycle,
-} from "./lifecycle";
-export { createSteeringEngine, DEFAULT_SEND_DELIVERY } from "./steering";
+} from "./lifecycle"
+export { DEFAULT_SEND_DELIVERY, createSteeringEngine } from "./steering"
 export type {
   CancelOutcome,
   DestructionCause,
@@ -327,11 +313,16 @@ export type {
   SendOutcome,
   SteeringEngine,
   SteeringPort,
-} from "./steering";
+} from "./steering"
 export {
+  TASK_PROMPT_GUIDELINES,
+  TASK_PROMPT_SNIPPET,
+  TASK_TOOL_NAME,
+  TaskToolParams,
   buildSkillPrepend,
   buildTaskExecute,
   buildTaskToolDescription,
+  resolvePromptCacheSafeWaitSeconds,
   createFsSkillLoader,
   createTaskTool,
   evaluateSpawnPolicy,
@@ -341,20 +332,14 @@ export {
   linesComponent,
   listTaskAgents,
   listTaskCategories,
-  normalizeRendererText,
-  recordSummary,
+  normalizeRendererText, recordSummary,
   rendererVisibleWidth,
-  resolvePromptCacheSafeWaitSeconds,
   statusThemeColor,
-  TASK_PROMPT_GUIDELINES,
-  TASK_PROMPT_SNIPPET,
-  TASK_TOOL_NAME,
   taskCallLines,
   taskResultLines,
-  TaskToolParams,
   validateTaskTarget,
   waitForForegroundTask,
-} from "./tools/task";
+} from "./tools/task"
 export type {
   ForegroundWaitInput,
   ForegroundWaitOptions,
@@ -363,7 +348,6 @@ export type {
   ScheduleDeadline,
   SkillLoader,
   SkillResolution,
-  SpawnPolicyVerdict,
   TaskAgentInfo,
   TaskAncestry,
   TaskCategoryInfo,
@@ -371,12 +355,16 @@ export type {
   TaskTargetErrorCode,
   TaskTargetSelection,
   TaskToolContext,
+  SpawnPolicyVerdict,
   TaskToolDeps,
   TaskToolDetails,
   TaskToolMode,
   TaskToolParamsStatic,
-} from "./tools/task";
+} from "./tools/task"
 export {
+  TaskCancelParams,
+  MemberScopedTaskSendParams,
+  TaskSendParams,
   clampWaitTimeout,
   createMemberScopedTaskSendTool,
   createTaskCancelTool,
@@ -384,24 +372,21 @@ export {
   defaultResolveCallerSessionId,
   finalResponseHead,
   isTerminalStatus,
-  MemberScopedTaskSendParams,
   runTaskCancel,
   runTaskSend,
-  TaskCancelParams,
-  TaskSendParams,
   toolResult,
-} from "./tools/control";
+} from "./tools/control"
 export type {
   CallerSessionResolver,
   CancelManager,
   CancelResultDetails,
   CancelToolResult,
-  DefaultTeamRunIdResolution,
   MemberScopedTaskSendDeps,
   MemberScopedTaskSendInput,
   SendManager,
   SendResultDetails,
   SendToolResult,
+  DefaultTeamRunIdResolution,
   SessionIdCarrier,
   TaskCancelDeps,
   TaskCancelInput,
@@ -409,8 +394,10 @@ export type {
   TaskSendInput,
   TaskSendTeamRouting,
   WaitBounds,
-} from "./tools/control";
+} from "./tools/control"
 export {
+  TRANSCRIPT_MAX_CHARS,
+  TaskOutputParams,
   buildTaskSnapshot,
   childSessionDir,
   createTaskOutputTool,
@@ -420,14 +407,12 @@ export {
   readSessionDirTranscript,
   renderTranscript,
   runTaskOutput,
-  TaskOutputParams,
-  TRANSCRIPT_MAX_CHARS,
-} from "./tools/output";
+} from "./tools/output"
 export type {
   LostBreadcrumbs,
   OutputManager,
-  RenderedTranscript,
   RenderOptions,
+  RenderedTranscript,
   SuspendedDetails,
   TaskOutputDeps,
   TaskOutputDetails,
@@ -435,46 +420,46 @@ export type {
   TaskOutputToolResult,
   TaskSnapshot,
   TranscriptEntry,
-  TranscriptReader,
   TranscriptReadResult,
+  TranscriptReader,
   TranscriptSource,
-} from "./tools/output";
+} from "./tools/output"
 export {
   buildPeerMessageEnvelope,
   buildTeamMessage,
-  createIncrementalSessionMarkerIndex,
-  createLeadDeliveryJournal,
   createLeadPoller,
-  createTeamMemberRespawnLaunchResolver,
+  createIncrementalSessionMarkerIndex,
   DEFAULT_STALE_RESERVATION_TTL_MS,
   MEMBER_EXTENSION_BUNDLE_NAME,
   parseMemberExtensionEnv,
   reclaimStaleTeamReservations,
   reconcileTeamMailboxOnSessionStart,
   resolveMemberExtensionEntryPath,
-  sendTeamMessage,
+  createLeadDeliveryJournal,
+  createTeamMemberRespawnLaunchResolver,
   TeamMemberRespawnLaunchError,
-} from "./team";
+  sendTeamMessage,
+} from "./team"
 export type {
   BuildTeamMessageOptions,
   LeadDeliveryJournal,
   LeadDeliveryJournalOptions,
   LeadInjection,
   LeadInjectionSink,
+  LeadPollFilter,
   LeadPoller,
   LeadPollerDeps,
-  LeadPollFilter,
   MemberExtensionConfigErrorCode,
   MessagingEngineDeps,
   ParsedMemberExtensionEnv,
   ReclaimResult,
   ReconcileTeamMailboxDeps,
-  SendTeamMessageInput,
-  SendTeamMessageResult,
   SessionMarkerExtractor,
   SessionMarkerIndex,
   SessionSliceReader,
-} from "./team";
+  SendTeamMessageInput,
+  SendTeamMessageResult,
+} from "./team"
 export {
   approveShutdown,
   canClaimTeamTask,
@@ -492,7 +477,7 @@ export {
   TeamTaskCrossOwnerUpdateError,
   TeamTaskInvalidTransitionError,
   updateTeamTaskStatus,
-} from "./team";
+} from "./team"
 export type {
   ApproveShutdownDeps,
   CreateTeamTaskInput,
@@ -504,7 +489,7 @@ export type {
   ShutdownOutboundMessage,
   TeamTaskFilter,
   TeamTasklistContext,
-} from "./team";
+} from "./team"
 export {
   createTeam,
   deleteTeam,
@@ -514,11 +499,11 @@ export {
   refreshTeamMemberStatuses,
   SenpiTeamRuntimeError,
   toTeamCoreConfig,
-} from "./team";
+} from "./team"
 export type {
-  CreatedMemberInfo,
   CreateTeamDeps,
   CreateTeamResult,
+  CreatedMemberInfo,
   DeleteTeamDeps,
   DeleteTeamResult,
   MemberStatusPort,
@@ -529,10 +514,10 @@ export type {
   TeamCoreConfig,
   TeamMemberExtensionConfig,
   TeamMemberOwnershipDeps,
-  TeamMemberRespawnLaunchErrorCode,
-  TeamMemberRespawnLaunchResolverOptions,
   TeamMemberTaskIdentity,
   TeamRuntimeManagerPort,
-} from "./team";
+  TeamMemberRespawnLaunchResolverOptions,
+  TeamMemberRespawnLaunchErrorCode,
+} from "./team"
 
-export * from "./tools/team";
+export * from "./tools/team"

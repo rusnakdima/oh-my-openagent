@@ -1,17 +1,14 @@
 export interface PreservedAgentReasoning {
-  readonly model: string | null;
-  readonly effort: string;
+  readonly model: string | null
+  readonly effort: string
 }
 
 interface ManagedReasoningUpgradeStep {
-  readonly previous: PreservedAgentReasoning;
-  readonly current: PreservedAgentReasoning;
+  readonly previous: PreservedAgentReasoning
+  readonly current: PreservedAgentReasoning
 }
 
-const MANAGED_REASONING_DEFAULT_UPGRADES = new Map<
-  string,
-  readonly ManagedReasoningUpgradeStep[]
->([
+const MANAGED_REASONING_DEFAULT_UPGRADES = new Map<string, readonly ManagedReasoningUpgradeStep[]>([
   [
     "explorer",
     [
@@ -126,30 +123,24 @@ const MANAGED_REASONING_DEFAULT_UPGRADES = new Map<
       },
     ],
   ],
-]);
+])
 
 export function resolveManagedAgentReasoning(input: {
-  readonly agentName: string;
-  readonly bundledModel: string | null;
-  readonly bundledEffort: string | null;
-  readonly preserved: PreservedAgentReasoning;
+  readonly agentName: string
+  readonly bundledModel: string | null
+  readonly bundledEffort: string | null
+  readonly preserved: PreservedAgentReasoning
 }): string {
-  const steps = MANAGED_REASONING_DEFAULT_UPGRADES.get(input.agentName);
-  if (steps === undefined) return input.preserved.effort;
-  const latest = steps[steps.length - 1];
-  if (latest === undefined) return input.preserved.effort;
-  if (
-    input.bundledModel !== latest.current.model ||
-    input.bundledEffort !== latest.current.effort
-  ) {
-    return input.preserved.effort;
+  const steps = MANAGED_REASONING_DEFAULT_UPGRADES.get(input.agentName)
+  if (steps === undefined) return input.preserved.effort
+  const latest = steps[steps.length - 1]
+  if (latest === undefined) return input.preserved.effort
+  if (input.bundledModel !== latest.current.model || input.bundledEffort !== latest.current.effort) {
+    return input.preserved.effort
   }
   const preservedMatchesAnyStep = steps.some(
     (step) =>
-      input.preserved.model === step.previous.model &&
-      input.preserved.effort === step.previous.effort,
-  );
-  return preservedMatchesAnyStep
-    ? latest.current.effort
-    : input.preserved.effort;
+      input.preserved.model === step.previous.model && input.preserved.effort === step.previous.effort,
+  )
+  return preservedMatchesAnyStep ? latest.current.effort : input.preserved.effort
 }

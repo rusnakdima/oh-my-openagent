@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod"
 
 /**
  * Help JSON schema for the `status` surface.
@@ -11,7 +11,7 @@ export const SessionStatusSchema = z
     message: z.string().optional().describe("Status detail message"),
     next: z.number().optional().describe("Next retry timestamp (epoch ms)"),
   })
-  .meta({ ref: "SessionStatus" });
+  .meta({ ref: "SessionStatus" })
 
 export const ProviderHealthSchema = z
   .object({
@@ -21,19 +21,15 @@ export const ProviderHealthSchema = z
     defaultModel: z.string().nullable().describe("Default model ID"),
     modelsAvailable: z.number().describe("Number of available models"),
   })
-  .meta({ ref: "ProviderHealth" });
+  .meta({ ref: "ProviderHealth" })
 
 export const McpHealthSchema = z
   .object({
     name: z.string().describe("MCP server name"),
-    status: z.enum(["running", "stopped", "error"]).describe(
-      "Server run state",
-    ),
-    error: z.string().nullable().optional().describe(
-      "Error message if status is error",
-    ),
+    status: z.enum(["running", "stopped", "error"]).describe("Server run state"),
+    error: z.string().nullable().optional().describe("Error message if status is error"),
   })
-  .meta({ ref: "McpHealth" });
+  .meta({ ref: "McpHealth" })
 
 export const LspHealthSchema = z
   .object({
@@ -41,7 +37,7 @@ export const LspHealthSchema = z
     running: z.boolean().describe("Whether the LSP server is running"),
     workspaceRoot: z.string().nullable().describe("Workspace root path"),
   })
-  .meta({ ref: "LspHealth" });
+  .meta({ ref: "LspHealth" })
 
 export const SystemHealthSchema = z
   .object({
@@ -53,13 +49,9 @@ export const SystemHealthSchema = z
     sessions: z.object({
       total: z.number().describe("Total session count"),
       active: z.number().describe("Active session count"),
-      statuses: z.record(z.string(), SessionStatusSchema).optional().describe(
-        "Per-session statuses",
-      ),
+      statuses: z.record(z.string(), SessionStatusSchema).optional().describe("Per-session statuses"),
     }).describe("Session overview"),
-    providers: z.array(ProviderHealthSchema).describe(
-      "Provider connection statuses",
-    ),
+    providers: z.array(ProviderHealthSchema).describe("Provider connection statuses"),
     mcps: z.array(McpHealthSchema).describe("MCP server statuses"),
     lsps: z.array(LspHealthSchema).describe("LSP server statuses"),
     plugins: z.array(z.object({
@@ -68,18 +60,18 @@ export const SystemHealthSchema = z
       enabled: z.boolean().describe("Whether the plugin is loaded"),
     })).describe("Loaded plugins"),
   })
-  .meta({ ref: "SystemHealth" });
+  .meta({ ref: "SystemHealth" })
 
 export const StatusResultSchema = z
   .object({
     system: SystemHealthSchema.describe("Overall system health"),
     timestamp: z.number().describe("Snapshot timestamp (epoch ms)"),
   })
-  .meta({ ref: "StatusResult" });
+  .meta({ ref: "StatusResult" })
 
-export type SessionStatus = z.infer<typeof SessionStatusSchema>;
-export type ProviderHealth = z.infer<typeof ProviderHealthSchema>;
-export type McpHealth = z.infer<typeof McpHealthSchema>;
-export type LspHealth = z.infer<typeof LspHealthSchema>;
-export type SystemHealth = z.infer<typeof SystemHealthSchema>;
-export type StatusResult = z.infer<typeof StatusResultSchema>;
+export type SessionStatus = z.infer<typeof SessionStatusSchema>
+export type ProviderHealth = z.infer<typeof ProviderHealthSchema>
+export type McpHealth = z.infer<typeof McpHealthSchema>
+export type LspHealth = z.infer<typeof LspHealthSchema>
+export type SystemHealth = z.infer<typeof SystemHealthSchema>
+export type StatusResult = z.infer<typeof StatusResultSchema>

@@ -1,53 +1,47 @@
-export { createGrepTools } from "./grep";
-export { createGlobTools } from "./glob";
-export { createSkillTool } from "./skill";
-export { discoverCommandsSync } from "./slashcommand";
-export { createSessionManagerTools } from "./session-manager";
+export { createGrepTools } from "./grep"
+export { createGlobTools } from "./glob"
+export { createSkillTool } from "./skill"
+export { discoverCommandsSync } from "./slashcommand"
+export { createSessionManagerTools } from "./session-manager"
 
-export { sessionExists } from "./session-manager/storage";
+export { sessionExists } from "./session-manager/storage"
 
-export {
-  interactive_bash,
-  startBackgroundCheck as startTmuxCheck,
-} from "./interactive-bash";
-export { interactive_menu } from "./interactive-menu";
-export { createSkillMcpTool } from "./skill-mcp";
+export { interactive_bash, startBackgroundCheck as startTmuxCheck } from "./interactive-bash"
+export { interactive_menu } from "./interactive-menu"
+export { createSkillMcpTool } from "./skill-mcp"
 
 import {
-  type BackgroundCancelClient,
-  type BackgroundOutputManager,
-  createBackgroundCancel,
   createBackgroundOutput,
-} from "./background-task";
+  createBackgroundCancel,
+  type BackgroundOutputManager,
+  type BackgroundCancelClient,
+} from "./background-task"
 
-import type { PluginInput, ToolDefinition } from "@opencode-ai/plugin";
-import type { BackgroundManager } from "../features/background-agent";
+import type { PluginInput, ToolDefinition } from "@opencode-ai/plugin"
+import type { BackgroundManager } from "../features/background-agent"
 
-type OpencodeClient = PluginInput["client"];
+type OpencodeClient = PluginInput["client"]
 
-export { createCallOmoAgent } from "./call-omo-agent";
-export { createLookAt } from "./look-at";
-export { createMonitorTools } from "./monitor";
-export { createDelegateTask } from "./delegate-task";
+export { createCallOmoAgent } from "./call-omo-agent"
+export { createLookAt } from "./look-at"
+export { createMonitorTools } from "./monitor"
+export { createDelegateTask } from "./delegate-task"
 export {
   createTaskCreateTool,
   createTaskGetTool,
   createTaskList,
   createTaskUpdateTool,
-} from "./task";
-export { createHashlineEditTool } from "./hashline-edit";
-export { createVoiceTool } from "./voice";
-export { createSpeakTool } from "./voice/speak";
-export { createTeamSendMessageTool } from "../features/team-mode/tools/messaging";
+} from "./task"
+export { createHashlineEditTool } from "./hashline-edit"
+export { createVoiceTool } from "./voice"
+export { createSpeakTool } from "./voice/speak"
+export { createTeamSendMessageTool } from "../features/team-mode/tools/messaging"
 
-export function createBackgroundTools(
-  manager: BackgroundManager,
-  client: OpencodeClient,
-): Record<string, ToolDefinition> {
-  const outputManager: BackgroundOutputManager = manager;
-  const cancelClient: BackgroundCancelClient = client;
+export function createBackgroundTools(manager: BackgroundManager, client: OpencodeClient): Record<string, ToolDefinition> {
+  const outputManager: BackgroundOutputManager = manager
+  const cancelClient: BackgroundCancelClient = client
   return {
     background_output: createBackgroundOutput(outputManager, client),
     background_cancel: createBackgroundCancel(manager, cancelClient),
-  };
+  }
 }

@@ -1,7 +1,7 @@
-import { log } from "./logger";
+import { log } from "./logger"
 
 interface SafeCreateHookOptions {
-  enabled?: boolean;
+  enabled?: boolean
 }
 
 export function safeCreateHook<T>(
@@ -9,16 +9,16 @@ export function safeCreateHook<T>(
   factory: () => T,
   options?: SafeCreateHookOptions,
 ): T | null {
-  const enabled = options?.enabled ?? true;
+  const enabled = options?.enabled ?? true
 
   if (!enabled) {
-    return factory() ?? null;
+    return factory() ?? null
   }
 
   try {
-    return factory() ?? null;
+    return factory() ?? null
   } catch (error) {
-    log(`[safe-create-hook] Hook creation failed: ${name}`, { error });
-    return null;
+    log(`[safe-create-hook] Hook creation failed: ${name}`, { error })
+    return null
   }
 }

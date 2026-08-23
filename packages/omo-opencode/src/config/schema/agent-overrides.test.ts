@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { AgentOverridesSchema } from "./agent-overrides";
+import { describe, expect, test } from "bun:test"
+import { AgentOverridesSchema } from "./agent-overrides"
 
 describe("AgentOverridesSchema", () => {
   test("preserves custom agent keys after parsing", () => {
@@ -10,20 +10,18 @@ describe("AgentOverridesSchema", () => {
         temperature: 0.3,
         prompt_append: "You are a technical writer.",
       },
-    };
-
-    const result = AgentOverridesSchema.safeParse(input);
-
-    expect(result.success).toBe(true);
-    if (result.success) {
-      expect(result.data.sisyphus).toBeDefined();
-      expect(result.data["technical-writer"]).toBeDefined();
-      expect(result.data["technical-writer"]?.model).toBe(
-        "anthropic/claude-sonnet-4-6",
-      );
-      expect(result.data["technical-writer"]?.temperature).toBe(0.3);
     }
-  });
+
+    const result = AgentOverridesSchema.safeParse(input)
+
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.sisyphus).toBeDefined()
+      expect(result.data["technical-writer"]).toBeDefined()
+      expect(result.data["technical-writer"]?.model).toBe("anthropic/claude-sonnet-4-6")
+      expect(result.data["technical-writer"]?.temperature).toBe(0.3)
+    }
+  })
 
   test("accepts canonical reasoning on agents and per-message overrides", () => {
     // given
@@ -33,19 +31,19 @@ describe("AgentOverridesSchema", () => {
         ultrawork: { reasoning: "max" },
         compaction: { reasoning: "off" },
       },
-    };
+    }
 
     // when
-    const result = AgentOverridesSchema.safeParse(input);
+    const result = AgentOverridesSchema.safeParse(input)
 
     // then
-    expect(result.success).toBe(true);
+    expect(result.success).toBe(true)
     if (result.success) {
-      expect(result.data.sisyphus?.reasoning).toBe("xhigh");
-      expect(result.data.sisyphus?.ultrawork?.reasoning).toBe("max");
-      expect(result.data.sisyphus?.compaction?.reasoning).toBe("off");
+      expect(result.data.sisyphus?.reasoning).toBe("xhigh")
+      expect(result.data.sisyphus?.ultrawork?.reasoning).toBe("max")
+      expect(result.data.sisyphus?.compaction?.reasoning).toBe("off")
     }
-  });
+  })
 
   test("validates custom agent keys against AgentOverrideConfigSchema", () => {
     const input = {
@@ -53,10 +51,10 @@ describe("AgentOverridesSchema", () => {
         model: "provider/model",
         temperature: 5, // invalid: max is 2
       },
-    };
+    }
 
-    const result = AgentOverridesSchema.safeParse(input);
+    const result = AgentOverridesSchema.safeParse(input)
 
-    expect(result.success).toBe(false);
-  });
-});
+    expect(result.success).toBe(false)
+  })
+})

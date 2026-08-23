@@ -8,8 +8,7 @@
 <사용 가능한 web search tool>(query="site:x.com {검색어}")  # Claude Code: WebSearch / OpenCode 계열: websearch_web_search_exa 등 — 하네스마다 실제 tool 이름이 다르므로 현재 세션의 tool 목록에서 확인할 것
 ```
 
-웹 검색 도구는 X 포스트를 검색 결과로 반환한다. 제목, snippet, URL을 획득할 수
-있지만 트윗 전문이나 engagement 수치는 없다.
+웹 검색 도구는 X 포스트를 검색 결과로 반환한다. 제목, snippet, URL을 획득할 수 있지만 트윗 전문이나 engagement 수치는 없다.
 
 ## 타임라인 조회 — Syndication API
 
@@ -43,24 +42,23 @@ if match:
 
 ### 가져올 수 있는 데이터
 
-| 필드        | 경로                                     | 예시                             |
-| ----------- | ---------------------------------------- | -------------------------------- |
-| 트윗 전문   | `tweet.full_text`                        | "Give your agent the..."         |
-| 작성자 핸들 | `tweet.user.screen_name`                 | "openclaw"                       |
-| 작성자 이름 | `tweet.user.name`                        | "OpenClaw"                       |
-| 좋아요 수   | `tweet.favorite_count`                   | 1929                             |
-| RT 수       | `tweet.retweet_count`                    | 169                              |
-| 작성 시각   | `tweet.created_at`                       | "Mon Apr 06 04:04:08 +0000 2026" |
-| 트윗 ID     | `tweet.id_str`                           | "2041003999856406714"            |
-| 미디어 URL  | `tweet.entities.media[].media_url_https` | 이미지/동영상 URL                |
+| 필드 | 경로 | 예시 |
+|------|------|------|
+| 트윗 전문 | `tweet.full_text` | "Give your agent the..." |
+| 작성자 핸들 | `tweet.user.screen_name` | "openclaw" |
+| 작성자 이름 | `tweet.user.name` | "OpenClaw" |
+| 좋아요 수 | `tweet.favorite_count` | 1929 |
+| RT 수 | `tweet.retweet_count` | 169 |
+| 작성 시각 | `tweet.created_at` | "Mon Apr 06 04:04:08 +0000 2026" |
+| 트윗 ID | `tweet.id_str` | "2041003999856406714" |
+| 미디어 URL | `tweet.entities.media[].media_url_https` | 이미지/동영상 URL |
 
 ### 제한
 
 - 최근 ~100개 반환 (페이지네이션 불가)
 - 비공개 계정 접근 불가
 - 검색 기능 없음 (타임라인만)
-- **저팔로워/신규 계정**: `hasResults: false` 반환 가능. 이 경우 oEmbed 개별
-  트윗 접근은 정상 동작하므로 "조합 패턴"으로 폴백.
+- **저팔로워/신규 계정**: `hasResults: false` 반환 가능. 이 경우 oEmbed 개별 트윗 접근은 정상 동작하므로 "조합 패턴"으로 폴백.
 - 비공식 엔드포인트 — X가 변경/차단 가능
 
 ## 개별 트윗 조회 — oEmbed API
@@ -81,12 +79,12 @@ curl -sL "https://publish.twitter.com/oembed?url=https://x.com/{user}/status/{tw
 
 ### 응답 (JSON)
 
-| 필드          | 설명                               |
-| ------------- | ---------------------------------- |
-| `author_name` | 작성자 표시 이름                   |
-| `author_url`  | 작성자 프로필 URL                  |
-| `html`        | 트윗 전문이 포함된 HTML blockquote |
-| `url`         | 트윗 원본 URL                      |
+| 필드 | 설명 |
+|------|------|
+| `author_name` | 작성자 표시 이름 |
+| `author_url` | 작성자 프로필 URL |
+| `html` | 트윗 전문이 포함된 HTML blockquote |
+| `url` | 트윗 원본 URL |
 
 ## 조합 패턴 (검색 → 상세)
 
@@ -97,10 +95,10 @@ curl -sL "https://publish.twitter.com/oembed?url=https://x.com/{user}/status/{tw
 
 ## 실패하는 방법 (사용하지 말 것)
 
-| 방법            | 결과                 | 원인                          |
-| --------------- | -------------------- | ----------------------------- |
-| WebFetch        | 402 Payment Required | Claude Code의 WebFetch 제한   |
-| Nitter          | 빈 응답              | Nitter 인스턴스 대부분 종료됨 |
-| Wayback Machine | OG 메타태그만        | SPA 렌더링 안 됨              |
-| Mobile UA curl  | OG 메타태그만        | SPA 렌더링 안 됨              |
-| RSS             | 엔드포인트 없음      | X는 RSS 지원 중단             |
+| 방법 | 결과 | 원인 |
+|------|------|------|
+| WebFetch | 402 Payment Required | Claude Code의 WebFetch 제한 |
+| Nitter | 빈 응답 | Nitter 인스턴스 대부분 종료됨 |
+| Wayback Machine | OG 메타태그만 | SPA 렌더링 안 됨 |
+| Mobile UA curl | OG 메타태그만 | SPA 렌더링 안 됨 |
+| RSS | 엔드포인트 없음 | X는 RSS 지원 중단 |

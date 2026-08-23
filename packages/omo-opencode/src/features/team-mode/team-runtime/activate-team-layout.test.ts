@@ -1,27 +1,15 @@
 /// <reference types="bun-types" />
 
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from "bun:test";
+import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test"
 
-import { TeamModeConfigSchema } from "../../../config/schema/team-mode";
-import * as layoutModule from "../team-layout-tmux/layout";
-import * as storeModule from "../team-state-store/store";
-import { type RuntimeState, RuntimeStateSchema } from "../types";
-import { activateTeamLayout } from "./activate-team-layout";
+import { TeamModeConfigSchema } from "../../../config/schema/team-mode"
+import * as layoutModule from "../team-layout-tmux/layout"
+import * as storeModule from "../team-state-store/store"
+import { RuntimeStateSchema, type RuntimeState } from "../types"
+import { activateTeamLayout } from "./activate-team-layout"
 
-let createTeamLayoutSpy: ReturnType<
-  typeof spyOn<typeof layoutModule, "createTeamLayout">
->;
-let transitionRuntimeStateSpy: ReturnType<
-  typeof spyOn<typeof storeModule, "transitionRuntimeState">
->;
+let createTeamLayoutSpy: ReturnType<typeof spyOn<typeof layoutModule, "createTeamLayout">>
+let transitionRuntimeStateSpy: ReturnType<typeof spyOn<typeof storeModule, "transitionRuntimeState">>
 
 function createRuntimeState() {
   return RuntimeStateSchema.parse({
@@ -58,35 +46,32 @@ function createRuntimeState() {
         pendingInjectedMessageIds: [],
       },
     ],
-  });
+  })
 }
 
 function createConfig(tmuxVisualization: boolean) {
-  return TeamModeConfigSchema.parse({
-    enabled: true,
-    tmux_visualization: tmuxVisualization,
-  });
+  return TeamModeConfigSchema.parse({ enabled: true, tmux_visualization: tmuxVisualization })
 }
 
 describe("activateTeamLayout", () => {
   afterEach(() => {
-    mock.restore();
-  });
+    mock.restore()
+  })
 
   beforeEach(() => {
-    createTeamLayoutSpy = spyOn(layoutModule, "createTeamLayout");
-    createTeamLayoutSpy.mockResolvedValue(null);
-    transitionRuntimeStateSpy = spyOn(storeModule, "transitionRuntimeState");
+    createTeamLayoutSpy = spyOn(layoutModule, "createTeamLayout")
+    createTeamLayoutSpy.mockResolvedValue(null)
+    transitionRuntimeStateSpy = spyOn(storeModule, "transitionRuntimeState")
     transitionRuntimeStateSpy.mockImplementation(async (
       _teamRunId,
       transition,
       _config,
-    ): Promise<RuntimeState> => transition(createRuntimeState()));
-  });
+    ): Promise<RuntimeState> => transition(createRuntimeState()))
+  })
 
   test("#given a leader and one member #when activateTeamLayout runs #then it excludes the leader from layout members and only persists panes for non-leaders", async () => {
     // given
-    const runtimeState = createRuntimeState();
+    const runtimeState = createRuntimeState()
     createTeamLayoutSpy.mockResolvedValue({
       focusWindowId: "@10",
       gridWindowId: "@11",
@@ -94,7 +79,7 @@ describe("activateTeamLayout", () => {
       gridPanesByMember: { "member-a": "%21" },
       targetSessionId: "$caller",
       ownedSession: false,
-    });
+    })
 
     // when
     const result = await activateTeamLayout(
@@ -102,12 +87,12 @@ describe("activateTeamLayout", () => {
       createConfig(true),
       "/project",
       { getServerUrl: () => "http://127.0.0.1:12345" } as never,
-    );
+    )
 
     // then
-    expect(result).toBe(true);
-    expect(createTeamLayoutSpy).toHaveBeenCalledTimes(1);
-    const createLayoutCall = createTeamLayoutSpy.mock.calls[0];
+    expect(result).toBe(true)
+    expect(createTeamLayoutSpy).toHaveBeenCalledTimes(1)
+    const createLayoutCall = createTeamLayoutSpy.mock.calls[0]
     expect(createLayoutCall?.[1]).toEqual([
       {
         name: "member-a",
@@ -115,15 +100,15 @@ describe("activateTeamLayout", () => {
         color: undefined,
         worktreePath: "/project",
       },
-    ]);
-    expect(transitionRuntimeStateSpy).toHaveBeenCalledTimes(1);
-    const transitionCall = transitionRuntimeStateSpy.mock.calls[0];
+    ])
+    expect(transitionRuntimeStateSpy).toHaveBeenCalledTimes(1)
+    const transitionCall = transitionRuntimeStateSpy.mock.calls[0]
     if (!transitionCall) {
-      throw new Error("expected transitionRuntimeState to be called");
+      throw new Error("expected transitionRuntimeState to be called")
     }
-    const [teamRunId, transition] = transitionCall;
-    expect(teamRunId).toBe(runtimeState.teamRunId);
-    const nextState = transition(runtimeState);
+    const [teamRunId, transition] = transitionCall
+    expect(teamRunId).toBe(runtimeState.teamRunId)
+    const nextState = transition(runtimeState)
     expect(nextState.members).toEqual([
       {
         ...runtimeState.members[0],
@@ -135,19 +120,19 @@ describe("activateTeamLayout", () => {
         tmuxPaneId: "%11",
         tmuxGridPaneId: "%21",
       },
-    ]);
+    ])
     expect(nextState.tmuxLayout).toEqual({
       ownedSession: false,
       targetSessionId: "$caller",
       focusWindowId: "@10",
       gridWindowId: "@11",
       paneIds: ["%11", "%21"],
-    });
-  });
+    })
+  })
 
   test("#given createTeamLayout returns null #when activateTeamLayout runs #then returns false and no state transition fires", async () => {
     // given
-    const runtimeState = createRuntimeState();
+    const runtimeState = createRuntimeState()
 
     // when
     const result = await activateTeamLayout(
@@ -155,16 +140,16 @@ describe("activateTeamLayout", () => {
       createConfig(true),
       "/project",
       { getServerUrl: () => "http://127.0.0.1:12345" } as never,
-    );
+    )
 
     // then
-    expect(result).toBe(false);
-    expect(transitionRuntimeStateSpy).not.toHaveBeenCalled();
-  });
+    expect(result).toBe(false)
+    expect(transitionRuntimeStateSpy).not.toHaveBeenCalled()
+  })
 
   test("#given config.tmux_visualization is false #when activateTeamLayout runs #then it short-circuits, no state change, returns false", async () => {
     // given
-    const runtimeState = createRuntimeState();
+    const runtimeState = createRuntimeState()
 
     // when
     const result = await activateTeamLayout(
@@ -172,11 +157,11 @@ describe("activateTeamLayout", () => {
       createConfig(false),
       "/project",
       { getServerUrl: () => "http://127.0.0.1:12345" } as never,
-    );
+    )
 
     // then
-    expect(result).toBe(false);
-    expect(createTeamLayoutSpy).not.toHaveBeenCalled();
-    expect(transitionRuntimeStateSpy).not.toHaveBeenCalled();
-  });
-});
+    expect(result).toBe(false)
+    expect(createTeamLayoutSpy).not.toHaveBeenCalled()
+    expect(transitionRuntimeStateSpy).not.toHaveBeenCalled()
+  })
+})

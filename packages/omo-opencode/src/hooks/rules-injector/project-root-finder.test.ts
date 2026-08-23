@@ -19,10 +19,7 @@ describe("findProjectRoot", () => {
 
   it("memoizes repeated lookups for the same start path and resets on cache clear", async () => {
     // given
-    testRoot = join(
-      tmpdir(),
-      `rules-project-root-${Date.now()}-${Math.random()}`,
-    );
+    testRoot = join(tmpdir(), `rules-project-root-${Date.now()}-${Math.random()}`);
     const projectRoot = join(testRoot, "project");
     const sourceDirectory = join(projectRoot, "src");
     const startPath = join(sourceDirectory, "file.ts");
@@ -50,10 +47,7 @@ describe("findProjectRoot", () => {
 
   it("reuses cached ancestor project root for sibling start paths", async () => {
     // given
-    testRoot = join(
-      tmpdir(),
-      `rules-project-root-sibling-${Date.now()}-${Math.random()}`,
-    );
+    testRoot = join(tmpdir(), `rules-project-root-sibling-${Date.now()}-${Math.random()}`);
     const projectRoot = join(testRoot, "project");
     const siblingDirA = join(projectRoot, "src", "alpha");
     const siblingDirB = join(projectRoot, "src", "beta");

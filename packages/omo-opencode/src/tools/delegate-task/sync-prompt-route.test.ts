@@ -1,24 +1,22 @@
-import { describe, expect, mock, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test"
 
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
-import type { OpencodeClient } from "./types";
-import { sendSyncPrompt } from "./sync-prompt-sender";
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import type { OpencodeClient } from "./types"
+import { sendSyncPrompt } from "./sync-prompt-sender"
 import {
   promptWithModelSuggestionRetry,
-} from "../../shared/model-suggestion-retry";
+} from "../../shared/model-suggestion-retry"
 
-type PromptRetryClient = Parameters<typeof promptWithModelSuggestionRetry>[0];
-type PromptRetryArgs = Parameters<typeof promptWithModelSuggestionRetry>[1];
+type PromptRetryClient = Parameters<typeof promptWithModelSuggestionRetry>[0]
+type PromptRetryArgs = Parameters<typeof promptWithModelSuggestionRetry>[1]
 
 describe("sendSyncPrompt session routing", () => {
   test("#given a sync child session directory #when sending the prompt #then prompt uses that OpenCode directory route", async () => {
     // given
-    const promptCalls: PromptRetryArgs[] = [];
-    const promptWithRetry = mock(
-      async (_client: PromptRetryClient, input: PromptRetryArgs) => {
-        promptCalls.push(input);
-      },
-    );
+    const promptCalls: PromptRetryArgs[] = []
+    const promptWithRetry = mock(async (_client: PromptRetryClient, input: PromptRetryArgs) => {
+      promptCalls.push(input)
+    })
 
     // when
     await sendSyncPrompt(
@@ -41,22 +39,20 @@ describe("sendSyncPrompt session routing", () => {
       {
         promptWithModelSuggestionRetry: promptWithRetry,
       },
-    );
+    )
 
     // then
-    expect(promptCalls).toHaveLength(1);
-    expect(promptCalls[0]?.query).toEqual({ directory: "/parent/project" });
-  });
+    expect(promptCalls).toHaveLength(1)
+    expect(promptCalls[0]?.query).toEqual({ directory: "/parent/project" })
+  })
 
   test("#given oracle prompt returns unexpected EOF #when sending the prompt #then the sync route keeps the same directory route", async () => {
     // given
-    const promptCalls: PromptRetryArgs[] = [];
-    const promptWithRetry = mock(
-      async (_client: PromptRetryClient, input: PromptRetryArgs) => {
-        promptCalls.push(input);
-        throw new Error("JSON Parse error: Unexpected EOF");
-      },
-    );
+    const promptCalls: PromptRetryArgs[] = []
+    const promptWithRetry = mock(async (_client: PromptRetryClient, input: PromptRetryArgs) => {
+      promptCalls.push(input)
+      throw new Error("JSON Parse error: Unexpected EOF")
+    })
 
     // when
     const result = await sendSyncPrompt(
@@ -79,11 +75,11 @@ describe("sendSyncPrompt session routing", () => {
       {
         promptWithModelSuggestionRetry: promptWithRetry,
       },
-    );
+    )
 
     // then
-    expect(result).toBeNull();
-    expect(promptCalls).toHaveLength(1);
-    expect(promptCalls[0]?.query).toEqual({ directory: "/parent/project" });
-  });
-});
+    expect(result).toBeNull()
+    expect(promptCalls).toHaveLength(1)
+    expect(promptCalls[0]?.query).toEqual({ directory: "/parent/project" })
+  })
+})

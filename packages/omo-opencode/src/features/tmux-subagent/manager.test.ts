@@ -1,142 +1,100 @@
 /// <reference path="../../../../../bun-test.d.ts" />
-import {
-  afterAll,
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  mock,
-  spyOn,
-  test,
-} from "bun:test";
-import type { TmuxConfig } from "../../config/schema";
-import type { PaneAction, WindowState } from "./types";
-import type { ActionResult, ExecuteContext } from "./action-executor";
-import type {
-  TmuxSessionManager as TmuxSessionManagerType,
-  TmuxUtilDeps,
-} from "./manager";
-import { TmuxPollingManager } from "./polling-manager";
-import * as sharedModule from "../../shared";
-import * as sharedTmuxOriginal from "../../shared/tmux";
+import { describe, test, expect, mock, beforeEach, spyOn, afterAll, afterEach } from 'bun:test'
+import type { TmuxConfig } from '../../config/schema'
+import type { WindowState, PaneAction } from './types'
+import type { ActionResult, ExecuteContext } from './action-executor'
+import type { TmuxSessionManager as TmuxSessionManagerType, TmuxUtilDeps } from './manager'
+import { TmuxPollingManager } from './polling-manager'
+import * as sharedModule from '../../shared'
+import * as sharedTmuxOriginal from '../../shared/tmux'
 
-const sharedTmuxSnapshot = { ...sharedTmuxOriginal };
+const sharedTmuxSnapshot = { ...sharedTmuxOriginal }
 
 type ExecuteActionsResult = {
-  success: boolean;
-  spawnedPaneId?: string;
-  results: Array<{ action: PaneAction; result: ActionResult }>;
-};
+  success: boolean
+  spawnedPaneId?: string
+  results: Array<{ action: PaneAction; result: ActionResult }>
+}
 
 type SpawnTmuxContainerResult = {
-  success: boolean;
-  paneId?: string;
-};
+  success: boolean
+  paneId?: string
+}
 
 type SessionReadyWaitParams = {
-  client: unknown;
-  sessionId: string;
-};
+  client: unknown
+  sessionId: string
+}
 
-type TmuxSessionManagerContext = ConstructorParameters<
-  typeof import("./manager").TmuxSessionManager
->[0];
+type TmuxSessionManagerContext = ConstructorParameters<typeof import('./manager').TmuxSessionManager>[0]
 
 type TmuxSessionManagerInternals = {
-  serverUrl: string;
-  deferredQueue: string[];
-  tryAttachDeferredSession: () => Promise<void>;
-  sessions: Map<string, import("./types").TrackedSession>;
-};
+  serverUrl: string
+  deferredQueue: string[]
+  tryAttachDeferredSession: () => Promise<void>
+  sessions: Map<string, import('./types').TrackedSession>
+}
 
 function cast<TValue>(value: unknown): TValue {
-  return value as TValue;
+  return value as TValue
 }
 
-function getManagerInternals(
-  manager: TmuxSessionManagerType,
-): TmuxSessionManagerInternals {
-  return cast<TmuxSessionManagerInternals>(manager);
+function getManagerInternals(manager: TmuxSessionManagerType): TmuxSessionManagerInternals {
+  return cast<TmuxSessionManagerInternals>(manager)
 }
 
-const mockQueryWindowState = mock<
-  (paneId: string) => Promise<WindowState | null>
->(
+const mockQueryWindowState = mock<(paneId: string) => Promise<WindowState | null>>(
   async () => ({
     windowWidth: 212,
     windowHeight: 44,
-    mainPane: {
-      paneId: "%0",
-      width: 106,
-      height: 44,
-      left: 0,
-      top: 0,
-      title: "main",
-      isActive: true,
-    },
+    mainPane: { paneId: '%0', width: 106, height: 44, left: 0, top: 0, title: 'main', isActive: true },
     agentPanes: [],
-  }),
-);
-const mockPaneExists = mock<(paneId: string) => Promise<boolean>>(async () =>
-  true
-);
-const mockExecuteActions = mock<
-  (
-    actions: PaneAction[],
-    ctx: ExecuteContext,
-  ) => Promise<ExecuteActionsResult>
->(async () => ({
+  })
+)
+const mockPaneExists = mock<(paneId: string) => Promise<boolean>>(async () => true)
+const mockExecuteActions = mock<(
+  actions: PaneAction[],
+  ctx: ExecuteContext
+) => Promise<ExecuteActionsResult>>(async () => ({
   success: true,
-  spawnedPaneId: "%mock",
+  spawnedPaneId: '%mock',
   results: [],
-}));
-const mockExecuteAction = mock<
-  (
-    action: PaneAction,
-    ctx: ExecuteContext,
-  ) => Promise<ActionResult>
->(async () => ({ success: true }));
+}))
+const mockExecuteAction = mock<(
+  action: PaneAction,
+  ctx: ExecuteContext
+) => Promise<ActionResult>>(async () => ({ success: true }))
 const mockSpawnTmuxPane = mock(async (_sessionId?: string) => ({
   success: true,
-  paneId: "%mock",
-}));
-const mockWaitForSessionReady = mock<
-  (
-    params: SessionReadyWaitParams,
-  ) => Promise<boolean>
->(async () => true);
-const mockSpawnTmuxWindow = mock<
-  (
-    sessionId: string,
-    description: string,
-    config: TmuxConfig,
-    serverUrl: string,
-  ) => Promise<SpawnTmuxContainerResult>
->(async () => ({
+  paneId: '%mock',
+}))
+const mockWaitForSessionReady = mock<(
+  params: SessionReadyWaitParams,
+) => Promise<boolean>>(async () => true)
+const mockSpawnTmuxWindow = mock<(
+  sessionId: string,
+  description: string,
+  config: TmuxConfig,
+  serverUrl: string
+) => Promise<SpawnTmuxContainerResult>>(async () => ({
   success: true,
-  paneId: "%isolated-window",
-}));
-const mockSpawnTmuxSession = mock<
-  (
-    sessionId: string,
-    description: string,
-    config: TmuxConfig,
-    serverUrl: string,
-    sourcePaneId?: string,
-  ) => Promise<SpawnTmuxContainerResult>
->(async () => ({
+  paneId: '%isolated-window',
+}))
+const mockSpawnTmuxSession = mock<(
+  sessionId: string,
+  description: string,
+  config: TmuxConfig,
+  serverUrl: string,
+  sourcePaneId?: string
+) => Promise<SpawnTmuxContainerResult>>(async () => ({
   success: true,
-  paneId: "%isolated-session",
-}));
-const mockKillTmuxSessionIfExists = mock<
-  (sessionName: string) => Promise<boolean>
->(async () => true);
-const mockSweepStaleOmoAgentSessions = mock<() => Promise<number>>(async () =>
-  0
-);
-const mockSweepStaleOmoAttachPanes = mock<() => Promise<number>>(async () => 0);
-const mockIsInsideTmux = mock<() => boolean>(() => true);
-const mockGetCurrentPaneId = mock<() => string | undefined>(() => "%0");
+  paneId: '%isolated-session',
+}))
+const mockKillTmuxSessionIfExists = mock<(sessionName: string) => Promise<boolean>>(async () => true)
+const mockSweepStaleOmoAgentSessions = mock<() => Promise<number>>(async () => 0)
+const mockSweepStaleOmoAttachPanes = mock<() => Promise<number>>(async () => 0)
+const mockIsInsideTmux = mock<() => boolean>(() => true)
+const mockGetCurrentPaneId = mock<() => string | undefined>(() => '%0')
 
 const mockTmuxDeps: TmuxUtilDeps = {
   isInsideTmux: mockIsInsideTmux,
@@ -146,28 +104,22 @@ const mockTmuxDeps: TmuxUtilDeps = {
   executeActions: mockExecuteActions,
   executeAction: mockExecuteAction,
   log: (...args) => sharedModule.log(...args),
-};
+}
 
 function registerModuleMocks(): void {
-  mock.module("./action-executor", () => ({
+  mock.module('./action-executor', () => ({
     executeActions: mockExecuteActions,
     executeAction: mockExecuteAction,
     executeActionWithDeps: mockExecuteAction,
-  }));
+  }))
 
-  mock.module("./session-ready-waiter", () => ({
+  mock.module('./session-ready-waiter', () => ({
     waitForSessionReady: mockWaitForSessionReady,
-  }));
+  }))
 
-  mock.module("../../shared/tmux", () => {
-    const { isInsideTmux, getCurrentPaneId } = require(
-      "../../shared/tmux/tmux-utils",
-    );
-    const {
-      POLL_INTERVAL_BACKGROUND_MS,
-      SESSION_TIMEOUT_MS,
-      SESSION_MISSING_GRACE_MS,
-    } = require("../../shared/tmux/constants");
+  mock.module('../../shared/tmux', () => {
+    const { isInsideTmux, getCurrentPaneId } = require('../../shared/tmux/tmux-utils')
+    const { POLL_INTERVAL_BACKGROUND_MS, SESSION_TIMEOUT_MS, SESSION_MISSING_GRACE_MS } = require('../../shared/tmux/constants')
     return {
       isInsideTmux,
       getCurrentPaneId,
@@ -182,3253 +134,2788 @@ function registerModuleMocks(): void {
       getIsolatedSessionName: (pid: number = 12345) => `omo-agents-${pid}`,
       sweepStaleOmoAgentSessions: mockSweepStaleOmoAgentSessions,
       sweepStaleOmoAttachPanes: mockSweepStaleOmoAttachPanes,
-    };
-  });
+    }
+  })
 }
 
-afterAll(() => {
-  mock.restore();
-});
+afterAll(() => { mock.restore() })
 
 afterEach(() => {
-  mock.restore();
-  mock.module("../../shared/tmux", () => sharedTmuxSnapshot);
-});
+  mock.restore()
+  mock.module('../../shared/tmux', () => sharedTmuxSnapshot)
+})
 
-const trackedSessions = new Set<string>();
-const readySessions = new Set<string>();
+const trackedSessions = new Set<string>()
+const readySessions = new Set<string>()
 
 function createMockContext(overrides?: {
-  sessionStatusResult?: { data?: Record<string, { type: string }> };
-  sessionMessagesResult?: { data?: unknown[] };
+  sessionStatusResult?: { data?: Record<string, { type: string }> }
+  sessionMessagesResult?: { data?: unknown[] }
 }): TmuxSessionManagerContext {
   return cast<TmuxSessionManagerContext>({
-    serverUrl: new URL("http://localhost:4096"),
+    serverUrl: new URL('http://localhost:4096'),
     client: {
       session: {
         status: mock(async () => {
           if (overrides?.sessionStatusResult) {
-            return overrides.sessionStatusResult;
+            return overrides.sessionStatusResult
           }
-          const data: Record<string, { type: string }> = {};
+          const data: Record<string, { type: string }> = {}
           for (const sessionId of trackedSessions) {
-            data[sessionId] = { type: "running" };
+            data[sessionId] = { type: 'running' }
           }
           for (const sessionId of readySessions) {
-            data[sessionId] = { type: "running" };
+            data[sessionId] = { type: 'running' }
           }
-          return { data };
+          return { data }
         }),
         messages: mock(async () => {
           if (overrides?.sessionMessagesResult) {
-            return overrides.sessionMessagesResult;
+            return overrides.sessionMessagesResult
           }
-          return { data: [] };
+          return { data: [] }
         }),
       },
     },
-  });
+  })
 }
 
 function createSessionCreatedEvent(
   id: string,
   parentID: string | undefined,
-  title: string,
+  title: string
 ) {
   return {
-    type: "session.created",
+    type: 'session.created',
     properties: {
       info: { id, parentID, title },
     },
-  };
+  }
 }
 
 function createWindowState(overrides?: Partial<WindowState>): WindowState {
   return {
     windowWidth: 220,
     windowHeight: 44,
-    mainPane: {
-      paneId: "%0",
-      width: 110,
-      height: 44,
-      left: 0,
-      top: 0,
-      title: "main",
-      isActive: true,
-    },
+    mainPane: { paneId: '%0', width: 110, height: 44, left: 0, top: 0, title: 'main', isActive: true },
     agentPanes: [],
     ...overrides,
-  };
+  }
 }
 
 function createDeferred<TValue>() {
-  let resolvePromise!: (value: TValue | PromiseLike<TValue>) => void;
-  let rejectPromise!: (reason?: unknown) => void;
+  let resolvePromise!: (value: TValue | PromiseLike<TValue>) => void
+  let rejectPromise!: (reason?: unknown) => void
 
   const promise = new Promise<TValue>((resolve, reject) => {
-    resolvePromise = resolve;
-    rejectPromise = reject;
-  });
+    resolvePromise = resolve
+    rejectPromise = reject
+  })
 
   return {
     promise,
     resolve: resolvePromise,
     reject: rejectPromise,
-  };
+  }
 }
 
 async function flushMicrotasks(turns: number = 5): Promise<void> {
   for (let index = 0; index < turns; index += 1) {
-    await Promise.resolve();
+    await Promise.resolve()
   }
 }
 
 function createTmuxConfig(overrides?: Partial<TmuxConfig>): TmuxConfig {
   return {
     enabled: true,
-    isolation: "inline",
-    layout: "main-vertical",
+    isolation: 'inline',
+    layout: 'main-vertical',
     main_pane_size: 60,
     main_pane_min_width: 80,
     agent_pane_min_width: 40,
     ...overrides,
-  };
+  }
 }
 
-function getTrackedSessions(
-  manager: object,
-): Map<
-  string,
-  { paneId: string; closePending: boolean; closeRetryCount: number }
-> {
-  return Reflect.get(manager, "sessions") as Map<
-    string,
-    { paneId: string; closePending: boolean; closeRetryCount: number }
-  >;
+function getTrackedSessions(manager: object): Map<string, { paneId: string; closePending: boolean; closeRetryCount: number }> {
+  return Reflect.get(manager, 'sessions') as Map<string, { paneId: string; closePending: boolean; closeRetryCount: number }>
 }
 
-function getFailedReadinessSessions(
-  manager: object,
-): Map<string, { sessionId: string; title: string; rememberedAt: number }> {
-  const cache = Reflect.get(manager, "failedReadinessCache") as object;
-  return Reflect.get(cache, "sessions") as Map<
-    string,
-    { sessionId: string; title: string; rememberedAt: number }
-  >;
+function getFailedReadinessSessions(manager: object): Map<string, { sessionId: string; title: string; rememberedAt: number }> {
+  const cache = Reflect.get(manager, 'failedReadinessCache') as object
+  return Reflect.get(cache, 'sessions') as Map<string, { sessionId: string; title: string; rememberedAt: number }>
 }
 
-describe("TmuxSessionManager", () => {
+describe('TmuxSessionManager', () => {
   beforeEach(() => {
-    mock.restore();
-    spyOn(TmuxPollingManager.prototype, "startPolling").mockImplementation(
-      () => {},
-    );
-    registerModuleMocks();
-    mockQueryWindowState.mockClear();
-    mockPaneExists.mockClear();
-    mockExecuteActions.mockClear();
-    mockExecuteAction.mockClear();
-    mockSpawnTmuxPane.mockClear();
-    mockWaitForSessionReady.mockClear();
-    mockSpawnTmuxWindow.mockClear();
-    mockSpawnTmuxSession.mockClear();
-    mockSweepStaleOmoAttachPanes.mockClear();
-    mockIsInsideTmux.mockClear();
-    mockGetCurrentPaneId.mockClear();
-    trackedSessions.clear();
-    readySessions.clear();
+    mock.restore()
+    spyOn(TmuxPollingManager.prototype, 'startPolling').mockImplementation(() => {})
+    registerModuleMocks()
+    mockQueryWindowState.mockClear()
+    mockPaneExists.mockClear()
+    mockExecuteActions.mockClear()
+    mockExecuteAction.mockClear()
+    mockSpawnTmuxPane.mockClear()
+    mockWaitForSessionReady.mockClear()
+    mockSpawnTmuxWindow.mockClear()
+    mockSpawnTmuxSession.mockClear()
+    mockSweepStaleOmoAttachPanes.mockClear()
+    mockIsInsideTmux.mockClear()
+    mockGetCurrentPaneId.mockClear()
+    trackedSessions.clear()
+    readySessions.clear()
 
-    mockQueryWindowState.mockImplementation(async () => createWindowState());
+    mockQueryWindowState.mockImplementation(async () => createWindowState())
     mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => {
-      const results: ExecuteActionsResult["results"] = [];
-      let spawnedPaneId: string | undefined;
+      const results: ExecuteActionsResult['results'] = []
+      let spawnedPaneId: string | undefined
 
       for (const action of actions) {
-        if (action.type === "spawn") {
-          const spawnResult = await mockSpawnTmuxPane(action.sessionId);
+        if (action.type === 'spawn') {
+          const spawnResult = await mockSpawnTmuxPane(action.sessionId)
           if (!spawnResult.success) {
             return {
               success: false,
-              results: [{
-                action,
-                result: { success: false, error: "spawn failed" },
-              }],
-            };
+              results: [{ action, result: { success: false, error: 'spawn failed' } }],
+            }
           }
-          trackedSessions.add(action.sessionId);
-          spawnedPaneId = spawnResult.paneId;
-          results.push({
-            action,
-            result: { success: true, paneId: spawnResult.paneId },
-          });
+          trackedSessions.add(action.sessionId)
+          spawnedPaneId = spawnResult.paneId
+          results.push({ action, result: { success: true, paneId: spawnResult.paneId } })
         }
       }
 
       return {
         success: true,
-        spawnedPaneId: spawnedPaneId ?? "%mock",
+        spawnedPaneId: spawnedPaneId ?? '%mock',
         results,
-      };
-    });
-    mockWaitForSessionReady.mockImplementation(
-      async ({ sessionId }: SessionReadyWaitParams) => {
-        readySessions.add(sessionId);
-        return true;
-      },
-    );
+      }
+    })
+    mockWaitForSessionReady.mockImplementation(async ({ sessionId }: SessionReadyWaitParams) => {
+      readySessions.add(sessionId)
+      return true
+    })
     mockSpawnTmuxWindow.mockImplementation(async (sessionId: string) => {
-      trackedSessions.add(sessionId);
+      trackedSessions.add(sessionId)
       return {
         success: true,
         paneId: `%isolated-window-${sessionId}`,
-      };
-    });
+      }
+    })
     mockSpawnTmuxSession.mockImplementation(async (sessionId: string) => {
-      trackedSessions.add(sessionId);
+      trackedSessions.add(sessionId)
       return {
         success: true,
         paneId: `%isolated-session-${sessionId}`,
-      };
-    });
-  });
+      }
+    })
+  })
 
-  describe("constructor", () => {
-    test("enabled when config.enabled=true and isInsideTmux=true", async () => {
+  describe('constructor', () => {
+    test('enabled when config.enabled=true and isInsideTmux=true', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
       const ctx = createMockContext({
         sessionStatusResult: {
           data: {
-            ses_1: { type: "running" },
-            ses_2: { type: "running" },
-            ses_3: { type: "running" },
+            ses_1: { type: 'running' },
+            ses_2: { type: 'running' },
+            ses_3: { type: 'running' },
           },
         },
-      });
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
+      })
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
 
       // when
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // then
-      expect(manager).toBeDefined();
-    });
+      expect(manager).toBeDefined()
+    })
 
-    test("disabled when config.enabled=true but isInsideTmux=false", async () => {
+    test('disabled when config.enabled=true but isInsideTmux=false', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(false);
-      const { TmuxSessionManager } = await import("./manager");
+      mockIsInsideTmux.mockReturnValue(false)
+      const { TmuxSessionManager } = await import('./manager')
       const ctx = createMockContext({
         sessionStatusResult: {
           data: {
-            ses_once: { type: "running" },
+            ses_once: { type: 'running' },
           },
         },
-      });
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
+      })
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
 
       // when
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // then
-      expect(manager).toBeDefined();
-    });
+      expect(manager).toBeDefined()
+    })
 
-    test("disabled when config.enabled=false", async () => {
+    test('disabled when config.enabled=false', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: false,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: false,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
 
       // when
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // then
-      expect(manager).toBeDefined();
-    });
+      expect(manager).toBeDefined()
+    })
 
-    test("falls back to default port when serverUrl has port 0", async () => {
+    test('falls back to default port when serverUrl has port 0', async () => {
       // given
-      const previousOpenCodePort = process.env.OPENCODE_PORT;
-      delete process.env.OPENCODE_PORT;
-      let manager: TmuxSessionManagerType | undefined;
+      const previousOpenCodePort = process.env.OPENCODE_PORT
+      delete process.env.OPENCODE_PORT
+      let manager: TmuxSessionManagerType | undefined
       try {
-        mockIsInsideTmux.mockReturnValue(true);
-        const { TmuxSessionManager } = await import("./manager");
+        mockIsInsideTmux.mockReturnValue(true)
+        const { TmuxSessionManager } = await import('./manager')
         const ctx = {
           ...createMockContext(),
-          serverUrl: new URL("http://127.0.0.1:0/"),
-        };
-        const config = createTmuxConfig({
-          enabled: true,
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
+          serverUrl: new URL('http://127.0.0.1:0/'),
+        }
+        const config = createTmuxConfig({ enabled: true,
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
 
         // when
-        manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
       } finally {
         if (previousOpenCodePort === undefined) {
-          delete process.env.OPENCODE_PORT;
+          delete process.env.OPENCODE_PORT
         } else {
-          process.env.OPENCODE_PORT = previousOpenCodePort;
+          process.env.OPENCODE_PORT = previousOpenCodePort
         }
       }
 
       // then
-      expect(getManagerInternals(manager).serverUrl).toBe(
-        "http://localhost:4096",
-      );
-    });
+      expect(getManagerInternals(manager).serverUrl).toBe('http://localhost:4096')
+    })
 
-    test("falls back to configured OPENCODE_PORT when serverUrl has port 0", async () => {
+    test('falls back to configured OPENCODE_PORT when serverUrl has port 0', async () => {
       // given
-      const previousOpenCodePort = process.env.OPENCODE_PORT;
-      process.env.OPENCODE_PORT = "5678";
-      let manager: TmuxSessionManagerType | undefined;
+      const previousOpenCodePort = process.env.OPENCODE_PORT
+      process.env.OPENCODE_PORT = '5678'
+      let manager: TmuxSessionManagerType | undefined
       try {
-        mockIsInsideTmux.mockReturnValue(true);
-        const { TmuxSessionManager } = await import("./manager");
+        mockIsInsideTmux.mockReturnValue(true)
+        const { TmuxSessionManager } = await import('./manager')
         const ctx = {
           ...createMockContext(),
-          serverUrl: new URL("http://127.0.0.1:0/"),
-        };
-        const config = createTmuxConfig({
-          enabled: true,
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
+          serverUrl: new URL('http://127.0.0.1:0/'),
+        }
+        const config = createTmuxConfig({ enabled: true,
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
 
         // when
-        manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
       } finally {
         if (previousOpenCodePort === undefined) {
-          delete process.env.OPENCODE_PORT;
+          delete process.env.OPENCODE_PORT
         } else {
-          process.env.OPENCODE_PORT = previousOpenCodePort;
+          process.env.OPENCODE_PORT = previousOpenCodePort
         }
       }
 
       // then
-      expect(getManagerInternals(manager).serverUrl).toBe(
-        "http://localhost:5678",
-      );
-    });
+      expect(getManagerInternals(manager).serverUrl).toBe('http://localhost:5678')
+    })
 
-    test("ignores invalid OPENCODE_PORT when serverUrl has port 0", async () => {
+    test('ignores invalid OPENCODE_PORT when serverUrl has port 0', async () => {
       // given
-      const previousOpenCodePort = process.env.OPENCODE_PORT;
-      process.env.OPENCODE_PORT = "not-a-port";
-      let manager: TmuxSessionManagerType | undefined;
+      const previousOpenCodePort = process.env.OPENCODE_PORT
+      process.env.OPENCODE_PORT = 'not-a-port'
+      let manager: TmuxSessionManagerType | undefined
       try {
-        mockIsInsideTmux.mockReturnValue(true);
-        const { TmuxSessionManager } = await import("./manager");
+        mockIsInsideTmux.mockReturnValue(true)
+        const { TmuxSessionManager } = await import('./manager')
         const ctx = {
           ...createMockContext(),
-          serverUrl: new URL("http://127.0.0.1:0/"),
-        };
-        const config = createTmuxConfig({
-          enabled: true,
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
+          serverUrl: new URL('http://127.0.0.1:0/'),
+        }
+        const config = createTmuxConfig({ enabled: true,
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
 
         // when
-        manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
       } finally {
         if (previousOpenCodePort === undefined) {
-          delete process.env.OPENCODE_PORT;
+          delete process.env.OPENCODE_PORT
         } else {
-          process.env.OPENCODE_PORT = previousOpenCodePort;
+          process.env.OPENCODE_PORT = previousOpenCodePort
         }
       }
 
       // then
-      expect(getManagerInternals(manager).serverUrl).toBe(
-        "http://localhost:4096",
-      );
-    });
+      expect(getManagerInternals(manager).serverUrl).toBe('http://localhost:4096')
+    })
 
-    test("logs a structured warning when ctx.serverUrl has port 0 (#3963)", async () => {
+    test('logs a structured warning when ctx.serverUrl has port 0 (#3963)', async () => {
       // given
-      const previousOpenCodePort = process.env.OPENCODE_PORT;
-      delete process.env.OPENCODE_PORT;
-      const logCalls: Array<{ message: string; data?: unknown }> = [];
+      const previousOpenCodePort = process.env.OPENCODE_PORT
+      delete process.env.OPENCODE_PORT
+      const logCalls: Array<{ message: string; data?: unknown }> = []
       const trackingDeps: TmuxUtilDeps = {
         ...mockTmuxDeps,
-        log: (message, data) => {
-          logCalls.push({ message, data });
-        },
-      };
+        log: (message, data) => { logCalls.push({ message, data }) },
+      }
       try {
-        mockIsInsideTmux.mockReturnValue(true);
-        const { TmuxSessionManager } = await import("./manager");
+        mockIsInsideTmux.mockReturnValue(true)
+        const { TmuxSessionManager } = await import('./manager')
         const ctx = {
           ...createMockContext(),
-          serverUrl: new URL("http://127.0.0.1:0/"),
-        };
-        const config = createTmuxConfig({ enabled: true });
+          serverUrl: new URL('http://127.0.0.1:0/'),
+        }
+        const config = createTmuxConfig({ enabled: true })
 
         // when
-        const manager = new TmuxSessionManager(ctx, config, trackingDeps);
+        const manager = new TmuxSessionManager(ctx, config, trackingDeps)
 
         // then
-        const warning = logCalls.find((entry) =>
-          entry.message.includes("ctx.serverUrl has port 0")
-        );
-        expect(warning).toBeDefined();
+        const warning = logCalls.find((entry) => entry.message.includes('ctx.serverUrl has port 0'))
+        expect(warning).toBeDefined()
         expect(warning?.data).toMatchObject({
-          kind: "warning",
-          ctxServerUrl: "http://127.0.0.1:0/",
-          fallbackUrl: "http://localhost:4096",
-        });
-        expect(manager.getCtxServerUrl()).toBe("http://127.0.0.1:0/");
+          kind: 'warning',
+          ctxServerUrl: 'http://127.0.0.1:0/',
+          fallbackUrl: 'http://localhost:4096',
+        })
+        expect(manager.getCtxServerUrl()).toBe('http://127.0.0.1:0/')
       } finally {
         if (previousOpenCodePort === undefined) {
-          delete process.env.OPENCODE_PORT;
+          delete process.env.OPENCODE_PORT
         } else {
-          process.env.OPENCODE_PORT = previousOpenCodePort;
+          process.env.OPENCODE_PORT = previousOpenCodePort
         }
       }
-    });
+    })
 
-    test("does not warn when ctx.serverUrl has a real port", async () => {
+    test('does not warn when ctx.serverUrl has a real port', async () => {
       // given
-      const logCalls: Array<{ message: string; data?: unknown }> = [];
+      const logCalls: Array<{ message: string; data?: unknown }> = []
       const trackingDeps: TmuxUtilDeps = {
         ...mockTmuxDeps,
-        log: (message, data) => {
-          logCalls.push({ message, data });
-        },
-      };
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
+        log: (message, data) => { logCalls.push({ message, data }) },
+      }
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
       const ctx = {
         ...createMockContext(),
-        serverUrl: new URL("http://127.0.0.1:12345/"),
-      };
-      const config = createTmuxConfig({ enabled: true });
+        serverUrl: new URL('http://127.0.0.1:12345/'),
+      }
+      const config = createTmuxConfig({ enabled: true })
 
       // when
-      const manager = new TmuxSessionManager(ctx, config, trackingDeps);
+      const manager = new TmuxSessionManager(ctx, config, trackingDeps)
 
       // then
-      const warning = logCalls.find((entry) =>
-        entry.message.includes("ctx.serverUrl has port 0")
-      );
-      expect(warning).toBeUndefined();
-      expect(manager.getCtxServerUrl()).toBe("http://127.0.0.1:12345/");
-    });
-  });
+      const warning = logCalls.find((entry) => entry.message.includes('ctx.serverUrl has port 0'))
+      expect(warning).toBeUndefined()
+      expect(manager.getCtxServerUrl()).toBe('http://127.0.0.1:12345/')
+    })
+  })
 
-  describe("getServerUrl", () => {
-    test("returns normalized serverUrl from ctx", async () => {
+  describe('getServerUrl', () => {
+    test('returns normalized serverUrl from ctx', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
       const ctx = {
         ...createMockContext(),
-        serverUrl: new URL("http://127.0.0.1:12345/"),
-      };
-      const config = createTmuxConfig({ enabled: true });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        serverUrl: new URL('http://127.0.0.1:12345/'),
+      }
+      const config = createTmuxConfig({ enabled: true })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // when
-      const serverUrl = manager.getServerUrl();
+      const serverUrl = manager.getServerUrl()
 
       // then
-      expect(serverUrl).toBe("http://127.0.0.1:12345/");
-    });
+      expect(serverUrl).toBe('http://127.0.0.1:12345/')
+    })
 
-    test("returns fallback when port is 0", async () => {
+    test('returns fallback when port is 0', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const originalPort = process.env.OPENCODE_PORT;
-      delete process.env.OPENCODE_PORT;
-      const { TmuxSessionManager } = await import("./manager");
+      mockIsInsideTmux.mockReturnValue(true)
+      const originalPort = process.env.OPENCODE_PORT
+      delete process.env.OPENCODE_PORT
+      const { TmuxSessionManager } = await import('./manager')
       const ctx = {
         ...createMockContext(),
-        serverUrl: new URL("http://127.0.0.1:0/"),
-      };
-      const config = createTmuxConfig({ enabled: true });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        serverUrl: new URL('http://127.0.0.1:0/'),
+      }
+      const config = createTmuxConfig({ enabled: true })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // when
-      const serverUrl = manager.getServerUrl();
+      const serverUrl = manager.getServerUrl()
 
       // then
       try {
-        expect(serverUrl).toBe(
-          `http://localhost:${process.env.OPENCODE_PORT ?? "4096"}`,
-        );
+        expect(serverUrl).toBe(`http://localhost:${process.env.OPENCODE_PORT ?? '4096'}`)
       } finally {
-        if (originalPort !== undefined) {
-          process.env.OPENCODE_PORT = originalPort;
-        }
+        if (originalPort !== undefined) process.env.OPENCODE_PORT = originalPort
       }
-    });
-  });
+    })
+  })
 
-  describe("onSessionCreated", () => {
-    test("first agent spawns from source pane via decision engine", async () => {
+  describe('onSessionCreated', () => {
+    test('first agent spawns from source pane via decision engine', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async () => createWindowState());
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async () => createWindowState())
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
       const event = createSessionCreatedEvent(
-        "ses_child",
-        "ses_parent",
-        "Background: Test Task",
-      );
+        'ses_child',
+        'ses_parent',
+        'Background: Test Task'
+      )
 
       // when
-      await manager.onSessionCreated(event);
+      await manager.onSessionCreated(event)
 
       // then
-      expect(mockQueryWindowState).toHaveBeenCalledTimes(1);
-      expect(mockExecuteActions).toHaveBeenCalledTimes(1);
+      expect(mockQueryWindowState).toHaveBeenCalledTimes(1)
+      expect(mockExecuteActions).toHaveBeenCalledTimes(1)
 
-      const call = mockExecuteActions.mock.calls[0];
-      expect(call).toBeDefined();
-      const actionsArg = call![0];
-      expect(actionsArg).toHaveLength(1);
-      expect(actionsArg[0].type).toBe("spawn");
-      if (actionsArg[0].type === "spawn") {
-        expect(actionsArg[0].sessionId).toBe("ses_child");
-        expect(actionsArg[0].description).toBe("Background: Test Task");
-        expect(actionsArg[0].targetPaneId).toBe("%0");
-        expect(actionsArg[0].splitDirection).toBe("-h");
+      const call = mockExecuteActions.mock.calls[0]
+      expect(call).toBeDefined()
+      const actionsArg = call![0]
+      expect(actionsArg).toHaveLength(1)
+      expect(actionsArg[0].type).toBe('spawn')
+      if (actionsArg[0].type === 'spawn') {
+        expect(actionsArg[0].sessionId).toBe('ses_child')
+        expect(actionsArg[0].description).toBe('Background: Test Task')
+        expect(actionsArg[0].targetPaneId).toBe('%0')
+        expect(actionsArg[0].splitDirection).toBe('-h')
       }
-    });
+    })
 
-    test("shouldSkipSession short-circuits the flow so team-mode sessions are not tracked twice", async () => {
+    test('shouldSkipSession short-circuits the flow so team-mode sessions are not tracked twice', async () => {
       // given - the host wires `shouldSkipSession` to lookupTeamSession so the
       // subagent manager ignores sessions that team-layout-tmux already owns.
       // Without this guard, polling and team-layout race over the same pane.
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async () => createWindowState());
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async () => createWindowState())
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const skippedSessionIds: string[] = [];
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const skippedSessionIds: string[] = []
       const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps, {
         shouldSkipSession: (sessionId) => {
-          skippedSessionIds.push(sessionId);
-          return sessionId === "ses_team_member";
+          skippedSessionIds.push(sessionId)
+          return sessionId === 'ses_team_member'
         },
-      });
+      })
 
       // when - a team-member session.created fires
       await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_team_member",
-          "ses_parent",
-          "team member task",
-        ),
-      );
+        createSessionCreatedEvent('ses_team_member', 'ses_parent', 'team member task'),
+      )
 
       // then - the manager exits early; no window query, no spawn action.
-      expect(skippedSessionIds).toEqual(["ses_team_member"]);
-      expect(mockQueryWindowState).not.toHaveBeenCalled();
-      expect(mockExecuteActions).not.toHaveBeenCalled();
+      expect(skippedSessionIds).toEqual(['ses_team_member'])
+      expect(mockQueryWindowState).not.toHaveBeenCalled()
+      expect(mockExecuteActions).not.toHaveBeenCalled()
 
       // and - an ordinary subagent on the same manager still spawns normally.
       await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_plain_subagent",
-          "ses_parent",
-          "plain task",
-        ),
-      );
-      expect(skippedSessionIds).toEqual([
-        "ses_team_member",
-        "ses_plain_subagent",
-      ]);
-      expect(mockExecuteActions).toHaveBeenCalledTimes(1);
-    });
+        createSessionCreatedEvent('ses_plain_subagent', 'ses_parent', 'plain task'),
+      )
+      expect(skippedSessionIds).toEqual(['ses_team_member', 'ses_plain_subagent'])
+      expect(mockExecuteActions).toHaveBeenCalledTimes(1)
+    })
 
-    test("#given skipped team-mode session #when onSessionCreated runs #then stale attach panes are still swept once", async () => {
+    test('#given skipped team-mode session #when onSessionCreated runs #then stale attach panes are still swept once', async () => {
       // given
-      mockSweepStaleOmoAgentSessions.mockClear();
-      mockSweepStaleOmoAttachPanes.mockClear();
-      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 1);
-      mockIsInsideTmux.mockReturnValue(true);
+      mockSweepStaleOmoAgentSessions.mockClear()
+      mockSweepStaleOmoAttachPanes.mockClear()
+      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 1)
+      mockIsInsideTmux.mockReturnValue(true)
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "inline",
-        }),
-        mockTmuxDeps,
-        {
-          shouldSkipSession: (sessionId) =>
-            sessionId.startsWith("ses_team_member"),
-        },
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'inline',
+      }), mockTmuxDeps, {
+        shouldSkipSession: (sessionId) => sessionId.startsWith('ses_team_member'),
+      })
 
       // when
-      await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_team_member",
-          "ses_parent",
-          "team member task",
-        ),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_team_member_two",
-          "ses_parent",
-          "team member task 2",
-        ),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_team_member', 'ses_parent', 'team member task'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_team_member_two', 'ses_parent', 'team member task 2'))
 
       // then
-      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1);
-      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0);
-      expect(mockQueryWindowState).not.toHaveBeenCalled();
-      expect(mockExecuteActions).not.toHaveBeenCalled();
-    });
+      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1)
+      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0)
+      expect(mockQueryWindowState).not.toHaveBeenCalled()
+      expect(mockExecuteActions).not.toHaveBeenCalled()
+    })
 
-    test("second agent spawns with correct split direction", async () => {
+    test('second agent spawns with correct split direction', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
 
-      let callCount = 0;
+      let callCount = 0
       mockQueryWindowState.mockImplementation(async () => {
-        callCount++;
+        callCount++
         if (callCount === 1) {
-          return createWindowState();
+          return createWindowState()
         }
         return createWindowState({
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 40,
               height: 44,
               left: 100,
               top: 0,
-              title: "omo-subagent-Task 1",
+              title: 'omo-subagent-Task 1',
               isActive: false,
             },
           ],
-        });
-      });
+        })
+      })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // when - first agent
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_1", "ses_parent", "Task 1"),
-      );
-      mockExecuteActions.mockClear();
+        createSessionCreatedEvent('ses_1', 'ses_parent', 'Task 1')
+      )
+      mockExecuteActions.mockClear()
 
       // when - second agent
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_2", "ses_parent", "Task 2"),
-      );
+        createSessionCreatedEvent('ses_2', 'ses_parent', 'Task 2')
+      )
 
       // then
-      expect(mockExecuteActions).toHaveBeenCalledTimes(1);
-      const call = mockExecuteActions.mock.calls[0];
-      expect(call).toBeDefined();
-      const actionsArg = call![0];
-      expect(actionsArg).toHaveLength(1);
-      expect(actionsArg[0].type).toBe("spawn");
-    });
+      expect(mockExecuteActions).toHaveBeenCalledTimes(1)
+      const call = mockExecuteActions.mock.calls[0]
+      expect(call).toBeDefined()
+      const actionsArg = call![0]
+      expect(actionsArg).toHaveLength(1)
+      expect(actionsArg[0].type).toBe('spawn')
+    })
 
-    test("#given session isolation with healthy existing container #when second subagent is created #then it spawns inline from isolated pane", async () => {
+    test('#given session isolation with healthy existing container #when second subagent is created #then it spawns inline from isolated pane', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        if (paneId === "%isolated-session-ses_first") {
-          return createWindowState({
-            mainPane: {
-              paneId,
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-          });
-        }
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async (paneId: string) => { if (paneId === '%isolated-session-ses_first') {
+        return createWindowState({
+          mainPane: {
+            paneId,
+            width: 110,
+            height: 44,
+            left: 0,
+            top: 0,
+            title: 'isolated',
+            isActive: true,
+          },
+        })
+      }
+      
+      return createWindowState() })
 
-        return createWindowState();
-      });
-
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        isolation: "session",
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      isolation: 'session',
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
+        createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task')
+      )
 
-      mockExecuteActions.mockClear();
+      mockExecuteActions.mockClear()
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-      );
+        createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task')
+      )
 
       // then
-      expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(1);
-      expect(mockExecuteActions).toHaveBeenCalledTimes(1);
+      expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(1)
+      expect(mockExecuteActions).toHaveBeenCalledTimes(1)
 
-      const executeActionsCall = mockExecuteActions.mock.calls[0];
-      expect(executeActionsCall).toBeDefined();
-      const actions = executeActionsCall?.[0];
-      const context = executeActionsCall?.[1];
+      const executeActionsCall = mockExecuteActions.mock.calls[0]
+      expect(executeActionsCall).toBeDefined()
+      const actions = executeActionsCall?.[0]
+      const context = executeActionsCall?.[1]
 
-      expect(actions).toBeDefined();
-      expect(actions).toHaveLength(1);
-      expect(actions?.[0]?.type).toBe("spawn");
+      expect(actions).toBeDefined()
+      expect(actions).toHaveLength(1)
+      expect(actions?.[0]?.type).toBe('spawn')
 
-      if (actions?.[0]?.type === "spawn") {
-        expect(actions[0].sessionId).toBe("ses_second");
-        expect(actions[0].targetPaneId).toBe("%isolated-session-ses_first");
+      if (actions?.[0]?.type === 'spawn') {
+        expect(actions[0].sessionId).toBe('ses_second')
+        expect(actions[0].targetPaneId).toBe('%isolated-session-ses_first')
       }
 
-      expect(context?.sourcePaneId).toBe("%isolated-session-ses_first");
-    });
+      expect(context?.sourcePaneId).toBe('%isolated-session-ses_first')
+    })
 
-    test("#given window isolation with healthy existing container #when second subagent is created #then it spawns inline from isolated pane", async () => {
+    test('#given window isolation with healthy existing container #when second subagent is created #then it spawns inline from isolated pane', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        if (paneId === "%isolated-window-ses_first") {
-          return createWindowState({
-            mainPane: {
-              paneId,
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-          });
-        }
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async (paneId: string) => { if (paneId === '%isolated-window-ses_first') {
+        return createWindowState({
+          mainPane: {
+            paneId,
+            width: 110,
+            height: 44,
+            left: 0,
+            top: 0,
+            title: 'isolated',
+            isActive: true,
+          },
+        })
+      }
+      
+      return createWindowState() })
 
-        return createWindowState();
-      });
-
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        isolation: "window",
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      isolation: 'window',
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
+        createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task')
+      )
 
-      mockExecuteActions.mockClear();
+      mockExecuteActions.mockClear()
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-      );
+        createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task')
+      )
 
       // then
-      expect(mockSpawnTmuxWindow).toHaveBeenCalledTimes(1);
-      expect(mockExecuteActions).toHaveBeenCalledTimes(1);
+      expect(mockSpawnTmuxWindow).toHaveBeenCalledTimes(1)
+      expect(mockExecuteActions).toHaveBeenCalledTimes(1)
 
-      const executeActionsCall = mockExecuteActions.mock.calls[0];
-      expect(executeActionsCall).toBeDefined();
-      const actions = executeActionsCall?.[0];
-      const context = executeActionsCall?.[1];
+      const executeActionsCall = mockExecuteActions.mock.calls[0]
+      expect(executeActionsCall).toBeDefined()
+      const actions = executeActionsCall?.[0]
+      const context = executeActionsCall?.[1]
 
-      expect(actions).toBeDefined();
-      expect(actions).toHaveLength(1);
-      expect(actions?.[0]?.type).toBe("spawn");
+      expect(actions).toBeDefined()
+      expect(actions).toHaveLength(1)
+      expect(actions?.[0]?.type).toBe('spawn')
 
-      if (actions?.[0]?.type === "spawn") {
-        expect(actions[0].sessionId).toBe("ses_second");
-        expect(actions[0].targetPaneId).toBe("%isolated-window-ses_first");
+      if (actions?.[0]?.type === 'spawn') {
+        expect(actions[0].sessionId).toBe('ses_second')
+        expect(actions[0].targetPaneId).toBe('%isolated-window-ses_first')
       }
 
-      expect(context?.sourcePaneId).toBe("%isolated-window-ses_first");
-    });
+      expect(context?.sourcePaneId).toBe('%isolated-window-ses_first')
+    })
 
-    test("does NOT spawn pane when session has no parentID", async () => {
+    test('does NOT spawn pane when session has no parentID', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
-      const event = createSessionCreatedEvent(
-        "ses_root",
-        undefined,
-        "Root Session",
-      );
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
+      const event = createSessionCreatedEvent('ses_root', undefined, 'Root Session')
 
       // when
-      await manager.onSessionCreated(event);
+      await manager.onSessionCreated(event)
 
       // then
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-    });
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+    })
 
-    test("does NOT spawn pane when disabled", async () => {
+    test('does NOT spawn pane when disabled', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: false,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: false,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
       const event = createSessionCreatedEvent(
-        "ses_child",
-        "ses_parent",
-        "Background: Test Task",
-      );
+        'ses_child',
+        'ses_parent',
+        'Background: Test Task'
+      )
 
       // when
-      await manager.onSessionCreated(event);
+      await manager.onSessionCreated(event)
 
       // then
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-    });
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+    })
 
-    test("does NOT spawn pane for non session.created event type", async () => {
+    test('does NOT spawn pane for non session.created event type', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
       const event = {
-        type: "session.deleted",
+        type: 'session.deleted',
         properties: {
-          info: { id: "ses_child", parentID: "ses_parent", title: "Task" },
+          info: { id: 'ses_child', parentID: 'ses_parent', title: 'Task' },
         },
-      };
+      }
 
       // when
-      await manager.onSessionCreated(event);
+      await manager.onSessionCreated(event)
 
       // then
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-    });
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+    })
 
-    test("defers attach when unsplittable (small window)", async () => {
+    test('defers attach when unsplittable (small window)', async () => {
       // given - small window where split is not possible
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async () =>
         createWindowState({
           windowWidth: 160,
           windowHeight: 11,
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 40,
               height: 11,
               left: 80,
               top: 0,
-              title: "omo-subagent-Task 1",
+              title: 'omo-subagent-Task 1',
               isActive: false,
             },
           ],
         })
-      );
+      )
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 120,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 120,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_new", "ses_parent", "New Task"),
-      );
+        createSessionCreatedEvent('ses_new', 'ses_parent', 'New Task')
+      )
 
       // then - with small window, manager defers instead of replacing
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-      expect(getManagerInternals(manager).deferredQueue).toEqual(["ses_new"]);
-    });
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+      expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_new'])
+    })
 
-    test("keeps deferred queue idempotent for duplicate session.created events", async () => {
+    test('keeps deferred queue idempotent for duplicate session.created events', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async () =>
         createWindowState({
           windowWidth: 160,
           windowHeight: 11,
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 80,
               height: 11,
               left: 80,
               top: 0,
-              title: "old",
+              title: 'old',
               isActive: false,
             },
           ],
         })
-      );
+      )
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 120,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 120,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_dup", "ses_parent", "Duplicate Task"),
-      );
+        createSessionCreatedEvent('ses_dup', 'ses_parent', 'Duplicate Task')
+      )
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_dup", "ses_parent", "Duplicate Task"),
-      );
+        createSessionCreatedEvent('ses_dup', 'ses_parent', 'Duplicate Task')
+      )
 
       // then
-      expect(getManagerInternals(manager).deferredQueue).toEqual(["ses_dup"]);
-    });
+      expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_dup'])
+    })
 
-    test("auto-attaches deferred sessions in FIFO order", async () => {
+    test('auto-attaches deferred sessions in FIFO order', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async () =>
         createWindowState({
           windowWidth: 160,
           windowHeight: 11,
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 80,
               height: 11,
               left: 80,
               top: 0,
-              title: "old",
+              title: 'old',
               isActive: false,
             },
           ],
         })
-      );
+      )
 
-      const attachOrder: string[] = [];
-      mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => {
-        for (const action of actions) {
-          if (action.type === "spawn") {
-            attachOrder.push(action.sessionId);
-            trackedSessions.add(action.sessionId);
-            return {
-              success: true,
-              spawnedPaneId: `%${action.sessionId}`,
-              results: [{
-                action,
-                result: { success: true, paneId: `%${action.sessionId}` },
-              }],
-            };
+      const attachOrder: string[] = []
+      mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => { for (const action of actions) {
+        if (action.type === 'spawn') {
+          attachOrder.push(action.sessionId)
+          trackedSessions.add(action.sessionId)
+          return {
+            success: true,
+            spawnedPaneId: `%${action.sessionId}`,
+            results: [{ action, result: { success: true, paneId: `%${action.sessionId}` } }],
           }
         }
-        return { success: true, results: [] };
-      });
+      }
+      return { success: true, results: [] } })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 120,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 120,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_1", "ses_parent", "Task 1"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_2", "ses_parent", "Task 2"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_3", "ses_parent", "Task 3"),
-      );
-      expect(getManagerInternals(manager).deferredQueue).toEqual([
-        "ses_1",
-        "ses_2",
-        "ses_3",
-      ]);
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_1', 'ses_parent', 'Task 1'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_2', 'ses_parent', 'Task 2'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_3', 'ses_parent', 'Task 3'))
+      expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_1', 'ses_2', 'ses_3'])
 
       // when
-      mockQueryWindowState.mockImplementation(async () => createWindowState());
-      await getManagerInternals(manager).tryAttachDeferredSession();
-      await getManagerInternals(manager).tryAttachDeferredSession();
-      await getManagerInternals(manager).tryAttachDeferredSession();
+      mockQueryWindowState.mockImplementation(async () => createWindowState())
+      await getManagerInternals(manager).tryAttachDeferredSession()
+      await getManagerInternals(manager).tryAttachDeferredSession()
+      await getManagerInternals(manager).tryAttachDeferredSession()
 
       // then
-      expect(attachOrder).toEqual(["ses_1", "ses_2", "ses_3"]);
-      expect(getManagerInternals(manager).deferredQueue).toEqual([]);
-    });
+      expect(attachOrder).toEqual(['ses_1', 'ses_2', 'ses_3'])
+      expect(getManagerInternals(manager).deferredQueue).toEqual([])
+    })
 
-    test("marks deferred inline attach as attachActivated=true when cmux detected", async () => {
+    test('marks deferred inline attach as attachActivated=true when cmux detected', async () => {
       // given — cmux environment triggers eager attach
-      const savedTmux = process.env.TMUX;
-      const savedCmuxSocket = process.env.CMUX_SOCKET_PATH;
-      process.env.TMUX = "/tmp/cmuxterm-test.sock,1234,0";
-      delete process.env.CMUX_SOCKET_PATH;
+      const savedTmux = process.env.TMUX
+      const savedCmuxSocket = process.env.CMUX_SOCKET_PATH
+      process.env.TMUX = '/tmp/cmuxterm-test.sock,1234,0'
+      delete process.env.CMUX_SOCKET_PATH
       try {
-        mockIsInsideTmux.mockReturnValue(true);
+        mockIsInsideTmux.mockReturnValue(true)
         // force capacity-full so the session defers (mirror the FIFO deferred test setup)
         mockQueryWindowState.mockImplementation(async () =>
           createWindowState({
             windowWidth: 160,
             windowHeight: 11,
             agentPanes: [
-              {
-                paneId: "%1",
-                width: 80,
-                height: 11,
-                left: 80,
-                top: 0,
-                title: "old",
-                isActive: false,
-              },
+              { paneId: '%1', width: 80, height: 11, left: 80, top: 0, title: 'old', isActive: false },
             ],
           })
-        );
+        )
         mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => {
           for (const action of actions) {
-            if (action.type === "spawn") {
-              trackedSessions.add(action.sessionId);
+            if (action.type === 'spawn') {
+              trackedSessions.add(action.sessionId)
               return {
                 success: true,
                 spawnedPaneId: `%${action.sessionId}`,
-                results: [{
-                  action,
-                  result: { success: true, paneId: `%${action.sessionId}` },
-                }],
-              };
+                results: [{ action, result: { success: true, paneId: `%${action.sessionId}` } }],
+              }
             }
           }
-          return { success: true, results: [] };
-        });
+          return { success: true, results: [] }
+        })
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
         const config = createTmuxConfig({
           enabled: true,
-          layout: "main-vertical",
+          layout: 'main-vertical',
           main_pane_size: 60,
           main_pane_min_width: 120,
           agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
-        await manager.onSessionCreated(
-          createSessionCreatedEvent("ses_cmux", "ses_parent", "Task cmux"),
-        );
+        await manager.onSessionCreated(createSessionCreatedEvent('ses_cmux', 'ses_parent', 'Task cmux'))
         // sanity: it was deferred
-        expect(getManagerInternals(manager).deferredQueue).toContain(
-          "ses_cmux",
-        );
+        expect(getManagerInternals(manager).deferredQueue).toContain('ses_cmux')
 
         // when — capacity opens up and deferred attach runs
-        mockQueryWindowState.mockImplementation(async () =>
-          createWindowState()
-        );
-        await getManagerInternals(manager).tryAttachDeferredSession();
+        mockQueryWindowState.mockImplementation(async () => createWindowState())
+        await getManagerInternals(manager).tryAttachDeferredSession()
 
         // then — the deferred inline attach tracked session is eager-activated
-        const tracked = getManagerInternals(manager).sessions.get("ses_cmux");
-        expect(tracked).toBeDefined();
-        expect(tracked?.attachActivated).toBe(true);
+        const tracked = getManagerInternals(manager).sessions.get('ses_cmux')
+        expect(tracked).toBeDefined()
+        expect(tracked?.attachActivated).toBe(true)
       } finally {
-        if (savedTmux === undefined) delete process.env.TMUX;
-        else process.env.TMUX = savedTmux;
-        if (savedCmuxSocket === undefined) delete process.env.CMUX_SOCKET_PATH;
-        else process.env.CMUX_SOCKET_PATH = savedCmuxSocket;
+        if (savedTmux === undefined) delete process.env.TMUX
+        else process.env.TMUX = savedTmux
+        if (savedCmuxSocket === undefined) delete process.env.CMUX_SOCKET_PATH
+        else process.env.CMUX_SOCKET_PATH = savedCmuxSocket
       }
-    });
+    })
 
-    test("marks deferred inline attach as attachActivated=false when not cmux (regression guard)", async () => {
+    test('marks deferred inline attach as attachActivated=false when not cmux (regression guard)', async () => {
       // given — standard tmux (no cmuxterm)
-      const savedTmux = process.env.TMUX;
-      const savedCmuxSocket = process.env.CMUX_SOCKET_PATH;
-      process.env.TMUX = "/tmp/tmux-1000/default,1234,0";
-      delete process.env.CMUX_SOCKET_PATH;
+      const savedTmux = process.env.TMUX
+      const savedCmuxSocket = process.env.CMUX_SOCKET_PATH
+      process.env.TMUX = '/tmp/tmux-1000/default,1234,0'
+      delete process.env.CMUX_SOCKET_PATH
       try {
-        mockIsInsideTmux.mockReturnValue(true);
+        mockIsInsideTmux.mockReturnValue(true)
         mockQueryWindowState.mockImplementation(async () =>
           createWindowState({
             windowWidth: 160,
             windowHeight: 11,
             agentPanes: [
-              {
-                paneId: "%1",
-                width: 80,
-                height: 11,
-                left: 80,
-                top: 0,
-                title: "old",
-                isActive: false,
-              },
+              { paneId: '%1', width: 80, height: 11, left: 80, top: 0, title: 'old', isActive: false },
             ],
           })
-        );
+        )
         mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => {
           for (const action of actions) {
-            if (action.type === "spawn") {
-              trackedSessions.add(action.sessionId);
+            if (action.type === 'spawn') {
+              trackedSessions.add(action.sessionId)
               return {
                 success: true,
                 spawnedPaneId: `%${action.sessionId}`,
-                results: [{
-                  action,
-                  result: { success: true, paneId: `%${action.sessionId}` },
-                }],
-              };
+                results: [{ action, result: { success: true, paneId: `%${action.sessionId}` } }],
+              }
             }
           }
-          return { success: true, results: [] };
-        });
+          return { success: true, results: [] }
+        })
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
         const config = createTmuxConfig({
           enabled: true,
-          layout: "main-vertical",
+          layout: 'main-vertical',
           main_pane_size: 60,
           main_pane_min_width: 120,
           agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
-        await manager.onSessionCreated(
-          createSessionCreatedEvent("ses_std", "ses_parent", "Task std"),
-        );
-        expect(getManagerInternals(manager).deferredQueue).toContain("ses_std");
+        await manager.onSessionCreated(createSessionCreatedEvent('ses_std', 'ses_parent', 'Task std'))
+        expect(getManagerInternals(manager).deferredQueue).toContain('ses_std')
 
         // when
-        mockQueryWindowState.mockImplementation(async () =>
-          createWindowState()
-        );
-        await getManagerInternals(manager).tryAttachDeferredSession();
+        mockQueryWindowState.mockImplementation(async () => createWindowState())
+        await getManagerInternals(manager).tryAttachDeferredSession()
 
         // then — standard tmux keeps focus-defer behavior (attachActivated stays false)
-        const tracked = getManagerInternals(manager).sessions.get("ses_std");
-        expect(tracked).toBeDefined();
-        expect(tracked?.attachActivated).toBe(false);
+        const tracked = getManagerInternals(manager).sessions.get('ses_std')
+        expect(tracked).toBeDefined()
+        expect(tracked?.attachActivated).toBe(false)
       } finally {
-        if (savedTmux === undefined) delete process.env.TMUX;
-        else process.env.TMUX = savedTmux;
-        if (savedCmuxSocket === undefined) delete process.env.CMUX_SOCKET_PATH;
-        else process.env.CMUX_SOCKET_PATH = savedCmuxSocket;
+        if (savedTmux === undefined) delete process.env.TMUX
+        else process.env.TMUX = savedTmux
+        if (savedCmuxSocket === undefined) delete process.env.CMUX_SOCKET_PATH
+        else process.env.CMUX_SOCKET_PATH = savedCmuxSocket
       }
-    });
+    })
 
-    test("enables manager in headless cmux environment (CMUX_SOCKET_PATH set, TMUX unset)", async () => {
+    test('enables manager in headless cmux environment (CMUX_SOCKET_PATH set, TMUX unset)', async () => {
       // given — createManagers selects the inline cmux-compatible predicate
-      const savedTmux = process.env.TMUX;
-      const savedCmuxSocket = process.env.CMUX_SOCKET_PATH;
-      delete process.env.TMUX;
-      process.env.CMUX_SOCKET_PATH = "/tmp/cmux-headless-test.sock";
+      const savedTmux = process.env.TMUX
+      const savedCmuxSocket = process.env.CMUX_SOCKET_PATH
+      delete process.env.TMUX
+      process.env.CMUX_SOCKET_PATH = '/tmp/cmux-headless-test.sock'
       try {
-        mockIsInsideTmux.mockReturnValue(
-          Boolean(process.env.CMUX_SOCKET_PATH) && !process.env.TMUX,
-        );
+        mockIsInsideTmux.mockReturnValue(Boolean(process.env.CMUX_SOCKET_PATH) && !process.env.TMUX)
         // force capacity-full so the session defers (mirror the cmux-detected R1 setup)
         mockQueryWindowState.mockImplementation(async () =>
           createWindowState({
             windowWidth: 160,
             windowHeight: 11,
             agentPanes: [
-              {
-                paneId: "%1",
-                width: 80,
-                height: 11,
-                left: 80,
-                top: 0,
-                title: "old",
-                isActive: false,
-              },
+              { paneId: '%1', width: 80, height: 11, left: 80, top: 0, title: 'old', isActive: false },
             ],
           })
-        );
+        )
         mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => {
           for (const action of actions) {
-            if (action.type === "spawn") {
-              trackedSessions.add(action.sessionId);
+            if (action.type === 'spawn') {
+              trackedSessions.add(action.sessionId)
               return {
                 success: true,
                 spawnedPaneId: `%${action.sessionId}`,
-                results: [{
-                  action,
-                  result: { success: true, paneId: `%${action.sessionId}` },
-                }],
-              };
+                results: [{ action, result: { success: true, paneId: `%${action.sessionId}` } }],
+              }
             }
           }
-          return { success: true, results: [] };
-        });
+          return { success: true, results: [] }
+        })
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
         const config = createTmuxConfig({
           enabled: true,
-          layout: "main-vertical",
+          layout: 'main-vertical',
           main_pane_size: 60,
           main_pane_min_width: 120,
           agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
         // when — session created with the selected inline eligibility predicate
-        await manager.onSessionCreated(
-          createSessionCreatedEvent(
-            "ses_headless",
-            "ses_parent",
-            "Task headless",
-          ),
-        );
+        await manager.onSessionCreated(createSessionCreatedEvent('ses_headless', 'ses_parent', 'Task headless'))
 
         // then — manager is enabled via injected cmux-compat: flow proceeded past the gate.
         // Capacity-full window state routes the session into the deferred queue, which is only
         // reachable once isEnabled() returned true.
-        expect(getManagerInternals(manager).deferredQueue).toContain(
-          "ses_headless",
-        );
+        expect(getManagerInternals(manager).deferredQueue).toContain('ses_headless')
       } finally {
-        if (savedTmux === undefined) delete process.env.TMUX;
-        else process.env.TMUX = savedTmux;
-        if (savedCmuxSocket === undefined) delete process.env.CMUX_SOCKET_PATH;
-        else process.env.CMUX_SOCKET_PATH = savedCmuxSocket;
+        if (savedTmux === undefined) delete process.env.TMUX
+        else process.env.TMUX = savedTmux
+        if (savedCmuxSocket === undefined) delete process.env.CMUX_SOCKET_PATH
+        else process.env.CMUX_SOCKET_PATH = savedCmuxSocket
       }
-    });
+    })
 
-    test("does not attach deferred session more than once across repeated retries", async () => {
+    test('does not attach deferred session more than once across repeated retries', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async () =>
         createWindowState({
           windowWidth: 160,
           windowHeight: 11,
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 80,
               height: 11,
               left: 80,
               top: 0,
-              title: "old",
+              title: 'old',
               isActive: false,
             },
           ],
         })
-      );
+      )
 
-      let attachCount = 0;
-      mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => {
-        for (const action of actions) {
-          if (action.type === "spawn") {
-            attachCount += 1;
-            trackedSessions.add(action.sessionId);
-            return {
-              success: true,
-              spawnedPaneId: `%${action.sessionId}`,
-              results: [{
-                action,
-                result: { success: true, paneId: `%${action.sessionId}` },
-              }],
-            };
+      let attachCount = 0
+      mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => { for (const action of actions) {
+        if (action.type === 'spawn') {
+          attachCount += 1
+          trackedSessions.add(action.sessionId)
+          return {
+            success: true,
+            spawnedPaneId: `%${action.sessionId}`,
+            results: [{ action, result: { success: true, paneId: `%${action.sessionId}` } }],
           }
         }
-        return { success: true, results: [] };
-      });
+      }
+      return { success: true, results: [] } })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 120,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 120,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_once", "ses_parent", "Task Once"),
-      );
+        createSessionCreatedEvent('ses_once', 'ses_parent', 'Task Once')
+      )
 
       // when
-      mockQueryWindowState.mockImplementation(async () => createWindowState());
-      await getManagerInternals(manager).tryAttachDeferredSession();
-      await getManagerInternals(manager).tryAttachDeferredSession();
+      mockQueryWindowState.mockImplementation(async () => createWindowState())
+      await getManagerInternals(manager).tryAttachDeferredSession()
+      await getManagerInternals(manager).tryAttachDeferredSession()
 
       // then
-      expect(attachCount).toBe(1);
-      expect(getManagerInternals(manager).deferredQueue).toEqual([]);
-    });
+      expect(attachCount).toBe(1)
+      expect(getManagerInternals(manager).deferredQueue).toEqual([])
+    })
 
-    test("skips deferred attach when the session is already pending through another spawn path", async () => {
+    test('skips deferred attach when the session is already pending through another spawn path', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async () =>
         createWindowState({
           windowWidth: 160,
           windowHeight: 11,
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 80,
               height: 11,
               left: 80,
               top: 0,
-              title: "old",
+              title: 'old',
               isActive: false,
             },
           ],
         })
-      );
+      )
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({ enabled: true }),
-        mockTmuxDeps,
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({ enabled: true }), mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_pending_race",
-          "ses_parent",
-          "Pending Race Task",
-        ),
-      );
-      expect(getManagerInternals(manager).deferredQueue).toEqual([
-        "ses_pending_race",
-      ]);
+        createSessionCreatedEvent('ses_pending_race', 'ses_parent', 'Pending Race Task')
+      )
+      expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_pending_race'])
 
-      mockQueryWindowState.mockImplementation(async () => createWindowState());
-      Reflect.get(manager, "pendingSessions").add("ses_pending_race");
+      mockQueryWindowState.mockImplementation(async () => createWindowState())
+      Reflect.get(manager, 'pendingSessions').add('ses_pending_race')
 
       // when
-      await Reflect.get(manager, "tryAttachDeferredSession").call(manager);
+      await Reflect.get(manager, 'tryAttachDeferredSession').call(manager)
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
-      expect(getManagerInternals(manager).deferredQueue).toEqual([
-        "ses_pending_race",
-      ]);
-    });
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
+      expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_pending_race'])
+    })
 
-    test("drops deferred sessions that were already closed by polling", async () => {
+    test('drops deferred sessions that were already closed by polling', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async () =>
         createWindowState({
           windowWidth: 160,
           windowHeight: 11,
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 80,
               height: 11,
               left: 80,
               top: 0,
-              title: "old",
+              title: 'old',
               isActive: false,
             },
           ],
         })
-      );
+      )
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({ enabled: true }),
-        mockTmuxDeps,
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({ enabled: true }), mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_bounce", "ses_parent", "Bounce Task"),
-      );
-      expect(getManagerInternals(manager).deferredQueue).toEqual([
-        "ses_bounce",
-      ]);
+        createSessionCreatedEvent('ses_bounce', 'ses_parent', 'Bounce Task')
+      )
+      expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_bounce'])
 
-      mockQueryWindowState.mockImplementation(async () => createWindowState());
-      Reflect.set(manager, "closedByPolling", new Set(["ses_bounce"]));
+      mockQueryWindowState.mockImplementation(async () => createWindowState())
+      Reflect.set(manager, 'closedByPolling', new Set(['ses_bounce']))
 
       // when
-      await Reflect.get(manager, "tryAttachDeferredSession").call(manager);
+      await Reflect.get(manager, 'tryAttachDeferredSession').call(manager)
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
-      expect(getManagerInternals(manager).deferredQueue).toEqual([]);
-    });
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
+      expect(getManagerInternals(manager).deferredQueue).toEqual([])
+    })
 
-    test("removes deferred session when session is deleted before attach", async () => {
+    test('removes deferred session when session is deleted before attach', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async () =>
         createWindowState({
           windowWidth: 160,
           windowHeight: 11,
           agentPanes: [
             {
-              paneId: "%1",
+              paneId: '%1',
               width: 80,
               height: 11,
               left: 80,
               top: 0,
-              title: "old",
+              title: 'old',
               isActive: false,
             },
           ],
         })
-      );
+      )
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 120,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 120,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_pending", "ses_parent", "Pending Task"),
-      );
-      expect(getManagerInternals(manager).deferredQueue).toEqual([
-        "ses_pending",
-      ]);
+        createSessionCreatedEvent('ses_pending', 'ses_parent', 'Pending Task')
+      )
+      expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_pending'])
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_pending" });
+      await manager.onSessionDeleted({ sessionID: 'ses_pending' })
 
       // then
-      expect(getManagerInternals(manager).deferredQueue).toEqual([]);
-      expect(mockExecuteAction).toHaveBeenCalledTimes(0);
-    });
+      expect(getManagerInternals(manager).deferredQueue).toEqual([])
+      expect(mockExecuteAction).toHaveBeenCalledTimes(0)
+    })
 
-    describe("spawn failure recovery", () => {
-      test("#given the first isolated container spawn fails #when onSessionCreated fires #then the session is deferred for retry", async () => {
+    describe('spawn failure recovery', () => {
+      test('#given the first isolated container spawn fails #when onSessionCreated fires #then the session is deferred for retry', async () => {
         // given
-        mockIsInsideTmux.mockReturnValue(true);
+        mockIsInsideTmux.mockReturnValue(true)
         mockSpawnTmuxSession.mockImplementation(async () => ({
           success: false,
-        }));
-        const logSpy = spyOn(sharedModule, "log").mockImplementation(() => {});
+        }))
+        const logSpy = spyOn(sharedModule, 'log').mockImplementation(() => {})
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
-        const config = createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
+        const config = createTmuxConfig({ enabled: true,
+        isolation: 'session',
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
         // when
         await manager.onSessionCreated(
-          createSessionCreatedEvent(
-            "ses_isolated_fail",
-            "ses_parent",
-            "Isolated Failure Task",
-          ),
-        );
+          createSessionCreatedEvent('ses_isolated_fail', 'ses_parent', 'Isolated Failure Task')
+        )
 
         // then
-        expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(1);
-        expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-        expect(Reflect.get(manager, "deferredQueue")).toEqual([
-          "ses_isolated_fail",
-        ]);
+        expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(1)
+        expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+        expect(Reflect.get(manager, 'deferredQueue')).toEqual(['ses_isolated_fail'])
 
-        logSpy.mockRestore();
-      });
+        logSpy.mockRestore()
+      })
 
-      test("#given an isolated session deferred after container spawn failure #when deferred attach retries #then it re-attempts isolated container creation before normal pane fallback", async () => {
+      test('#given an isolated session deferred after container spawn failure #when deferred attach retries #then it re-attempts isolated container creation before normal pane fallback', async () => {
         // given
-        mockIsInsideTmux.mockReturnValue(true);
+        mockIsInsideTmux.mockReturnValue(true)
         mockSpawnTmuxSession.mockImplementation(async () => ({
           success: false,
-        }));
+        }))
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
-        const config = createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
+        const config = createTmuxConfig({ enabled: true,
+        isolation: 'session',
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
         await manager.onSessionCreated(
-          createSessionCreatedEvent(
-            "ses_isolated_retry",
-            "ses_parent",
-            "Isolated Retry Task",
-          ),
-        );
+          createSessionCreatedEvent('ses_isolated_retry', 'ses_parent', 'Isolated Retry Task')
+        )
 
-        mockExecuteActions.mockClear();
+        mockExecuteActions.mockClear()
 
         // when
-        await Reflect.get(manager, "tryAttachDeferredSession").call(manager);
+        await Reflect.get(manager, 'tryAttachDeferredSession').call(manager)
 
         // then
-        expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(2);
-        expect(mockExecuteActions).toHaveBeenCalledTimes(1);
-        expect(mockExecuteActions.mock.calls[0]?.[1]?.sourcePaneId).toBe("%0");
-      });
+        expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(2)
+        expect(mockExecuteActions).toHaveBeenCalledTimes(1)
+        expect(mockExecuteActions.mock.calls[0]?.[1]?.sourcePaneId).toBe('%0')
+      })
 
-      test("#given queryWindowState returns null #when onSessionCreated fires #then session is enqueued in deferred queue", async () => {
+      test('#given queryWindowState returns null #when onSessionCreated fires #then session is enqueued in deferred queue', async () => {
         // given
-        mockIsInsideTmux.mockReturnValue(true);
-        mockQueryWindowState.mockImplementation(async () => null);
-        const logSpy = spyOn(sharedModule, "log").mockImplementation(() => {});
+        mockIsInsideTmux.mockReturnValue(true)
+        mockQueryWindowState.mockImplementation(async () => null)
+        const logSpy = spyOn(sharedModule, 'log').mockImplementation(() => {})
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
-        const config = createTmuxConfig({
-          enabled: true,
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
+        const config = createTmuxConfig({ enabled: true,
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
         // when
         await manager.onSessionCreated(
-          createSessionCreatedEvent(
-            "ses_null_state",
-            "ses_parent",
-            "Null State Task",
-          ),
-        );
+          createSessionCreatedEvent('ses_null_state', 'ses_parent', 'Null State Task')
+        )
 
         // then
-        expect(getManagerInternals(manager).deferredQueue).toEqual([
-          "ses_null_state",
-        ]);
+        expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_null_state'])
 
-        logSpy.mockRestore();
-      });
+        logSpy.mockRestore()
+      })
 
-      test("#given isolated window state returns one transient null #when another subagent is created #then the existing container is reused", async () => {
+      test('#given isolated window state returns one transient null #when another subagent is created #then the existing container is reused', async () => {
         // given
-        mockIsInsideTmux.mockReturnValue(true);
+        mockIsInsideTmux.mockReturnValue(true)
 
-        const isolatedPaneId = "%isolated-session-ses_first";
-        let isolatedPaneQueryCount = 0;
-        mockQueryWindowState.mockImplementation(async (paneId: string) => {
-          if (paneId === isolatedPaneId) {
-            isolatedPaneQueryCount += 1;
-            if (isolatedPaneQueryCount === 1) {
-              return null;
-            }
-
-            return createWindowState({
-              mainPane: {
-                paneId,
-                width: 110,
-                height: 44,
-                left: 0,
-                top: 0,
-                title: "isolated",
-                isActive: true,
-              },
-            });
+        const isolatedPaneId = '%isolated-session-ses_first'
+        let isolatedPaneQueryCount = 0
+        mockQueryWindowState.mockImplementation(async (paneId: string) => { if (paneId === isolatedPaneId) {
+          isolatedPaneQueryCount += 1
+          if (isolatedPaneQueryCount === 1) {
+            return null
           }
+        
+          return createWindowState({
+            mainPane: {
+              paneId,
+              width: 110,
+              height: 44,
+              left: 0,
+              top: 0,
+              title: 'isolated',
+              isActive: true,
+            },
+          })
+        }
+        
+        return createWindowState() })
 
-          return createWindowState();
-        });
-
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
-        const config = createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
+        const config = createTmuxConfig({ enabled: true,
+        isolation: 'session',
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
         await manager.onSessionCreated(
-          createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-        );
+          createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task')
+        )
 
-        mockSpawnTmuxSession.mockClear();
-        mockExecuteActions.mockClear();
+        mockSpawnTmuxSession.mockClear()
+        mockExecuteActions.mockClear()
 
         // when
         await manager.onSessionCreated(
-          createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-        );
+          createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task')
+        )
 
         // then
-        expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(0);
-        expect(mockExecuteActions).toHaveBeenCalledTimes(1);
-        expect(Reflect.get(manager, "isolatedWindowPaneId")).toBe(
-          isolatedPaneId,
-        );
-        expect(mockExecuteActions.mock.calls[0]?.[1]?.sourcePaneId).toBe(
-          isolatedPaneId,
-        );
-      });
+        expect(mockSpawnTmuxSession).toHaveBeenCalledTimes(0)
+        expect(mockExecuteActions).toHaveBeenCalledTimes(1)
+        expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBe(isolatedPaneId)
+        expect(mockExecuteActions.mock.calls[0]?.[1]?.sourcePaneId).toBe(isolatedPaneId)
+      })
 
-      test("#given spawn fails without close action #when onSessionCreated fires #then session is enqueued in deferred queue", async () => {
+      test('#given spawn fails without close action #when onSessionCreated fires #then session is enqueued in deferred queue', async () => {
         // given
-        mockIsInsideTmux.mockReturnValue(true);
-        mockQueryWindowState.mockImplementation(async () =>
-          createWindowState()
-        );
-        mockExecuteActions.mockImplementation(async (
-          actions: PaneAction[],
-        ) => ({
+        mockIsInsideTmux.mockReturnValue(true)
+        mockQueryWindowState.mockImplementation(async () => createWindowState())
+        mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => ({
           success: false,
           spawnedPaneId: undefined,
           results: actions.map((action: PaneAction) => ({
             action,
-            result: { success: false, error: "spawn failed" },
+            result: { success: false, error: 'spawn failed' },
           })),
-        }));
-        const logSpy = spyOn(sharedModule, "log").mockImplementation(() => {});
+        }))
+        const logSpy = spyOn(sharedModule, 'log').mockImplementation(() => {})
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
-        const config = createTmuxConfig({
-          enabled: true,
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
+        const config = createTmuxConfig({ enabled: true,
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
         // when
         await manager.onSessionCreated(
-          createSessionCreatedEvent(
-            "ses_fail_no_close",
-            "ses_parent",
-            "Spawn Fail No Close",
-          ),
-        );
+          createSessionCreatedEvent('ses_fail_no_close', 'ses_parent', 'Spawn Fail No Close')
+        )
 
         // then
-        expect(getManagerInternals(manager).deferredQueue).toEqual([
-          "ses_fail_no_close",
-        ]);
+        expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_fail_no_close'])
 
-        logSpy.mockRestore();
-      });
+        logSpy.mockRestore()
+      })
 
-      test("#given spawn fails with close action that succeeded #when onSessionCreated fires #then session is still enqueued in deferred queue", async () => {
+      test('#given spawn fails with close action that succeeded #when onSessionCreated fires #then session is still enqueued in deferred queue', async () => {
         // given
-        mockIsInsideTmux.mockReturnValue(true);
-        mockQueryWindowState.mockImplementation(async () =>
-          createWindowState()
-        );
+        mockIsInsideTmux.mockReturnValue(true)
+        mockQueryWindowState.mockImplementation(async () => createWindowState())
         mockExecuteActions.mockImplementation(async () => ({
           success: false,
           spawnedPaneId: undefined,
           results: [
             {
-              action: { type: "close", paneId: "%1", sessionId: "ses_old" },
+              action: { type: 'close', paneId: '%1', sessionId: 'ses_old' },
               result: { success: true },
             },
             {
               action: {
-                type: "spawn",
-                sessionId: "ses_fail_with_close",
-                description: "Spawn Fail With Close",
-                targetPaneId: "%0",
-                splitDirection: "-h",
+                type: 'spawn',
+                sessionId: 'ses_fail_with_close',
+                description: 'Spawn Fail With Close',
+                targetPaneId: '%0',
+                splitDirection: '-h',
               },
-              result: { success: false, error: "spawn failed after close" },
+              result: { success: false, error: 'spawn failed after close' },
             },
           ],
-        }));
-        const logSpy = spyOn(sharedModule, "log").mockImplementation(() => {});
+        }))
+        const logSpy = spyOn(sharedModule, 'log').mockImplementation(() => {})
 
-        const { TmuxSessionManager } = await import("./manager");
-        const ctx = createMockContext();
-        const config = createTmuxConfig({
-          enabled: true,
-          layout: "main-vertical",
-          main_pane_size: 60,
-          main_pane_min_width: 80,
-          agent_pane_min_width: 40,
-        });
-        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        const { TmuxSessionManager } = await import('./manager')
+        const ctx = createMockContext()
+        const config = createTmuxConfig({ enabled: true,
+        layout: 'main-vertical',
+        main_pane_size: 60,
+        main_pane_min_width: 80,
+        agent_pane_min_width: 40, })
+        const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
         // when
         await manager.onSessionCreated(
-          createSessionCreatedEvent(
-            "ses_fail_with_close",
-            "ses_parent",
-            "Spawn Fail With Close",
-          ),
-        );
+          createSessionCreatedEvent('ses_fail_with_close', 'ses_parent', 'Spawn Fail With Close')
+        )
 
         // then
-        expect(getManagerInternals(manager).deferredQueue).toEqual([
-          "ses_fail_with_close",
-        ]);
+        expect(getManagerInternals(manager).deferredQueue).toEqual(['ses_fail_with_close'])
 
-        logSpy.mockRestore();
-      });
-    });
+        logSpy.mockRestore()
+      })
+    })
 
-    test("#given session readiness is pending #when onSessionCreated runs #then pane spawn waits until readiness resolves", async () => {
+    test('#given session readiness is pending #when onSessionCreated runs #then pane spawn waits until readiness resolves', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async () => createWindowState());
-      const readiness = createDeferred<boolean>();
-      mockWaitForSessionReady.mockImplementationOnce(
-        async ({ sessionId }: SessionReadyWaitParams) => {
-          const ready = await readiness.promise;
-          if (ready) {
-            readySessions.add(sessionId);
-          }
-          return ready;
-        },
-      );
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async () => createWindowState())
+      const readiness = createDeferred<boolean>()
+      mockWaitForSessionReady.mockImplementationOnce(async ({ sessionId }: SessionReadyWaitParams) => {
+        const ready = await readiness.promise
+        if (ready) {
+          readySessions.add(sessionId)
+        }
+        return ready
+      })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({ enabled: true });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
-      const event = createSessionCreatedEvent(
-        "ses_wait",
-        "ses_parent",
-        "Wait For Ready",
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
+      const event = createSessionCreatedEvent('ses_wait', 'ses_parent', 'Wait For Ready')
 
       // when
-      const onSessionCreatedPromise = manager.onSessionCreated(event);
-      await flushMicrotasks();
+      const onSessionCreatedPromise = manager.onSessionCreated(event)
+      await flushMicrotasks()
 
       // then
-      expect(mockWaitForSessionReady).toHaveBeenCalledTimes(1);
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
+      expect(mockWaitForSessionReady).toHaveBeenCalledTimes(1)
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
 
       // when
-      readiness.resolve(true);
-      await onSessionCreatedPromise;
+      readiness.resolve(true)
+      await onSessionCreatedPromise
 
       // then
-      expect(mockExecuteActions).toHaveBeenCalledTimes(1);
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1);
-      expect(getTrackedSessions(manager).has("ses_wait")).toBe(true);
-      expect(
-        Reflect.get(Reflect.get(manager, "pollingManager"), "pollInterval"),
-      ).toBeUndefined();
-    });
+      expect(mockExecuteActions).toHaveBeenCalledTimes(1)
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1)
+      expect(getTrackedSessions(manager).has('ses_wait')).toBe(true)
+      expect(Reflect.get(Reflect.get(manager, 'pollingManager'), 'pollInterval')).toBeUndefined()
+    })
 
-    test("#given readiness probe fails #when onSessionCreated runs #then it logs the structured error and does not spawn a pane", async () => {
+    test('#given readiness probe fails #when onSessionCreated runs #then it logs the structured error and does not spawn a pane', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const readinessError = new Error("session readiness timed out");
+      mockIsInsideTmux.mockReturnValue(true)
+      const readinessError = new Error('session readiness timed out')
       mockWaitForSessionReady.mockImplementationOnce(async () => {
-        throw readinessError;
-      });
-      const logSpy = spyOn(sharedModule, "log").mockImplementation(() => {});
+        throw readinessError
+      })
+      const logSpy = spyOn(sharedModule, 'log').mockImplementation(() => {})
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({ enabled: true }),
-        mockTmuxDeps,
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({ enabled: true }), mockTmuxDeps)
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_timeout", "ses_parent", "Timeout Task"),
-      );
+        createSessionCreatedEvent('ses_timeout', 'ses_parent', 'Timeout Task')
+      )
 
       // then
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
       expect(logSpy).toHaveBeenCalledWith(
-        "[tmux-session-manager] session readiness failed before spawn",
+        '[tmux-session-manager] session readiness failed before spawn',
         expect.objectContaining({
-          sessionId: "ses_timeout",
-          stage: "session.created",
+          sessionId: 'ses_timeout',
+          stage: 'session.created',
           error: String(readinessError),
         }),
-      );
+      )
 
-      logSpy.mockRestore();
-    });
+      logSpy.mockRestore()
+    })
 
     test("skips pane creation when session exists but status is 'error'", async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockWaitForSessionReady.mockImplementationOnce(async () => true);
-      const logSpy = spyOn(sharedModule, "log").mockImplementation(() => {});
+      mockIsInsideTmux.mockReturnValue(true)
+      mockWaitForSessionReady.mockImplementationOnce(async () => true)
+      const logSpy = spyOn(sharedModule, 'log').mockImplementation(() => {})
       const sessionStatusResult = {
         data: {
-          ses_error: { type: "error" },
+          ses_error: { type: 'error' },
         },
-      };
+      }
 
-      const { TmuxSessionManager } = await import("./manager");
+      const { TmuxSessionManager } = await import('./manager')
       const manager = new TmuxSessionManager(
         createMockContext({ sessionStatusResult }),
         createTmuxConfig({ enabled: true }),
         mockTmuxDeps,
-      );
+      )
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_error", "ses_parent", "Errored Session"),
-      );
+        createSessionCreatedEvent('ses_error', 'ses_parent', 'Errored Session')
+      )
 
       // then
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
-      expect(getTrackedSessions(manager).has("ses_error")).toBe(false);
-      expect(getFailedReadinessSessions(manager).has("ses_error")).toBe(true);
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
+      expect(getTrackedSessions(manager).has('ses_error')).toBe(false)
+      expect(getFailedReadinessSessions(manager).has('ses_error')).toBe(true)
       expect(logSpy).toHaveBeenCalledWith(
-        "[tmux-session-manager] session not attachable for pane spawn",
+        '[tmux-session-manager] session not attachable for pane spawn',
         expect.objectContaining({
-          sessionId: "ses_error",
-          stage: "session.created",
-          status: "error",
+          sessionId: 'ses_error',
+          stage: 'session.created',
+          status: 'error',
         }),
-      );
+      )
 
-      logSpy.mockRestore();
-    });
+      logSpy.mockRestore()
+    })
 
-    test("retries pane creation on session.idle after a readiness timeout when status becomes attachable", async () => {
+    test('retries pane creation on session.idle after a readiness timeout when status becomes attachable', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const readinessError = new Error("session readiness timed out");
+      mockIsInsideTmux.mockReturnValue(true)
+      const readinessError = new Error('session readiness timed out')
       mockWaitForSessionReady
         .mockImplementationOnce(async () => {
-          throw readinessError;
+          throw readinessError
         })
-        .mockImplementationOnce(async () => true);
+        .mockImplementationOnce(async () => true)
       const sessionStatusResult = {
         data: {} as Record<string, { type: string }>,
-      };
+      }
 
-      const { TmuxSessionManager } = await import("./manager");
+      const { TmuxSessionManager } = await import('./manager')
       const manager = new TmuxSessionManager(
         createMockContext({ sessionStatusResult }),
         createTmuxConfig({ enabled: true }),
         mockTmuxDeps,
-      );
+      )
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_retry", "ses_parent", "Retry Session"),
-      );
+        createSessionCreatedEvent('ses_retry', 'ses_parent', 'Retry Session')
+      )
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
-      expect(getFailedReadinessSessions(manager).has("ses_retry")).toBe(true);
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
+      expect(getFailedReadinessSessions(manager).has('ses_retry')).toBe(true)
 
       // when
-      sessionStatusResult.data.ses_retry = { type: "idle" };
-      manager.onEvent({
-        type: "session.idle",
-        properties: { sessionID: "ses_retry" },
-      });
-      await flushMicrotasks(20);
+      sessionStatusResult.data.ses_retry = { type: 'idle' }
+      manager.onEvent({ type: 'session.idle', properties: { sessionID: 'ses_retry' } })
+      await flushMicrotasks(20)
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1);
-      expect(getTrackedSessions(manager).has("ses_retry")).toBe(true);
-      expect(getFailedReadinessSessions(manager).has("ses_retry")).toBe(false);
-    });
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1)
+      expect(getTrackedSessions(manager).has('ses_retry')).toBe(true)
+      expect(getFailedReadinessSessions(manager).has('ses_retry')).toBe(false)
+    })
 
-    test("does not retry more than once per sessionID", async () => {
+    test('does not retry more than once per sessionID', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockWaitForSessionReady
         .mockImplementationOnce(async () => {
-          throw new Error("session readiness timed out");
+          throw new Error('session readiness timed out')
         })
-        .mockImplementationOnce(async () => true);
+        .mockImplementationOnce(async () => true)
       const sessionStatusResult = {
         data: {
-          ses_retry_once: { type: "idle" },
+          ses_retry_once: { type: 'idle' },
         },
-      };
+      }
 
-      const { TmuxSessionManager } = await import("./manager");
+      const { TmuxSessionManager } = await import('./manager')
       const manager = new TmuxSessionManager(
         createMockContext({ sessionStatusResult }),
         createTmuxConfig({ enabled: true }),
         mockTmuxDeps,
-      );
+      )
 
       // when
       await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_retry_once",
-          "ses_parent",
-          "Retry Once Session",
-        ),
-      );
-      manager.onEvent({
-        type: "session.idle",
-        properties: { sessionID: "ses_retry_once" },
-      });
-      await flushMicrotasks(20);
+        createSessionCreatedEvent('ses_retry_once', 'ses_parent', 'Retry Once Session')
+      )
+      manager.onEvent({ type: 'session.idle', properties: { sessionID: 'ses_retry_once' } })
+      await flushMicrotasks(20)
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1);
-      expect(getFailedReadinessSessions(manager).has("ses_retry_once")).toBe(
-        false,
-      );
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1)
+      expect(getFailedReadinessSessions(manager).has('ses_retry_once')).toBe(false)
 
       // when
-      manager.onEvent({
-        type: "session.idle",
-        properties: { sessionID: "ses_retry_once" },
-      });
-      await flushMicrotasks(20);
+      manager.onEvent({ type: 'session.idle', properties: { sessionID: 'ses_retry_once' } })
+      await flushMicrotasks(20)
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1);
-    });
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1)
+    })
 
-    test("expires failed readiness sessions after the TTL elapses", async () => {
+    test('expires failed readiness sessions after the TTL elapses', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const nowSpy = spyOn(Date, "now");
-      nowSpy.mockReturnValue(0);
+      mockIsInsideTmux.mockReturnValue(true)
+      const nowSpy = spyOn(Date, 'now')
+      nowSpy.mockReturnValue(0)
       mockWaitForSessionReady.mockImplementationOnce(async () => {
-        throw new Error("session readiness timed out");
-      });
+        throw new Error('session readiness timed out')
+      })
 
-      const { TmuxSessionManager } = await import("./manager");
+      const { TmuxSessionManager } = await import('./manager')
       const manager = new TmuxSessionManager(
-        createMockContext({
-          sessionStatusResult: { data: { ses_expired: { type: "idle" } } },
-        }),
+        createMockContext({ sessionStatusResult: { data: { ses_expired: { type: 'idle' } } } }),
         createTmuxConfig({ enabled: true }),
         mockTmuxDeps,
-      );
+      )
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_expired",
-          "ses_parent",
-          "Expired Retry Session",
-        ),
-      );
-      expect(getFailedReadinessSessions(manager).has("ses_expired")).toBe(true);
+        createSessionCreatedEvent('ses_expired', 'ses_parent', 'Expired Retry Session')
+      )
+      expect(getFailedReadinessSessions(manager).has('ses_expired')).toBe(true)
 
       // when
-      nowSpy.mockReturnValue(5 * 60 * 1000 + 1);
-      manager.onEvent({
-        type: "session.idle",
-        properties: { sessionID: "ses_expired" },
-      });
-      await flushMicrotasks(20);
+      nowSpy.mockReturnValue(5 * 60 * 1000 + 1)
+      manager.onEvent({ type: 'session.idle', properties: { sessionID: 'ses_expired' } })
+      await flushMicrotasks(20)
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
-      expect(getFailedReadinessSessions(manager).has("ses_expired")).toBe(
-        false,
-      );
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
+      expect(getFailedReadinessSessions(manager).has('ses_expired')).toBe(false)
 
-      nowSpy.mockRestore();
-    });
+      nowSpy.mockRestore()
+    })
 
-    test("does not retry failed readiness sessions after polling marked the session closed", async () => {
+    test('does not retry failed readiness sessions after polling marked the session closed', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
 
-      const { TmuxSessionManager } = await import("./manager");
+      const { TmuxSessionManager } = await import('./manager')
       const manager = new TmuxSessionManager(
-        createMockContext({
-          sessionStatusResult: { data: { ses_bounce: { type: "idle" } } },
-        }),
+        createMockContext({ sessionStatusResult: { data: { ses_bounce: { type: 'idle' } } } }),
         createTmuxConfig({ enabled: true }),
         mockTmuxDeps,
-      );
+      )
 
-      getFailedReadinessSessions(manager).set("ses_bounce", {
-        sessionId: "ses_bounce",
-        title: "Bounce Session",
+      getFailedReadinessSessions(manager).set('ses_bounce', {
+        sessionId: 'ses_bounce',
+        title: 'Bounce Session',
         rememberedAt: Date.now(),
-      });
-      Reflect.set(manager, "closedByPolling", new Set(["ses_bounce"]));
+      })
+      Reflect.set(manager, 'closedByPolling', new Set(['ses_bounce']))
 
       // when
-      manager.onEvent({
-        type: "session.idle",
-        properties: { sessionID: "ses_bounce" },
-      });
-      await flushMicrotasks(20);
+      manager.onEvent({ type: 'session.idle', properties: { sessionID: 'ses_bounce' } })
+      await flushMicrotasks(20)
 
       // then
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
-      expect(getFailedReadinessSessions(manager).has("ses_bounce")).toBe(true);
-    });
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
+      expect(getFailedReadinessSessions(manager).has('ses_bounce')).toBe(true)
+    })
 
-    test("#given duplicate session.created triggers while readiness is pending #when readiness resolves #then only one pane spawn runs", async () => {
+    test('#given duplicate session.created triggers while readiness is pending #when readiness resolves #then only one pane spawn runs', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const readiness = createDeferred<boolean>();
-      mockWaitForSessionReady.mockImplementationOnce(
-        async ({ sessionId }: SessionReadyWaitParams) => {
-          const ready = await readiness.promise;
-          if (ready) {
-            readySessions.add(sessionId);
-          }
-          return ready;
-        },
-      );
+      mockIsInsideTmux.mockReturnValue(true)
+      const readiness = createDeferred<boolean>()
+      mockWaitForSessionReady.mockImplementationOnce(async ({ sessionId }: SessionReadyWaitParams) => {
+        const ready = await readiness.promise
+        if (ready) {
+          readySessions.add(sessionId)
+        }
+        return ready
+      })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({ enabled: true }),
-        mockTmuxDeps,
-      );
-      const event = createSessionCreatedEvent(
-        "ses_dup_pending",
-        "ses_parent",
-        "Duplicate Pending",
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({ enabled: true }), mockTmuxDeps)
+      const event = createSessionCreatedEvent('ses_dup_pending', 'ses_parent', 'Duplicate Pending')
 
       // when
-      const firstSpawnPromise = manager.onSessionCreated(event);
-      const secondSpawnPromise = manager.onSessionCreated(event);
-      await flushMicrotasks();
+      const firstSpawnPromise = manager.onSessionCreated(event)
+      const secondSpawnPromise = manager.onSessionCreated(event)
+      await flushMicrotasks()
 
       // then
-      expect(mockWaitForSessionReady).toHaveBeenCalledTimes(1);
-      expect(mockExecuteActions).toHaveBeenCalledTimes(0);
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0);
+      expect(mockWaitForSessionReady).toHaveBeenCalledTimes(1)
+      expect(mockExecuteActions).toHaveBeenCalledTimes(0)
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(0)
 
       // when
-      readiness.resolve(true);
-      await Promise.all([firstSpawnPromise, secondSpawnPromise]);
+      readiness.resolve(true)
+      await Promise.all([firstSpawnPromise, secondSpawnPromise])
 
       // then
-      expect(mockWaitForSessionReady).toHaveBeenCalledTimes(1);
-      expect(mockExecuteActions).toHaveBeenCalledTimes(1);
-      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1);
-      expect(getTrackedSessions(manager).has("ses_dup_pending")).toBe(true);
-    });
-  });
+      expect(mockWaitForSessionReady).toHaveBeenCalledTimes(1)
+      expect(mockExecuteActions).toHaveBeenCalledTimes(1)
+      expect(mockSpawnTmuxPane).toHaveBeenCalledTimes(1)
+      expect(getTrackedSessions(manager).has('ses_dup_pending')).toBe(true)
+    })
+  })
 
-  describe("onSessionDeleted", () => {
-    test("does nothing when session creation stopped before tracking due to readiness failure", async () => {
+  describe('onSessionDeleted', () => {
+    test('does nothing when session creation stopped before tracking due to readiness failure', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockWaitForSessionReady.mockImplementationOnce(async () => {
-        throw new Error("readiness failed");
-      });
+        throw new Error('readiness failed')
+      })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_timeout", "ses_parent", "Timeout Task"),
-      );
-      mockExecuteAction.mockClear();
+        createSessionCreatedEvent('ses_timeout', 'ses_parent', 'Timeout Task')
+      )
+      mockExecuteAction.mockClear()
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_timeout" });
+      await manager.onSessionDeleted({ sessionID: 'ses_timeout' })
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(0);
-    });
+      expect(mockExecuteAction).toHaveBeenCalledTimes(0)
+    })
 
-    test("closes pane when tracked session is deleted", async () => {
+    test('closes pane when tracked session is deleted', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
 
-      let stateCallCount = 0;
+      let stateCallCount = 0
       mockQueryWindowState.mockImplementation(async () => {
-        stateCallCount++;
+        stateCallCount++
         if (stateCallCount === 1) {
-          return createWindowState();
+          return createWindowState()
         }
         return createWindowState({
           agentPanes: [
             {
-              paneId: "%mock",
+              paneId: '%mock',
               width: 40,
               height: 44,
               left: 100,
               top: 0,
-              title: "omo-subagent-Task",
+              title: 'omo-subagent-Task',
               isActive: false,
             },
           ],
-        });
-      });
+        })
+      })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
         createSessionCreatedEvent(
-          "ses_child",
-          "ses_parent",
-          "Background: Test Task",
-        ),
-      );
-      mockExecuteAction.mockClear();
+          'ses_child',
+          'ses_parent',
+          'Background: Test Task'
+        )
+      )
+      mockExecuteAction.mockClear()
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_child" });
+      await manager.onSessionDeleted({ sessionID: 'ses_child' })
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(1);
-      const call = mockExecuteAction.mock.calls[0];
-      expect(call).toBeDefined();
+      expect(mockExecuteAction).toHaveBeenCalledTimes(1)
+      const call = mockExecuteAction.mock.calls[0]
+      expect(call).toBeDefined()
       expect(call![0]).toEqual({
-        type: "close",
-        paneId: "%mock",
-        sessionId: "ses_child",
-      });
-    });
+        type: 'close',
+        paneId: '%mock',
+        sessionId: 'ses_child',
+      })
+    })
 
-    test("#given session isolation with a spawned container #when the first isolated subagent is deleted #then it cleans up the isolated container and clears the anchor pane id", async () => {
+    test('#given session isolation with a spawned container #when the first isolated subagent is deleted #then it cleans up the isolated container and clears the anchor pane id', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
 
-      let stateCallCount = 0;
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        stateCallCount++;
-
-        if (paneId === "%isolated-session-ses_first") {
-          return createWindowState({
-            mainPane: {
-              paneId,
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-          });
-        }
-
-        if (stateCallCount === 1) {
-          return createWindowState();
-        }
-
+      let stateCallCount = 0
+      mockQueryWindowState.mockImplementation(async (paneId: string) => { stateCallCount++
+      
+      if (paneId === '%isolated-session-ses_first') {
         return createWindowState({
           mainPane: {
-            paneId: "%isolated-session-ses_first",
+            paneId,
             width: 110,
             height: 44,
             left: 0,
             top: 0,
-            title: "isolated",
+            title: 'isolated',
             isActive: true,
           },
-        });
-      });
+        })
+      }
+      
+      if (stateCallCount === 1) {
+        return createWindowState()
+      }
+      
+      return createWindowState({
+        mainPane: {
+          paneId: '%isolated-session-ses_first',
+          width: 110,
+          height: 44,
+          left: 0,
+          top: 0,
+          title: 'isolated',
+          isActive: true,
+        },
+      }) })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        isolation: "session",
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      isolation: 'session',
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
-      mockExecuteAction.mockClear();
+        createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task')
+      )
+      mockExecuteAction.mockClear()
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_first" });
+      await manager.onSessionDeleted({ sessionID: 'ses_first' })
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(1);
+      expect(mockExecuteAction).toHaveBeenCalledTimes(1)
       expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_first",
-      });
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBeUndefined();
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBeUndefined();
-    });
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_first',
+      })
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBeUndefined()
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBeUndefined()
+    })
 
-    test("#given window isolation with a spawned container #when the first isolated subagent is deleted #then it cleans up the isolated container and clears the anchor pane id", async () => {
+    test('#given window isolation with a spawned container #when the first isolated subagent is deleted #then it cleans up the isolated container and clears the anchor pane id', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
 
-      let stateCallCount = 0;
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        stateCallCount += 1;
-
-        if (paneId === "%isolated-window-ses_first") {
-          return createWindowState({
-            mainPane: {
-              paneId,
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-          });
-        }
-
-        if (stateCallCount === 1) {
-          return createWindowState();
-        }
-
+      let stateCallCount = 0
+      mockQueryWindowState.mockImplementation(async (paneId: string) => { stateCallCount += 1
+      
+      if (paneId === '%isolated-window-ses_first') {
         return createWindowState({
           mainPane: {
-            paneId: "%isolated-window-ses_first",
+            paneId,
             width: 110,
             height: 44,
             left: 0,
             top: 0,
-            title: "isolated",
+            title: 'isolated',
             isActive: true,
           },
-        });
-      });
+        })
+      }
+      
+      if (stateCallCount === 1) {
+        return createWindowState()
+      }
+      
+      return createWindowState({
+        mainPane: {
+          paneId: '%isolated-window-ses_first',
+          width: 110,
+          height: 44,
+          left: 0,
+          top: 0,
+          title: 'isolated',
+          isActive: true,
+        },
+      }) })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        isolation: "window",
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      isolation: 'window',
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
-      mockExecuteAction.mockClear();
+        createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task')
+      )
+      mockExecuteAction.mockClear()
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_first" });
+      await manager.onSessionDeleted({ sessionID: 'ses_first' })
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(1);
+      expect(mockExecuteAction).toHaveBeenCalledTimes(1)
       expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-window-ses_first",
-        sessionId: "ses_first",
-      });
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBeUndefined();
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBeUndefined();
-    });
+        type: 'close',
+        paneId: '%isolated-window-ses_first',
+        sessionId: 'ses_first',
+      })
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBeUndefined()
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBeUndefined()
+    })
 
-    test("#given session isolation with another subagent still tracked #when the anchor subagent is deleted first #then it reassigns the anchor and cleans up when the last subagent exits", async () => {
+    test('#given session isolation with another subagent still tracked #when the anchor subagent is deleted first #then it reassigns the anchor and cleans up when the last subagent exits', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        if (paneId === "%isolated-session-ses_first") {
-          return createWindowState({
-            mainPane: {
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async (paneId: string) => { if (paneId === '%isolated-session-ses_first') {
+        return createWindowState({
+          mainPane: {
+            paneId,
+            width: 110,
+            height: 44,
+            left: 0,
+            top: 0,
+            title: 'isolated',
+            isActive: true,
+          },
+          agentPanes: [
+            {
+              paneId: '%mock',
+              width: 40,
+              height: 44,
+              left: 110,
+              top: 0,
+              title: 'omo-subagent-Second Task',
+              isActive: false,
+            },
+          ],
+        })
+      }
+      
+      if (paneId === '%mock') {
+        return createWindowState({
+          mainPane: {
+            paneId: '%isolated-session-ses_first',
+            width: 110,
+            height: 44,
+            left: 0,
+            top: 0,
+            title: 'isolated',
+            isActive: true,
+          },
+          agentPanes: [
+            {
               paneId,
-              width: 110,
+              width: 40,
               height: 44,
-              left: 0,
+              left: 110,
               top: 0,
-              title: "isolated",
-              isActive: true,
+              title: 'omo-subagent-Second Task',
+              isActive: false,
             },
-            agentPanes: [
-              {
-                paneId: "%mock",
-                width: 40,
-                height: 44,
-                left: 110,
-                top: 0,
-                title: "omo-subagent-Second Task",
-                isActive: false,
-              },
-            ],
-          });
-        }
+          ],
+        })
+      }
+      
+      return createWindowState() })
 
-        if (paneId === "%mock") {
-          return createWindowState({
-            mainPane: {
-              paneId: "%isolated-session-ses_first",
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-            agentPanes: [
-              {
-                paneId,
-                width: 40,
-                height: 44,
-                left: 110,
-                top: 0,
-                title: "omo-subagent-Second Task",
-                isActive: false,
-              },
-            ],
-          });
-        }
-
-        return createWindowState();
-      });
-
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
-        enabled: true,
-        isolation: "session",
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      isolation: 'session',
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
 
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
+        createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task')
+      )
       await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-      );
+        createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task')
+      )
 
-      mockExecuteAction.mockClear();
-
-      // when
-      await manager.onSessionDeleted({ sessionID: "ses_first" });
-
-      // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(0);
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBe(
-        "%isolated-session-ses_first",
-      );
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBe("%mock");
+      mockExecuteAction.mockClear()
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_second" });
+      await manager.onSessionDeleted({ sessionID: 'ses_first' })
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(2);
+      expect(mockExecuteAction).toHaveBeenCalledTimes(0)
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBe('%isolated-session-ses_first')
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBe('%mock')
+
+      // when
+      await manager.onSessionDeleted({ sessionID: 'ses_second' })
+
+      // then
+      expect(mockExecuteAction).toHaveBeenCalledTimes(2)
       expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
-        type: "close",
-        paneId: "%mock",
-        sessionId: "ses_second",
-      });
+        type: 'close',
+        paneId: '%mock',
+        sessionId: 'ses_second',
+      })
       expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_second",
-      });
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBeUndefined();
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBeUndefined();
-    });
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_second',
+      })
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBeUndefined()
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBeUndefined()
+    })
 
-    test("#given window isolation with another subagent still tracked #when the anchor subagent is deleted first #then it reassigns the anchor and cleans up when the last subagent exits", async () => {
+    test('#given window isolation with another subagent still tracked #when the anchor subagent is deleted first #then it reassigns the anchor and cleans up when the last subagent exits', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        if (paneId === "%isolated-window-ses_first") {
-          return createWindowState({
-            mainPane: {
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async (paneId: string) => { if (paneId === '%isolated-window-ses_first') {
+        return createWindowState({
+          mainPane: {
+            paneId,
+            width: 110,
+            height: 44,
+            left: 0,
+            top: 0,
+            title: 'isolated',
+            isActive: true,
+          },
+          agentPanes: [
+            {
+              paneId: '%mock',
+              width: 40,
+              height: 44,
+              left: 110,
+              top: 0,
+              title: 'omo-subagent-Second Task',
+              isActive: false,
+            },
+          ],
+        })
+      }
+      
+      if (paneId === '%mock') {
+        return createWindowState({
+          mainPane: {
+            paneId: '%isolated-window-ses_first',
+            width: 110,
+            height: 44,
+            left: 0,
+            top: 0,
+            title: 'isolated',
+            isActive: true,
+          },
+          agentPanes: [
+            {
               paneId,
-              width: 110,
+              width: 40,
               height: 44,
-              left: 0,
+              left: 110,
               top: 0,
-              title: "isolated",
-              isActive: true,
+              title: 'omo-subagent-Second Task',
+              isActive: false,
             },
-            agentPanes: [
-              {
-                paneId: "%mock",
-                width: 40,
-                height: 44,
-                left: 110,
-                top: 0,
-                title: "omo-subagent-Second Task",
-                isActive: false,
-              },
-            ],
-          });
-        }
+          ],
+        })
+      }
+      
+      return createWindowState() })
 
-        if (paneId === "%mock") {
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      isolation: 'window',
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
+
+      await manager.onSessionCreated(
+        createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task')
+      )
+      await manager.onSessionCreated(
+        createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task')
+      )
+
+      mockExecuteAction.mockClear()
+
+      // when
+      await manager.onSessionDeleted({ sessionID: 'ses_first' })
+
+      // then
+      expect(mockExecuteAction).toHaveBeenCalledTimes(0)
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBe('%isolated-window-ses_first')
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBe('%mock')
+
+      // when
+      await manager.onSessionDeleted({ sessionID: 'ses_second' })
+
+      // then
+      expect(mockExecuteAction).toHaveBeenCalledTimes(2)
+      expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
+        type: 'close',
+        paneId: '%mock',
+        sessionId: 'ses_second',
+      })
+      expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
+        type: 'close',
+        paneId: '%isolated-window-ses_first',
+        sessionId: 'ses_second',
+      })
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBeUndefined()
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBeUndefined()
+    })
+
+    test('does nothing when untracked session is deleted', async () => {
+      // given
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
+
+      // when
+      await manager.onSessionDeleted({ sessionID: 'ses_unknown' })
+
+      // then
+      expect(mockExecuteAction).toHaveBeenCalledTimes(0)
+    })
+  })
+
+  describe('cleanup', () => {
+    test('#given session isolation with two tracked panes #when polling closes both sessions #then it reassigns the anchor and cleans up the isolated container', async () => {
+      // given
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async (paneId: string) => {
+        if (paneId === '%isolated-session-ses_first') {
           return createWindowState({
             mainPane: {
-              paneId: "%isolated-window-ses_first",
+              paneId: '%isolated-session-ses_first',
               width: 110,
               height: 44,
               left: 0,
               top: 0,
-              title: "isolated",
+              title: 'isolated',
               isActive: true,
             },
             agentPanes: [
               {
-                paneId,
+                paneId: '%mock',
                 width: 40,
                 height: 44,
                 left: 110,
                 top: 0,
-                title: "omo-subagent-Second Task",
+                title: 'omo-subagent-Second Task',
                 isActive: false,
               },
             ],
-          });
+          })
         }
 
-        return createWindowState();
-      });
+        if (paneId === '%mock') {
+          return createWindowState({
+            mainPane: {
+              paneId: '%isolated-session-ses_first',
+              width: 110,
+              height: 44,
+              left: 0,
+              top: 0,
+              title: 'isolated',
+              isActive: true,
+            },
+            agentPanes: [
+              {
+                paneId: '%mock',
+                width: 40,
+                height: 44,
+                left: 110,
+                top: 0,
+                title: 'omo-subagent-Second Task',
+                isActive: false,
+              },
+            ],
+          })
+        }
 
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
+        return createWindowState()
+      })
+
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
         enabled: true,
-        isolation: "window",
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        isolation: 'session',
+      }), mockTmuxDeps)
 
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task'))
+      mockExecuteAction.mockClear()
 
-      mockExecuteAction.mockClear();
+      const closeSessionById = Reflect.get(manager, 'closeSessionById') as (sessionId: string) => Promise<void>
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_first" });
+      await closeSessionById.call(manager, 'ses_first')
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(0);
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBe(
-        "%isolated-window-ses_first",
-      );
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBe("%mock");
-
-      // when
-      await manager.onSessionDeleted({ sessionID: "ses_second" });
-
-      // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(2);
       expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
-        type: "close",
-        paneId: "%mock",
-        sessionId: "ses_second",
-      });
-      expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-window-ses_first",
-        sessionId: "ses_second",
-      });
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBeUndefined();
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBeUndefined();
-    });
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_first',
+      })
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBe('%isolated-session-ses_first')
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBe('%mock')
 
-    test("does nothing when untracked session is deleted", async () => {
+      // when
+      await closeSessionById.call(manager, 'ses_second')
+
+      // then
+      expect(mockExecuteAction).toHaveBeenCalledTimes(3)
+      expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
+        type: 'close',
+        paneId: '%mock',
+        sessionId: 'ses_second',
+      })
+      expect(mockExecuteAction.mock.calls[2]?.[0]).toEqual({
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_second',
+      })
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBeUndefined()
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBeUndefined()
+    })
+
+    test('#given session isolation with two tracked panes #when process shutdown cleanup runs #then it closes panes and the isolated container through the shared close path', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async (paneId: string) => {
+        if (paneId === '%isolated-session-ses_first') {
+          return createWindowState({
+            mainPane: {
+              paneId: '%isolated-session-ses_first',
+              width: 110,
+              height: 44,
+              left: 0,
+              top: 0,
+              title: 'isolated',
+              isActive: true,
+            },
+            agentPanes: [
+              {
+                paneId: '%mock',
+                width: 40,
+                height: 44,
+                left: 110,
+                top: 0,
+                title: 'omo-subagent-Second Task',
+                isActive: false,
+              },
+            ],
+          })
+        }
+
+        if (paneId === '%mock') {
+          return createWindowState({
+            mainPane: {
+              paneId: '%isolated-session-ses_first',
+              width: 110,
+              height: 44,
+              left: 0,
+              top: 0,
+              title: 'isolated',
+              isActive: true,
+            },
+            agentPanes: [
+              {
+                paneId: '%mock',
+                width: 40,
+                height: 44,
+                left: 110,
+                top: 0,
+                title: 'omo-subagent-Second Task',
+                isActive: false,
+              },
+            ],
+          })
+        }
+
+        return createWindowState()
+      })
+
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
         enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        isolation: 'session',
+      }), mockTmuxDeps)
+
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task'))
+      mockExecuteAction.mockClear()
 
       // when
-      await manager.onSessionDeleted({ sessionID: "ses_unknown" });
+      await manager.cleanup()
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(0);
-    });
-  });
-
-  describe("cleanup", () => {
-    test("#given session isolation with two tracked panes #when polling closes both sessions #then it reassigns the anchor and cleans up the isolated container", async () => {
-      // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        if (paneId === "%isolated-session-ses_first") {
-          return createWindowState({
-            mainPane: {
-              paneId: "%isolated-session-ses_first",
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-            agentPanes: [
-              {
-                paneId: "%mock",
-                width: 40,
-                height: 44,
-                left: 110,
-                top: 0,
-                title: "omo-subagent-Second Task",
-                isActive: false,
-              },
-            ],
-          });
-        }
-
-        if (paneId === "%mock") {
-          return createWindowState({
-            mainPane: {
-              paneId: "%isolated-session-ses_first",
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-            agentPanes: [
-              {
-                paneId: "%mock",
-                width: 40,
-                height: 44,
-                left: 110,
-                top: 0,
-                title: "omo-subagent-Second Task",
-                isActive: false,
-              },
-            ],
-          });
-        }
-
-        return createWindowState();
-      });
-
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
-
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-      );
-      mockExecuteAction.mockClear();
-
-      const closeSessionById = Reflect.get(manager, "closeSessionById") as (
-        sessionId: string,
-      ) => Promise<void>;
-
-      // when
-      await closeSessionById.call(manager, "ses_first");
-
-      // then
+      expect(mockExecuteAction).toHaveBeenCalledTimes(3)
       expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_first",
-      });
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBe(
-        "%isolated-session-ses_first",
-      );
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBe("%mock");
-
-      // when
-      await closeSessionById.call(manager, "ses_second");
-
-      // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(3);
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_first',
+      })
       expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
-        type: "close",
-        paneId: "%mock",
-        sessionId: "ses_second",
-      });
+        type: 'close',
+        paneId: '%mock',
+        sessionId: 'ses_second',
+      })
       expect(mockExecuteAction.mock.calls[2]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_second",
-      });
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBeUndefined();
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBeUndefined();
-    });
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_second',
+      })
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBeUndefined()
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBeUndefined()
+    })
 
-    test("#given session isolation with two tracked panes #when process shutdown cleanup runs #then it closes panes and the isolated container through the shared close path", async () => {
+    test('#given an isolated anchor close that fails once #when retryPendingCloses succeeds on retry #then it reassigns the isolated anchor through the shared cleanup path', async () => {
       // given
-      mockIsInsideTmux.mockReturnValue(true);
+      mockIsInsideTmux.mockReturnValue(true)
       mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        if (paneId === "%isolated-session-ses_first") {
+        if (paneId === '%isolated-session-ses_first') {
           return createWindowState({
             mainPane: {
-              paneId: "%isolated-session-ses_first",
+              paneId: '%isolated-session-ses_first',
               width: 110,
               height: 44,
               left: 0,
               top: 0,
-              title: "isolated",
+              title: 'isolated',
               isActive: true,
             },
             agentPanes: [
               {
-                paneId: "%mock",
+                paneId: '%mock',
                 width: 40,
                 height: 44,
                 left: 110,
                 top: 0,
-                title: "omo-subagent-Second Task",
+                title: 'omo-subagent-Second Task',
                 isActive: false,
               },
             ],
-          });
+          })
         }
 
-        if (paneId === "%mock") {
-          return createWindowState({
-            mainPane: {
-              paneId: "%isolated-session-ses_first",
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-            agentPanes: [
-              {
-                paneId: "%mock",
-                width: 40,
-                height: 44,
-                left: 110,
-                top: 0,
-                title: "omo-subagent-Second Task",
-                isActive: false,
-              },
-            ],
-          });
-        }
+        return createWindowState()
+      })
 
-        return createWindowState();
-      });
-
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
-
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-      );
-      mockExecuteAction.mockClear();
-
-      // when
-      await manager.cleanup();
-
-      // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(3);
-      expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_first",
-      });
-      expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
-        type: "close",
-        paneId: "%mock",
-        sessionId: "ses_second",
-      });
-      expect(mockExecuteAction.mock.calls[2]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_second",
-      });
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBeUndefined();
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBeUndefined();
-    });
-
-    test("#given an isolated anchor close that fails once #when retryPendingCloses succeeds on retry #then it reassigns the isolated anchor through the shared cleanup path", async () => {
-      // given
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async (paneId: string) => {
-        if (paneId === "%isolated-session-ses_first") {
-          return createWindowState({
-            mainPane: {
-              paneId: "%isolated-session-ses_first",
-              width: 110,
-              height: 44,
-              left: 0,
-              top: 0,
-              title: "isolated",
-              isActive: true,
-            },
-            agentPanes: [
-              {
-                paneId: "%mock",
-                width: 40,
-                height: 44,
-                left: 110,
-                top: 0,
-                title: "omo-subagent-Second Task",
-                isActive: false,
-              },
-            ],
-          });
-        }
-
-        return createWindowState();
-      });
-
-      let closeAttemptCount = 0;
+      let closeAttemptCount = 0
       mockExecuteAction.mockImplementation(async (action: PaneAction) => {
-        if (action.type === "close" && action.sessionId === "ses_first") {
-          closeAttemptCount += 1;
+        if (action.type === 'close' && action.sessionId === 'ses_first') {
+          closeAttemptCount += 1
           if (closeAttemptCount === 1) {
-            return { success: false };
+            return { success: false }
           }
         }
 
-        return { success: true };
-      });
+        return { success: true }
+      })
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
-
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First Task"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second Task"),
-      );
-      mockExecuteAction.mockClear();
-
-      const closeSessionById = Reflect.get(manager, "closeSessionById") as (
-        sessionId: string,
-      ) => Promise<void>;
-      const retryPendingCloses = Reflect.get(
-        manager,
-        "retryPendingCloses",
-      ) as () => Promise<void>;
-
-      // when
-      await closeSessionById.call(manager, "ses_first");
-
-      // then
-      expect(getTrackedSessions(manager).get("ses_first")?.closePending).toBe(
-        true,
-      );
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBe(
-        "%isolated-session-ses_first",
-      );
-
-      // when
-      await retryPendingCloses.call(manager);
-
-      // then
-      expect(getTrackedSessions(manager).has("ses_first")).toBe(false);
-      expect(Reflect.get(manager, "isolatedContainerPaneId")).toBe(
-        "%isolated-session-ses_first",
-      );
-      expect(Reflect.get(manager, "isolatedWindowPaneId")).toBe("%mock");
-      expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_first",
-      });
-      expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
-        type: "close",
-        paneId: "%isolated-session-ses_first",
-        sessionId: "ses_first",
-      });
-    });
-
-    test("closes all tracked panes", async () => {
-      // given
-      mockIsInsideTmux.mockReturnValue(true);
-
-      let callCount = 0;
-      mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => {
-        callCount++;
-        for (const action of actions) {
-          if (action.type === "spawn") {
-            trackedSessions.add(action.sessionId);
-          }
-        }
-        return {
-          success: true,
-          spawnedPaneId: `%${callCount}`,
-          results: [],
-        };
-      });
-
-      const { TmuxSessionManager } = await import("./manager");
-      const ctx = createMockContext();
-      const config = createTmuxConfig({
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
         enabled: true,
-        layout: "main-vertical",
-        main_pane_size: 60,
-        main_pane_min_width: 80,
-        agent_pane_min_width: 40,
-      });
-      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps);
+        isolation: 'session',
+      }), mockTmuxDeps)
 
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_1", "ses_parent", "Task 1"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_2", "ses_parent", "Task 2"),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_first', 'ses_parent', 'First Task'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_second', 'ses_parent', 'Second Task'))
+      mockExecuteAction.mockClear()
 
-      mockExecuteAction.mockClear();
+      const closeSessionById = Reflect.get(manager, 'closeSessionById') as (sessionId: string) => Promise<void>
+      const retryPendingCloses = Reflect.get(manager, 'retryPendingCloses') as () => Promise<void>
 
       // when
-      await manager.cleanup();
+      await closeSessionById.call(manager, 'ses_first')
 
       // then
-      expect(mockExecuteAction).toHaveBeenCalledTimes(2);
-    });
+      expect(getTrackedSessions(manager).get('ses_first')?.closePending).toBe(true)
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBe('%isolated-session-ses_first')
+
+      // when
+      await retryPendingCloses.call(manager)
+
+      // then
+      expect(getTrackedSessions(manager).has('ses_first')).toBe(false)
+      expect(Reflect.get(manager, 'isolatedContainerPaneId')).toBe('%isolated-session-ses_first')
+      expect(Reflect.get(manager, 'isolatedWindowPaneId')).toBe('%mock')
+      expect(mockExecuteAction.mock.calls[0]?.[0]).toEqual({
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_first',
+      })
+      expect(mockExecuteAction.mock.calls[1]?.[0]).toEqual({
+        type: 'close',
+        paneId: '%isolated-session-ses_first',
+        sessionId: 'ses_first',
+      })
+    })
+
+    test('closes all tracked panes', async () => {
+      // given
+      mockIsInsideTmux.mockReturnValue(true)
+
+      let callCount = 0
+      mockExecuteActions.mockImplementation(async (actions: PaneAction[]) => { callCount++
+      for (const action of actions) {
+        if (action.type === 'spawn') {
+          trackedSessions.add(action.sessionId)
+        }
+      }
+      return {
+        success: true,
+        spawnedPaneId: `%${callCount}`,
+        results: [],
+      } })
+
+      const { TmuxSessionManager } = await import('./manager')
+      const ctx = createMockContext()
+      const config = createTmuxConfig({ enabled: true,
+      layout: 'main-vertical',
+      main_pane_size: 60,
+      main_pane_min_width: 80,
+      agent_pane_min_width: 40, })
+      const manager = new TmuxSessionManager(ctx, config, mockTmuxDeps)
+
+      await manager.onSessionCreated(
+        createSessionCreatedEvent('ses_1', 'ses_parent', 'Task 1')
+      )
+      await manager.onSessionCreated(
+        createSessionCreatedEvent('ses_2', 'ses_parent', 'Task 2')
+      )
+
+      mockExecuteAction.mockClear()
+
+      // when
+      await manager.cleanup()
+
+      // then
+      expect(mockExecuteAction).toHaveBeenCalledTimes(2)
+    })
 
     test('#given tmux isolation is "session" #when cleanup runs #then killTmuxSessionIfExists is invoked for the per-pid isolated session', async () => {
       // given
-      mockKillTmuxSessionIfExists.mockClear();
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
+      mockKillTmuxSessionIfExists.mockClear()
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'session',
+      }), mockTmuxDeps)
 
       // when
-      await manager.cleanup();
+      await manager.cleanup()
 
       // then
-      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(1);
-      expect(mockKillTmuxSessionIfExists.mock.calls[0]?.[0]).toMatch(
-        /^omo-agents-\d+$/,
-      );
-    });
+      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(1)
+      expect(mockKillTmuxSessionIfExists.mock.calls[0]?.[0]).toMatch(/^omo-agents-\d+$/)
+    })
 
-    test("#given two manager instances #when both cleanup #then each kills its own isolated session name, not a shared one", async () => {
+    test('#given two manager instances #when both cleanup #then each kills its own isolated session name, not a shared one', async () => {
       // given
-      mockKillTmuxSessionIfExists.mockClear();
-      const { TmuxSessionManager } = await import("./manager");
-      const managerA = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
-      const managerB = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
+      mockKillTmuxSessionIfExists.mockClear()
+      const { TmuxSessionManager } = await import('./manager')
+      const managerA = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'session',
+      }), mockTmuxDeps)
+      const managerB = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'session',
+      }), mockTmuxDeps)
 
       // when
-      await managerA.cleanup();
-      await managerB.cleanup();
+      await managerA.cleanup()
+      await managerB.cleanup()
 
       // then
-      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(2);
-      const firstTarget = mockKillTmuxSessionIfExists.mock.calls[0]?.[0];
-      const secondTarget = mockKillTmuxSessionIfExists.mock.calls[1]?.[0];
-      expect(firstTarget).toMatch(/^omo-agents-\d+$/);
-      expect(secondTarget).toMatch(/^omo-agents-\d+$/);
-    });
+      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(2)
+      const firstTarget = mockKillTmuxSessionIfExists.mock.calls[0]?.[0]
+      const secondTarget = mockKillTmuxSessionIfExists.mock.calls[1]?.[0]
+      expect(firstTarget).toMatch(/^omo-agents-\d+$/)
+      expect(secondTarget).toMatch(/^omo-agents-\d+$/)
+    })
 
     test('#given tmux isolation is "inline" #when cleanup runs #then killTmuxSessionIfExists is NOT invoked', async () => {
       // given
-      mockKillTmuxSessionIfExists.mockClear();
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "inline",
-        }),
-        mockTmuxDeps,
-      );
+      mockKillTmuxSessionIfExists.mockClear()
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'inline',
+      }), mockTmuxDeps)
 
       // when
-      await manager.cleanup();
+      await manager.cleanup()
 
       // then
-      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(0);
-    });
+      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(0)
+    })
 
     test('#given tmux isolation is "window" #when cleanup runs #then killTmuxSessionIfExists is NOT invoked', async () => {
       // given
-      mockKillTmuxSessionIfExists.mockClear();
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "window",
-        }),
-        mockTmuxDeps,
-      );
+      mockKillTmuxSessionIfExists.mockClear()
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'window',
+      }), mockTmuxDeps)
 
       // when
-      await manager.cleanup();
+      await manager.cleanup()
 
       // then
-      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(0);
-    });
+      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(0)
+    })
 
-    test("#given inline isolation #when the first subagent session is created #then stale OMO attach sweep runs once", async () => {
+    test('#given inline isolation #when the first subagent session is created #then stale OMO attach sweep runs once', async () => {
       // given
-      mockSweepStaleOmoAgentSessions.mockClear();
-      mockSweepStaleOmoAttachPanes.mockClear();
-      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 0);
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "inline",
-        }),
-        mockTmuxDeps,
-      );
+      mockSweepStaleOmoAgentSessions.mockClear()
+      mockSweepStaleOmoAttachPanes.mockClear()
+      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 0)
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'inline',
+      }), mockTmuxDeps)
 
       // when
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_inline_a", "ses_parent", "A"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_inline_b", "ses_parent", "B"),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_inline_a', 'ses_parent', 'A'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_inline_b', 'ses_parent', 'B'))
 
       // then
-      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0);
-      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1);
-    });
+      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0)
+      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1)
+    })
 
-    test("#given window isolation #when the first subagent session is created #then stale OMO attach sweep runs once", async () => {
+    test('#given window isolation #when the first subagent session is created #then stale OMO attach sweep runs once', async () => {
       // given
-      mockSweepStaleOmoAgentSessions.mockClear();
-      mockSweepStaleOmoAttachPanes.mockClear();
-      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 0);
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "window",
-        }),
-        mockTmuxDeps,
-      );
+      mockSweepStaleOmoAgentSessions.mockClear()
+      mockSweepStaleOmoAttachPanes.mockClear()
+      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 0)
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'window',
+      }), mockTmuxDeps)
 
       // when
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_window_a", "ses_parent", "A"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_window_b", "ses_parent", "B"),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_window_a', 'ses_parent', 'A'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_window_b', 'ses_parent', 'B'))
 
       // then
-      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0);
-      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1);
-    });
+      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0)
+      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1)
+    })
 
-    test("#given sweepStaleOmoAgentSessions throws on first onSessionCreated #when second onSessionCreated fires #then sweep is retried instead of skipped forever", async () => {
+    test('#given sweepStaleOmoAgentSessions throws on first onSessionCreated #when second onSessionCreated fires #then sweep is retried instead of skipped forever', async () => {
       // given
-      mockSweepStaleOmoAgentSessions.mockClear();
+      mockSweepStaleOmoAgentSessions.mockClear()
       mockSweepStaleOmoAgentSessions.mockImplementationOnce(async () => {
-        throw new Error("simulated sweep failure");
-      });
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
+        throw new Error('simulated sweep failure')
+      })
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'session',
+      }), mockTmuxDeps)
 
       // when
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_first", "ses_parent", "First"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_second", "ses_parent", "Second"),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_first', 'ses_parent', 'First'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_second', 'ses_parent', 'Second'))
 
       // then
-      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(2);
-    });
+      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(2)
+    })
 
-    test("#given sweepStaleOmoAgentSessions succeeds #when additional onSessionCreated events fire in same process #then sweep runs exactly once", async () => {
+    test('#given sweepStaleOmoAgentSessions succeeds #when additional onSessionCreated events fire in same process #then sweep runs exactly once', async () => {
       // given
-      mockSweepStaleOmoAgentSessions.mockClear();
-      mockSweepStaleOmoAgentSessions.mockImplementation(async () => 0);
-      mockSweepStaleOmoAttachPanes.mockClear();
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
+      mockSweepStaleOmoAgentSessions.mockClear()
+      mockSweepStaleOmoAgentSessions.mockImplementation(async () => 0)
+      mockSweepStaleOmoAttachPanes.mockClear()
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'session',
+      }), mockTmuxDeps)
 
       // when
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_a", "ses_parent", "A"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_b", "ses_parent", "B"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_c", "ses_parent", "C"),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_a', 'ses_parent', 'A'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_b', 'ses_parent', 'B'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_c', 'ses_parent', 'C'))
 
       // then
-      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(1);
-    });
+      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(1)
+    })
 
-    test("#given inline isolation #when onSessionCreated runs #then stale OMO attach panes are swept once without isolated session sweep", async () => {
+    test('#given inline isolation #when onSessionCreated runs #then stale OMO attach panes are swept once without isolated session sweep', async () => {
       // given
-      mockSweepStaleOmoAgentSessions.mockClear();
-      mockSweepStaleOmoAttachPanes.mockClear();
-      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 1);
-      mockIsInsideTmux.mockReturnValue(true);
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "inline",
-        }),
-        mockTmuxDeps,
-      );
+      mockSweepStaleOmoAgentSessions.mockClear()
+      mockSweepStaleOmoAttachPanes.mockClear()
+      mockSweepStaleOmoAttachPanes.mockImplementation(async () => 1)
+      mockIsInsideTmux.mockReturnValue(true)
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'inline',
+      }), mockTmuxDeps)
 
       // when
-      await manager.onSessionCreated(
-        createSessionCreatedEvent("ses_inline", "ses_parent", "Inline"),
-      );
-      await manager.onSessionCreated(
-        createSessionCreatedEvent(
-          "ses_inline_second",
-          "ses_parent",
-          "Inline Second",
-        ),
-      );
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_inline', 'ses_parent', 'Inline'))
+      await manager.onSessionCreated(createSessionCreatedEvent('ses_inline_second', 'ses_parent', 'Inline Second'))
 
       // then
-      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0);
-      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1);
-    });
+      expect(mockSweepStaleOmoAgentSessions).toHaveBeenCalledTimes(0)
+      expect(mockSweepStaleOmoAttachPanes).toHaveBeenCalledTimes(1)
+    })
 
-    test("#given killTmuxSessionIfExists throws #when cleanup runs #then cleanup still completes without throwing", async () => {
+    test('#given killTmuxSessionIfExists throws #when cleanup runs #then cleanup still completes without throwing', async () => {
       // given
-      mockKillTmuxSessionIfExists.mockClear();
+      mockKillTmuxSessionIfExists.mockClear()
       mockKillTmuxSessionIfExists.mockImplementationOnce(async () => {
-        throw new Error("simulated teardown failure");
-      });
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({
-          enabled: true,
-          isolation: "session",
-        }),
-        mockTmuxDeps,
-      );
+        throw new Error('simulated teardown failure')
+      })
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({
+        enabled: true,
+        isolation: 'session',
+      }), mockTmuxDeps)
 
       // when
-      const cleanupPromise = manager.cleanup();
+      const cleanupPromise = manager.cleanup()
 
       // then
-      const cleanupResult = await cleanupPromise;
-      expect(cleanupResult).toBeUndefined();
-      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(1);
-    });
-  });
+      const cleanupResult = await cleanupPromise
+      expect(cleanupResult).toBeUndefined()
+      expect(mockKillTmuxSessionIfExists).toHaveBeenCalledTimes(1)
+    })
+  })
 
-  describe("retryPendingCloses zombie pane recovery via cooldown", () => {
-    test("stamps a close-retry cooldown on the tracked session when the pane refuses to die after max retries", async () => {
+  describe('retryPendingCloses zombie pane recovery via cooldown', () => {
+    test('stamps a close-retry cooldown on the tracked session when the pane refuses to die after max retries', async () => {
       // given - direct-seed the zombie state: pending close, retries
       // already at MAX, pane still visible in window state. The maintainer
       // explicitly chose to keep the session in `this.sessions` here for
@@ -3441,96 +2928,58 @@ describe("TmuxSessionManager", () => {
       // After this change: the entry stays in the map AND finalize stamps
       // `closeRetryCooldownUntil` so a future pass can reset state and
       // let polling re-queue the close.
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async () =>
-        createWindowState({
-          agentPanes: [
-            {
-              paneId: "%stuck",
-              width: 40,
-              height: 44,
-              left: 110,
-              top: 0,
-              title: "omo-subagent-zombie",
-              isActive: false,
-            },
-          ],
-        })
-      );
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async () => createWindowState({
+        agentPanes: [
+          { paneId: '%stuck', width: 40, height: 44, left: 110, top: 0, title: 'omo-subagent-zombie', isActive: false },
+        ],
+      }))
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({ enabled: true }),
-        mockTmuxDeps,
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({ enabled: true }), mockTmuxDeps)
 
-      const internalSessions = Reflect.get(manager, "sessions") as Map<
-        string,
-        Record<string, unknown>
-      >;
-      internalSessions.set("ses_zombie", {
-        sessionId: "ses_zombie",
-        paneId: "%stuck",
-        description: "zombie",
+      const internalSessions = Reflect.get(manager, 'sessions') as Map<string, Record<string, unknown>>
+      internalSessions.set('ses_zombie', {
+        sessionId: 'ses_zombie',
+        paneId: '%stuck',
+        description: 'zombie',
         closePending: true,
         closeRetryCount: 3, // MAX_CLOSE_RETRY_COUNT
         createdAt: new Date(),
         lastSeenAt: new Date(),
         activityVersion: 0,
         attachActivated: false,
-      });
+      })
 
       // when
-      const retryPendingCloses = Reflect.get(
-        manager,
-        "retryPendingCloses",
-      ) as () => Promise<void>;
-      await retryPendingCloses.call(manager);
+      const retryPendingCloses = Reflect.get(manager, 'retryPendingCloses') as () => Promise<void>
+      await retryPendingCloses.call(manager)
 
       // then - session stays tracked (maintainer's intent), cooldown is set.
-      expect(internalSessions.has("ses_zombie")).toBe(true);
-      const stamped = internalSessions.get("ses_zombie");
-      expect(stamped?.closeRetryCooldownUntil).toBeInstanceOf(Date);
-      const cooldownMs = (stamped?.closeRetryCooldownUntil as Date).getTime() -
-        Date.now();
-      expect(cooldownMs).toBeGreaterThan(0);
-    });
+      expect(internalSessions.has('ses_zombie')).toBe(true)
+      const stamped = internalSessions.get('ses_zombie')
+      expect(stamped?.closeRetryCooldownUntil).toBeInstanceOf(Date)
+      const cooldownMs = (stamped?.closeRetryCooldownUntil as Date).getTime() - Date.now()
+      expect(cooldownMs).toBeGreaterThan(0)
+    })
 
-    test("resets retry state once the cooldown elapses so polling can re-queue the close", async () => {
+    test('resets retry state once the cooldown elapses so polling can re-queue the close', async () => {
       // given - same setup, but cooldown stamped in the past.
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async () =>
-        createWindowState({
-          agentPanes: [
-            {
-              paneId: "%stuck",
-              width: 40,
-              height: 44,
-              left: 110,
-              top: 0,
-              title: "omo-subagent-zombie",
-              isActive: false,
-            },
-          ],
-        })
-      );
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async () => createWindowState({
+        agentPanes: [
+          { paneId: '%stuck', width: 40, height: 44, left: 110, top: 0, title: 'omo-subagent-zombie', isActive: false },
+        ],
+      }))
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({ enabled: true }),
-        mockTmuxDeps,
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({ enabled: true }), mockTmuxDeps)
 
-      const internalSessions = Reflect.get(manager, "sessions") as Map<
-        string,
-        Record<string, unknown>
-      >;
-      internalSessions.set("ses_zombie", {
-        sessionId: "ses_zombie",
-        paneId: "%stuck",
-        description: "zombie",
+      const internalSessions = Reflect.get(manager, 'sessions') as Map<string, Record<string, unknown>>
+      internalSessions.set('ses_zombie', {
+        sessionId: 'ses_zombie',
+        paneId: '%stuck',
+        description: 'zombie',
         closePending: true,
         closeRetryCount: 3,
         closeRetryCooldownUntil: new Date(Date.now() - 1_000), // already elapsed
@@ -3538,58 +2987,38 @@ describe("TmuxSessionManager", () => {
         lastSeenAt: new Date(),
         activityVersion: 0,
         attachActivated: false,
-      });
+      })
 
       // when
-      const retryPendingCloses = Reflect.get(
-        manager,
-        "retryPendingCloses",
-      ) as () => Promise<void>;
-      await retryPendingCloses.call(manager);
+      const retryPendingCloses = Reflect.get(manager, 'retryPendingCloses') as () => Promise<void>
+      await retryPendingCloses.call(manager)
 
       // then - retry state reset; polling's next pass can re-queue
       // (closePending=false, counter back at 0, cooldown cleared).
-      const refreshed = internalSessions.get("ses_zombie");
-      expect(refreshed?.closePending).toBe(false);
-      expect(refreshed?.closeRetryCount).toBe(0);
-      expect(refreshed?.closeRetryCooldownUntil).toBeUndefined();
-    });
+      const refreshed = internalSessions.get('ses_zombie')
+      expect(refreshed?.closePending).toBe(false)
+      expect(refreshed?.closeRetryCount).toBe(0)
+      expect(refreshed?.closeRetryCooldownUntil).toBeUndefined()
+    })
 
-    test("does not reset retry state while the cooldown is still active", async () => {
+    test('does not reset retry state while the cooldown is still active', async () => {
       // given - cooldown stamped in the future.
-      mockIsInsideTmux.mockReturnValue(true);
-      mockQueryWindowState.mockImplementation(async () =>
-        createWindowState({
-          agentPanes: [
-            {
-              paneId: "%stuck",
-              width: 40,
-              height: 44,
-              left: 110,
-              top: 0,
-              title: "omo-subagent-zombie",
-              isActive: false,
-            },
-          ],
-        })
-      );
+      mockIsInsideTmux.mockReturnValue(true)
+      mockQueryWindowState.mockImplementation(async () => createWindowState({
+        agentPanes: [
+          { paneId: '%stuck', width: 40, height: 44, left: 110, top: 0, title: 'omo-subagent-zombie', isActive: false },
+        ],
+      }))
 
-      const { TmuxSessionManager } = await import("./manager");
-      const manager = new TmuxSessionManager(
-        createMockContext(),
-        createTmuxConfig({ enabled: true }),
-        mockTmuxDeps,
-      );
+      const { TmuxSessionManager } = await import('./manager')
+      const manager = new TmuxSessionManager(createMockContext(), createTmuxConfig({ enabled: true }), mockTmuxDeps)
 
-      const futureCooldown = new Date(Date.now() + 10 * 60 * 1000);
-      const internalSessions = Reflect.get(manager, "sessions") as Map<
-        string,
-        Record<string, unknown>
-      >;
-      internalSessions.set("ses_zombie", {
-        sessionId: "ses_zombie",
-        paneId: "%stuck",
-        description: "zombie",
+      const futureCooldown = new Date(Date.now() + 10 * 60 * 1000)
+      const internalSessions = Reflect.get(manager, 'sessions') as Map<string, Record<string, unknown>>
+      internalSessions.set('ses_zombie', {
+        sessionId: 'ses_zombie',
+        paneId: '%stuck',
+        description: 'zombie',
         closePending: true,
         closeRetryCount: 3,
         closeRetryCooldownUntil: futureCooldown,
@@ -3597,172 +3026,166 @@ describe("TmuxSessionManager", () => {
         lastSeenAt: new Date(),
         activityVersion: 0,
         attachActivated: false,
-      });
+      })
 
       // when
-      const retryPendingCloses = Reflect.get(
-        manager,
-        "retryPendingCloses",
-      ) as () => Promise<void>;
-      await retryPendingCloses.call(manager);
+      const retryPendingCloses = Reflect.get(manager, 'retryPendingCloses') as () => Promise<void>
+      await retryPendingCloses.call(manager)
 
       // then - state unchanged; we wait for the cooldown.
-      const same = internalSessions.get("ses_zombie");
-      expect(same?.closePending).toBe(true);
-      expect(same?.closeRetryCount).toBe(3);
-      expect(same?.closeRetryCooldownUntil).toBe(futureCooldown);
-    });
-  });
-});
+      const same = internalSessions.get('ses_zombie')
+      expect(same?.closePending).toBe(true)
+      expect(same?.closeRetryCount).toBe(3)
+      expect(same?.closeRetryCooldownUntil).toBe(futureCooldown)
+    })
+  })
 
-describe("DecisionEngine", () => {
-  describe("calculateCapacity", () => {
-    test("calculates correct 2D grid capacity", async () => {
+})
+
+describe('DecisionEngine', () => {
+  describe('calculateCapacity', () => {
+    test('calculates correct 2D grid capacity', async () => {
       // given
-      const { calculateCapacity } = await import("./decision-engine");
+      const { calculateCapacity } = await import('./decision-engine')
 
       // when
-      const result = calculateCapacity(212, 44);
+      const result = calculateCapacity(212, 44)
 
       // then - availableWidth=106, cols=(106+1)/(52+1)=2, rows=(44+1)/(11+1)=3 (accounting for dividers)
-      expect(result.cols).toBe(2);
-      expect(result.rows).toBe(3);
-      expect(result.total).toBe(6);
-    });
+      expect(result.cols).toBe(2)
+      expect(result.rows).toBe(3)
+      expect(result.total).toBe(6)
+    })
 
-    test("returns 0 cols when agent area too narrow", async () => {
+    test('returns 0 cols when agent area too narrow', async () => {
       // given
-      const { calculateCapacity } = await import("./decision-engine");
+      const { calculateCapacity } = await import('./decision-engine')
 
       // when
-      const result = calculateCapacity(100, 44);
+      const result = calculateCapacity(100, 44)
 
       // then - availableWidth=50, cols=50/53=0
-      expect(result.cols).toBe(0);
-      expect(result.total).toBe(0);
-    });
-  });
+      expect(result.cols).toBe(0)
+      expect(result.total).toBe(0)
+    })
+  })
 
-  describe("decideSpawnActions", () => {
-    test("returns spawn action with splitDirection when under capacity", async () => {
+  describe('decideSpawnActions', () => {
+    test('returns spawn action with splitDirection when under capacity', async () => {
       // given
-      const { decideSpawnActions } = await import("./decision-engine");
+      const { decideSpawnActions } = await import('./decision-engine')
       const state: WindowState = {
         windowWidth: 212,
         windowHeight: 44,
         mainPane: {
-          paneId: "%0",
+          paneId: '%0',
           width: 106,
           height: 44,
           left: 0,
           top: 0,
-          title: "main",
+          title: 'main',
           isActive: true,
         },
         agentPanes: [],
-      };
+      }
 
       // when
       const decision = decideSpawnActions(
         state,
-        "ses_1",
-        "Test Task",
+        'ses_1',
+        'Test Task',
         { mainPaneMinWidth: 120, agentPaneWidth: 40 },
-        [],
-      );
+        []
+      )
 
       // then
-      expect(decision.canSpawn).toBe(true);
-      expect(decision.actions).toHaveLength(1);
-      expect(decision.actions[0].type).toBe("spawn");
-      if (decision.actions[0].type === "spawn") {
-        expect(decision.actions[0].sessionId).toBe("ses_1");
-        expect(decision.actions[0].description).toBe("Test Task");
-        expect(decision.actions[0].targetPaneId).toBe("%0");
-        expect(decision.actions[0].splitDirection).toBe("-h");
+      expect(decision.canSpawn).toBe(true)
+      expect(decision.actions).toHaveLength(1)
+      expect(decision.actions[0].type).toBe('spawn')
+      if (decision.actions[0].type === 'spawn') {
+        expect(decision.actions[0].sessionId).toBe('ses_1')
+        expect(decision.actions[0].description).toBe('Test Task')
+        expect(decision.actions[0].targetPaneId).toBe('%0')
+        expect(decision.actions[0].splitDirection).toBe('-h')
       }
-    });
+    })
 
-    test("returns canSpawn=false when split not possible", async () => {
+    test('returns canSpawn=false when split not possible', async () => {
       // given - small window where split is never possible
-      const { decideSpawnActions } = await import("./decision-engine");
+      const { decideSpawnActions } = await import('./decision-engine')
       const state: WindowState = {
         windowWidth: 160,
         windowHeight: 11,
         mainPane: {
-          paneId: "%0",
+          paneId: '%0',
           width: 80,
           height: 11,
           left: 0,
           top: 0,
-          title: "main",
+          title: 'main',
           isActive: true,
         },
         agentPanes: [
           {
-            paneId: "%1",
+            paneId: '%1',
             width: 80,
             height: 11,
             left: 80,
             top: 0,
-            title: "omo-subagent-Old",
+            title: 'omo-subagent-Old',
             isActive: false,
           },
         ],
-      };
+      }
       const sessionMappings = [
-        {
-          sessionId: "ses_old",
-          paneId: "%1",
-          createdAt: new Date("2024-01-01"),
-        },
-      ];
+        { sessionId: 'ses_old', paneId: '%1', createdAt: new Date('2024-01-01') },
+      ]
 
       // when
       const decision = decideSpawnActions(
         state,
-        "ses_new",
-        "New Task",
+        'ses_new',
+        'New Task',
         { mainPaneMinWidth: 120, agentPaneWidth: 40 },
-        sessionMappings,
-      );
+        sessionMappings
+      )
 
       // then - agent area (80) < MIN_SPLIT_WIDTH (105), so attach is deferred
-      expect(decision.canSpawn).toBe(false);
-      expect(decision.actions).toHaveLength(0);
-      expect(decision.reason).toContain("defer");
-    });
+      expect(decision.canSpawn).toBe(false)
+      expect(decision.actions).toHaveLength(0)
+      expect(decision.reason).toContain('defer')
+    })
 
-    test("returns canSpawn=false when window too small", async () => {
+    test('returns canSpawn=false when window too small', async () => {
       // given
-      const { decideSpawnActions } = await import("./decision-engine");
+      const { decideSpawnActions } = await import('./decision-engine')
       const state: WindowState = {
         windowWidth: 60,
         windowHeight: 5,
         mainPane: {
-          paneId: "%0",
+          paneId: '%0',
           width: 30,
           height: 5,
           left: 0,
           top: 0,
-          title: "main",
+          title: 'main',
           isActive: true,
         },
         agentPanes: [],
-      };
+      }
 
       // when
       const decision = decideSpawnActions(
         state,
-        "ses_1",
-        "Test Task",
+        'ses_1',
+        'Test Task',
         { mainPaneMinWidth: 120, agentPaneWidth: 40 },
-        [],
-      );
+        []
+      )
 
       // then
-      expect(decision.canSpawn).toBe(false);
-      expect(decision.reason).toContain("too small");
-    });
-  });
-});
+      expect(decision.canSpawn).toBe(false)
+      expect(decision.reason).toContain('too small')
+    })
+  })
+})

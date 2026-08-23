@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test";
-import { OmoConfigSchema } from "../index";
+import { describe, expect, test } from "bun:test"
+import { OmoConfigSchema } from "../index"
 
 describe("omo config schema", () => {
   test("#given a full omo config #when parsed #then task defaults and deprecated category keys normalize", () => {
@@ -45,83 +45,78 @@ describe("omo config schema", () => {
       teams: {
         builders: {
           description: "Build team",
-          members: [{
-            name: "quick-one",
-            kind: "category",
-            category: "quick",
-            prompt: "Help",
-          }],
+          members: [{ name: "quick-one", kind: "category", category: "quick", prompt: "Help" }],
         },
       },
-    };
+    }
 
     // when
-    const result = OmoConfigSchema.safeParse(config);
+    const result = OmoConfigSchema.safeParse(config)
 
     // then
-    expect(result.success).toBe(true);
-    if (!result.success) throw new Error(result.error.message);
-    expect(result.data.codegraph?.daemon).toBe(true);
-    expect(result.data.task?.default_execution_mode).toBe("in-process");
-    expect(result.data.task?.default_concurrency).toBe(5);
-    expect(result.data.task?.residency_max_children).toBe(8);
-    expect(result.data.categories?.deep?.max_tokens).toBe(12000);
-    expect(result.data.categories?.deep?.reasoning).toBe("high");
+    expect(result.success).toBe(true)
+    if (!result.success) throw new Error(result.error.message)
+    expect(result.data.codegraph?.daemon).toBe(true)
+    expect(result.data.task?.default_execution_mode).toBe("in-process")
+    expect(result.data.task?.default_concurrency).toBe(5)
+    expect(result.data.task?.residency_max_children).toBe(8)
+    expect(result.data.categories?.deep?.max_tokens).toBe(12000)
+    expect(result.data.categories?.deep?.reasoning).toBe("high")
     expect(result.data.categories?.deep?.provider_options).toEqual({
       thinking: { type: "enabled", budgetTokens: 2048 },
       textVerbosity: "medium",
-    });
-  });
+    })
+  })
 
   test("#given an empty codegraph config #when parsed #then daemon defaults on", () => {
     // given
-    const config = { codegraph: {} };
+    const config = { codegraph: {} }
 
     // when
-    const result = OmoConfigSchema.safeParse(config);
+    const result = OmoConfigSchema.safeParse(config)
 
     // then
-    expect(result.success).toBe(true);
-    if (!result.success) throw new Error(result.error.message);
-    expect(result.data.codegraph?.daemon).toBe(true);
-  });
+    expect(result.success).toBe(true)
+    if (!result.success) throw new Error(result.error.message)
+    expect(result.data.codegraph?.daemon).toBe(true)
+  })
 
   test("#given an unknown root key #when parsed #then the schema rejects the config", () => {
     // given
-    const config = { unknown_section: true };
+    const config = { unknown_section: true }
 
     // when
-    const result = OmoConfigSchema.safeParse(config);
+    const result = OmoConfigSchema.safeParse(config)
 
     // then
-    expect(result.success).toBe(false);
-  });
+    expect(result.success).toBe(false)
+  })
 
   test("#given a wrong typed codegraph daemon setting #when parsed #then the issue path identifies the bad field", () => {
     // given
-    const config = { codegraph: { daemon: "yes" } };
+    const config = { codegraph: { daemon: "yes" } }
 
     // when
-    const result = OmoConfigSchema.safeParse(config);
+    const result = OmoConfigSchema.safeParse(config)
 
     // then
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error("Expected config parsing to fail");
-    const issuePaths = result.error.issues.map((issue) => issue.path.join("."));
-    expect(issuePaths).toContain("codegraph.daemon");
-  });
+    expect(result.success).toBe(false)
+    if (result.success) throw new Error("Expected config parsing to fail")
+    const issuePaths = result.error.issues.map((issue) => issue.path.join("."))
+    expect(issuePaths).toContain("codegraph.daemon")
+  })
 
   test("#given a wrong typed task setting #when parsed #then the issue path identifies the bad field", () => {
     // given
-    const config = { task: { default_concurrency: "five" } };
+    const config = { task: { default_concurrency: "five" } }
 
     // when
-    const result = OmoConfigSchema.safeParse(config);
+    const result = OmoConfigSchema.safeParse(config)
 
     // then
-    expect(result.success).toBe(false);
-    if (result.success) throw new Error("Expected config parsing to fail");
-    const issuePaths = result.error.issues.map((issue) => issue.path.join("."));
-    expect(issuePaths).toContain("task.default_concurrency");
-  });
-});
+    expect(result.success).toBe(false)
+    if (result.success) throw new Error("Expected config parsing to fail")
+    const issuePaths = result.error.issues.map((issue) => issue.path.join("."))
+    expect(issuePaths).toContain("task.default_concurrency")
+  })
+})

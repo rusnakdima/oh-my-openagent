@@ -1,16 +1,16 @@
-import { describe, expect, test } from "bun:test";
-import { ZodError } from "zod";
+import { describe, expect, test } from "bun:test"
+import { ZodError } from "zod"
 
-import { MonitorConfigSchema } from "./monitor";
+import { MonitorConfigSchema } from "./monitor"
 
 describe("MonitorConfigSchema", () => {
   describe("#given empty input", () => {
     test("#when parsed #then it returns all monitor defaults", () => {
       // given
-      const input = {};
+      const input = {}
 
       // when
-      const result = MonitorConfigSchema.parse(input);
+      const result = MonitorConfigSchema.parse(input)
 
       // then
       expect(result).toEqual({
@@ -24,51 +24,51 @@ describe("MonitorConfigSchema", () => {
         ring_max_lines: 1000,
         line_max_bytes: 8192,
         pattern_max_length: 512,
-      });
-    });
-  });
+      })
+    })
+  })
 
   describe("#given flush_interval_ms is below minimum", () => {
     test("#when parsed #then it throws ZodError", () => {
       // given
-      const input = { flush_interval_ms: 10 };
+      const input = { flush_interval_ms: 10 }
 
       // when
-      let thrownError: unknown;
+      let thrownError: unknown
       try {
-        MonitorConfigSchema.parse(input);
+        MonitorConfigSchema.parse(input)
       } catch (error) {
-        thrownError = error;
+        thrownError = error
       }
 
       // then
-      expect(thrownError).toBeInstanceOf(ZodError);
-    });
-  });
+      expect(thrownError).toBeInstanceOf(ZodError)
+    })
+  })
 
   describe("#given enabled is omitted", () => {
     test("#when parsed #then enabled defaults to false", () => {
       // given
-      const input = { live_mode_enabled: true };
+      const input = { live_mode_enabled: true }
 
       // when
-      const result = MonitorConfigSchema.parse(input);
+      const result = MonitorConfigSchema.parse(input)
 
       // then
-      expect(result.enabled).toBe(false);
-    });
-  });
+      expect(result.enabled).toBe(false)
+    })
+  })
 
   describe("#given allowed_commands contains strings", () => {
     test("#when parsed #then it returns the string array", () => {
       // given
-      const input = { allowed_commands: ["bun", "npm"] };
+      const input = { allowed_commands: ["bun", "npm"] }
 
       // when
-      const result = MonitorConfigSchema.parse(input);
+      const result = MonitorConfigSchema.parse(input)
 
       // then
-      expect(result.allowed_commands).toEqual(["bun", "npm"]);
-    });
-  });
-});
+      expect(result.allowed_commands).toEqual(["bun", "npm"])
+    })
+  })
+})

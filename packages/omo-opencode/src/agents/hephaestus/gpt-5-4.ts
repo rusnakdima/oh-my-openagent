@@ -24,20 +24,20 @@
 import { GPT_APPLY_PATCH_GUIDANCE } from "../gpt-apply-patch-guard";
 import type {
   AvailableAgent,
-  AvailableCategory,
-  AvailableSkill,
   AvailableTool,
+  AvailableSkill,
+  AvailableCategory,
 } from "../dynamic-agent-prompt-builder";
 import {
-  buildAntiDuplicationSection,
-  buildAntiPatternsSection,
+  buildKeyTriggersSection,
+  buildToolSelectionTable,
+  buildExploreSection,
+  buildLibrarianSection,
   buildCategorySkillsDelegationGuide,
   buildDelegationTable,
-  buildExploreSection,
   buildHardBlocksSection,
-  buildKeyTriggersSection,
-  buildLibrarianSection,
-  buildToolSelectionTable,
+  buildAntiPatternsSection,
+  buildAntiDuplicationSection,
 } from "../dynamic-agent-prompt-builder";
 
 function buildTodoDisciplineSection(useTaskSystem: boolean): string {
@@ -321,9 +321,7 @@ Every \`task()\` output includes a continuation ID (\`ses_...\`). Use it for all
 
 This preserves full context, avoids repeated exploration, saves 70%+ tokens.
 </session_continuity>
-${
-    hasOracle
-      ? `
+${hasOracle ? `
 <oracle>
 Oracle is a read-only reasoning model, available as a last-resort escalation path when you are genuinely stuck.
 
@@ -339,9 +337,7 @@ Do not consult Oracle:
 - On your first or second attempt at any task
 
 If you do consult Oracle, announce "Consulting Oracle for [reason]" before invocation. Collect Oracle results before your final answer. Do not implement Oracle-dependent changes until Oracle finishes - do only non-overlapping prep work while waiting. Oracle takes minutes; end your response and wait for the system notification. Never poll, never cancel Oracle.
-</oracle>`
-      : ""
-  }
+</oracle>` : ""}
 </delegation>`;
 
   const communicationBlock = `<communication>

@@ -2,12 +2,7 @@ export const CODEX_COMPONENT_NOTICE_REQUIREMENTS = [
   {
     path: "packages/omo-codex/plugin/components/codegraph",
     requiredFiles: ["LICENSE", "NOTICE", "NODE-RUNTIME-LICENSES.md"],
-    requiredTerms: [
-      "@colbymchenry/codegraph",
-      "Node.js v24.16.0 runtime",
-      "NODE-RUNTIME-LICENSES.md",
-      "MIT license",
-    ],
+    requiredTerms: ["@colbymchenry/codegraph", "Node.js v24.16.0 runtime", "NODE-RUNTIME-LICENSES.md", "MIT license"],
     forbiddenTerms: ["packages/omo-codex/THIRD-PARTY-NOTICES.md"],
   },
   {
@@ -38,4 +33,4 @@ export const CODEX_COMPONENT_NOTICE_REQUIREMENTS = [
     path: "packages/omo-codex/plugin/components/ulw-loop",
     requiredTerms: [],
   },
-];
+]

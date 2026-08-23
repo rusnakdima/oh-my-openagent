@@ -1,167 +1,155 @@
-import * as fs from "fs";
-import * as os from "os";
-import * as path from "path";
+import * as fs from "fs"
+import * as os from "os"
+import * as path from "path"
 
-export const DEFAULT_MAX_LOG_FILE_SIZE_BYTES = 50 * 1024 * 1024;
-export const DEFAULT_MAX_LOG_FILE_BACKUPS = 2;
-export const DEFAULT_LOG_FLUSH_INTERVAL_MS = 500;
-export const DEFAULT_LOG_BUFFER_SIZE_LIMIT = 50;
+export const DEFAULT_MAX_LOG_FILE_SIZE_BYTES = 50 * 1024 * 1024
+export const DEFAULT_MAX_LOG_FILE_BACKUPS = 2
+export const DEFAULT_LOG_FLUSH_INTERVAL_MS = 500
+export const DEFAULT_LOG_BUFFER_SIZE_LIMIT = 50
 
 export type LoggerTestOverrides = {
-  readonly filePath?: string;
-  readonly maxSizeBytes?: number;
-  readonly maxBackups?: number;
-};
+  readonly filePath?: string
+  readonly maxSizeBytes?: number
+  readonly maxBackups?: number
+}
 
 export type LoggerOptions = {
-  readonly logFileName: string;
-  readonly maxSizeBytes?: number;
-  readonly maxBackups?: number;
-  readonly flushIntervalMs?: number;
-  readonly bufferSizeLimit?: number;
-  readonly resolveLogFilePath?: (logFileName: string) => string;
-};
+  readonly logFileName: string
+  readonly maxSizeBytes?: number
+  readonly maxBackups?: number
+  readonly flushIntervalMs?: number
+  readonly bufferSizeLimit?: number
+  readonly resolveLogFilePath?: (logFileName: string) => string
+}
 
 export type BoundLogger = {
-  readonly log: (message: string, data?: unknown) => void;
-  readonly getLogFilePath: () => string;
-  readonly _setLoggerForTesting: (overrides: LoggerTestOverrides) => void;
-  readonly _resetLoggerForTesting: () => void;
-  readonly _flushForTesting: () => void;
-};
+  readonly log: (message: string, data?: unknown) => void
+  readonly getLogFilePath: () => string
+  readonly _setLoggerForTesting: (overrides: LoggerTestOverrides) => void
+  readonly _resetLoggerForTesting: () => void
+  readonly _flushForTesting: () => void
+}
 
 function defaultLogFilePath(logFileName: string): string {
-  return path.join(os.tmpdir(), logFileName);
+  return path.join(os.tmpdir(), logFileName)
 }
 
 export function createLogger(options: LoggerOptions): BoundLogger {
-  const maxLogFileSizeDefault = options.maxSizeBytes ??
-    DEFAULT_MAX_LOG_FILE_SIZE_BYTES;
-  const maxLogFileBackupsDefault = options.maxBackups ??
-    DEFAULT_MAX_LOG_FILE_BACKUPS;
-  const flushIntervalMs = options.flushIntervalMs ??
-    DEFAULT_LOG_FLUSH_INTERVAL_MS;
-  const bufferSizeLimit = options.bufferSizeLimit ??
-    DEFAULT_LOG_BUFFER_SIZE_LIMIT;
-  const resolveLogFilePath = options.resolveLogFilePath ?? defaultLogFilePath;
-  const initialLogFile = resolveLogFilePath(options.logFileName);
+  const maxLogFileSizeDefault = options.maxSizeBytes ?? DEFAULT_MAX_LOG_FILE_SIZE_BYTES
+  const maxLogFileBackupsDefault = options.maxBackups ?? DEFAULT_MAX_LOG_FILE_BACKUPS
+  const flushIntervalMs = options.flushIntervalMs ?? DEFAULT_LOG_FLUSH_INTERVAL_MS
+  const bufferSizeLimit = options.bufferSizeLimit ?? DEFAULT_LOG_BUFFER_SIZE_LIMIT
+  const resolveLogFilePath = options.resolveLogFilePath ?? defaultLogFilePath
+  const initialLogFile = resolveLogFilePath(options.logFileName)
 
-  let logFile = initialLogFile;
-  let maxLogFileSizeBytes = maxLogFileSizeDefault;
-  let maxLogFileBackups = maxLogFileBackupsDefault;
-  let buffer: Array<{ message: string; data?: unknown }> = [];
-  let flushTimer: ReturnType<typeof setTimeout> | null = null;
+  let logFile = initialLogFile
+  let maxLogFileSizeBytes = maxLogFileSizeDefault
+  let maxLogFileBackups = maxLogFileBackupsDefault
+  let buffer: Array<{ message: string; data?: unknown }> = []
+  let flushTimer: ReturnType<typeof setTimeout> | null = null
 
   function rotateLogFileIfNeeded(): void {
     try {
-      if (!fs.existsSync(logFile)) return;
-      const stats = fs.statSync(logFile);
-      if (stats.size <= maxLogFileSizeBytes) return;
+      if (!fs.existsSync(logFile)) return
+      const stats = fs.statSync(logFile)
+      if (stats.size <= maxLogFileSizeBytes) return
 
-      const oldest = `${logFile}.${maxLogFileBackups}`;
+      const oldest = `${logFile}.${maxLogFileBackups}`
       if (fs.existsSync(oldest)) {
-        fs.unlinkSync(oldest);
+        fs.unlinkSync(oldest)
       }
       for (let i = maxLogFileBackups - 1; i >= 1; i -= 1) {
-        const src = `${logFile}.${i}`;
-        const dst = `${logFile}.${i + 1}`;
+        const src = `${logFile}.${i}`
+        const dst = `${logFile}.${i + 1}`
         if (fs.existsSync(src)) {
-          fs.renameSync(src, dst);
+          fs.renameSync(src, dst)
         }
       }
-      fs.renameSync(logFile, `${logFile}.1`);
+      fs.renameSync(logFile, `${logFile}.1`)
     } catch (error) {
-      if (error instanceof Error) return;
+      if (error instanceof Error) return
     }
   }
 
   function flush(): void {
-    if (buffer.length === 0) return;
+    if (buffer.length === 0) return
     // Serialize lazily — only call JSON.stringify when we are actually writing to disk,
     // not on every log() call. This avoids expensive serialization for entries
     // that might never be flushed (e.g. if the process exits before the flush timer).
-    const entries: string[] = [];
+    const entries: string[] = []
     for (const { message, data } of buffer) {
       try {
-        entries.push(
-          `[${new Date().toISOString()}] ${message}${
-            data ? ` ${JSON.stringify(data)}` : ""
-          }\n`,
-        );
+        entries.push(`[${new Date().toISOString()}] ${message}${data ? ` ${JSON.stringify(data)}` : ""}\n`)
       } catch {
         // Cyclic or otherwise non-serializable data — skip this entry but continue.
         // This preserves the original behaviour where log() swallows serialization errors
         // and the buffer entry is simply dropped on flush failure.
       }
     }
-    const data = entries.join("");
-    buffer = [];
-    if (data.length === 0) return;
+    const data = entries.join("")
+    buffer = []
+    if (data.length === 0) return
     try {
-      fs.appendFileSync(logFile, data);
-      rotateLogFileIfNeeded();
+      fs.appendFileSync(logFile, data)
+      rotateLogFileIfNeeded()
     } catch (error) {
-      if (error instanceof Error) return;
+      if (error instanceof Error) return
     }
   }
 
   function scheduleFlush(): void {
-    if (flushTimer) return;
+    if (flushTimer) return
     flushTimer = setTimeout(() => {
-      flushTimer = null;
-      flush();
-    }, flushIntervalMs);
+      flushTimer = null
+      flush()
+    }, flushIntervalMs)
   }
 
   function log(message: string, data?: unknown): void {
     try {
-      buffer.push({ message, data });
+      buffer.push({ message, data })
       if (buffer.length >= bufferSizeLimit) {
-        flush();
+        flush()
       } else {
-        scheduleFlush();
+        scheduleFlush()
       }
     } catch (error) {
-      if (error instanceof Error) return;
+      if (error instanceof Error) return
     }
   }
 
   function getLogFilePath(): string {
-    return logFile;
+    return logFile
   }
 
   function _setLoggerForTesting(overrides: LoggerTestOverrides): void {
-    buffer = [];
+    buffer = []
     if (flushTimer) {
-      clearTimeout(flushTimer);
-      flushTimer = null;
+      clearTimeout(flushTimer)
+      flushTimer = null
     }
-    if (overrides.filePath !== undefined) logFile = overrides.filePath;
-    if (overrides.maxSizeBytes !== undefined) {
-      maxLogFileSizeBytes = overrides.maxSizeBytes;
-    }
-    if (overrides.maxBackups !== undefined) {
-      maxLogFileBackups = overrides.maxBackups;
-    }
+    if (overrides.filePath !== undefined) logFile = overrides.filePath
+    if (overrides.maxSizeBytes !== undefined) maxLogFileSizeBytes = overrides.maxSizeBytes
+    if (overrides.maxBackups !== undefined) maxLogFileBackups = overrides.maxBackups
   }
 
   function _resetLoggerForTesting(): void {
-    logFile = initialLogFile;
-    maxLogFileSizeBytes = maxLogFileSizeDefault;
-    maxLogFileBackups = maxLogFileBackupsDefault;
-    buffer = [];
+    logFile = initialLogFile
+    maxLogFileSizeBytes = maxLogFileSizeDefault
+    maxLogFileBackups = maxLogFileBackupsDefault
+    buffer = []
     if (flushTimer) {
-      clearTimeout(flushTimer);
-      flushTimer = null;
+      clearTimeout(flushTimer)
+      flushTimer = null
     }
   }
 
   function _flushForTesting(): void {
     if (flushTimer) {
-      clearTimeout(flushTimer);
-      flushTimer = null;
+      clearTimeout(flushTimer)
+      flushTimer = null
     }
-    flush();
+    flush()
   }
 
   return {
@@ -170,5 +158,5 @@ export function createLogger(options: LoggerOptions): BoundLogger {
     _setLoggerForTesting,
     _resetLoggerForTesting,
     _flushForTesting,
-  };
+  }
 }

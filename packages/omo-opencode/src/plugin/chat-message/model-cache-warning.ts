@@ -1,19 +1,19 @@
-import { isModelCacheAvailable, log } from "../../shared";
+import { isModelCacheAvailable, log } from "../../shared"
 
 type TuiClient = {
   readonly showToast: (input: {
     readonly body: {
-      readonly title: string;
-      readonly message: string;
-      readonly variant: "warning";
-      readonly duration: number;
-    };
-  }) => Promise<unknown>;
-};
+      readonly title: string
+      readonly message: string
+      readonly variant: "warning"
+      readonly duration: number
+    }
+  }) => Promise<unknown>
+}
 
 export function notifyWhenModelCacheIsMissing(tui: TuiClient): void {
   if (isModelCacheAvailable()) {
-    return;
+    return
   }
 
   void tui
@@ -29,6 +29,6 @@ export function notifyWhenModelCacheIsMissing(tui: TuiClient): void {
     .catch((error: unknown) => {
       log("[chat-message] Failed to show provider cache warning", {
         error: error instanceof Error ? error.message : String(error),
-      });
-    });
+      })
+    })
 }

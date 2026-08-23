@@ -10,15 +10,13 @@ Pinned upstream commit: `cb00757da9d554591fa78d27aa1854d60a05c4f7`
 
 ## Materialized Files
 
-The build materializes third-party designpowers files into
-`packages/shared-skills/skills/frontend/references/designpowers/vendor/`.
+The build materializes third-party designpowers files into `packages/shared-skills/skills/frontend/references/designpowers/vendor/`.
 
 - `LICENSE` -> `vendor/LICENSE`
 - `agents/*.md` allowlist -> `vendor/agents/`
 - selected `skills/*/SKILL.md` allowlist -> `vendor/skills/*/reference.md`
 
-The materialized `vendor/` directory is ignored in git and included in
-npm/package output through the frontend skill's `.npmignore` behavior.
+The materialized `vendor/` directory is ignored in git and included in npm/package output through the frontend skill's `.npmignore` behavior.
 
 ## Included Upstream Skills
 
@@ -65,9 +63,7 @@ npm/package output through the frontend skill's `.npmignore` behavior.
 
 ## Excluded Upstream Skills
 
-These upstream skills are intentionally excluded because they are
-bridge/state/router integration surfaces that would compete with the existing
-frontend/OpenAgent workflow:
+These upstream skills are intentionally excluded because they are bridge/state/router integration surfaces that would compete with the existing frontend/OpenAgent workflow:
 
 - `figma-bridge`
 - `design-express`
@@ -81,6 +77,4 @@ frontend/OpenAgent workflow:
 
 ## Source Of Truth
 
-The executable path map lives in
-`packages/shared-skills/scripts/designpowers-refs-manifest.mjs` and is consumed
-by `packages/shared-skills/scripts/materialize-frontend-refs.mjs`.
+The executable path map lives in `packages/shared-skills/scripts/designpowers-refs-manifest.mjs` and is consumed by `packages/shared-skills/scripts/materialize-frontend-refs.mjs`.

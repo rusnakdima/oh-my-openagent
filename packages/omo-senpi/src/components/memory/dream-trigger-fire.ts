@@ -1,86 +1,67 @@
-import type {
-  CapturedConversation,
-  DreamOrigin,
-} from "@oh-my-opencode/memory-core";
+import type { CapturedConversation, DreamOrigin } from "@oh-my-opencode/memory-core"
 
-import {
-  computeUnreflectedVolume,
-  selectDreamConversations,
-} from "./dream-selector";
-import {
-  type DreamTriggerSettings,
-  evaluateDreamGates,
-  readLastDreamAtMs,
-} from "./dream-trigger-gates";
-import type {
-  DreamFireOutcome,
-  DreamTriggerSession,
-  ManualDreamRequest,
-} from "./dream-trigger";
+import { computeUnreflectedVolume, selectDreamConversations } from "./dream-selector"
+import { evaluateDreamGates, readLastDreamAtMs, type DreamTriggerSettings } from "./dream-trigger-gates"
+import type { DreamFireOutcome, DreamTriggerSession, ManualDreamRequest } from "./dream-trigger"
 
 export async function fireDream(input: {
-  readonly session: DreamTriggerSession;
-  readonly origin: DreamOrigin;
-  readonly settings: DreamTriggerSettings;
+  readonly session: DreamTriggerSession
+  readonly origin: DreamOrigin
+  readonly settings: DreamTriggerSettings
   readonly request: ManualDreamRequest & {
-    readonly signal?: AbortSignal;
-    readonly deadlineAt?: number;
-  };
-  readonly now: () => number;
-  readonly warnLaunchFailure: (error: unknown) => void;
+    readonly signal?: AbortSignal
+    readonly deadlineAt?: number
+  }
+  readonly now: () => number
+  readonly warnLaunchFailure: (error: unknown) => void
 }): Promise<DreamFireOutcome> {
-  const { session, origin, settings, request, now } = input;
+  const { session, origin, settings, request, now } = input
   const stopped = () =>
-    isAborted(request.signal) ||
-    (request.deadlineAt !== undefined && now() >= request.deadlineAt);
+    isAborted(request.signal)
+    || (request.deadlineAt !== undefined && now() >= request.deadlineAt)
   const decision = await evaluateDreamGates(origin, settings, {
     nowMs: now(),
     lastDreamAtMs: () => readLastDreamAtMs(session.identityPaths.runtime),
-    unreflectedBytes: () =>
-      computeUnreflectedVolume({
-        transcriptsDir: session.identityPaths.transcripts,
-        autoSelectMax: settings.autoSelectMax,
-        autoSelectMaxBytes: settings.autoSelectMaxChars,
-        now: () => new Date(now()),
-      }),
-  });
-  if (!decision.allowed) return { fired: false, rejection: decision.rejection };
-  if (stopped()) return { fired: false, rejection: "aborted" };
-  const selected = origin === "pressure"
-    ? []
-    : request.conversationIds === undefined
-    ? (await selectDreamConversations({
+    unreflectedBytes: () => computeUnreflectedVolume({
       transcriptsDir: session.identityPaths.transcripts,
-      currentConversationId: session.conversationId,
       autoSelectMax: settings.autoSelectMax,
       autoSelectMaxBytes: settings.autoSelectMaxChars,
       now: () => new Date(now()),
-    }, { ...(request.focus === undefined ? {} : { focus: request.focus }) }))
-      .conversationIds
-    : request.conversationIds;
-  if (stopped()) return { fired: false, rejection: "aborted" };
-  const conversationIds: string[] = [];
-  const snapshots: CapturedConversation[] = [];
+    }),
+  })
+  if (!decision.allowed) return { fired: false, rejection: decision.rejection }
+  if (stopped()) return { fired: false, rejection: "aborted" }
+  const selected = origin === "pressure"
+    ? []
+    : request.conversationIds === undefined
+      ? (await selectDreamConversations({
+          transcriptsDir: session.identityPaths.transcripts,
+          currentConversationId: session.conversationId,
+          autoSelectMax: settings.autoSelectMax,
+          autoSelectMaxBytes: settings.autoSelectMaxChars,
+          now: () => new Date(now()),
+        }, { ...(request.focus === undefined ? {} : { focus: request.focus }) })).conversationIds
+      : request.conversationIds
+  if (stopped()) return { fired: false, rejection: "aborted" }
+  const conversationIds: string[] = []
+  const snapshots: CapturedConversation[] = []
   for (const conversationId of selected) {
-    if (stopped()) return { fired: false, rejection: "aborted" };
-    let snapshot;
+    if (stopped()) return { fired: false, rejection: "aborted" }
+    let snapshot
     try {
-      snapshot = await (await session.getJournal(conversationId))
-        .captureReflectionSnapshot(request.signal);
+      snapshot = await (await session.getJournal(conversationId)).captureReflectionSnapshot(request.signal)
     } catch (error) {
-      if (stopped()) return { fired: false, rejection: "aborted" };
-      throw error;
+      if (stopped()) return { fired: false, rejection: "aborted" }
+      throw error
     }
-    if (stopped()) return { fired: false, rejection: "aborted" };
-    if (snapshot === null) continue;
-    conversationIds.push(conversationId);
-    snapshots.push({ conversationId, snapshot });
+    if (stopped()) return { fired: false, rejection: "aborted" }
+    if (snapshot === null) continue
+    conversationIds.push(conversationId)
+    snapshots.push({ conversationId, snapshot })
   }
-  if (origin !== "pressure" && conversationIds.length === 0) {
-    return { fired: false, rejection: "no_unreflected_content" };
-  }
-  if (stopped()) return { fired: false, rejection: "aborted" };
-  let result;
+  if (origin !== "pressure" && conversationIds.length === 0) return { fired: false, rejection: "no_unreflected_content" }
+  if (stopped()) return { fired: false, rejection: "aborted" }
+  let result
   try {
     result = await session.store.tryReserve({
       trigger: "dream",
@@ -88,27 +69,25 @@ export async function fireDream(input: {
       conversationIds,
       snapshots,
       ...(request.focus === undefined ? {} : { focus: request.focus }),
-      ...(request.targetDoc === undefined
-        ? {}
-        : { targetDoc: request.targetDoc }),
-    }, request.signal);
+      ...(request.targetDoc === undefined ? {} : { targetDoc: request.targetDoc }),
+    }, request.signal)
   } catch (error) {
-    if (stopped()) return { fired: false, rejection: "aborted" };
-    throw error;
+    if (stopped()) return { fired: false, rejection: "aborted" }
+    throw error
   }
-  if (stopped()) return { fired: false, rejection: "aborted" };
+  if (stopped()) return { fired: false, rejection: "aborted" }
   if (result.status === "active") {
-    if (stopped()) return { fired: false, rejection: "aborted" };
+    if (stopped()) return { fired: false, rejection: "aborted" }
     try {
-      session.launch(result.run);
+      session.launch(result.run)
     } catch (error: unknown) {
-      input.warnLaunchFailure(error);
+      input.warnLaunchFailure(error)
     }
   }
-  return { fired: true, runId: result.run.runId, status: result.status };
+  return { fired: true, runId: result.run.runId, status: result.status }
 }
 
 /** Live read of the drain signal: AbortSignal.aborted mutates externally, so it is never narrowed. */
 function isAborted(signal: AbortSignal | undefined): boolean {
-  return signal?.aborted === true;
+  return signal?.aborted === true
 }

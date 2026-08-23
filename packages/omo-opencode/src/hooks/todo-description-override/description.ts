@@ -1,5 +1,4 @@
-export const TODOWRITE_DESCRIPTION =
-  `Use this tool to create and manage a structured task list for tracking progress on multi-step work.
+export const TODOWRITE_DESCRIPTION = `Use this tool to create and manage a structured task list for tracking progress on multi-step work.
 
 ## OpenCode Schema Contract
 
@@ -36,4 +35,4 @@ Each todo MUST be a single atomic action completable in 1-3 tool calls. If it ne
 ## Task Management
 - One in_progress at a time. Complete it before starting the next.
 - Mark completed immediately after finishing each item.
-- Skip this tool for single trivial tasks (one-step, obvious action).`;
+- Skip this tool for single trivial tasks (one-step, obvious action).`

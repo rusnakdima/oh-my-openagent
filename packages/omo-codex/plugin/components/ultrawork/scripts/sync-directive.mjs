@@ -4,11 +4,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const componentRoot = dirname(dirname(fileURLToPath(import.meta.url)));
-const codexPromptUrl = new URL(
-  import.meta.resolve(
-    "@oh-my-opencode/prompts-core/prompts/ultrawork/codex.md",
-  ),
-);
+const codexPromptUrl = new URL(import.meta.resolve("@oh-my-opencode/prompts-core/prompts/ultrawork/codex.md"));
 const directivePath = join(componentRoot, "directive.md");
 const skillDirectory = join(componentRoot, "skills", "ultrawork");
 const skillPath = join(skillDirectory, "SKILL.md");

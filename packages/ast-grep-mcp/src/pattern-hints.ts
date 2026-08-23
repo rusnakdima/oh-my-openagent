@@ -32,53 +32,16 @@ export interface MetavarSet {
 // ---- constants: 25 canonical languages + aliases ----
 
 const LANGUAGES = new Set([
-  "bash",
-  "c",
-  "cpp",
-  "csharp",
-  "css",
-  "elixir",
-  "go",
-  "haskell",
-  "html",
-  "java",
-  "javascript",
-  "json",
-  "kotlin",
-  "lua",
-  "nix",
-  "php",
-  "python",
-  "ruby",
-  "rust",
-  "scala",
-  "solidity",
-  "swift",
-  "typescript",
-  "tsx",
-  "yaml",
+  "bash", "c", "cpp", "csharp", "css", "elixir", "go", "haskell", "html",
+  "java", "javascript", "json", "kotlin", "lua", "nix", "php", "python",
+  "ruby", "rust", "scala", "solidity", "swift", "typescript", "tsx", "yaml",
 ]);
 
 const LANG_ALIASES: Record<string, string> = {
-  js: "javascript",
-  jsx: "javascript",
-  ts: "typescript",
-  py: "python",
-  py3: "python",
-  rb: "ruby",
-  rs: "rust",
-  kt: "kotlin",
-  ex: "elixir",
-  hs: "haskell",
-  sh: "bash",
-  zsh: "bash",
-  cc: "cpp",
-  "c++": "cpp",
-  cxx: "cpp",
-  cs: "csharp",
-  yml: "yaml",
-  sol: "solidity",
-  golang: "go",
+  js: "javascript", jsx: "javascript", ts: "typescript", py: "python",
+  py3: "python", rb: "ruby", rs: "rust", kt: "kotlin", ex: "elixir",
+  hs: "haskell", sh: "bash", zsh: "bash", cc: "cpp", "c++": "cpp",
+  cxx: "cpp", cs: "csharp", yml: "yaml", sol: "solidity", golang: "go",
 };
 
 // ---- regex constants ----
@@ -120,8 +83,7 @@ const RE_ANY_METAVAR = /(?<!\$)\$(?!\$)([A-Za-z_][A-Za-z0-9_]*)/g;
 const RE_PY_TRAILING_COLON = /^\s*(?:def|class)\s+\$?\w+[^:]*:\s*$/m;
 // Incomplete function forms: declaration with optional params but NO body braces.
 // Matches both name-only ("function foo") and params-but-no-body ("function foo()").
-const RE_JS_INCOMPLETE =
-  /^\s*(?:async\s+)?function\s+\$?\w+(?:\([^)]*\))?\s*$/m;
+const RE_JS_INCOMPLETE = /^\s*(?:async\s+)?function\s+\$?\w+(?:\([^)]*\))?\s*$/m;
 const RE_GO_INCOMPLETE = /^\s*func\s+\$?\w+(?:\([^)]*\))?\s*$/m;
 const RE_RUST_INCOMPLETE = /^\s*fn\s+\$?\w+(?:\([^)]*\))?\s*$/m;
 
@@ -149,8 +111,7 @@ function isValidPaths(paths: unknown): boolean {
 }
 
 function isValidLimit(limit: unknown): boolean {
-  return typeof limit === "number" && Number.isFinite(limit) &&
-    Number.isInteger(limit) && limit > 0;
+  return typeof limit === "number" && Number.isFinite(limit) && Number.isInteger(limit) && limit > 0;
 }
 
 // ---- public API: extractMetavars ----
@@ -186,11 +147,7 @@ export function validatePatternHints(
   // --- always-reject checks ---
 
   if (pattern.trim().length === 0) {
-    hints.push({
-      code: "PATTERN_EMPTY",
-      severity: "always-reject",
-      message: "Pattern is empty.",
-    });
+    hints.push({ code: "PATTERN_EMPTY", severity: "always-reject", message: "Pattern is empty." });
   }
 
   const canonical = normalizeLanguage(language);
@@ -198,25 +155,16 @@ export function validatePatternHints(
     hints.push({
       code: "LANGUAGE_UNSUPPORTED",
       severity: "always-reject",
-      message:
-        `Language '${language}' is not supported. Use one of the 25 ast-grep languages.`,
+      message: `Language '${language}' is not supported. Use one of the 25 ast-grep languages.`,
     });
   }
 
   if (opts.paths !== undefined && !isValidPaths(opts.paths)) {
-    hints.push({
-      code: "INVALID_PATH",
-      severity: "always-reject",
-      message: "Paths must be a non-empty array of non-empty strings.",
-    });
+    hints.push({ code: "INVALID_PATH", severity: "always-reject", message: "Paths must be a non-empty array of non-empty strings." });
   }
 
   if (opts.limit !== undefined && !isValidLimit(opts.limit)) {
-    hints.push({
-      code: "INVALID_LIMIT",
-      severity: "always-reject",
-      message: "Limit must be a positive finite integer.",
-    });
+    hints.push({ code: "INVALID_LIMIT", severity: "always-reject", message: "Limit must be a positive finite integer." });
   }
 
   // If any always-reject, return immediately
@@ -231,8 +179,7 @@ export function validatePatternHints(
     hints.push({
       code: "REGEX_BACKSLASH_ESCAPE",
       severity: "reject",
-      message:
-        "Backslash escapes (\\w, \\d, \\s, \\b) are regex, not ast-grep. Use $VAR for identifiers.",
+      message: "Backslash escapes (\\w, \\d, \\s, \\b) are regex, not ast-grep. Use $VAR for identifiers.",
     });
   }
 
@@ -240,8 +187,7 @@ export function validatePatternHints(
     hints.push({
       code: "REGEX_DOT_STAR",
       severity: "reject",
-      message:
-        "'.*' and '.+' are regex wildcards. Use $$$ for multiple nodes or $VAR for one.",
+      message: "'.*' and '.+' are regex wildcards. Use $$$ for multiple nodes or $VAR for one.",
     });
   }
 
@@ -249,8 +195,7 @@ export function validatePatternHints(
     hints.push({
       code: "REGEX_CHAR_CLASS",
       severity: "reject",
-      message:
-        "Character classes like [a-z] are regex syntax. ast-grep has no AST equivalent.",
+      message: "Character classes like [a-z] are regex syntax. ast-grep has no AST equivalent.",
     });
   }
 
@@ -259,35 +204,28 @@ export function validatePatternHints(
     hints.push({
       code: "PATTERN_INCOMPLETE_FORM",
       severity: "reject",
-      message:
-        "Python pattern has trailing ':'. Drop the colon: 'def $FUNC($$$)' or 'class $C($$$)'.",
+      message: "Python pattern has trailing ':'. Drop the colon: 'def $FUNC($$$)' or 'class $C($$$)'.",
     });
   }
-  if (
-    (canonical === "javascript" || canonical === "typescript" ||
-      canonical === "tsx") && RE_JS_INCOMPLETE.test(pattern)
-  ) {
+  if ((canonical === "javascript" || canonical === "typescript" || canonical === "tsx") && RE_JS_INCOMPLETE.test(pattern)) {
     hints.push({
       code: "PATTERN_INCOMPLETE_FORM",
       severity: "reject",
-      message:
-        "JS/TS function pattern is incomplete. Add params and body: 'function $NAME($$$) { $$$ }'.",
+      message: "JS/TS function pattern is incomplete. Add params and body: 'function $NAME($$$) { $$$ }'.",
     });
   }
   if (canonical === "go" && RE_GO_INCOMPLETE.test(pattern)) {
     hints.push({
       code: "PATTERN_INCOMPLETE_FORM",
       severity: "reject",
-      message:
-        "Go function pattern is incomplete. Add params and body: 'func $NAME($$$) { $$$ }'.",
+      message: "Go function pattern is incomplete. Add params and body: 'func $NAME($$$) { $$$ }'.",
     });
   }
   if (canonical === "rust" && RE_RUST_INCOMPLETE.test(pattern)) {
     hints.push({
       code: "PATTERN_INCOMPLETE_FORM",
       severity: "reject",
-      message:
-        "Rust fn pattern is incomplete. Add params and body: 'fn $NAME($$$) -> $RET { $$$ }'.",
+      message: "Rust fn pattern is incomplete. Add params and body: 'fn $NAME($$$) -> $RET { $$$ }'.",
     });
   }
 
@@ -295,8 +233,7 @@ export function validatePatternHints(
     hints.push({
       code: "METAVAR_DOUBLE_DOLLAR",
       severity: "reject",
-      message:
-        "$$NAME is invalid. Use $$$NAME for multi-node capture or $NAME for single.",
+      message: "$$NAME is invalid. Use $$$NAME for multi-node capture or $NAME for single.",
     });
   }
 
@@ -310,8 +247,7 @@ export function validatePatternHints(
       hints.push({
         code: "INVALID_METAVAR_NAME",
         severity: "reject",
-        message:
-          `Metavariable name $${name} must be UPPERCASE (e.g. $${name.toUpperCase()}) or use $_ for wildcard.`,
+        message: `Metavariable name $${name} must be UPPERCASE (e.g. $${name.toUpperCase()}) or use $_ for wildcard.`,
       });
       break; // one hint per pattern
     }
@@ -323,8 +259,7 @@ export function validatePatternHints(
     hints.push({
       code: "BARE_ALTERNATION",
       severity: "warn",
-      message:
-        "Literal '|' may be a TS union or bitwise-or. If regex alternation, use separate calls.",
+      message: "Literal '|' may be a TS union or bitwise-or. If regex alternation, use separate calls.",
     });
   }
 
@@ -353,9 +288,7 @@ export function validateRewriteHints(
   const hints = [...patternResult.hints];
 
   // If pattern has always-reject (not PATTERN_HINT_REJECTED), return immediately
-  if (
-    patternResult.rejected && patternResult.code !== "PATTERN_HINT_REJECTED"
-  ) {
+  if (patternResult.rejected && patternResult.code !== "PATTERN_HINT_REJECTED") {
     return patternResult;
   }
 
@@ -385,15 +318,11 @@ export function validateRewriteHints(
     const pMulti = pm.multi.has(name);
     const rSingle = rm.single.has(name);
     const rMulti = rm.multi.has(name);
-    if (
-      (pSingle && !pMulti && rMulti && !rSingle) ||
-      (pMulti && !pSingle && rSingle && !rMulti)
-    ) {
+    if ((pSingle && !pMulti && rMulti && !rSingle) || (pMulti && !pSingle && rSingle && !rMulti)) {
       hints.push({
         code: "REWRITE_CARDINALITY_MISMATCH",
         severity: "always-reject",
-        message:
-          `Metavariable ${name} cardinality mismatch between pattern and rewrite.`,
+        message: `Metavariable ${name} cardinality mismatch between pattern and rewrite.`,
       });
       break;
     }

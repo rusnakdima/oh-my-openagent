@@ -1,24 +1,22 @@
-import type { OmoConfig } from "@oh-my-opencode/omo-config-core";
+import type { OmoConfig } from "@oh-my-opencode/omo-config-core"
 
-import type { TaskManager } from "../../../manager";
-import { createTaskRecord } from "../../../state";
-import type { TaskRecord } from "../../../state";
-import type { SkillResolution, TaskToolContext, TaskToolDeps } from "../types";
+import type { TaskManager } from "../../../manager"
+import { createTaskRecord } from "../../../state"
+import type { TaskRecord } from "../../../state"
+import type { SkillResolution, TaskToolContext, TaskToolDeps } from "../types"
 
-export const OMO_CONFIG: OmoConfig = { categories: {}, agents: {} };
+export const OMO_CONFIG: OmoConfig = { categories: {}, agents: {} }
 
 export const CTX: TaskToolContext = {
   cwd: "/work/project",
   sessionManager: { getSessionId: () => "parent-session-1" },
-};
-
-function notImplemented(name: string): never {
-  throw new Error(`fake TaskManager.${name} not configured for this test`);
 }
 
-export function createFakeManager(
-  overrides: Partial<TaskManager>,
-): TaskManager {
+function notImplemented(name: string): never {
+  throw new Error(`fake TaskManager.${name} not configured for this test`)
+}
+
+export function createFakeManager(overrides: Partial<TaskManager>): TaskManager {
   return {
     start: () => notImplemented("start"),
     startOwned: () => notImplemented("startOwned"),
@@ -38,7 +36,7 @@ export function createFakeManager(
     promoteToBackground: () => true,
     wasBackground: () => false,
     ...overrides,
-  };
+  }
 }
 
 export function makeRecord(overrides: Partial<TaskRecord>): TaskRecord {
@@ -49,20 +47,16 @@ export function makeRecord(overrides: Partial<TaskRecord>): TaskRecord {
     execution_mode: "in-process",
     model: "anthropic/claude",
     notify_on_terminal: false,
-  });
-  return { ...base, ...overrides };
+  })
+  return { ...base, ...overrides }
 }
 
-export function makeDeps(
-  manager: TaskManager,
-  extra: Partial<TaskToolDeps> = {},
-): TaskToolDeps {
+export function makeDeps(manager: TaskManager, extra: Partial<TaskToolDeps> = {}): TaskToolDeps {
   return {
     manager,
     omoConfig: OMO_CONFIG,
     agents: {},
-    loadSkills: () =>
-      ({ prepend: "", resolved: [], missing: [] }) satisfies SkillResolution,
+    loadSkills: () => ({ prepend: "", resolved: [], missing: [] }) satisfies SkillResolution,
     ...extra,
-  };
+  }
 }

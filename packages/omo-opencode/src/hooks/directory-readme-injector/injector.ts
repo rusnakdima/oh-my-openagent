@@ -41,10 +41,7 @@ export async function processFilePathForReadmeInjection(input: {
 
   const dir = dirname(resolved);
   const cache = getSessionCache(input.sessionCaches, input.sessionID);
-  const readmePaths = await findReadmeMdUp({
-    startDir: dir,
-    rootDir: input.ctx.directory,
-  });
+  const readmePaths = await findReadmeMdUp({ startDir: dir, rootDir: input.ctx.directory });
 
   let dirty = false;
   for (const readmePath of readmePaths) {
@@ -60,22 +57,18 @@ export async function processFilePathForReadmeInjection(input: {
       const truncationNotice = truncated
         ? `\n\n[Note: Content was truncated to save context window space. For full context, please read the file directly: ${readmePath}]`
         : "";
-      input.output.output +=
-        `\n\n[Project README: ${readmePath}]\n${result}${truncationNotice}`;
+      input.output.output += `\n\n[Project README: ${readmePath}]\n${result}${truncationNotice}`;
       cache.add(readmeDir);
       dirty = true;
     } catch (error) {
       const errorMessage = error instanceof Error
         ? error.message
         : describeReadmeInjectionError(error);
-      log(
-        "[directory-readme-injector] Skipped README injection after read/truncate failure",
-        {
-          error: errorMessage,
-          readmePath,
-          sessionID: input.sessionID,
-        },
-      );
+      log("[directory-readme-injector] Skipped README injection after read/truncate failure", {
+        error: errorMessage,
+        readmePath,
+        sessionID: input.sessionID,
+      });
     }
   }
 

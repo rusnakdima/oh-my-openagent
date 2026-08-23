@@ -1,21 +1,11 @@
 # Type-State and Newtype Patterns
 
-The single highest-leverage thing Rust gives a coding agent: encode invariants
-in the type system so the compiler refuses incorrect code. The agent does not
-have to "remember" rules - the rules are physical.
+The single highest-leverage thing Rust gives a coding agent: encode invariants in the type system so the compiler refuses incorrect code. The agent does not have to "remember" rules - the rules are physical.
 
 ## The Two Core Patterns
 
-1. **Newtype wrappers for distinct semantic units.** Money, IDs, byte offsets,
-   coordinate spaces - each gets its own tuple struct. The agent cannot pass
-   meters where feet are expected, even though both are `f64` under the hood.
-   This is the `euclid::Point<Screen>` vs `euclid::Point<World>` example Chris
-   Allen called out.
-2. **Type-state for state machines.** Instead of a struct with a
-   `status: enum { Draft, Validated, Persisted }` field and methods that check
-   `if self.status == ...`, model each state as its own type. Transitions are
-   method calls that consume `self` and return a new type. Illegal transitions
-   become unrepresentable.
+1. **Newtype wrappers for distinct semantic units.** Money, IDs, byte offsets, coordinate spaces - each gets its own tuple struct. The agent cannot pass meters where feet are expected, even though both are `f64` under the hood. This is the `euclid::Point<Screen>` vs `euclid::Point<World>` example Chris Allen called out.
+2. **Type-state for state machines.** Instead of a struct with a `status: enum { Draft, Validated, Persisted }` field and methods that check `if self.status == ...`, model each state as its own type. Transitions are method calls that consume `self` and return a new type. Illegal transitions become unrepresentable.
 
 ## Newtype Wrapper Cookbook
 
@@ -45,8 +35,7 @@ impl ProductId {
 // `fn buy(user: UserId, product: ProductId)` cannot be called with arguments swapped.
 ```
 
-`#[serde(transparent)]` keeps JSON/SQL round-trips identical to a bare `Uuid` -
-the wrapper is purely a compile-time discipline.
+`#[serde(transparent)]` keeps JSON/SQL round-trips identical to a bare `Uuid` - the wrapper is purely a compile-time discipline.
 
 ### Quantities with Phantom Type Tags
 
@@ -108,8 +97,7 @@ let combined = distance + height.to_feet().to_meters_oops(); // ❌ no such meth
 let combined = distance + distance; // ✅
 ```
 
-The agent cannot accidentally mix units. Refactors that change a quantity's
-underlying unit are caught at compile time everywhere the type flows.
+The agent cannot accidentally mix units. Refactors that change a quantity's underlying unit are caught at compile time everywhere the type flows.
 
 ### Byte Offsets vs Character Offsets
 
@@ -130,9 +118,7 @@ pub fn byte_to_char(text: &str, byte: ByteOffset) -> Option<CharOffset> {
 }
 ```
 
-A function signature `fn slice(text: &str, start: ByteOffset, end: ByteOffset)`
-cannot be called with character offsets. The UTF-8 boundary bug is now a compile
-error.
+A function signature `fn slice(text: &str, start: ByteOffset, end: ByteOffset)` cannot be called with character offsets. The UTF-8 boundary bug is now a compile error.
 
 ### Currency
 
@@ -174,8 +160,7 @@ impl<From, To> Money<From> {
 }
 ```
 
-The agent cannot add KRW and USD by accident. They cannot convert without a
-rate. They cannot apply a USD→JPY rate to a KRW value.
+The agent cannot add KRW and USD by accident. They cannot convert without a rate. They cannot apply a USD→JPY rate to a KRW value.
 
 ### Paths Rooted at Different Bases
 
@@ -206,14 +191,11 @@ impl ProjectRel {
 }
 ```
 
-The agent's path-handling code now distinguishes between project-relative and
-home-relative paths at the type level. A function taking `ProjectRel` cannot be
-called with a `HomeRel`.
+The agent's path-handling code now distinguishes between project-relative and home-relative paths at the type level. A function taking `ProjectRel` cannot be called with a `HomeRel`.
 
 ## Type-State State Machines
 
-Encode the lifecycle of a value as a sequence of types. Each transition consumes
-the previous state and returns the next.
+Encode the lifecycle of a value as a sequence of types. Each transition consumes the previous state and returns the next.
 
 ### HTTP Request Builder
 
@@ -267,9 +249,7 @@ impl RequestBuilder<Ready> {
 }
 ```
 
-`client.send(RequestBuilder::new().send(...))` - compile error. The agent has to
-fill in the required steps. The IDE autocomplete also reflects only the legal
-next steps.
+`client.send(RequestBuilder::new().send(...))` - compile error. The agent has to fill in the required steps. The IDE autocomplete also reflects only the legal next steps.
 
 ### File Handles
 
@@ -300,14 +280,11 @@ impl File<Closed> {
 }
 ```
 
-You cannot `read()` an unlocked file. You cannot `close()` while holding a lock
-without unlocking first. You cannot use a closed file at all - it has no
-methods.
+You cannot `read()` an unlocked file. You cannot `close()` while holding a lock without unlocking first. You cannot use a closed file at all - it has no methods.
 
 ## Sealed Traits
 
-Sometimes you want a closed set of types implementing a trait, defined by the
-crate, not extensible by downstream. The sealed trait pattern:
+Sometimes you want a closed set of types implementing a trait, defined by the crate, not extensible by downstream. The sealed trait pattern:
 
 ```rust
 mod sealed {
@@ -331,9 +308,7 @@ impl Renderer for Vulkan { fn render(&self, f: &mut Frame) { /* ... */ } }
 impl Renderer for Metal  { fn render(&self, f: &mut Frame) { /* ... */ } }
 ```
 
-Downstream code cannot add new `impl Renderer for Whatever` because they cannot
-implement `sealed::Sealed` (its module is private). Useful when you want trait
-dispatch but maintain the invariant that you control all implementations.
+Downstream code cannot add new `impl Renderer for Whatever` because they cannot implement `sealed::Sealed` (its module is private). Useful when you want trait dispatch but maintain the invariant that you control all implementations.
 
 ## NonEmpty Collections
 
@@ -360,33 +335,20 @@ impl<T> NonEmptyVec<T> {
 }
 ```
 
-Functions taking `NonEmptyVec<T>` cannot receive an empty vector. The `first()`
-method returns `&T`, not `Option<&T>`. The agent never has to write
-`match v.first() { Some(x) => ..., None => panic!(...) }` again.
+Functions taking `NonEmptyVec<T>` cannot receive an empty vector. The `first()` method returns `&T`, not `Option<&T>`. The agent never has to write `match v.first() { Some(x) => ..., None => panic!(...) }` again.
 
 ## When NOT to Newtype
 
-- For one-off internal computations where the unit lives in a single function
-  and never crosses a boundary.
-- When the wrapper does not change behavior or invariants vs. the underlying
-  type (e.g., a `struct Count(u32)` that is only ever used in one struct).
-- When `From`/`Into` conversions would be ergonomic but would defeat the purpose
-  (if you find yourself wanting `impl From<UserId> for Uuid`, you do not want a
-  newtype - you want a type alias).
+- For one-off internal computations where the unit lives in a single function and never crosses a boundary.
+- When the wrapper does not change behavior or invariants vs. the underlying type (e.g., a `struct Count(u32)` that is only ever used in one struct).
+- When `From`/`Into` conversions would be ergonomic but would defeat the purpose (if you find yourself wanting `impl From<UserId> for Uuid`, you do not want a newtype - you want a type alias).
 
-The cost of a newtype is one tuple struct + the impls you need. The break-even
-is around three uses across different functions, or any use that crosses an API
-boundary.
+The cost of a newtype is one tuple struct + the impls you need. The break-even is around three uses across different functions, or any use that crosses an API boundary.
 
 ## When NOT to Use Type-State
 
-- When the state space is small and transitions are simple (`Option<T>` and
-  `Result<T, E>` are state machines already).
-- When the type-state would force runtime branching upward (e.g., reading
-  "should this run as Open or Locked?" from config means you store
-  `Box<dyn FileLike>` anyway).
-- When the API is consumed by code that does not know the state at compile time
-  (heterogeneous collections, dynamic dispatch boundaries).
+- When the state space is small and transitions are simple (`Option<T>` and `Result<T, E>` are state machines already).
+- When the type-state would force runtime branching upward (e.g., reading "should this run as Open or Locked?" from config means you store `Box<dyn FileLike>` anyway).
+- When the API is consumed by code that does not know the state at compile time (heterogeneous collections, dynamic dispatch boundaries).
 
-In those cases, regular enum-tagged states are correct. The line is: **can the
-call site know the state statically?** If yes, type-state. If no, enum-with-tag.
+In those cases, regular enum-tagged states are correct. The line is: **can the call site know the state statically?** If yes, type-state. If no, enum-with-tag.

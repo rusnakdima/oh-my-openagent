@@ -1,12 +1,12 @@
-import { open, readFile, stat, unlink } from "node:fs/promises";
+import { open, readFile, stat, unlink } from "node:fs/promises"
 
-import { getPidLiveness, getProcessStartIdentity } from "../locks";
+import { getPidLiveness, getProcessStartIdentity } from "../locks"
 
 export type JournalLock = <T>(
   lockPath: string,
   task: () => Promise<T>,
   signal?: AbortSignal,
-) => Promise<T>;
+) => Promise<T>
 
 /**
  * Thrown when acquiring a transcript journal lock takes longer than the acquisition wait.
@@ -15,57 +15,54 @@ export type JournalLock = <T>(
  * degrade to a no-op so a contended lock never surfaces as an extension error.
  */
 export class JournalLockTimeoutError extends Error {
-  readonly retriable = true;
+  readonly retriable = true
 
   constructor(readonly lockPath: string) {
-    super(`Timed out acquiring transcript journal lock: ${lockPath}`);
-    this.name = "JournalLockTimeoutError";
+    super(`Timed out acquiring transcript journal lock: ${lockPath}`)
+    this.name = "JournalLockTimeoutError"
   }
 }
 
 function errorCode(error: unknown): string | undefined {
-  if (!(error instanceof Error) || !("code" in error)) return undefined;
-  return typeof error.code === "string" ? error.code : undefined;
+  if (!(error instanceof Error) || !("code" in error)) return undefined
+  return typeof error.code === "string" ? error.code : undefined
 }
 
 function delay(milliseconds: number, signal?: AbortSignal): Promise<void> {
-  signal?.throwIfAborted();
+  signal?.throwIfAborted()
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(finish, milliseconds);
+    const timer = setTimeout(finish, milliseconds)
     const onAbort = (): void =>
-      finish(
-        signal?.reason ??
-          new DOMException("The operation was aborted", "AbortError"),
-      );
-    signal?.addEventListener("abort", onAbort, { once: true });
+      finish(signal?.reason ?? new DOMException("The operation was aborted", "AbortError"))
+    signal?.addEventListener("abort", onAbort, { once: true })
     function finish(error?: unknown): void {
-      clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
-      if (error === undefined) resolve();
-      else reject(error);
+      clearTimeout(timer)
+      signal?.removeEventListener("abort", onAbort)
+      if (error === undefined) resolve()
+      else reject(error)
     }
-  });
+  })
 }
 
-const ACQUISITION_WAIT_MS = 5_000;
-const RETRY_DELAY_MS = 10;
+const ACQUISITION_WAIT_MS = 5_000
+const RETRY_DELAY_MS = 10
 
-type OwnerPayload = { readonly pid: number; readonly startIdentity: string };
+type OwnerPayload = { readonly pid: number; readonly startIdentity: string }
 
 function parseOwner(raw: string): OwnerPayload | null {
-  const [pidText, startIdentity] = raw.trimEnd().split("\n");
-  const pid = Number.parseInt(pidText ?? "", 10);
-  if (!Number.isSafeInteger(pid) || pid <= 0) return null;
-  return { pid, startIdentity: startIdentity ?? "" };
+  const [pidText, startIdentity] = raw.trimEnd().split("\n")
+  const pid = Number.parseInt(pidText ?? "", 10)
+  if (!Number.isSafeInteger(pid) || pid <= 0) return null
+  return { pid, startIdentity: startIdentity ?? "" }
 }
 
 async function isOwnerDead(owner: OwnerPayload): Promise<boolean> {
-  if (getPidLiveness(owner.pid) === "dead") return true;
-  if (owner.startIdentity.length === 0) return false;
-  const actual = await getProcessStartIdentity(owner.pid);
+  if (getPidLiveness(owner.pid) === "dead") return true
+  if (owner.startIdentity.length === 0) return false
+  const actual = await getProcessStartIdentity(owner.pid)
   // A live pid whose recorded start identity differs is a recycled pid wedging the lock.
   // When the platform offers no start identity (win32) the owner is left alone.
-  return actual !== null && actual !== owner.startIdentity;
+  return actual !== null && actual !== owner.startIdentity
 }
 
 /**
@@ -79,27 +76,25 @@ async function isOwnerDead(owner: OwnerPayload): Promise<boolean> {
 async function tryReclaimStaleLock(lockPath: string): Promise<void> {
   const readRaw = (): Promise<string | null> =>
     readFile(lockPath, "utf8").catch((error: unknown) => {
-      if (errorCode(error) === "ENOENT") return null;
-      throw error;
-    });
-  const snapshot = await readRaw();
-  if (snapshot === null) return;
-  const owner = parseOwner(snapshot);
+      if (errorCode(error) === "ENOENT") return null
+      throw error
+    })
+  const snapshot = await readRaw()
+  if (snapshot === null) return
+  const owner = parseOwner(snapshot)
   if (owner !== null) {
-    if (!(await isOwnerDead(owner))) return;
+    if (!(await isOwnerDead(owner))) return
   } else {
     const stats = await stat(lockPath).catch((error: unknown) => {
-      if (errorCode(error) === "ENOENT") return null;
-      throw error;
-    });
-    if (stats === null || Date.now() - stats.mtimeMs <= ACQUISITION_WAIT_MS) {
-      return;
-    }
+      if (errorCode(error) === "ENOENT") return null
+      throw error
+    })
+    if (stats === null || Date.now() - stats.mtimeMs <= ACQUISITION_WAIT_MS) return
   }
-  if ((await readRaw()) !== snapshot) return;
+  if ((await readRaw()) !== snapshot) return
   await unlink(lockPath).catch((error: unknown) => {
-    if (errorCode(error) !== "ENOENT") throw error;
-  });
+    if (errorCode(error) !== "ENOENT") throw error
+  })
 }
 
 async function acquireAndRun<T>(
@@ -109,57 +104,57 @@ async function acquireAndRun<T>(
 ): Promise<T> {
   // The acquisition wait is measured from when THIS contender actually gets its turn, so a
   // same-process holder that ran before us on the queue never eats our cross-process budget.
-  const deadline = Date.now() + ACQUISITION_WAIT_MS;
-  let handle;
+  const deadline = Date.now() + ACQUISITION_WAIT_MS
+  let handle
   for (;;) {
     // Abort before acquisition leaves no lock file behind (IC-11), so a drain that already
     // returned never creates and deletes state.lock behind the caller's back.
-    signal?.throwIfAborted();
+    signal?.throwIfAborted()
     try {
-      handle = await open(lockPath, "wx", 0o600);
-      break;
+      handle = await open(lockPath, "wx", 0o600)
+      break
     } catch (error) {
       if (errorCode(error) !== "EEXIST" || Date.now() >= deadline) {
-        throw new JournalLockTimeoutError(lockPath);
+        throw new JournalLockTimeoutError(lockPath)
       }
-      signal?.throwIfAborted();
-      await tryReclaimStaleLock(lockPath);
-      await delay(RETRY_DELAY_MS, signal);
+      signal?.throwIfAborted()
+      await tryReclaimStaleLock(lockPath)
+      await delay(RETRY_DELAY_MS, signal)
     }
   }
 
   // The lock is held: the finally below is exempt cleanup and always runs, abort or not.
   try {
-    const startIdentity = (await getProcessStartIdentity(process.pid)) ?? "";
-    await handle.writeFile(`${process.pid}\n${startIdentity}\n`, "utf8");
-    signal?.throwIfAborted();
-    return await task();
+    const startIdentity = (await getProcessStartIdentity(process.pid)) ?? ""
+    await handle.writeFile(`${process.pid}\n${startIdentity}\n`, "utf8")
+    signal?.throwIfAborted()
+    return await task()
   } finally {
-    await handle.close();
+    await handle.close()
     await unlink(lockPath).catch((error: unknown) => {
-      if (errorCode(error) !== "ENOENT") throw error;
-    });
+      if (errorCode(error) !== "ENOENT") throw error
+    })
   }
 }
 
 /** Per-lockPath FIFO that serializes acquisitions from THIS process so overlapping journal work never fights itself for the file; cross-process contention stays arbitrated by the file lock bounded by the acquisition wait. */
-const queueTails = new Map<string, Promise<void>>();
+const queueTails = new Map<string, Promise<void>>()
 
 export const withLocalJournalLock: JournalLock = (lockPath, task, signal) => {
-  const previous = queueTails.get(lockPath) ?? Promise.resolve();
+  const previous = queueTails.get(lockPath) ?? Promise.resolve()
   const run = previous
     .catch(() => undefined)
     .then(() => {
-      signal?.throwIfAborted();
-      return acquireAndRun(lockPath, task, signal);
-    });
+      signal?.throwIfAborted()
+      return acquireAndRun(lockPath, task, signal)
+    })
   const tail = run.then(
     () => undefined,
     () => undefined,
-  );
-  queueTails.set(lockPath, tail);
+  )
+  queueTails.set(lockPath, tail)
   void tail.then(() => {
-    if (queueTails.get(lockPath) === tail) queueTails.delete(lockPath);
-  });
-  return run;
-};
+    if (queueTails.get(lockPath) === tail) queueTails.delete(lockPath)
+  })
+  return run
+}

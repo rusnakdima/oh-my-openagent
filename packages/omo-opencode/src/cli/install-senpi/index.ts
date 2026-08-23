@@ -1,1 +1,1 @@
-export * from "@oh-my-opencode/omo-senpi/install";
+export * from "@oh-my-opencode/omo-senpi/install"

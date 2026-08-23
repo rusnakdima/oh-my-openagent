@@ -1,58 +1,50 @@
-import { execFileSync } from "node:child_process";
-import { existsSync, statSync } from "node:fs";
+import { execFileSync } from "node:child_process"
+import { existsSync, statSync } from "node:fs"
 
-import { bunWhich } from "../runtime/which";
-import { planSgCandidates } from "./sg-candidates";
-import { sgBinaryNotFoundMessage, sgInstallHints } from "./sg-install-hints";
-import {
-  SG_BINARY_NOT_FOUND,
-  type SgCandidate,
-  type SgResolution,
-  type SgResolverOptions,
-} from "./types";
+import { bunWhich } from "../runtime/which"
+import { planSgCandidates } from "./sg-candidates"
+import { sgBinaryNotFoundMessage, sgInstallHints } from "./sg-install-hints"
+import { SG_BINARY_NOT_FOUND, type SgCandidate, type SgResolution, type SgResolverOptions } from "./types"
 
-export const SG_VERSION_PROBE_TIMEOUT_MS = 5_000;
+export const SG_VERSION_PROBE_TIMEOUT_MS = 5_000
 
 interface CacheEntry {
-  readonly fingerprint: string;
-  readonly resolution: SgResolution;
+  readonly fingerprint: string
+  readonly resolution: SgResolution
 }
 
-let cacheEntry: CacheEntry | null = null;
+let cacheEntry: CacheEntry | null = null
 
 interface ResolverDeps {
-  readonly fileExists: (filePath: string) => boolean;
-  readonly platform: NodeJS.Platform;
-  readonly runVersionProbeSync: (binaryPath: string) => string;
-  readonly which: (commandName: string) => string | null;
+  readonly fileExists: (filePath: string) => boolean
+  readonly platform: NodeJS.Platform
+  readonly runVersionProbeSync: (binaryPath: string) => string
+  readonly which: (commandName: string) => string | null
 }
 
 export function clearSgResolutionCache(): void {
-  cacheEntry = null;
+  cacheEntry = null
 }
 
 /**
  * Cache key: only a resolution over the same inputs may be reused, so callers that inject
  * different environments, platforms, or probes never observe each other's results.
  */
-function cacheFingerprint(
-  options: SgResolverOptions,
-  plan: { readonly beforePath: readonly SgCandidate[] },
-): string {
+function cacheFingerprint(options: SgResolverOptions, plan: { readonly beforePath: readonly SgCandidate[] }): string {
   return JSON.stringify([
     options.platform ?? process.platform,
     options.arch ?? process.arch,
     plan.beforePath.map((candidate) => candidate.path),
-  ]);
+  ])
 }
 
 function defaultFileExists(filePath: string): boolean {
-  if (!existsSync(filePath)) return false;
+  if (!existsSync(filePath)) return false
   try {
-    const stats = statSync(filePath);
-    return stats.isFile() && stats.size > 0;
+    const stats = statSync(filePath)
+    return stats.isFile() && stats.size > 0
   } catch {
-    return false;
+    return false
   }
 }
 
@@ -63,7 +55,7 @@ function defaultVersionProbe(binaryPath: string): string {
       stdio: ["ignore", "pipe", "ignore"],
       timeout: SG_VERSION_PROBE_TIMEOUT_MS,
     }),
-  );
+  )
 }
 
 /**
@@ -75,61 +67,43 @@ function defaultVersionProbe(binaryPath: string): string {
  */
 function probePasses(binaryPath: string, deps: ResolverDeps): boolean {
   try {
-    return deps.runVersionProbeSync(binaryPath).toLowerCase().includes(
-      "ast-grep",
-    );
+    return deps.runVersionProbeSync(binaryPath).toLowerCase().includes("ast-grep")
   } catch {
-    return false;
+    return false
   }
 }
 
 function acceptsCandidate(binaryPath: string, deps: ResolverDeps): boolean {
-  return deps.fileExists(binaryPath) && probePasses(binaryPath, deps);
+  return deps.fileExists(binaryPath) && probePasses(binaryPath, deps)
 }
 
-function firstAccepted(
-  candidates: readonly SgCandidate[],
-  deps: ResolverDeps,
-): SgResolution | null {
+function firstAccepted(candidates: readonly SgCandidate[], deps: ResolverDeps): SgResolution | null {
   for (const candidate of candidates) {
-    if (acceptsCandidate(candidate.path, deps)) {
-      return { found: true, path: candidate.path, tier: candidate.tier };
-    }
+    if (acceptsCandidate(candidate.path, deps)) return { found: true, path: candidate.path, tier: candidate.tier }
   }
-  return null;
+  return null
 }
 
-function pathCandidates(
-  commands: readonly string[],
-  deps: ResolverDeps,
-): readonly SgCandidate[] {
-  const resolved: SgCandidate[] = [];
+function pathCandidates(commands: readonly string[], deps: ResolverDeps): readonly SgCandidate[] {
+  const resolved: SgCandidate[] = []
   for (const commandName of commands) {
-    const found = deps.which(commandName);
-    if (found !== null) resolved.push({ path: found, tier: "path" });
+    const found = deps.which(commandName)
+    if (found !== null) resolved.push({ path: found, tier: "path" })
   }
-  return resolved;
+  return resolved
 }
 
 function notFound(platform: NodeJS.Platform): SgResolution {
   return {
-    error: {
-      code: SG_BINARY_NOT_FOUND,
-      hints: sgInstallHints(platform),
-      message: sgBinaryNotFoundMessage(platform),
-    },
+    error: { code: SG_BINARY_NOT_FOUND, hints: sgInstallHints(platform), message: sgBinaryNotFoundMessage(platform) },
     found: false,
-  };
+  }
 }
 
-function cacheIsStillValid(
-  resolution: SgResolution,
-  deps: ResolverDeps,
-  revalidate: boolean,
-): boolean {
-  if (!resolution.found) return false;
-  if (!deps.fileExists(resolution.path)) return false;
-  return !revalidate || probePasses(resolution.path, deps);
+function cacheIsStillValid(resolution: SgResolution, deps: ResolverDeps, revalidate: boolean): boolean {
+  if (!resolution.found) return false
+  if (!deps.fileExists(resolution.path)) return false
+  return !revalidate || probePasses(resolution.path, deps)
 }
 
 function resolverDeps(options: SgResolverOptions): ResolverDeps {
@@ -138,7 +112,7 @@ function resolverDeps(options: SgResolverOptions): ResolverDeps {
     platform: options.platform ?? process.platform,
     runVersionProbeSync: options.runVersionProbeSync ?? defaultVersionProbe,
     which: options.which ?? bunWhich,
-  };
+  }
 }
 
 /**
@@ -148,42 +122,31 @@ function resolverDeps(options: SgResolverOptions): ResolverDeps {
  * contains `ast-grep`; a candidate that fails for any reason is rejected and resolution continues
  * to the next candidate and tier.
  */
-export function resolveSgBinarySync(
-  options: SgResolverOptions = {},
-): SgResolution {
-  const deps = resolverDeps(options);
-  const useCache = options.cache ?? true;
+export function resolveSgBinarySync(options: SgResolverOptions = {}): SgResolution {
+  const deps = resolverDeps(options)
+  const useCache = options.cache ?? true
   try {
-    const plan = planSgCandidates(options);
-    const fingerprint = cacheFingerprint(options, plan);
-    if (
-      useCache && cacheEntry !== null && cacheEntry.fingerprint === fingerprint
-    ) {
-      if (
-        cacheIsStillValid(
-          cacheEntry.resolution,
-          deps,
-          options.revalidate ?? false,
-        )
-      ) return cacheEntry.resolution;
-      cacheEntry = null;
+    const plan = planSgCandidates(options)
+    const fingerprint = cacheFingerprint(options, plan)
+    if (useCache && cacheEntry !== null && cacheEntry.fingerprint === fingerprint) {
+      if (cacheIsStillValid(cacheEntry.resolution, deps, options.revalidate ?? false)) return cacheEntry.resolution
+      cacheEntry = null
     }
 
-    const resolution = firstAccepted(plan.beforePath, deps) ??
+    const resolution =
+      firstAccepted(plan.beforePath, deps) ??
       firstAccepted(pathCandidates(plan.pathCommands, deps), deps) ??
       firstAccepted(plan.afterPath, deps) ??
-      notFound(deps.platform);
+      notFound(deps.platform)
 
-    if (useCache && resolution.found) cacheEntry = { fingerprint, resolution };
-    return resolution;
+    if (useCache && resolution.found) cacheEntry = { fingerprint, resolution }
+    return resolution
   } catch {
-    return notFound(deps.platform);
+    return notFound(deps.platform)
   }
 }
 
-export function findSgBinarySync(
-  options: SgResolverOptions = {},
-): string | null {
-  const resolution = resolveSgBinarySync(options);
-  return resolution.found ? resolution.path : null;
+export function findSgBinarySync(options: SgResolverOptions = {}): string | null {
+  const resolution = resolveSgBinarySync(options)
+  return resolution.found ? resolution.path : null
 }

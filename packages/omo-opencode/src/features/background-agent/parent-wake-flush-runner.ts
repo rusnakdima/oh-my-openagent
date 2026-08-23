@@ -1,121 +1,94 @@
-import { log } from "../../shared";
-import {
-  isSessionActive as isOpenCodeSessionActive,
-  settleAfterSessionIdle,
-} from "../../hooks/shared/session-idle-settle";
-import {
-  isFailureParentWake,
-  isRedundantParentWake,
-  type PendingParentWake,
-} from "./parent-wake-dedupe";
-import type { ParentWakeDispatchedTracker } from "./parent-wake-dispatched-tracker";
-import type { ParentWakePendingQueue } from "./parent-wake-pending-queue";
-import { sendParentWakePrompt } from "./parent-wake-prompt-dispatch";
-import type { ToolWaitDeferralDecision } from "./parent-wake-session-history";
-import type { ParentWakeSessionInspector } from "./parent-wake-session-inspector";
-import type { ParentWakeNotifierDeps } from "./parent-wake-notifier-types";
-import type { ParentWakeLedger } from "./parent-wake-ledger";
+import { log } from "../../shared"
+import { isSessionActive as isOpenCodeSessionActive, settleAfterSessionIdle } from "../../hooks/shared/session-idle-settle"
+import { isFailureParentWake, isRedundantParentWake, type PendingParentWake } from "./parent-wake-dedupe"
+import type { ParentWakeDispatchedTracker } from "./parent-wake-dispatched-tracker"
+import type { ParentWakePendingQueue } from "./parent-wake-pending-queue"
+import { sendParentWakePrompt } from "./parent-wake-prompt-dispatch"
+import type { ToolWaitDeferralDecision } from "./parent-wake-session-history"
+import type { ParentWakeSessionInspector } from "./parent-wake-session-inspector"
+import type { ParentWakeNotifierDeps } from "./parent-wake-notifier-types"
+import type { ParentWakeLedger } from "./parent-wake-ledger"
 
 type ParentWakeFlushRunnerDeps = {
-  readonly notifierDeps: ParentWakeNotifierDeps;
-  readonly pendingQueue: ParentWakePendingQueue;
-  readonly dispatchedTracker: ParentWakeDispatchedTracker;
-  readonly sessionInspector: ParentWakeSessionInspector;
-};
+  readonly notifierDeps: ParentWakeNotifierDeps
+  readonly pendingQueue: ParentWakePendingQueue
+  readonly dispatchedTracker: ParentWakeDispatchedTracker
+  readonly sessionInspector: ParentWakeSessionInspector
+}
 
-const PENDING_PARENT_WAKE_MAX_ACTIVE_DEFER_MS = 60_000;
+const PENDING_PARENT_WAKE_MAX_ACTIVE_DEFER_MS = 60_000
 
 export class ParentWakeFlushRunner {
   constructor(private readonly deps: ParentWakeFlushRunnerDeps) {}
 
   async flushPendingParentWake(sessionID: string): Promise<void> {
     if (!this.deps.pendingQueue.hasWake(sessionID)) {
-      this.clearPendingParentWakeTimer(sessionID);
-      return;
+      this.clearPendingParentWakeTimer(sessionID)
+      return
     }
 
-    const sessionActive = await this.isSessionActive(sessionID);
-    this.clearPendingParentWakeTimer(sessionID);
+    const sessionActive = await this.isSessionActive(sessionID)
+    this.clearPendingParentWakeTimer(sessionID)
     if (!sessionActive) {
-      await settleAfterSessionIdle();
+      await settleAfterSessionIdle()
 
       if (await this.isSessionActive(sessionID)) {
-        this.schedulePendingParentWakeFlush(sessionID);
-        log(
-          "[background-agent] Deferred parent wake because parent session became active after idle settle:",
-          {
-            sessionID,
-          },
-        );
-        return;
+        this.schedulePendingParentWakeFlush(sessionID)
+        log("[background-agent] Deferred parent wake because parent session became active after idle settle:", {
+          sessionID,
+        })
+        return
       }
     }
 
-    const latestWake = this.deps.pendingQueue.getWake(sessionID);
+    const latestWake = this.deps.pendingQueue.getWake(sessionID)
     if (!latestWake) {
-      return;
+      return
     }
     if (await this.dropAdmittedWakeConsumedByParent(sessionID, latestWake)) {
-      return;
+      return
     }
-    const emptyAssistantTurnRetry =
-      latestWake.allowEmptyAssistantTurnRetry === true;
-    const forceDispatchAfterActiveDefer = sessionActive &&
-      this.shouldForceDispatchAfterActiveDefer(latestWake);
+    const emptyAssistantTurnRetry = latestWake.allowEmptyAssistantTurnRetry === true
+    const forceDispatchAfterActiveDefer = sessionActive && this.shouldForceDispatchAfterActiveDefer(latestWake)
     if (sessionActive && !forceDispatchAfterActiveDefer) {
-      this.schedulePendingParentWakeFlush(sessionID);
-      log(
-        "[background-agent] Deferred parent wake because parent session is active:",
-        {
-          sessionID,
-        },
-      );
-      return;
+      this.schedulePendingParentWakeFlush(sessionID)
+      log("[background-agent] Deferred parent wake because parent session is active:", {
+        sessionID,
+      })
+      return
     }
 
-    if (
-      !forceDispatchAfterActiveDefer &&
-      this.hasRecentParentSessionActivity(sessionID)
-    ) {
+    if (!forceDispatchAfterActiveDefer && this.hasRecentParentSessionActivity(sessionID)) {
       if (this.deferReplyWakeWhileUnsafe(sessionID, latestWake)) {
-        return;
+        return
       }
       await this.sendParentWakePrompt(sessionID, latestWake, {
         emptyAssistantTurnRetry: false,
         toolWaitDecision: { defer: false, skipPromptGateToolStateCheck: true },
         forceNoReply: true,
         retainPendingWake: latestWake.shouldReply,
-      });
-      log(
-        "[background-agent] Recorded admit-only parent wake because parent session activity is still fresh:",
-        {
-          sessionID,
-        },
-      );
+      })
+      log("[background-agent] Recorded admit-only parent wake because parent session activity is still fresh:", {
+        sessionID,
+      })
       if (latestWake.shouldReply) {
-        this.schedulePendingParentWakeFlush(sessionID);
+        this.schedulePendingParentWakeFlush(sessionID)
       }
-      return;
+      return
     }
 
-    const toolWaitDecision = await this.shouldDeferParentWakeForSessionHistory(
-      sessionID,
-      latestWake,
-    );
+    const toolWaitDecision = await this.shouldDeferParentWakeForSessionHistory(sessionID, latestWake)
     if (toolWaitDecision.defer) {
       if (this.deferReplyWakeWhileUnsafe(sessionID, latestWake)) {
-        return;
+        return
       }
       await this.sendParentWakePrompt(sessionID, latestWake, {
         emptyAssistantTurnRetry,
-        toolWaitDecision: {
-          ...toolWaitDecision,
-          skipPromptGateToolStateCheck: true,
-        },
+        toolWaitDecision: { ...toolWaitDecision, skipPromptGateToolStateCheck: true },
         forceNoReply: true,
         retainPendingWake: latestWake.shouldReply,
-      });
-      return;
+      })
+      return
     }
 
     if (await this.isUserMessageInProgress(sessionID)) {
@@ -126,156 +99,119 @@ export class ParentWakeFlushRunner {
       // Store the wake as noReply so the user's own turn can consume it without
       // forking another assistant turn. See issue #4120.
       if (this.deferReplyWakeWhileUnsafe(sessionID, latestWake)) {
-        return;
+        return
       }
       await this.sendParentWakePrompt(sessionID, latestWake, {
         emptyAssistantTurnRetry,
         toolWaitDecision: { defer: false, skipPromptGateToolStateCheck: true },
         forceNoReply: true,
         retainPendingWake: latestWake.shouldReply,
-      });
-      log(
-        "[background-agent] Recorded admit-only parent wake because user message just arrived:",
-        {
-          sessionID,
-        },
-      );
-      return;
+      })
+      log("[background-agent] Recorded admit-only parent wake because user message just arrived:", {
+        sessionID,
+      })
+      return
     }
 
     const finalToolWaitDecision = await this.confirmParentWakeStillSafeForReply(
       sessionID,
       latestWake,
       toolWaitDecision,
-    );
+    )
     if (finalToolWaitDecision.defer) {
       if (this.deferReplyWakeWhileUnsafe(sessionID, latestWake)) {
-        return;
+        return
       }
       await this.sendParentWakePrompt(sessionID, latestWake, {
         emptyAssistantTurnRetry,
-        toolWaitDecision: {
-          ...finalToolWaitDecision,
-          skipPromptGateToolStateCheck: true,
-        },
+        toolWaitDecision: { ...finalToolWaitDecision, skipPromptGateToolStateCheck: true },
         forceNoReply: true,
         retainPendingWake: latestWake.shouldReply,
-      });
-      log(
-        "[background-agent] Recorded admit-only parent wake because parent session history became unsafe:",
-        {
-          sessionID,
-        },
-      );
-      return;
+      })
+      log("[background-agent] Recorded admit-only parent wake because parent session history became unsafe:", {
+        sessionID,
+      })
+      return
     }
 
-    const dispatchedWake = this.deps.dispatchedTracker.getWake(sessionID);
+    const dispatchedWake = this.deps.dispatchedTracker.getWake(sessionID)
     if (dispatchedWake && isRedundantParentWake(latestWake, dispatchedWake)) {
-      this.deps.pendingQueue.deleteWake(sessionID);
-      log(
-        "[background-agent] Suppressed duplicate parent wake already dispatched:",
-        { sessionID },
-      );
-      return;
+      this.deps.pendingQueue.deleteWake(sessionID)
+      log("[background-agent] Suppressed duplicate parent wake already dispatched:", { sessionID })
+      return
     }
 
     await this.sendParentWakePrompt(sessionID, latestWake, {
       emptyAssistantTurnRetry,
       toolWaitDecision: finalToolWaitDecision,
-      ...(forceDispatchAfterActiveDefer
-        ? { skipPromptGateStatusCheck: true }
-        : {}),
-    });
+      ...(forceDispatchAfterActiveDefer ? { skipPromptGateStatusCheck: true } : {}),
+    })
     if (forceDispatchAfterActiveDefer) {
-      log(
-        "[background-agent] Sent parent wake after active-session defer ceiling:",
-        {
-          sessionID,
-          queuedAgeMs: this.getQueuedAgeMs(latestWake),
-        },
-      );
+      log("[background-agent] Sent parent wake after active-session defer ceiling:", {
+        sessionID,
+        queuedAgeMs: this.getQueuedAgeMs(latestWake),
+      })
     }
   }
 
   schedulePendingParentWakeFlush(sessionID: string, delayMs?: number): void {
     this.deps.pendingQueue.scheduleFlush(sessionID, async () => {
       try {
-        await this.flushPendingParentWake(sessionID);
+        await this.flushPendingParentWake(sessionID)
       } finally {
-        this.deps.notifierDeps.onScheduledFlushSettled?.(sessionID);
+        this.deps.notifierDeps.onScheduledFlushSettled?.(sessionID)
       }
-    }, delayMs);
+    }, delayMs)
   }
 
   // Reply-required wakes must never be consumed by an admit-only noReply
   // dispatch (issues #4874/#5086): failure wakes stay queued until the parent
   // is safe, and an already-admitted final wake is not re-admitted while the
   // parent remains unsafe.
-  private deferReplyWakeWhileUnsafe(
-    sessionID: string,
-    latestWake: PendingParentWake,
-  ): boolean {
+  private deferReplyWakeWhileUnsafe(sessionID: string, latestWake: PendingParentWake): boolean {
     if (isFailureParentWake(latestWake)) {
-      this.schedulePendingParentWakeFlush(sessionID);
-      log(
-        "[background-agent] Deferred failure parent wake until parent session is safe:",
-        { sessionID },
-      );
-      return true;
+      this.schedulePendingParentWakeFlush(sessionID)
+      log("[background-agent] Deferred failure parent wake until parent session is safe:", { sessionID })
+      return true
     }
     if (latestWake.shouldReply && latestWake.noReplyAdmittedAt !== undefined) {
-      this.schedulePendingParentWakeFlush(sessionID);
-      log(
-        "[background-agent] Deferred retained reply-required parent wake until parent session is safe:",
-        { sessionID },
-      );
-      return true;
+      this.schedulePendingParentWakeFlush(sessionID)
+      log("[background-agent] Deferred retained reply-required parent wake until parent session is safe:", { sessionID })
+      return true
     }
-    return false;
+    return false
   }
 
   clearPendingParentWakeTimer(sessionID: string): void {
-    this.deps.pendingQueue.clearTimer(sessionID);
+    this.deps.pendingQueue.clearTimer(sessionID)
   }
 
   // A retained reply-required wake is only liveness insurance for a deposit the
   // parent never saw. Assistant output created after the noReply admission means
   // the live turn consumed the deposit — re-dispatching it would inject a
   // duplicate notification and fork a concurrent assistant chain.
-  private async dropAdmittedWakeConsumedByParent(
-    sessionID: string,
-    latestWake: PendingParentWake,
-  ): Promise<boolean> {
+  private async dropAdmittedWakeConsumedByParent(sessionID: string, latestWake: PendingParentWake): Promise<boolean> {
     if (latestWake.noReplyAdmittedAt === undefined) {
-      return false;
+      return false
     }
-    if (
-      !(await this.deps.sessionInspector.hasAssistantOutputAfterAdmittedWake(
-        sessionID,
-        latestWake,
-      ))
-    ) {
-      return false;
+    if (!(await this.deps.sessionInspector.hasAssistantOutputAfterAdmittedWake(sessionID, latestWake))) {
+      return false
     }
-    this.deps.pendingQueue.deleteWake(sessionID);
-    this.deps.dispatchedTracker.clearWake(sessionID);
-    log(
-      "[background-agent] Dropped retained parent wake after parent consumed admitted notification:",
-      { sessionID },
-    );
-    return true;
+    this.deps.pendingQueue.deleteWake(sessionID)
+    this.deps.dispatchedTracker.clearWake(sessionID)
+    log("[background-agent] Dropped retained parent wake after parent consumed admitted notification:", { sessionID })
+    return true
   }
 
   private async sendParentWakePrompt(
     sessionID: string,
     latestWake: PendingParentWake,
     options: {
-      readonly emptyAssistantTurnRetry: boolean;
-      readonly toolWaitDecision: ToolWaitDeferralDecision;
-      readonly forceNoReply?: boolean;
-      readonly retainPendingWake?: boolean;
-      readonly skipPromptGateStatusCheck?: boolean;
+      readonly emptyAssistantTurnRetry: boolean
+      readonly toolWaitDecision: ToolWaitDeferralDecision
+      readonly forceNoReply?: boolean
+      readonly retainPendingWake?: boolean
+      readonly skipPromptGateStatusCheck?: boolean
     },
   ): Promise<void> {
     // Mark the dispatch in-flight BEFORE the pending entry is deleted so there is
@@ -284,10 +220,10 @@ export class ParentWakeFlushRunner {
     // run for many seconds (prompt-gate status/message checks + dispatch); by the
     // time it resolves the wake is either tracked as dispatched or requeued back
     // into pending, so clearing the marker in `finally` cannot reopen the gap.
-    this.deps.dispatchedTracker.markInFlight(sessionID);
+    this.deps.dispatchedTracker.markInFlight(sessionID)
     try {
       if (options.retainPendingWake !== true) {
-        this.deps.pendingQueue.deleteWake(sessionID);
+        this.deps.pendingQueue.deleteWake(sessionID)
       }
 
       await sendParentWakePrompt({
@@ -295,12 +231,8 @@ export class ParentWakeFlushRunner {
         directory: this.deps.notifierDeps.directory,
         sessionID,
         latestWake,
-        ...(options.forceNoReply !== undefined
-          ? { forceNoReply: options.forceNoReply }
-          : {}),
-        ...(options.retainPendingWake !== undefined
-          ? { retainPendingWake: options.retainPendingWake }
-          : {}),
+        ...(options.forceNoReply !== undefined ? { forceNoReply: options.forceNoReply } : {}),
+        ...(options.retainPendingWake !== undefined ? { retainPendingWake: options.retainPendingWake } : {}),
         ...(options.skipPromptGateStatusCheck !== undefined
           ? { skipPromptGateStatusCheck: options.skipPromptGateStatusCheck }
           : {}),
@@ -308,48 +240,42 @@ export class ParentWakeFlushRunner {
         toolWaitDecision: options.toolWaitDecision,
         getDispatchedWake: () => this.deps.dispatchedTracker.getWake(sessionID),
         hasRecordedPromptAfterDispatch: (wake) =>
-          this.deps.sessionInspector
-            .hasRecordedPromptMessageAfterDispatchedWake(sessionID, wake),
-        trackDispatchedWake: (wake, dispatchedAt) =>
-          this.deps.dispatchedTracker.trackWake(sessionID, wake, dispatchedAt),
+          this.deps.sessionInspector.hasRecordedPromptMessageAfterDispatchedWake(sessionID, wake),
+        trackDispatchedWake: (wake, dispatchedAt) => this.deps.dispatchedTracker.trackWake(sessionID, wake, dispatchedAt),
         requeueWake: (wake) => this.requeueWake(sessionID, wake),
-        scheduleFlush: (delayMs) =>
-          this.schedulePendingParentWakeFlush(sessionID, delayMs),
-      });
-      this.deps.notifierDeps.ledger.logDispatched(sessionID);
+        scheduleFlush: (delayMs) => this.schedulePendingParentWakeFlush(sessionID, delayMs),
+      })
+      this.deps.notifierDeps.ledger.logDispatched(sessionID)
     } finally {
-      this.deps.dispatchedTracker.clearInFlight(sessionID);
+      this.deps.dispatchedTracker.clearInFlight(sessionID)
     }
   }
 
   private async isSessionActive(sessionID: string): Promise<boolean> {
-    return isOpenCodeSessionActive(this.deps.notifierDeps.client, sessionID);
+    return isOpenCodeSessionActive(this.deps.notifierDeps.client, sessionID)
   }
 
-  private shouldForceDispatchAfterActiveDefer(
-    wake: PendingParentWake,
-  ): boolean {
-    return wake.shouldReply &&
-      this.getQueuedAgeMs(wake) >= PENDING_PARENT_WAKE_MAX_ACTIVE_DEFER_MS;
+  private shouldForceDispatchAfterActiveDefer(wake: PendingParentWake): boolean {
+    return wake.shouldReply && this.getQueuedAgeMs(wake) >= PENDING_PARENT_WAKE_MAX_ACTIVE_DEFER_MS
   }
 
   private getQueuedAgeMs(wake: PendingParentWake): number {
-    return Date.now() - (wake.queuedAt ?? Date.now());
+    return Date.now() - (wake.queuedAt ?? Date.now())
   }
 
   private hasRecentParentSessionActivity(sessionID: string): boolean {
-    return this.deps.sessionInspector.hasRecentActivity(sessionID);
+    return this.deps.sessionInspector.hasRecentActivity(sessionID)
   }
 
   private async isUserMessageInProgress(sessionID: string): Promise<boolean> {
-    return this.deps.sessionInspector.isUserMessageInProgress(sessionID);
+    return this.deps.sessionInspector.isUserMessageInProgress(sessionID)
   }
 
   private async shouldDeferParentWakeForSessionHistory(
     sessionID: string,
     wake: PendingParentWake,
   ): Promise<ToolWaitDeferralDecision> {
-    return this.deps.sessionInspector.shouldDeferForHistory(sessionID, wake);
+    return this.deps.sessionInspector.shouldDeferForHistory(sessionID, wake)
   }
 
   private async confirmParentWakeStillSafeForReply(
@@ -358,12 +284,12 @@ export class ParentWakeFlushRunner {
     decision: ToolWaitDeferralDecision,
   ): Promise<ToolWaitDeferralDecision> {
     if (!decision.skipPromptGateToolStateCheck) {
-      return decision;
+      return decision
     }
-    return this.deps.sessionInspector.shouldDeferForHistory(sessionID, wake);
+    return this.deps.sessionInspector.shouldDeferForHistory(sessionID, wake)
   }
 
   private requeueWake(sessionID: string, latestWake: PendingParentWake): void {
-    this.deps.pendingQueue.requeueWake(sessionID, latestWake);
+    this.deps.pendingQueue.requeueWake(sessionID, latestWake)
   }
 }

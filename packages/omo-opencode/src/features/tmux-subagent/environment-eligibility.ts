@@ -1,8 +1,8 @@
-import type { TmuxConfig } from "../../config/schema";
-import { isNativeTmux, isTmuxPaneCompatible } from "../../shared/tmux";
+import type { TmuxConfig } from "../../config/schema"
+import { isNativeTmux, isTmuxPaneCompatible } from "../../shared/tmux"
 
 export function selectTmuxManagerEnvironmentPredicate(
-  isolation: TmuxConfig["isolation"],
+	isolation: TmuxConfig["isolation"],
 ): () => boolean {
-  return isolation === "inline" ? isTmuxPaneCompatible : isNativeTmux;
+	return isolation === "inline" ? isTmuxPaneCompatible : isNativeTmux
 }

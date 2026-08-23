@@ -1,4 +1,4 @@
-import type { BuiltinSkill } from "../types";
+import type { BuiltinSkill } from "../types"
 
 /**
  * OpenSpec builtin skill.
@@ -141,4 +141,4 @@ When \`openspec.task_write_back: true\` (the default), the plugin automatically 
 }
 \`\`\`
 `,
-};
+}

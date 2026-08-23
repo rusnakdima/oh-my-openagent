@@ -1,13 +1,13 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 
 import {
+  loadUserAgents,
+  loadProjectAgents,
   loadOpencodeGlobalAgents,
   loadOpencodeProjectAgents,
-  loadProjectAgents,
-  loadUserAgents,
 } from "./loader";
 
 /**
@@ -59,7 +59,7 @@ describe("claude-code-agent-loader", () => {
     CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR,
     OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
     XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
-  };
+  }
 
   afterEach(() => {
     for (const dir of dirs) {
@@ -67,19 +67,19 @@ describe("claude-code-agent-loader", () => {
     }
     dirs.length = 0;
     if (originalEnv.CLAUDE_CONFIG_DIR === undefined) {
-      delete process.env.CLAUDE_CONFIG_DIR;
+      delete process.env.CLAUDE_CONFIG_DIR
     } else {
-      process.env.CLAUDE_CONFIG_DIR = originalEnv.CLAUDE_CONFIG_DIR;
+      process.env.CLAUDE_CONFIG_DIR = originalEnv.CLAUDE_CONFIG_DIR
     }
     if (originalEnv.OPENCODE_CONFIG_DIR === undefined) {
-      delete process.env.OPENCODE_CONFIG_DIR;
+      delete process.env.OPENCODE_CONFIG_DIR
     } else {
-      process.env.OPENCODE_CONFIG_DIR = originalEnv.OPENCODE_CONFIG_DIR;
+      process.env.OPENCODE_CONFIG_DIR = originalEnv.OPENCODE_CONFIG_DIR
     }
     if (originalEnv.XDG_CONFIG_HOME === undefined) {
-      delete process.env.XDG_CONFIG_HOME;
+      delete process.env.XDG_CONFIG_HOME
     } else {
-      process.env.XDG_CONFIG_HOME = originalEnv.XDG_CONFIG_HOME;
+      process.env.XDG_CONFIG_HOME = originalEnv.XDG_CONFIG_HOME
     }
   });
 
@@ -166,8 +166,7 @@ describe("claude-code-agent-loader", () => {
             { filename: "agent-a.md", content: BASIC_AGENT },
             {
               filename: "agent-b.md",
-              content:
-                `---\nname: second-agent\ndescription: Another agent\n---\nDo other things.`,
+              content: `---\nname: second-agent\ndescription: Another agent\n---\nDo other things.`,
             },
           ],
         }),
@@ -211,58 +210,48 @@ describe("claude-code-agent-loader", () => {
 
   describe("loadUserAgents", () => {
     test("returns empty object when pointed at dir without agents/", () => {
-      const root = trackDir(mkdtempSync(join(tmpdir(), "agent-loader-test-")));
-      process.env.CLAUDE_CONFIG_DIR = root;
-      const result = loadUserAgents();
-      expect(result).toEqual({});
-    });
-  });
+      const root = trackDir(mkdtempSync(join(tmpdir(), "agent-loader-test-")))
+      process.env.CLAUDE_CONFIG_DIR = root
+      const result = loadUserAgents()
+      expect(result).toEqual({})
+    })
+  })
 
   describe("loadOpencodeGlobalAgents", () => {
     test("returns empty object when pointed at dir without agents/", () => {
-      const root = trackDir(mkdtempSync(join(tmpdir(), "agent-loader-test-")));
-      process.env.OPENCODE_CONFIG_DIR = root;
-      const result = loadOpencodeGlobalAgents();
-      expect(result).toEqual({});
-    });
+      const root = trackDir(mkdtempSync(join(tmpdir(), "agent-loader-test-")))
+      process.env.OPENCODE_CONFIG_DIR = root
+      const result = loadOpencodeGlobalAgents()
+      expect(result).toEqual({})
+    })
 
     test("loads agents from both the custom and default opencode config directories", () => {
-      const root = trackDir(
-        mkdtempSync(join(tmpdir(), "agent-loader-opencode-global-")),
-      );
-      const defaultAgentsDir = join(root, "xdg", "opencode", "agents");
-      const customAgentsDir = join(root, "custom-opencode", "agents");
+      const root = trackDir(mkdtempSync(join(tmpdir(), "agent-loader-opencode-global-")))
+      const defaultAgentsDir = join(root, "xdg", "opencode", "agents")
+      const customAgentsDir = join(root, "custom-opencode", "agents")
 
-      mkdirSync(defaultAgentsDir, { recursive: true });
-      mkdirSync(customAgentsDir, { recursive: true });
+      mkdirSync(defaultAgentsDir, { recursive: true })
+      mkdirSync(customAgentsDir, { recursive: true })
 
-      writeFileSync(
-        join(defaultAgentsDir, "default-agent.md"),
-        BASIC_AGENT,
-        "utf-8",
-      );
+      writeFileSync(join(defaultAgentsDir, "default-agent.md"), BASIC_AGENT, "utf-8")
       writeFileSync(
         join(customAgentsDir, "custom-agent.md"),
         `---\nname: custom-agent\ndescription: Custom agent\n---\nFrom custom config.`,
         "utf-8",
-      );
+      )
 
-      process.env.XDG_CONFIG_HOME = join(root, "xdg");
-      process.env.OPENCODE_CONFIG_DIR = join(root, "custom-opencode");
+      process.env.XDG_CONFIG_HOME = join(root, "xdg")
+      process.env.OPENCODE_CONFIG_DIR = join(root, "custom-opencode")
 
-      const result = loadOpencodeGlobalAgents();
+      const result = loadOpencodeGlobalAgents()
 
-      expect(Object.keys(result).sort()).toEqual([
-        "custom-agent",
-        "test-agent",
-      ]);
-    });
-  });
+      expect(Object.keys(result).sort()).toEqual(["custom-agent", "test-agent"])
+    })
+  })
 
   describe("tools parsing", () => {
     test("parses comma-separated tools into boolean record", () => {
-      const agentWithTools =
-        `---\nname: tooled\ndescription: Has tools\ntools: Bash,Read,Edit\n---\nDo things.`;
+      const agentWithTools = `---\nname: tooled\ndescription: Has tools\ntools: Bash,Read,Edit\n---\nDo things.`;
       const root = trackDir(
         createProjectWithAgents({
           claudeAgents: [{ filename: "tooled.md", content: agentWithTools }],
@@ -279,8 +268,7 @@ describe("claude-code-agent-loader", () => {
     });
 
     test("omits tools when frontmatter tools field is absent", () => {
-      const agentNoTools =
-        `---\nname: no-tools\ndescription: No tools\n---\nDo things.`;
+      const agentNoTools = `---\nname: no-tools\ndescription: No tools\n---\nDo things.`;
       const root = trackDir(
         createProjectWithAgents({
           claudeAgents: [{ filename: "no-tools.md", content: agentNoTools }],
@@ -295,26 +283,23 @@ describe("claude-code-agent-loader", () => {
 
   describe("scope labeling", () => {
     test("project and opencode-project loaders apply correct scope prefixes", () => {
-      const root = trackDir(mkdtempSync(join(tmpdir(), "agent-loader-scope-")));
-      const content =
-        `---\nname: scoped\ndescription: Scoped agent\n---\nPrompt.`;
+      const root = trackDir(mkdtempSync(join(tmpdir(), "agent-loader-scope-")))
+      const content = `---\nname: scoped\ndescription: Scoped agent\n---\nPrompt.`
 
-      const claudeProjectDir = join(root, "project", ".claude", "agents");
-      const ocProjectDir = join(root, "project", ".opencode", "agents");
+      const claudeProjectDir = join(root, "project", ".claude", "agents")
+      const ocProjectDir = join(root, "project", ".opencode", "agents")
 
-      mkdirSync(claudeProjectDir, { recursive: true });
-      mkdirSync(ocProjectDir, { recursive: true });
+      mkdirSync(claudeProjectDir, { recursive: true })
+      mkdirSync(ocProjectDir, { recursive: true })
 
-      writeFileSync(join(claudeProjectDir, "a.md"), content, "utf-8");
-      writeFileSync(join(ocProjectDir, "a.md"), content, "utf-8");
+      writeFileSync(join(claudeProjectDir, "a.md"), content, "utf-8")
+      writeFileSync(join(ocProjectDir, "a.md"), content, "utf-8")
 
-      const project = loadProjectAgents(join(root, "project"));
-      const ocProject = loadOpencodeProjectAgents(join(root, "project"));
+      const project = loadProjectAgents(join(root, "project"))
+      const ocProject = loadOpencodeProjectAgents(join(root, "project"))
 
-      expect(project["scoped"].description).toBe("(project) Scoped agent");
-      expect(ocProject["scoped"].description).toBe(
-        "(opencode-project) Scoped agent",
-      );
-    });
-  });
+      expect(project["scoped"].description).toBe("(project) Scoped agent")
+      expect(ocProject["scoped"].description).toBe("(opencode-project) Scoped agent")
+    })
+  })
 });

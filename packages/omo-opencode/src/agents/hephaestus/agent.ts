@@ -3,14 +3,11 @@ import type { AgentMode, AgentPromptMetadata } from "../types";
 import { isGpt5_5Model, isGpt5_6Model } from "../types";
 import type {
   AvailableAgent,
-  AvailableCategory,
-  AvailableSkill,
   AvailableTool,
+  AvailableSkill,
+  AvailableCategory,
 } from "../dynamic-agent-prompt-builder";
-import {
-  buildAgentIdentitySection,
-  categorizeTools,
-} from "../dynamic-agent-prompt-builder";
+import { categorizeTools, buildAgentIdentitySection } from "../dynamic-agent-prompt-builder";
 import { getFrontierToolSchemaPermission } from "../frontier-tool-schema-guard";
 
 import { buildHephaestusPrompt as buildGptPrompt } from "./gpt";
@@ -32,9 +29,7 @@ export class UnsupportedHephaestusModelError extends Error {
 
   constructor(model: string | undefined) {
     super(
-      `Hephaestus only supports GPT-5.3 Codex, GPT-5.4, GPT-5.5, and GPT-5.6 models; received ${
-        model ?? "no model"
-      }.`,
+      `Hephaestus only supports GPT-5.3 Codex, GPT-5.4, GPT-5.5, and GPT-5.6 models; received ${model ?? "no model"}.`,
     );
     this.name = "UnsupportedHephaestusModelError";
     this.model = model;
@@ -42,9 +37,7 @@ export class UnsupportedHephaestusModelError extends Error {
 }
 
 function extractModelName(model: string): string {
-  const afterProvider = model.includes("/")
-    ? (model.split("/").pop() ?? model)
-    : model;
+  const afterProvider = model.includes("/") ? (model.split("/").pop() ?? model) : model;
   return HOSTED_VENDOR_PREFIX_RE.exec(afterProvider)?.[1] ?? afterProvider;
 }
 

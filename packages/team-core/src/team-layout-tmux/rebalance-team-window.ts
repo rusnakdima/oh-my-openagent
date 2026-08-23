@@ -1,9 +1,9 @@
-export type RebalanceLayout = "main-vertical" | "tiled";
+export type RebalanceLayout = "main-vertical" | "tiled"
 
 export type RebalanceTeamWindowDeps = {
-  runTmux: (args: string[]) => Promise<{ success: boolean }>;
-  log: (message: string, meta?: Record<string, unknown>) => void;
-};
+  runTmux: (args: string[]) => Promise<{ success: boolean }>
+  log: (message: string, meta?: Record<string, unknown>) => void
+}
 
 export async function rebalanceTeamWindowWith(
   windowId: string,
@@ -11,22 +11,18 @@ export async function rebalanceTeamWindowWith(
   deps: RebalanceTeamWindowDeps,
 ): Promise<boolean> {
   if (windowId.length === 0) {
-    return false;
+    return false
   }
 
-  const selectLayoutArgs = ["select-layout", "-t", windowId, layout];
-  const initialLayout = await deps.runTmux(selectLayoutArgs);
+  const selectLayoutArgs = ["select-layout", "-t", windowId, layout]
+  const initialLayout = await deps.runTmux(selectLayoutArgs)
   if (!initialLayout.success) {
-    deps.log("[rebalanceTeamWindow] FAILED", {
-      windowId,
-      layout,
-      step: "select-layout",
-    });
-    return false;
+    deps.log("[rebalanceTeamWindow] FAILED", { windowId, layout, step: "select-layout" })
+    return false
   }
 
   if (layout === "tiled") {
-    return true;
+    return true
   }
 
   const setMainPaneWidth = await deps.runTmux([
@@ -35,28 +31,20 @@ export async function rebalanceTeamWindowWith(
     windowId,
     "main-pane-width",
     "60%",
-  ]);
+  ])
   if (!setMainPaneWidth.success) {
-    deps.log("[rebalanceTeamWindow] FAILED", {
-      windowId,
-      layout,
-      step: "set-window-option",
-    });
-    return false;
+    deps.log("[rebalanceTeamWindow] FAILED", { windowId, layout, step: "set-window-option" })
+    return false
   }
 
   // tmux applies main-pane-width against the active layout, so select-layout again after resizing.
-  const finalLayout = await deps.runTmux(selectLayoutArgs);
+  const finalLayout = await deps.runTmux(selectLayoutArgs)
   if (!finalLayout.success) {
-    deps.log("[rebalanceTeamWindow] FAILED", {
-      windowId,
-      layout,
-      step: "select-layout",
-    });
-    return false;
+    deps.log("[rebalanceTeamWindow] FAILED", { windowId, layout, step: "select-layout" })
+    return false
   }
 
-  return true;
+  return true
 }
 
 export async function rebalanceTeamWindow(
@@ -66,11 +54,11 @@ export async function rebalanceTeamWindow(
   const [{ log }, { runTmuxCommand }] = await Promise.all([
     import("../logger"),
     import("@oh-my-opencode/tmux-core"),
-  ]);
-  const tmuxPath = "tmux";
+  ])
+  const tmuxPath = "tmux"
 
   return rebalanceTeamWindowWith(windowId, layout, {
     runTmux: (args) => runTmuxCommand(tmuxPath, args),
     log,
-  });
+  })
 }

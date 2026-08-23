@@ -1,41 +1,38 @@
-import type { PluginInput } from "@opencode-ai/plugin";
-import { log } from "../../shared/logger";
-import {
-  resolveMessageEventSessionID,
-  resolveSessionEventID,
-} from "../../shared/event-session-id";
-import { HOOK_NAME } from "./hook-name";
-import { isAbortError } from "./is-abort-error";
-import { handleAtlasSessionIdle } from "./idle-event";
-import type { AtlasHookOptions, SessionState } from "./types";
-import { getRuntimeFallbackErrorMessage } from "@oh-my-opencode/model-core";
+import type { PluginInput } from "@opencode-ai/plugin"
+import { log } from "../../shared/logger"
+import { resolveMessageEventSessionID, resolveSessionEventID } from "../../shared/event-session-id"
+import { HOOK_NAME } from "./hook-name"
+import { isAbortError } from "./is-abort-error"
+import { handleAtlasSessionIdle } from "./idle-event"
+import type { AtlasHookOptions, SessionState } from "./types"
+import { getRuntimeFallbackErrorMessage } from "@oh-my-opencode/model-core"
 
 export function createAtlasEventHandler(input: {
-  ctx: PluginInput;
-  options?: AtlasHookOptions;
-  sessions: Map<string, SessionState>;
-  getState: (sessionID: string) => SessionState;
+  ctx: PluginInput
+  options?: AtlasHookOptions
+  sessions: Map<string, SessionState>
+  getState: (sessionID: string) => SessionState
 }): (arg: { event: { type: string; properties?: unknown } }) => Promise<void> {
-  const { ctx, options, sessions, getState } = input;
+  const { ctx, options, sessions, getState } = input
 
   return async ({ event }): Promise<void> => {
-    const props = event.properties as Record<string, unknown> | undefined;
+    const props = event.properties as Record<string, unknown> | undefined
 
     if (event.type === "session.error") {
-      const sessionID = resolveSessionEventID(props);
-      if (!sessionID) return;
+      const sessionID = resolveSessionEventID(props)
+      if (!sessionID) return
 
-      const state = getState(sessionID);
-      const isAbort = isAbortError(props?.error);
-      state.lastEventWasAbortError = isAbort;
+      const state = getState(sessionID)
+      const isAbort = isAbortError(props?.error)
+      state.lastEventWasAbortError = isAbort
 
-      log(`[${HOOK_NAME}] session.error`, { sessionID, isAbort });
+      log(`[${HOOK_NAME}] session.error`, { sessionID, isAbort })
       if (!isAbort) {
         // Show a toast so the user knows what went wrong before Atlas continues
-        const errorMessage = getRuntimeFallbackErrorMessage(props?.error);
+        const errorMessage = getRuntimeFallbackErrorMessage(props?.error)
         const errorSummary = errorMessage
           ? `Subagent error: ${errorMessage.slice(0, 200)}`
-          : "Subagent encountered an error. Atlas is continuing.";
+          : "Subagent encountered an error. Atlas is continuing."
         await ctx.client.tui
           .showToast({
             body: {
@@ -45,99 +42,96 @@ export function createAtlasEventHandler(input: {
               duration: 10000,
             },
           })
-          .catch(() => {});
+          .catch(() => {})
 
-        const previousInjectedAt = state.lastContinuationInjectedAt;
-        await handleAtlasSessionIdle({ ctx, options, getState, sessionID });
+        const previousInjectedAt = state.lastContinuationInjectedAt
+        await handleAtlasSessionIdle({ ctx, options, getState, sessionID })
         if (
-          state.lastContinuationInjectedAt !== undefined &&
-          state.lastContinuationInjectedAt !== previousInjectedAt
+          state.lastContinuationInjectedAt !== undefined
+          && state.lastContinuationInjectedAt !== previousInjectedAt
         ) {
-          state.skipNextIdleAfterRuntimeErrorRetry = true;
+          state.skipNextIdleAfterRuntimeErrorRetry = true
         }
       }
-      return;
+      return
     }
 
     if (event.type === "session.idle") {
-      const sessionID = resolveSessionEventID(props);
-      if (!sessionID) return;
-      await handleAtlasSessionIdle({ ctx, options, getState, sessionID });
-      return;
+      const sessionID = resolveSessionEventID(props)
+      if (!sessionID) return
+      await handleAtlasSessionIdle({ ctx, options, getState, sessionID })
+      return
     }
 
     if (event.type === "message.updated") {
-      const info = props?.info as Record<string, unknown> | undefined;
-      const sessionID = resolveMessageEventSessionID(props);
-      const role = info?.role as string | undefined;
-      if (!sessionID) return;
+      const info = props?.info as Record<string, unknown> | undefined
+      const sessionID = resolveMessageEventSessionID(props)
+      const role = info?.role as string | undefined
+      if (!sessionID) return
 
-      const state = sessions.get(sessionID);
+      const state = sessions.get(sessionID)
       if (state) {
-        state.lastEventWasAbortError = false;
-        state.skipNextIdleAfterRuntimeErrorRetry = false;
+        state.lastEventWasAbortError = false
+        state.skipNextIdleAfterRuntimeErrorRetry = false
         if (role === "user") {
-          state.waitingForFinalWaveApproval = false;
+          state.waitingForFinalWaveApproval = false
         }
       }
-      return;
+      return
     }
 
     if (event.type === "message.part.updated") {
-      const info = props?.info as Record<string, unknown> | undefined;
-      const sessionID = resolveMessageEventSessionID(props);
-      const role = info?.role as string | undefined;
+      const info = props?.info as Record<string, unknown> | undefined
+      const sessionID = resolveMessageEventSessionID(props)
+      const role = info?.role as string | undefined
 
       if (sessionID && role === "assistant") {
-        const state = sessions.get(sessionID);
+        const state = sessions.get(sessionID)
         if (state) {
-          state.lastEventWasAbortError = false;
-          state.skipNextIdleAfterRuntimeErrorRetry = false;
+          state.lastEventWasAbortError = false
+          state.skipNextIdleAfterRuntimeErrorRetry = false
         }
       }
-      return;
+      return
     }
 
-    if (
-      event.type === "tool.execute.before" ||
-      event.type === "tool.execute.after"
-    ) {
-      const sessionID = resolveMessageEventSessionID(props);
+    if (event.type === "tool.execute.before" || event.type === "tool.execute.after") {
+      const sessionID = resolveMessageEventSessionID(props)
       if (sessionID) {
-        const state = sessions.get(sessionID);
+        const state = sessions.get(sessionID)
         if (state) {
-          state.lastEventWasAbortError = false;
-          state.skipNextIdleAfterRuntimeErrorRetry = false;
+          state.lastEventWasAbortError = false
+          state.skipNextIdleAfterRuntimeErrorRetry = false
         }
       }
-      return;
+      return
     }
 
     if (event.type === "session.deleted") {
-      const sessionID = resolveSessionEventID(props);
+      const sessionID = resolveSessionEventID(props)
       if (sessionID) {
-        const deletedState = sessions.get(sessionID);
+        const deletedState = sessions.get(sessionID)
         if (deletedState?.pendingRetryTimer) {
-          clearTimeout(deletedState.pendingRetryTimer);
-          deletedState.pendingRetryTimer = undefined;
+          clearTimeout(deletedState.pendingRetryTimer)
+          deletedState.pendingRetryTimer = undefined
         }
-        sessions.delete(sessionID);
-        log(`[${HOOK_NAME}] Session deleted: cleaned up`, { sessionID });
+        sessions.delete(sessionID)
+        log(`[${HOOK_NAME}] Session deleted: cleaned up`, { sessionID })
       }
-      return;
+      return
     }
 
     if (event.type === "session.compacted") {
-      const sessionID = resolveSessionEventID(props);
+      const sessionID = resolveSessionEventID(props)
       if (sessionID) {
-        const compactedState = sessions.get(sessionID);
+        const compactedState = sessions.get(sessionID)
         if (compactedState?.pendingRetryTimer) {
-          clearTimeout(compactedState.pendingRetryTimer);
-          compactedState.pendingRetryTimer = undefined;
+          clearTimeout(compactedState.pendingRetryTimer)
+          compactedState.pendingRetryTimer = undefined
         }
-        sessions.delete(sessionID);
-        log(`[${HOOK_NAME}] Session compacted: cleaned up`, { sessionID });
+        sessions.delete(sessionID)
+        log(`[${HOOK_NAME}] Session compacted: cleaned up`, { sessionID })
       }
     }
-  };
+  }
 }

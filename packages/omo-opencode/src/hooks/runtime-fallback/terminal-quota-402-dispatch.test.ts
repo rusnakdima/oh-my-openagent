@@ -1,16 +1,12 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import type { HookDeps, RuntimeFallbackPluginInput } from "./types";
-import type { AutoRetryHelpers } from "./auto-retry";
-import { subagentSessions } from "../../features/claude-code-session-state";
+import { afterEach, beforeEach, describe, expect, it } from "bun:test"
+import type { HookDeps, RuntimeFallbackPluginInput } from "./types"
+import type { AutoRetryHelpers } from "./auto-retry"
+import { subagentSessions } from "../../features/claude-code-session-state"
 
-type MessageUpdateHandlerModule = typeof import("./message-update-handler");
+type MessageUpdateHandlerModule = typeof import("./message-update-handler")
 
-async function importFreshMessageUpdateHandlerModule(): Promise<
-  MessageUpdateHandlerModule
-> {
-  return import(
-    `./message-update-handler?terminal-402-${Date.now()}-${Math.random()}`
-  );
+async function importFreshMessageUpdateHandlerModule(): Promise<MessageUpdateHandlerModule> {
+  return import(`./message-update-handler?terminal-402-${Date.now()}-${Math.random()}`)
 }
 
 function createContext(): RuntimeFallbackPluginInput {
@@ -26,7 +22,7 @@ function createContext(): RuntimeFallbackPluginInput {
       },
     },
     directory: "/test/dir",
-  };
+  }
 }
 
 function createDeps(pluginConfig: Record<string, unknown> = {}): HookDeps {
@@ -49,7 +45,7 @@ function createDeps(pluginConfig: Record<string, unknown> = {}): HookDeps {
     sessionAwaitingFallbackResult: new Set(),
     sessionFallbackTimeouts: new Map(),
     sessionStatusRetryKeys: new Map(),
-  };
+  }
 }
 
 function createHelpers(
@@ -59,18 +55,13 @@ function createHelpers(
     abortSessionRequest: async () => {},
     clearSessionFallbackTimeout: () => {},
     scheduleSessionFallbackTimeout: () => {},
-    autoRetryWithFallback: async (
-      sessionID: string,
-      newModel: string,
-      _agent?: string,
-      source?: string,
-    ) => {
-      dispatchCalls.push({ sessionID, newModel, source: source ?? "" });
-      return { accepted: true, status: "dispatched" };
+    autoRetryWithFallback: async (sessionID: string, newModel: string, _agent?: string, source?: string) => {
+      dispatchCalls.push({ sessionID, newModel, source: source ?? "" })
+      return { accepted: true, status: "dispatched" }
     },
     resolveAgentForSessionFromContext: async () => undefined,
     cleanupStaleSessions: () => {},
-  };
+  }
 }
 
 // The terminal-quota-402 abort shape after #6677's abort classification lands:
@@ -84,16 +75,15 @@ const TERMINAL_402_ABORT = {
   data: {
     statusCode: 402,
     isRetryable: false,
-    message:
-      "Terminal quota or billing limit reached for the requested LiteLLM model handle.",
+    message: "Terminal quota or billing limit reached for the requested LiteLLM model handle.",
   },
-};
+}
 
 const TERMINAL_402_INFO = {
   role: "assistant",
   model: "openai/gpt-5.5",
   error: TERMINAL_402_ABORT,
-};
+}
 
 const FALLBACK_PLUGIN_CONFIG = {
   agents: {
@@ -102,53 +92,41 @@ const FALLBACK_PLUGIN_CONFIG = {
       fallback_models: ["litellm/gpt-5.6-sol", "litellm/glm-5.2"],
     },
   },
-};
+}
 
 describe("createMessageUpdateHandler terminal-quota-402 session-stable fallback", () => {
   beforeEach(() => {
-    subagentSessions.clear();
-  });
+    subagentSessions.clear()
+  })
 
   afterEach(() => {
-    subagentSessions.clear();
-  });
+    subagentSessions.clear()
+  })
 
   it("#given a session hits a terminal-quota 402 abort and resolves fallback models #when the assistant error event fires #then exactly ONE session-stable fallback dispatch happens on the same session", async () => {
     // given
-    const { createMessageUpdateHandler } =
-      await importFreshMessageUpdateHandlerModule();
-    const sessionID = "ses_xx-sisyphus-junior-terminal402";
-    const dispatchCalls: Array<
-      { sessionID: string; newModel: string; source: string }
-    > = [];
-    const deps = createDeps(FALLBACK_PLUGIN_CONFIG);
-    const handler = createMessageUpdateHandler(
-      deps,
-      createHelpers(dispatchCalls),
-    );
+    const { createMessageUpdateHandler } = await importFreshMessageUpdateHandlerModule()
+    const sessionID = "ses_xx-sisyphus-junior-terminal402"
+    const dispatchCalls: Array<{ sessionID: string; newModel: string; source: string }> = []
+    const deps = createDeps(FALLBACK_PLUGIN_CONFIG)
+    const handler = createMessageUpdateHandler(deps, createHelpers(dispatchCalls))
 
     // when
-    await handler({ info: { sessionID, ...TERMINAL_402_INFO } });
+    await handler({ info: { sessionID, ...TERMINAL_402_INFO } })
 
     // then
-    expect(dispatchCalls).toHaveLength(1);
-    expect(dispatchCalls[0].sessionID).toBe(sessionID); // session-stable: same session, no second create
-    expect(dispatchCalls[0].newModel).toBe("litellm/gpt-5.6-sol"); // first fallback model
-  });
+    expect(dispatchCalls).toHaveLength(1)
+    expect(dispatchCalls[0].sessionID).toBe(sessionID) // session-stable: same session, no second create
+    expect(dispatchCalls[0].newModel).toBe("litellm/gpt-5.6-sol") // first fallback model
+  })
 
   it("#given a session hits an abort WITHOUT a 402 status (user abort) #when the assistant error event fires #then NO fallback dispatch happens (the new branch only opens for abort + 402)", async () => {
     // given
-    const { createMessageUpdateHandler } =
-      await importFreshMessageUpdateHandlerModule();
-    const sessionID = "ses_xx-sisyphus-junior-userabort";
-    const dispatchCalls: Array<
-      { sessionID: string; newModel: string; source: string }
-    > = [];
-    const deps = createDeps(FALLBACK_PLUGIN_CONFIG);
-    const handler = createMessageUpdateHandler(
-      deps,
-      createHelpers(dispatchCalls),
-    );
+    const { createMessageUpdateHandler } = await importFreshMessageUpdateHandlerModule()
+    const sessionID = "ses_xx-sisyphus-junior-userabort"
+    const dispatchCalls: Array<{ sessionID: string; newModel: string; source: string }> = []
+    const deps = createDeps(FALLBACK_PLUGIN_CONFIG)
+    const handler = createMessageUpdateHandler(deps, createHelpers(dispatchCalls))
 
     // when
     await handler({
@@ -156,35 +134,26 @@ describe("createMessageUpdateHandler terminal-quota-402 session-stable fallback"
         sessionID,
         role: "assistant",
         model: "openai/gpt-5.5",
-        error: {
-          name: "MessageAbortedError",
-          message: "The user aborted this request.",
-        },
+        error: { name: "MessageAbortedError", message: "The user aborted this request." },
       },
-    });
+    })
 
     // then
-    expect(dispatchCalls).toEqual([]);
-  });
+    expect(dispatchCalls).toEqual([])
+  })
 
   it("#given a session hits a terminal-quota 402 abort but resolves NO fallback models #when the assistant error event fires #then NO fallback dispatch happens", async () => {
     // given
-    const { createMessageUpdateHandler } =
-      await importFreshMessageUpdateHandlerModule();
-    const sessionID = "ses_xx-sisyphus-junior-nofallback";
-    const dispatchCalls: Array<
-      { sessionID: string; newModel: string; source: string }
-    > = [];
-    const deps = createDeps({}); // no agents/fallback config
-    const handler = createMessageUpdateHandler(
-      deps,
-      createHelpers(dispatchCalls),
-    );
+    const { createMessageUpdateHandler } = await importFreshMessageUpdateHandlerModule()
+    const sessionID = "ses_xx-sisyphus-junior-nofallback"
+    const dispatchCalls: Array<{ sessionID: string; newModel: string; source: string }> = []
+    const deps = createDeps({}) // no agents/fallback config
+    const handler = createMessageUpdateHandler(deps, createHelpers(dispatchCalls))
 
     // when
-    await handler({ info: { sessionID, ...TERMINAL_402_INFO } });
+    await handler({ info: { sessionID, ...TERMINAL_402_INFO } })
 
     // then
-    expect(dispatchCalls).toEqual([]);
-  });
-});
+    expect(dispatchCalls).toEqual([])
+  })
+})

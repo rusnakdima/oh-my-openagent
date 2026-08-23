@@ -1,5 +1,4 @@
-export const GOAL_TEMPLATE =
-  `You are setting a thread Goal - a persistent objective that the agent will pursue continuously until paused, cleared, or completed.
+export const GOAL_TEMPLATE = `You are setting a thread Goal - a persistent objective that the agent will pursue continuously until paused, cleared, or completed.
 
 ## How Goal Works
 
@@ -27,4 +26,4 @@ export const GOAL_TEMPLATE =
 ## Your Task
 
 Parse the arguments below and set the goal. The format is:
-\`<objective>\` or one of: pause, resume, clear`;
+\`<objective>\` or one of: pause, resume, clear`

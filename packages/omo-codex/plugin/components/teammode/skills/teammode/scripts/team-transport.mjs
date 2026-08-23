@@ -20,52 +20,36 @@ export const LEADER_AGENT_PATH = "/root";
 const TASK_NAME_PATTERN = /^[a-z0-9_]+$/;
 
 export function parseTeamTransport(value = DEFAULT_TEAM_TRANSPORT) {
-  if (!TEAM_TRANSPORTS.includes(value)) {
-    throw new Error(
-      `invalid transport "${value}" - use one of: ${
-        TEAM_TRANSPORTS.join(", ")
-      }`,
-    );
-  }
-  return value;
+	if (!TEAM_TRANSPORTS.includes(value)) {
+		throw new Error(`invalid transport "${value}" - use one of: ${TEAM_TRANSPORTS.join(", ")}`);
+	}
+	return value;
 }
 
 export function isMultiAgentV2(team) {
-  return team?.transport === "multi_agent_v2";
+	return team?.transport === "multi_agent_v2";
 }
 
 export function isCodexApp(team) {
-  return team?.transport === "codex_app";
+	return team?.transport === "codex_app";
 }
 
 export function assertTransport(team, transport, operation) {
-  if (team?.transport !== transport) {
-    throw new Error(
-      `${operation} is only valid on ${transport} teams; this team's transport is "${team?.transport}"`,
-    );
-  }
+	if (team?.transport !== transport) {
+		throw new Error(`${operation} is only valid on ${transport} teams; this team's transport is "${team?.transport}"`);
+	}
 }
 
 export function parseTaskName(taskName) {
-  const trimmed = typeof taskName === "string" ? taskName.trim() : "";
-  if (!trimmed) {
-    throw new Error(
-      "member task name is required on multi_agent_v2 teams (--task-name)",
-    );
-  }
-  if (!TASK_NAME_PATTERN.test(trimmed)) {
-    throw new Error(
-      `invalid task name "${trimmed}" - use lowercase letters, digits, and underscores`,
-    );
-  }
-  if (trimmed === "root") {
-    throw new Error(
-      'invalid task name "root" - it names the leader, never a member',
-    );
-  }
-  return trimmed;
+	const trimmed = typeof taskName === "string" ? taskName.trim() : "";
+	if (!trimmed) throw new Error("member task name is required on multi_agent_v2 teams (--task-name)");
+	if (!TASK_NAME_PATTERN.test(trimmed)) {
+		throw new Error(`invalid task name "${trimmed}" - use lowercase letters, digits, and underscores`);
+	}
+	if (trimmed === "root") throw new Error('invalid task name "root" - it names the leader, never a member');
+	return trimmed;
 }
 
 export function agentPathForTaskName(taskName) {
-  return `${LEADER_AGENT_PATH}/${taskName}`;
+	return `${LEADER_AGENT_PATH}/${taskName}`;
 }

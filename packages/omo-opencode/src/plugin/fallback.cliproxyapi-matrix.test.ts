@@ -1,31 +1,29 @@
-declare const require: (name: string) => any;
-const { afterEach, describe, expect, spyOn, test } = require("bun:test");
+declare const require: (name: string) => any
+const { afterEach, describe, expect, spyOn, test } = require("bun:test")
 
-const PROVIDER_ID = "cliproxyapi";
+const PROVIDER_ID = "cliproxyapi"
 
-import { createEventHandler } from "./event";
-import { createChatMessageHandler } from "./chat-message";
-import { createModelFallbackHook } from "../hooks/model-fallback/hook";
-import { createRuntimeFallbackHook } from "../hooks/runtime-fallback";
-import type { RuntimeFallbackPluginInput } from "../hooks/runtime-fallback/types";
-import { _resetForTesting } from "../features/claude-code-session-state";
-import { SessionCategoryRegistry } from "../shared/session-category-registry";
-import * as connectedProvidersCache from "../shared/connected-providers-cache";
-import { unsafeTestValue } from "../../../../test-support/unsafe-test-value";
+import { createEventHandler } from "./event"
+import { createChatMessageHandler } from "./chat-message"
+import { createModelFallbackHook } from "../hooks/model-fallback/hook"
+import { createRuntimeFallbackHook } from "../hooks/runtime-fallback"
+import type { RuntimeFallbackPluginInput } from "../hooks/runtime-fallback/types"
+import { _resetForTesting } from "../features/claude-code-session-state"
+import { SessionCategoryRegistry } from "../shared/session-category-registry"
+import * as connectedProvidersCache from "../shared/connected-providers-cache"
+import { unsafeTestValue } from "../../../../test-support/unsafe-test-value"
 
-type EventHandlerArgs = Parameters<typeof createEventHandler>[0];
-type ChatMessageHandlerArgs = Parameters<typeof createChatMessageHandler>[0];
-type HarnessContext = EventHandlerArgs["ctx"] & RuntimeFallbackPluginInput;
-type HarnessEventInput = Parameters<
-  ReturnType<typeof createHarness>["eventHandler"]
->[0];
+type EventHandlerArgs = Parameters<typeof createEventHandler>[0]
+type ChatMessageHandlerArgs = Parameters<typeof createChatMessageHandler>[0]
+type HarnessContext = EventHandlerArgs["ctx"] & RuntimeFallbackPluginInput
+type HarnessEventInput = Parameters<ReturnType<typeof createHarness>["eventHandler"]>[0]
 
 function asHarnessEventInput(input: unknown): HarnessEventInput {
-  return unsafeTestValue<HarnessEventInput>(input);
+  return unsafeTestValue<HarnessEventInput>(input)
 }
 
 function asHarnessContext(ctx: unknown): HarnessContext {
-  return unsafeTestValue<HarnessContext>(ctx);
+  return unsafeTestValue<HarnessContext>(ctx)
 }
 
 function createEventHandlerManagers(
@@ -38,7 +36,7 @@ function createEventHandlerManagers(
       onSessionDeleted: async () => {},
     },
     ...overrides,
-  });
+  })
 }
 
 function createEventHandlerHooks(
@@ -47,7 +45,7 @@ function createEventHandlerHooks(
   return unsafeTestValue<EventHandlerArgs["hooks"]>({
     ...({} as EventHandlerArgs["hooks"]),
     ...overrides,
-  });
+  })
 }
 
 function createChatMessageHandlerHooks(
@@ -56,39 +54,38 @@ function createChatMessageHandlerHooks(
   return unsafeTestValue<ChatMessageHandlerArgs["hooks"]>({
     ...({} as ChatMessageHandlerArgs["hooks"]),
     ...overrides,
-  });
+  })
 }
 
 const PRIMARY_MODEL = {
   providerID: PROVIDER_ID,
   modelID: "claude-opus-4-7",
-};
+}
 
-const PRIMARY_MODEL_STRING =
-  `${PRIMARY_MODEL.providerID}/${PRIMARY_MODEL.modelID}`;
+const PRIMARY_MODEL_STRING = `${PRIMARY_MODEL.providerID}/${PRIMARY_MODEL.modelID}`
 
 const FIRST_FALLBACK_MODEL = {
   providerID: PROVIDER_ID,
   modelID: "claude-sonnet-4-6",
-};
+}
 
 const CLIPROXYAPI_FALLBACKS = [
   `${PROVIDER_ID}/claude-sonnet-4-6`,
   `${PROVIDER_ID}/gpt-5.4`,
   `${PROVIDER_ID}/kimi-k2.5`,
-];
+]
 
-type HarnessMode = "none" | "model" | "runtime" | "both";
+type HarnessMode = "none" | "model" | "runtime" | "both"
 
 type PromptAsyncCall = {
-  sessionID: string;
-  agent?: string;
-  model?: { providerID?: string; modelID?: string };
-  parts?: Array<{ type?: string; text?: string }>;
-};
+  sessionID: string
+  agent?: string
+  model?: { providerID?: string; modelID?: string }
+  parts?: Array<{ type?: string; text?: string }>
+}
 
-let readConnectedProvidersCacheSpy: { mockRestore: () => void } | undefined;
-let readProviderModelsCacheSpy: { mockRestore: () => void } | undefined;
+let readConnectedProvidersCacheSpy: { mockRestore: () => void } | undefined
+let readProviderModelsCacheSpy: { mockRestore: () => void } | undefined
 
 function createPluginConfig(mode: HarnessMode) {
   return unsafeTestValue<EventHandlerArgs["pluginConfig"]>({
@@ -99,82 +96,73 @@ function createPluginConfig(mode: HarnessMode) {
     },
     ...(mode === "runtime" || mode === "both"
       ? {
-        runtime_fallback: {
-          enabled: true,
-        },
-      }
+          runtime_fallback: {
+            enabled: true,
+          },
+        }
       : {}),
-  });
+  })
 }
 
 function createHarness(args: {
-  mode: HarnessMode;
-  promptAsyncImpl?: (call: PromptAsyncCall) => Promise<unknown>;
-  sessionTimeoutMs?: number;
+  mode: HarnessMode
+  promptAsyncImpl?: (call: PromptAsyncCall) => Promise<unknown>
+  sessionTimeoutMs?: number
 }) {
-  setupConnectedProviderCacheMocks();
-  const abortCalls: string[] = [];
-  const promptCalls: string[] = [];
-  const promptAsyncCalls: PromptAsyncCall[] = [];
-  const pluginConfig = createPluginConfig(args.mode);
+  setupConnectedProviderCacheMocks()
+  const abortCalls: string[] = []
+  const promptCalls: string[] = []
+  const promptAsyncCalls: PromptAsyncCall[] = []
+  const pluginConfig = createPluginConfig(args.mode)
 
   const ctx = asHarnessContext({
     directory: "/tmp",
     client: {
       session: {
         abort: async ({ path }: { path: { id: string } }) => {
-          abortCalls.push(path.id);
-          return {};
+          abortCalls.push(path.id)
+          return {}
         },
         prompt: async ({ path }: { path: { id: string } }) => {
-          promptCalls.push(path.id);
-          return {};
+          promptCalls.push(path.id)
+          return {}
         },
         messages: async () => ({
           data: [
             {
               info: { role: "user" },
-              parts: [{
-                type: "text",
-                text: "continue working on the same task",
-              }],
+              parts: [{ type: "text", text: "continue working on the same task" }],
             },
           ],
         }),
         ...(args.mode === "runtime" || args.mode === "both"
           ? {
-            promptAsync: async (raw: unknown) => {
-              const call = {
-                sessionID: (raw as { path?: { id?: string } })?.path?.id ??
-                  "unknown-session",
-                agent: (raw as { body?: { agent?: string } })?.body?.agent,
-                model: (raw as {
-                  body?: {
-                    model?: { providerID?: string; modelID?: string };
-                  };
-                })?.body
-                  ?.model,
-                parts: (raw as {
-                  body?: { parts?: Array<{ type?: string; text?: string }> };
-                })?.body
-                  ?.parts,
-              };
-              promptAsyncCalls.push(call);
+              promptAsync: async (raw: unknown) => {
+                const call = {
+                  sessionID:
+                    (raw as { path?: { id?: string } })?.path?.id ?? "unknown-session",
+                  agent: (raw as { body?: { agent?: string } })?.body?.agent,
+                  model: (raw as { body?: { model?: { providerID?: string; modelID?: string } } })?.body
+                    ?.model,
+                  parts: (raw as { body?: { parts?: Array<{ type?: string; text?: string }> } })?.body
+                    ?.parts,
+                }
+                promptAsyncCalls.push(call)
 
-              if (args.promptAsyncImpl) {
-                return args.promptAsyncImpl(call);
-              }
+                if (args.promptAsyncImpl) {
+                  return args.promptAsyncImpl(call)
+                }
 
-              return {};
-            },
-          }
+                return {}
+              },
+            }
           : {}),
       },
       tui: {
         showToast: async () => ({}),
       },
     },
-  });
+  })
 
   const hooks: Record<string, unknown> = {
     stopContinuationGuard: null,
@@ -184,10 +172,10 @@ function createHarness(args: {
     autoSlashCommand: null,
     startWork: null,
     ralphLoop: null,
-  };
+  }
 
   if (args.mode === "model" || args.mode === "both") {
-    hooks.modelFallback = createModelFallbackHook();
+    hooks.modelFallback = createModelFallbackHook()
   }
 
   if (args.mode === "runtime" || args.mode === "both") {
@@ -200,20 +188,14 @@ function createHarness(args: {
         timeout_seconds: args.sessionTimeoutMs ? 30 : 0,
         notify_on_fallback: false,
       },
-      pluginConfig: unsafeTestValue<EventHandlerArgs["pluginConfig"]>(
-        pluginConfig,
-      ),
-      ...(args.sessionTimeoutMs
-        ? { session_timeout_ms: args.sessionTimeoutMs }
-        : {}),
-    });
+      pluginConfig: unsafeTestValue<EventHandlerArgs["pluginConfig"]>(pluginConfig),
+      ...(args.sessionTimeoutMs ? { session_timeout_ms: args.sessionTimeoutMs } : {}),
+    })
   }
 
   const eventHandler = createEventHandler({
     ctx,
-    pluginConfig: unsafeTestValue<EventHandlerArgs["pluginConfig"]>(
-      pluginConfig,
-    ),
+    pluginConfig: unsafeTestValue<EventHandlerArgs["pluginConfig"]>(pluginConfig),
     firstMessageVariantGate: {
       markSessionCreated: () => {},
       clear: () => {},
@@ -224,19 +206,17 @@ function createHarness(args: {
       },
     }),
     hooks: createEventHandlerHooks(hooks),
-  });
+  })
 
   const chatMessageHandler = createChatMessageHandler({
     ctx,
-    pluginConfig: unsafeTestValue<ChatMessageHandlerArgs["pluginConfig"]>(
-      pluginConfig,
-    ),
+    pluginConfig: unsafeTestValue<ChatMessageHandlerArgs["pluginConfig"]>(pluginConfig),
     firstMessageVariantGate: {
       shouldOverride: () => false,
       markApplied: () => {},
     },
     hooks: createChatMessageHandlerHooks(hooks),
-  });
+  })
 
   return {
     eventHandler,
@@ -244,7 +224,7 @@ function createHarness(args: {
     abortCalls,
     promptCalls,
     promptAsyncCalls,
-  };
+  }
 }
 
 async function primeMainSession(
@@ -261,7 +241,7 @@ async function primeMainSession(
         },
       },
     },
-  }));
+  }))
 
   await eventHandler(asHarnessEventInput({
     event: {
@@ -280,24 +260,20 @@ async function primeMainSession(
         },
       },
     },
-  }));
+  }))
 }
 
 async function sendNextMessage(
   chatMessageHandler: ReturnType<typeof createHarness>["chatMessageHandler"],
-  input: {
-    sessionID: string;
-    agent?: string;
-    model?: { providerID: string; modelID: string };
-  },
+  input: { sessionID: string; agent?: string; model?: { providerID: string; modelID: string } },
 ) {
   const output = {
     message: {},
     parts: [] as Array<{ type: string; text?: string }>,
-  };
+  }
 
-  await chatMessageHandler(input, output);
-  return output;
+  await chatMessageHandler(input, output)
+  return output
 }
 
 async function triggerSessionError(
@@ -319,7 +295,7 @@ async function triggerSessionError(
         },
       },
     },
-  }));
+  }))
 }
 
 async function triggerSessionStatusRetry(
@@ -342,7 +318,7 @@ async function triggerSessionStatusRetry(
         },
       },
     },
-  }));
+  }))
 }
 
 async function triggerAssistantMessageError(
@@ -370,226 +346,220 @@ async function triggerAssistantMessageError(
         },
       },
     },
-  }));
+  }))
 }
 
 afterEach(() => {
-  readConnectedProvidersCacheSpy?.mockRestore();
-  readProviderModelsCacheSpy?.mockRestore();
-  readConnectedProvidersCacheSpy = undefined;
-  readProviderModelsCacheSpy = undefined;
-});
+  readConnectedProvidersCacheSpy?.mockRestore()
+  readProviderModelsCacheSpy?.mockRestore()
+  readConnectedProvidersCacheSpy = undefined
+  readProviderModelsCacheSpy = undefined
+})
 
 function setupConnectedProviderCacheMocks(): void {
-  readConnectedProvidersCacheSpy = spyOn(
-    connectedProvidersCache,
-    "readConnectedProvidersCache",
-  ).mockReturnValue([
+  readConnectedProvidersCacheSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue([
     PROVIDER_ID,
-  ]);
-  readProviderModelsCacheSpy = spyOn(
-    connectedProvidersCache,
-    "readProviderModelsCache",
-  ).mockReturnValue({
+  ])
+  readProviderModelsCacheSpy = spyOn(connectedProvidersCache, "readProviderModelsCache").mockReturnValue({
     connected: [PROVIDER_ID],
     models: {},
     updatedAt: new Date(0).toISOString(),
-  });
+  })
 }
 
 afterEach(() => {
-  _resetForTesting();
-  SessionCategoryRegistry.clear();
-});
+  _resetForTesting()
+  SessionCategoryRegistry.clear()
+})
 
 describe("CLIProxyAPI-only fallback matrix", () => {
   test("no fallback leaves retryable session.error on the primary CLIProxyAPI model", async () => {
-    const sessionID = "cliproxyapi-none-session-error";
-    const harness = createHarness({ mode: "none" });
+    const sessionID = "cliproxyapi-none-session-error"
+    const harness = createHarness({ mode: "none" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionError(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerSessionError(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
       model: PRIMARY_MODEL,
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([]);
-    expect(harness.promptCalls).toEqual([]);
-    expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toBeUndefined();
-  });
+    expect(harness.abortCalls).toEqual([])
+    expect(harness.promptCalls).toEqual([])
+    expect(harness.promptAsyncCalls).toEqual([])
+    expect(output.message["model"]).toBeUndefined()
+  })
 
   test("model fallback switches CLIProxyAPI session.error failures to the next CLIProxyAPI model", async () => {
-    const sessionID = "cliproxyapi-model-session-error";
-    const harness = createHarness({ mode: "model" });
+    const sessionID = "cliproxyapi-model-session-error"
+    const harness = createHarness({ mode: "model" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionError(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerSessionError(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
       model: PRIMARY_MODEL,
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([sessionID]);
-    expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([sessionID])
+    expect(harness.promptCalls).toEqual([sessionID])
+    expect(harness.promptAsyncCalls).toEqual([])
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("model fallback switches CLIProxyAPI session.status retry signals to the next CLIProxyAPI model", async () => {
-    const sessionID = "cliproxyapi-model-session-status";
-    const harness = createHarness({ mode: "model" });
+    const sessionID = "cliproxyapi-model-session-status"
+    const harness = createHarness({ mode: "model" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionStatusRetry(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerSessionStatusRetry(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
       model: PRIMARY_MODEL,
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([sessionID]);
-    expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([sessionID])
+    expect(harness.promptCalls).toEqual([sessionID])
+    expect(harness.promptAsyncCalls).toEqual([])
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("model fallback switches CLIProxyAPI assistant message.updated errors to the next CLIProxyAPI model", async () => {
-    const sessionID = "cliproxyapi-model-message-updated";
-    const harness = createHarness({ mode: "model" });
+    const sessionID = "cliproxyapi-model-message-updated"
+    const harness = createHarness({ mode: "model" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerAssistantMessageError(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerAssistantMessageError(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
       model: PRIMARY_MODEL,
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([sessionID]);
-    expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([sessionID])
+    expect(harness.promptCalls).toEqual([sessionID])
+    expect(harness.promptAsyncCalls).toEqual([])
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("runtime fallback retries CLIProxyAPI session.error failures through promptAsync and overrides the next message model", async () => {
-    const sessionID = "cliproxyapi-runtime-session-error";
-    const harness = createHarness({ mode: "runtime" });
+    const sessionID = "cliproxyapi-runtime-session-error"
+    const harness = createHarness({ mode: "runtime" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionError(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerSessionError(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([]);
-    expect(harness.promptCalls).toEqual([]);
-    expect(harness.promptAsyncCalls).toHaveLength(1);
-    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([])
+    expect(harness.promptCalls).toEqual([])
+    expect(harness.promptAsyncCalls).toHaveLength(1)
+    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL)
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("runtime fallback retries CLIProxyAPI session.status auto-retry signals through promptAsync", async () => {
-    const sessionID = "cliproxyapi-runtime-session-status";
-    const harness = createHarness({ mode: "runtime" });
+    const sessionID = "cliproxyapi-runtime-session-status"
+    const harness = createHarness({ mode: "runtime" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionStatusRetry(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerSessionStatusRetry(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([]);
-    expect(harness.promptAsyncCalls).toHaveLength(1);
-    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([sessionID])
+    expect(harness.promptCalls).toEqual([])
+    expect(harness.promptAsyncCalls).toHaveLength(1)
+    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL)
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("runtime fallback retries CLIProxyAPI assistant message.updated errors through promptAsync", async () => {
-    const sessionID = "cliproxyapi-runtime-message-updated";
-    const harness = createHarness({ mode: "runtime" });
+    const sessionID = "cliproxyapi-runtime-message-updated"
+    const harness = createHarness({ mode: "runtime" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerAssistantMessageError(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerAssistantMessageError(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([]);
-    expect(harness.promptCalls).toEqual([]);
-    expect(harness.promptAsyncCalls).toHaveLength(1);
-    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([])
+    expect(harness.promptCalls).toEqual([])
+    expect(harness.promptAsyncCalls).toHaveLength(1)
+    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL)
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("model+runtime prefers the runtime path for CLIProxyAPI session.error failures", async () => {
-    const sessionID = "cliproxyapi-both-session-error";
-    const harness = createHarness({ mode: "both" });
+    const sessionID = "cliproxyapi-both-session-error"
+    const harness = createHarness({ mode: "both" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionError(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerSessionError(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([]);
-    expect(harness.promptCalls).toEqual([]);
-    expect(harness.promptAsyncCalls).toHaveLength(1);
-    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([])
+    expect(harness.promptCalls).toEqual([])
+    expect(harness.promptAsyncCalls).toHaveLength(1)
+    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL)
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("model+runtime prefers the runtime path for CLIProxyAPI session.status retry signals", async () => {
-    const sessionID = "cliproxyapi-both-session-status";
-    const harness = createHarness({ mode: "both" });
+    const sessionID = "cliproxyapi-both-session-status"
+    const harness = createHarness({ mode: "both" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionStatusRetry(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerSessionStatusRetry(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([]);
-    expect(harness.promptAsyncCalls).toHaveLength(1);
-    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
+    expect(harness.abortCalls).toEqual([sessionID])
+    expect(harness.promptCalls).toEqual([])
+    expect(harness.promptAsyncCalls).toHaveLength(1)
+    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL)
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
 
   test("model+runtime prefers the runtime path for CLIProxyAPI assistant message.updated errors", async () => {
-    const sessionID = "cliproxyapi-both-message-updated";
-    const harness = createHarness({ mode: "both" });
+    const sessionID = "cliproxyapi-both-message-updated"
+    const harness = createHarness({ mode: "both" })
 
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerAssistantMessageError(harness.eventHandler, sessionID);
+    await primeMainSession(harness.eventHandler, sessionID)
+    await triggerAssistantMessageError(harness.eventHandler, sessionID)
 
     const output = await sendNextMessage(harness.chatMessageHandler, {
       sessionID,
       agent: "sisyphus",
-    });
+    })
 
-    expect(harness.abortCalls).toEqual([]);
-    expect(harness.promptCalls).toEqual([]);
-    expect(harness.promptAsyncCalls).toHaveLength(1);
-    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
-});
+    expect(harness.abortCalls).toEqual([])
+    expect(harness.promptCalls).toEqual([])
+    expect(harness.promptAsyncCalls).toHaveLength(1)
+    expect(harness.promptAsyncCalls[0]?.model).toEqual(FIRST_FALLBACK_MODEL)
+    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL)
+  })
+})

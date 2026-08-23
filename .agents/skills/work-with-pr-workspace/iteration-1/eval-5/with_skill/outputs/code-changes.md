@@ -3,31 +3,29 @@
 ## File 1: `src/config/schema/comment-checker.ts`
 
 ### Before
-
 ```typescript
-import { z } from "zod";
+import { z } from "zod"
 
 export const CommentCheckerConfigSchema = z.object({
   /** Custom prompt to replace the default warning message. Use {{comments}} placeholder for detected comments XML. */
   custom_prompt: z.string().optional(),
-});
+})
 
-export type CommentCheckerConfig = z.infer<typeof CommentCheckerConfigSchema>;
+export type CommentCheckerConfig = z.infer<typeof CommentCheckerConfigSchema>
 ```
 
 ### After
-
 ```typescript
-import { z } from "zod";
+import { z } from "zod"
 
 export const CommentCheckerConfigSchema = z.object({
   /** Custom prompt to replace the default warning message. Use {{comments}} placeholder for detected comments XML. */
   custom_prompt: z.string().optional(),
   /** Regex patterns to exclude from comment detection (e.g. ["^Note:", "^TODO:"]). Case-insensitive. */
   exclude_patterns: z.array(z.string()).optional(),
-});
+})
 
-export type CommentCheckerConfig = z.infer<typeof CommentCheckerConfigSchema>;
+export type CommentCheckerConfig = z.infer<typeof CommentCheckerConfigSchema>
 ```
 
 ---
@@ -36,11 +34,9 @@ export type CommentCheckerConfig = z.infer<typeof CommentCheckerConfigSchema>;
 
 ### Change: `runCommentChecker` function (line 151)
 
-Add `excludePatterns` parameter and pass `--exclude-pattern` flags to the
-binary.
+Add `excludePatterns` parameter and pass `--exclude-pattern` flags to the binary.
 
 ### Before (line 151)
-
 ```typescript
 export async function runCommentChecker(input: HookInput, cliPath?: string, customPrompt?: string): Promise<CheckResult> {
   const binaryPath = cliPath ?? resolvedCliPath ?? getCommentCheckerPathSync()
@@ -53,7 +49,6 @@ export async function runCommentChecker(input: HookInput, cliPath?: string, cust
 ```
 
 ### After
-
 ```typescript
 export async function runCommentChecker(
   input: HookInput,
@@ -84,7 +79,6 @@ export async function runCommentChecker(
 Add `excludePatterns` parameter threading.
 
 ### Before (line 43-79)
-
 ```typescript
 export async function processWithCli(
   input: { tool: string; sessionID: string; callID: string },
@@ -100,7 +94,6 @@ export async function processWithCli(
 ```
 
 ### After
-
 ```typescript
 export async function processWithCli(
   input: { tool: string; sessionID: string; callID: string },
@@ -121,7 +114,6 @@ export async function processWithCli(
 Same pattern - thread `excludePatterns` through.
 
 ### Before (line 87-120)
-
 ```typescript
 export async function processApplyPatchEditsWithCli(
   sessionID: string,
@@ -136,7 +128,6 @@ export async function processApplyPatchEditsWithCli(
 ```
 
 ### After
-
 ```typescript
 export async function processApplyPatchEditsWithCli(
   sessionID: string,
@@ -158,34 +149,16 @@ export async function processApplyPatchEditsWithCli(
 ### Change: Thread `config.exclude_patterns` through to CLI calls
 
 ### Before (line 177)
-
 ```typescript
-await processWithCli(
-  input,
-  pendingCall,
-  output,
-  cliPath,
-  config?.custom_prompt,
-  debugLog,
-);
+await processWithCli(input, pendingCall, output, cliPath, config?.custom_prompt, debugLog)
 ```
 
 ### After
-
 ```typescript
-await processWithCli(
-  input,
-  pendingCall,
-  output,
-  cliPath,
-  config?.custom_prompt,
-  debugLog,
-  config?.exclude_patterns,
-);
+await processWithCli(input, pendingCall, output, cliPath, config?.custom_prompt, debugLog, config?.exclude_patterns)
 ```
 
 ### Before (line 147-154)
-
 ```typescript
 await processApplyPatchEditsWithCli(
   input.sessionID,
@@ -194,11 +167,10 @@ await processApplyPatchEditsWithCli(
   cliPath,
   config?.custom_prompt,
   debugLog,
-);
+)
 ```
 
 ### After
-
 ```typescript
 await processApplyPatchEditsWithCli(
   input.sessionID,
@@ -208,7 +180,7 @@ await processApplyPatchEditsWithCli(
   config?.custom_prompt,
   debugLog,
   config?.exclude_patterns,
-);
+)
 ```
 
 ---
@@ -220,7 +192,7 @@ await processApplyPatchEditsWithCli(
 ```typescript
 test("does not flag legitimate Note: comments when excluded", async () => {
   // given
-  const { runCommentChecker } = await import("./cli");
+  const { runCommentChecker } = await import("./cli")
   const binaryPath = createScriptBinary(`#!/bin/sh
 if [ "$1" != "check" ]; then
   exit 1
@@ -235,7 +207,7 @@ done
 cat >/dev/null
 echo "Detected agent memo comments" 1>&2
 exit 2
-`);
+`)
 
   // when
   const result = await runCommentChecker(
@@ -243,21 +215,21 @@ exit 2
     binaryPath,
     undefined,
     ["^Note:"],
-  );
+  )
 
   // then
-  expect(result.hasComments).toBe(false);
-});
+  expect(result.hasComments).toBe(false)
+})
 
 test("passes multiple exclude patterns to binary", async () => {
   // given
-  const { runCommentChecker } = await import("./cli");
-  const capturedArgs: string[] = [];
+  const { runCommentChecker } = await import("./cli")
+  const capturedArgs: string[] = []
   const binaryPath = createScriptBinary(`#!/bin/sh
 echo "$@" > /tmp/comment-checker-test-args.txt
 cat >/dev/null
 exit 0
-`);
+`)
 
   // when
   await runCommentChecker(
@@ -265,20 +237,19 @@ exit 0
     binaryPath,
     undefined,
     ["^Note:", "^TODO:"],
-  );
+  )
 
   // then
-  const { readFileSync } = await import("node:fs");
-  const args = readFileSync("/tmp/comment-checker-test-args.txt", "utf-8")
-    .trim();
-  expect(args).toContain("--exclude-pattern");
-  expect(args).toContain("^Note:");
-  expect(args).toContain("^TODO:");
-});
+  const { readFileSync } = await import("node:fs")
+  const args = readFileSync("/tmp/comment-checker-test-args.txt", "utf-8").trim()
+  expect(args).toContain("--exclude-pattern")
+  expect(args).toContain("^Note:")
+  expect(args).toContain("^TODO:")
+})
 
 test("still detects AI slop when no exclude patterns configured", async () => {
   // given
-  const { runCommentChecker } = await import("./cli");
+  const { runCommentChecker } = await import("./cli")
   const binaryPath = createScriptBinary(`#!/bin/sh
 if [ "$1" != "check" ]; then
   exit 1
@@ -286,15 +257,15 @@ fi
 cat >/dev/null
 echo "Detected: // Note: This was added to handle..." 1>&2
 exit 2
-`);
+`)
 
   // when
-  const result = await runCommentChecker(createMockInput(), binaryPath);
+  const result = await runCommentChecker(createMockInput(), binaryPath)
 
   // then
-  expect(result.hasComments).toBe(true);
-  expect(result.message).toContain("Detected");
-});
+  expect(result.hasComments).toBe(true)
+  expect(result.message).toContain("Detected")
+})
 ```
 
 ### New describe block for false positive scenarios
@@ -303,7 +274,7 @@ exit 2
 describe("false positive scenarios", () => {
   test("legitimate technical Note: should not be flagged", async () => {
     // given
-    const { runCommentChecker } = await import("./cli");
+    const { runCommentChecker } = await import("./cli")
     const binaryPath = createScriptBinary(`#!/bin/sh
 cat >/dev/null
 # Simulate binary that passes when exclude patterns are set
@@ -314,7 +285,7 @@ for arg in "$@"; do
 done
 echo "// Note: Thread-safe by design" 1>&2
 exit 2
-`);
+`)
 
     // when
     const resultWithExclude = await runCommentChecker(
@@ -322,15 +293,15 @@ exit 2
       binaryPath,
       undefined,
       ["^Note:"],
-    );
+    )
 
     // then
-    expect(resultWithExclude.hasComments).toBe(false);
-  });
+    expect(resultWithExclude.hasComments).toBe(false)
+  })
 
   test("RFC reference Note: should not be flagged", async () => {
     // given
-    const { runCommentChecker } = await import("./cli");
+    const { runCommentChecker } = await import("./cli")
     const binaryPath = createScriptBinary(`#!/bin/sh
 cat >/dev/null
 for arg in "$@"; do
@@ -340,7 +311,7 @@ for arg in "$@"; do
 done
 echo "# Note: See RFC 7231" 1>&2
 exit 2
-`);
+`)
 
     // when
     const result = await runCommentChecker(
@@ -348,28 +319,28 @@ exit 2
       binaryPath,
       undefined,
       ["^Note:"],
-    );
+    )
 
     // then
-    expect(result.hasComments).toBe(false);
-  });
+    expect(result.hasComments).toBe(false)
+  })
 
   test("AI memo Note: should still be flagged without exclusion", async () => {
     // given
-    const { runCommentChecker } = await import("./cli");
+    const { runCommentChecker } = await import("./cli")
     const binaryPath = createScriptBinary(`#!/bin/sh
 cat >/dev/null
 echo "// Note: This was added to handle the edge case" 1>&2
 exit 2
-`);
+`)
 
     // when
-    const result = await runCommentChecker(createMockInput(), binaryPath);
+    const result = await runCommentChecker(createMockInput(), binaryPath)
 
     // then
-    expect(result.hasComments).toBe(true);
-  });
-});
+    expect(result.hasComments).toBe(true)
+  })
+})
 ```
 
 ---
@@ -381,15 +352,9 @@ exit 2
 ```typescript
 it("passes exclude_patterns from config to CLI", async () => {
   // given
-  const hooks = createCommentCheckerHooks({
-    exclude_patterns: ["^Note:", "^TODO:"],
-  });
+  const hooks = createCommentCheckerHooks({ exclude_patterns: ["^Note:", "^TODO:"] })
 
-  const input = {
-    tool: "apply_patch",
-    sessionID: "ses_test",
-    callID: "call_test",
-  };
+  const input = { tool: "apply_patch", sessionID: "ses_test", callID: "call_test" }
   const output = {
     title: "ok",
     output: "Success. Updated the following files:\nM src/a.ts",
@@ -403,24 +368,20 @@ it("passes exclude_patterns from config to CLI", async () => {
         },
       ],
     },
-  };
+  }
 
   // when
-  await hooks["tool.execute.after"](input, output);
+  await hooks["tool.execute.after"](input, output)
 
   // then
   expect(processApplyPatchEditsWithCli).toHaveBeenCalledWith(
     "ses_test",
-    [{
-      filePath: "/repo/src/a.ts",
-      before: "const a = 1\n",
-      after: "// Note: Thread-safe\nconst a = 1\n",
-    }],
+    [{ filePath: "/repo/src/a.ts", before: "const a = 1\n", after: "// Note: Thread-safe\nconst a = 1\n" }],
     expect.any(Object),
     "/tmp/fake-comment-checker",
     undefined,
     expect.any(Function),
     ["^Note:", "^TODO:"],
-  );
-});
+  )
+})
 ```

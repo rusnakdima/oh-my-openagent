@@ -1,24 +1,17 @@
-import type { LoadedSkill } from "../types";
-import type { SkillDefinition } from "../../../types";
-import { deepMerge } from "@oh-my-opencode/utils";
+import type { LoadedSkill } from "../types"
+import type { SkillDefinition } from "../../../types"
+import { deepMerge } from "@oh-my-opencode/utils"
 
-export function mergeSkillDefinitions(
-  base: LoadedSkill,
-  patch: SkillDefinition,
-): LoadedSkill {
+export function mergeSkillDefinitions(base: LoadedSkill, patch: SkillDefinition): LoadedSkill {
   const mergedMetadata = base.metadata || patch.metadata
-    ? deepMerge(
-      base.metadata || {},
-      (patch.metadata as Record<string, string>) || {},
-    )
-    : undefined;
+    ? deepMerge(base.metadata || {}, (patch.metadata as Record<string, string>) || {})
+    : undefined
 
   const mergedTools = base.allowedTools || patch["allowed-tools"]
     ? [...(base.allowedTools || []), ...(patch["allowed-tools"] || [])]
-    : undefined;
+    : undefined
 
-  const description = patch.description ||
-    base.definition.description?.replace(/^\([^)]+\) /, "");
+  const description = patch.description || base.definition.description?.replace(/^\([^)]+\) /, "")
 
   return {
     ...base,
@@ -34,5 +27,5 @@ export function mergeSkillDefinitions(
     compatibility: patch.compatibility || base.compatibility,
     metadata: mergedMetadata as Record<string, string> | undefined,
     allowedTools: mergedTools ? [...new Set(mergedTools)] : undefined,
-  };
+  }
 }

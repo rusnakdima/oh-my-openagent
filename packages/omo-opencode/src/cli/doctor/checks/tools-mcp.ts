@@ -1,14 +1,14 @@
-import { existsSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { existsSync, readFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { join } from "node:path"
 
-import type { McpServerInfo } from "../framework/types";
-import { parseJsonc } from "../../../shared";
+import type { McpServerInfo } from "../framework/types"
+import { parseJsonc } from "../../../shared"
 
-const BUILTIN_MCP_SERVERS = ["websearch", "context7", "grep_app", "lsp"];
+const BUILTIN_MCP_SERVERS = ["websearch", "context7", "grep_app", "lsp"]
 
 interface McpConfigShape {
-  mcpServers?: Record<string, unknown>;
+  mcpServers?: Record<string, unknown>
 }
 
 function getMcpConfigPaths(): string[] {
@@ -16,31 +16,31 @@ function getMcpConfigPaths(): string[] {
     join(homedir(), ".claude", ".mcp.json"),
     join(process.cwd(), ".mcp.json"),
     join(process.cwd(), ".claude", ".mcp.json"),
-  ];
+  ]
 }
 
 function loadUserMcpConfig(): Record<string, unknown> {
-  const servers: Record<string, unknown> = {};
+  const servers: Record<string, unknown> = {}
 
   for (const configPath of getMcpConfigPaths()) {
-    if (!existsSync(configPath)) continue;
+    if (!existsSync(configPath)) continue
 
     try {
-      const content = readFileSync(configPath, "utf-8");
-      const config = parseJsonc<McpConfigShape>(content);
+      const content = readFileSync(configPath, "utf-8")
+      const config = parseJsonc<McpConfigShape>(content)
       if (config.mcpServers) {
-        Object.assign(servers, config.mcpServers);
+        Object.assign(servers, config.mcpServers)
       }
     } catch (error) {
       if (!(error instanceof Error)) {
-        throw error;
+        throw error
       }
 
-      continue;
+      continue
     }
   }
 
-  return servers;
+  return servers
 }
 
 export function getBuiltinMcpInfo(): McpServerInfo[] {
@@ -49,18 +49,18 @@ export function getBuiltinMcpInfo(): McpServerInfo[] {
     type: "builtin",
     enabled: true,
     valid: true,
-  }));
+  }))
 }
 
 export function getUserMcpInfo(): McpServerInfo[] {
   return Object.entries(loadUserMcpConfig()).map(([serverId, value]) => {
-    const valid = typeof value === "object" && value !== null;
+    const valid = typeof value === "object" && value !== null
     return {
       id: serverId,
       type: "user",
       enabled: true,
       valid,
       error: valid ? undefined : "Invalid configuration format",
-    };
-  });
+    }
+  })
 }

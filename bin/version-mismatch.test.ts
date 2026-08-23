@@ -5,11 +5,7 @@ import { detectPlatformBinaryMismatch } from "./version-mismatch.js";
 describe("detectPlatformBinaryMismatch", () => {
   test("returns null when main and platform versions match", () => {
     // #given identical main and platform binary versions
-    const input = {
-      mainVersion: "4.5.1",
-      platformVersion: "4.5.1",
-      platformPackage: "oh-my-opencode-windows-x64",
-    };
+    const input = { mainVersion: "4.5.1", platformVersion: "4.5.1", platformPackage: "oh-my-opencode-windows-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -20,11 +16,7 @@ describe("detectPlatformBinaryMismatch", () => {
 
   test("reports mismatch when platform version is older than main", () => {
     // #given main package newer than installed platform binary (issue #3918 case)
-    const input = {
-      mainVersion: "4.5.1",
-      platformVersion: "3.9.0",
-      platformPackage: "oh-my-opencode-windows-x64",
-    };
+    const input = { mainVersion: "4.5.1", platformVersion: "3.9.0", platformPackage: "oh-my-opencode-windows-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -39,11 +31,7 @@ describe("detectPlatformBinaryMismatch", () => {
 
   test("reports mismatch when platform version is newer than main", () => {
     // #given platform binary newer than main wrapper
-    const input = {
-      mainVersion: "4.0.0",
-      platformVersion: "4.5.1",
-      platformPackage: "oh-my-opencode-linux-x64",
-    };
+    const input = { mainVersion: "4.0.0", platformVersion: "4.5.1", platformPackage: "oh-my-opencode-linux-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -55,11 +43,7 @@ describe("detectPlatformBinaryMismatch", () => {
 
   test("returns null when main version is unknown", () => {
     // #given main version could not be read
-    const input = {
-      mainVersion: null,
-      platformVersion: "4.5.1",
-      platformPackage: "oh-my-opencode-windows-x64",
-    };
+    const input = { mainVersion: null, platformVersion: "4.5.1", platformPackage: "oh-my-opencode-windows-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -70,11 +54,7 @@ describe("detectPlatformBinaryMismatch", () => {
 
   test("returns null when platform version is unknown", () => {
     // #given platform package.json could not be read
-    const input = {
-      mainVersion: "4.5.1",
-      platformVersion: null,
-      platformPackage: "oh-my-opencode-windows-x64",
-    };
+    const input = { mainVersion: "4.5.1", platformVersion: null, platformPackage: "oh-my-opencode-windows-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -87,11 +67,7 @@ describe("detectPlatformBinaryMismatch", () => {
     // #given prerelease main against stable platform binary - the publish workflow
     // ships prereleases under the `next` dist-tag, so this combo is a real
     // mismatch the wrapper would silently honour
-    const input = {
-      mainVersion: "4.5.1-beta.1",
-      platformVersion: "4.5.1",
-      platformPackage: "oh-my-opencode-darwin-arm64",
-    };
+    const input = { mainVersion: "4.5.1-beta.1", platformVersion: "4.5.1", platformPackage: "oh-my-opencode-darwin-arm64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -107,11 +83,7 @@ describe("detectPlatformBinaryMismatch", () => {
   test("reports mismatch between two different prerelease iterations", () => {
     // #given two different prerelease iterations - publish.yml allows multiple
     // beta builds on the `next` dist-tag, so beta.1 vs beta.2 IS a mismatch
-    const input = {
-      mainVersion: "4.5.1-beta.2",
-      platformVersion: "4.5.1-beta.1",
-      platformPackage: "oh-my-opencode-linux-x64",
-    };
+    const input = { mainVersion: "4.5.1-beta.2", platformVersion: "4.5.1-beta.1", platformPackage: "oh-my-opencode-linux-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -126,11 +98,7 @@ describe("detectPlatformBinaryMismatch", () => {
 
   test("returns null when both versions are the exact same prerelease", () => {
     // #given matched prereleases on both sides
-    const input = {
-      mainVersion: "4.5.1-beta.1",
-      platformVersion: "4.5.1-beta.1",
-      platformPackage: "oh-my-opencode-windows-x64",
-    };
+    const input = { mainVersion: "4.5.1-beta.1", platformVersion: "4.5.1-beta.1", platformPackage: "oh-my-opencode-windows-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);
@@ -141,11 +109,7 @@ describe("detectPlatformBinaryMismatch", () => {
 
   test("normalizes leading 'v' so 'v4.5.1' matches '4.5.1'", () => {
     // #given the same version with and without a leading "v"
-    const input = {
-      mainVersion: "v4.5.1",
-      platformVersion: "4.5.1",
-      platformPackage: "oh-my-opencode-windows-x64",
-    };
+    const input = { mainVersion: "v4.5.1", platformVersion: "4.5.1", platformPackage: "oh-my-opencode-windows-x64" };
 
     // #when detecting mismatch
     const result = detectPlatformBinaryMismatch(input);

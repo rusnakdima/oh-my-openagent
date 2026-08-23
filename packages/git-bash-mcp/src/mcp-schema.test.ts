@@ -8,9 +8,7 @@ describe("git_bash MCP run schema", () => {
       { jsonrpc: "2.0", id: "tools", method: "tools/list" },
       {
         platform: "win32",
-        env: {
-          OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe",
-        },
+        env: { OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe" },
         exists: (path) => path === "C:\\Program Files\\Git\\bin\\bash.exe",
         where: () => [],
       },
@@ -24,22 +22,10 @@ describe("git_bash MCP run schema", () => {
     // then
     expect(typeof runTool?.description).toBe("string");
     expect(String(runTool?.description)).toContain("exec_command");
-    expect(Object.keys(properties ?? {})).toEqual([
-      "command",
-      "timeout",
-      "workdir",
-      "description",
-    ]);
-    expect(objectField(properties, "timeout")).toMatchObject({
-      type: "integer",
-      minimum: 1,
-    });
-    expect(objectField(properties, "workdir")?.description).toContain(
-      "Use this instead of",
-    );
-    expect(objectField(properties, "description")?.description).toContain(
-      "5-10 words",
-    );
+    expect(Object.keys(properties ?? {})).toEqual(["command", "timeout", "workdir", "description"]);
+    expect(objectField(properties, "timeout")).toMatchObject({ type: "integer", minimum: 1 });
+    expect(objectField(properties, "workdir")?.description).toContain("Use this instead of");
+    expect(objectField(properties, "description")?.description).toContain("5-10 words");
   });
 
   it("#given Windows without Git Bash #when tools are listed #then run is gracefully hidden", async () => {
@@ -57,21 +43,14 @@ describe("git_bash MCP run schema", () => {
   });
 });
 
-function toolFromResponse(
-  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
-  name: string,
-): Record<string, unknown> | undefined {
+function toolFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>, name: string): Record<string, unknown> | undefined {
   const result = resultFromResponse(response);
   const tools = result?.tools;
   if (!Array.isArray(tools)) return undefined;
-  return tools.find((tool): tool is Record<string, unknown> =>
-    isRecord(tool) && tool.name === name
-  );
+  return tools.find((tool): tool is Record<string, unknown> => isRecord(tool) && tool.name === name);
 }
 
-function toolNamesFromResponse(
-  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
-): readonly string[] {
+function toolNamesFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): readonly string[] {
   const result = resultFromResponse(response);
   const tools = result?.tools;
   if (!Array.isArray(tools)) return [];
@@ -81,17 +60,12 @@ function toolNamesFromResponse(
   });
 }
 
-function resultFromResponse(
-  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
-): Record<string, unknown> | undefined {
+function resultFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): Record<string, unknown> | undefined {
   if (response === undefined || "error" in response) return undefined;
   return response.result;
 }
 
-function objectField(
-  record: Record<string, unknown> | undefined,
-  key: string,
-): Record<string, unknown> | undefined {
+function objectField(record: Record<string, unknown> | undefined, key: string): Record<string, unknown> | undefined {
   const value = record?.[key];
   return isRecord(value) ? value : undefined;
 }

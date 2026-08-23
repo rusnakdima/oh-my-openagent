@@ -1,27 +1,15 @@
-import type { ModelRequirement } from "./model-requirement-types";
+import type { ModelRequirement } from "./model-requirement-types"
 
 export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
   "visual-engineering": {
     fallbackChain: [
       {
-        providers: [
-          "anthropic",
-          "anthropic-api",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["anthropic", "anthropic-api", "github-copilot", "opencode", "vercel"],
         model: "claude-opus-5",
         variant: "max",
       },
       {
-        providers: [
-          "kimi-for-coding",
-          "moonshotai",
-          "opencode-go",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["kimi-for-coding", "moonshotai", "opencode-go", "opencode", "vercel"],
         model: "kimi-k3",
         variant: "max",
       },
@@ -31,13 +19,7 @@ export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
         variant: "max",
       },
       {
-        providers: [
-          "openai",
-          "quotio-openai",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["openai", "quotio-openai", "github-copilot", "opencode", "vercel"],
         model: "gpt-5.6-sol",
         variant: "medium",
       },
@@ -65,13 +47,7 @@ export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
   deep: {
     fallbackChain: [
       {
-        providers: [
-          "openai",
-          "quotio-openai",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["openai", "quotio-openai", "github-copilot", "opencode", "vercel"],
         model: "gpt-5.6-sol",
         variant: "medium",
       },
@@ -80,35 +56,17 @@ export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
   artistry: {
     fallbackChain: [
       {
-        providers: [
-          "anthropic",
-          "anthropic-api",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["anthropic", "anthropic-api", "github-copilot", "opencode", "vercel"],
         model: "claude-fable-5",
         variant: "xhigh",
       },
       {
-        providers: [
-          "kimi-for-coding",
-          "moonshotai",
-          "opencode-go",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["kimi-for-coding", "moonshotai", "opencode-go", "opencode", "vercel"],
         model: "kimi-k3",
         variant: "max",
       },
       {
-        providers: [
-          "anthropic",
-          "anthropic-api",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["anthropic", "anthropic-api", "github-copilot", "opencode", "vercel"],
         model: "claude-opus-5",
         variant: "xhigh",
       },
@@ -117,32 +75,15 @@ export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
   quick: {
     fallbackChain: [
       { providers: ["kimi-for-coding"], model: "kimi-for-coding-highspeed" },
-      {
-        providers: ["openai-codex"],
-        model: "gpt-5.6-luna-fast",
-        variant: "low",
-      },
+      { providers: ["openai-codex"], model: "gpt-5.6-luna-fast", variant: "low" },
       { providers: ["deepseek"], model: "deepseek-v4-flash", variant: "off" },
       {
-        providers: [
-          "qwen-token-plan",
-          "alibaba-token-plan",
-          "bailian-coding-plan",
-          "vercel",
-        ],
+        providers: ["qwen-token-plan", "alibaba-token-plan", "bailian-coding-plan", "vercel"],
         model: "qwen3.6-flash",
         variant: "low",
       },
-      {
-        providers: ["opencode-go", "vercel"],
-        model: "minimax-m3",
-        variant: "max",
-      },
-      {
-        providers: ["opencode-go", "vercel"],
-        model: "minimax-m2.7",
-        variant: "max",
-      },
+      { providers: ["opencode-go", "vercel"], model: "minimax-m3", variant: "max" },
+      { providers: ["opencode-go", "vercel"], model: "minimax-m2.7", variant: "max" },
       { providers: ["xai"], model: "grok-4.20-0309-non-reasoning" },
       {
         providers: ["anthropic", "anthropic-api", "github-copilot", "vercel"],
@@ -159,34 +100,17 @@ export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
         variant: "xhigh",
       },
       {
-        providers: [
-          "openai",
-          "quotio-openai",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["openai", "quotio-openai", "github-copilot", "opencode", "vercel"],
         model: "gpt-5.6-terra",
         variant: "high",
       },
       {
-        providers: [
-          "anthropic",
-          "anthropic-api",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["anthropic", "anthropic-api", "github-copilot", "opencode", "vercel"],
         model: "claude-sonnet-5",
         variant: "low",
       },
       {
-        providers: [
-          "qwen-token-plan",
-          "alibaba-token-plan",
-          "qwen-token-plan-cn",
-          "alibaba-token-plan-cn",
-        ],
+        providers: ["qwen-token-plan", "alibaba-token-plan", "qwen-token-plan-cn", "alibaba-token-plan-cn"],
         model: "qwen3.8-max-preview",
         variant: "max",
       },
@@ -205,35 +129,17 @@ export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
   "unspecified-high": {
     fallbackChain: [
       {
-        providers: [
-          "kimi-for-coding",
-          "moonshotai",
-          "opencode-go",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["kimi-for-coding", "moonshotai", "opencode-go", "opencode", "vercel"],
         model: "kimi-k3",
         variant: "max",
       },
       {
-        providers: [
-          "anthropic",
-          "anthropic-api",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["anthropic", "anthropic-api", "github-copilot", "opencode", "vercel"],
         model: "claude-opus-5",
         variant: "xhigh",
       },
       {
-        providers: [
-          "openai",
-          "quotio-openai",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["openai", "quotio-openai", "github-copilot", "opencode", "vercel"],
         model: "gpt-5.6-sol",
         variant: "high",
       },
@@ -242,24 +148,12 @@ export const CATEGORY_MODEL_REQUIREMENTS: Record<string, ModelRequirement> = {
   writing: {
     fallbackChain: [
       {
-        providers: [
-          "kimi-for-coding",
-          "moonshotai",
-          "opencode-go",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["kimi-for-coding", "moonshotai", "opencode-go", "opencode", "vercel"],
         model: "kimi-k3",
         variant: "low",
       },
       {
-        providers: [
-          "anthropic",
-          "anthropic-api",
-          "github-copilot",
-          "opencode",
-          "vercel",
-        ],
+        providers: ["anthropic", "anthropic-api", "github-copilot", "opencode", "vercel"],
         model: "claude-opus-5",
         variant: "low",
       },

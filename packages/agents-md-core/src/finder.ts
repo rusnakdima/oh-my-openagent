@@ -1,17 +1,12 @@
 import { realpathSync } from "node:fs";
 import { isAbsolute, relative, resolve } from "node:path";
 
-export function resolveFilePath(
-  rootDirectory: string,
-  path: string,
-): string | null {
+export function resolveFilePath(rootDirectory: string, path: string): string | null {
   if (!path) return null;
   const resolved = isAbsolute(path) ? path : resolve(rootDirectory, path);
   const canonicalRoot = canonicalizePath(rootDirectory);
   const canonicalResolved = canonicalizePath(resolved);
-  return isSameOrChildPath(canonicalResolved, canonicalRoot)
-    ? canonicalResolved
-    : null;
+  return isSameOrChildPath(canonicalResolved, canonicalRoot) ? canonicalResolved : null;
 }
 
 function canonicalizePath(path: string): string {
@@ -27,6 +22,5 @@ function canonicalizePath(path: string): string {
 
 function isSameOrChildPath(childPath: string, parentPath: string): boolean {
   const relativePath = relative(parentPath, childPath);
-  return relativePath === "" ||
-    (!relativePath.startsWith("..") && !isAbsolute(relativePath));
+  return relativePath === "" || (!relativePath.startsWith("..") && !isAbsolute(relativePath));
 }

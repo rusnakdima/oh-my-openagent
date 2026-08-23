@@ -1,35 +1,20 @@
-import * as z from "zod";
+import * as z from "zod"
 
-import { OmoAgentsConfigSchema } from "./agent";
-import { OmoCategoriesConfigSchema } from "./category";
-import {
-  OmoCodegraphSettingsLayerSchema,
-  OmoCodegraphSettingsSchema,
-} from "./codegraph";
-import {
-  OmoGitMasterSettingsLayerSchema,
-  OmoGitMasterSettingsSchema,
-} from "./git-master";
-import { type OmoHarnessId, OmoHarnessIdSchema } from "./harness";
-import {
-  OmoMemorySettingsLayerSchema,
-  OmoMemorySettingsSchema,
-} from "./memory";
-import {
-  OmoModelCatalogLayerSchema,
-  OmoModelCatalogSchema,
-} from "./model-catalog";
-import { OmoTaskSettingsLayerSchema, OmoTaskSettingsSchema } from "./task";
-import { OmoTeamsConfigLayerSchema, OmoTeamsConfigSchema } from "./team";
-import {
-  OmoTelemetrySettingsLayerSchema,
-  OmoTelemetrySettingsSchema,
-} from "./telemetry";
+import { OmoAgentsConfigSchema } from "./agent"
+import { OmoCategoriesConfigSchema } from "./category"
+import { OmoCodegraphSettingsLayerSchema, OmoCodegraphSettingsSchema } from "./codegraph"
+import { OmoGitMasterSettingsLayerSchema, OmoGitMasterSettingsSchema } from "./git-master"
+import { OmoHarnessIdSchema, type OmoHarnessId } from "./harness"
+import { OmoMemorySettingsLayerSchema, OmoMemorySettingsSchema } from "./memory"
+import { OmoModelCatalogLayerSchema, OmoModelCatalogSchema } from "./model-catalog"
+import { OmoTaskSettingsLayerSchema, OmoTaskSettingsSchema } from "./task"
+import { OmoTeamsConfigLayerSchema, OmoTeamsConfigSchema } from "./team"
+import { OmoTelemetrySettingsLayerSchema, OmoTelemetrySettingsSchema } from "./telemetry"
 
-export type { OmoHarnessId };
-export { OmoHarnessIdSchema };
+export type { OmoHarnessId }
+export { OmoHarnessIdSchema }
 
-export const OmoOpenCodeHarnessConfigSchema = z.record(z.string(), z.unknown());
+export const OmoOpenCodeHarnessConfigSchema = z.record(z.string(), z.unknown())
 
 export const OmoTypedHarnessConfigSchema = z.object({
   categories: OmoCategoriesConfigSchema.optional(),
@@ -41,7 +26,7 @@ export const OmoTypedHarnessConfigSchema = z.object({
   models: OmoModelCatalogLayerSchema.optional(),
   memory: OmoMemorySettingsLayerSchema.optional(),
   telemetry: OmoTelemetrySettingsLayerSchema.optional(),
-}).strict();
+}).strict()
 
 export const OmoConfigProfileSchema = z.object({
   categories: OmoCategoriesConfigSchema.optional(),
@@ -56,7 +41,7 @@ export const OmoConfigProfileSchema = z.object({
   "[opencode]": OmoOpenCodeHarnessConfigSchema.optional(),
   "[senpi]": OmoTypedHarnessConfigSchema.optional(),
   "[codex]": OmoTypedHarnessConfigSchema.optional(),
-}).strict();
+}).strict()
 
 export const OmoConfigSchema = z.object({
   $schema: z.string().optional(),
@@ -75,7 +60,7 @@ export const OmoConfigSchema = z.object({
   profiles: z.record(z.string(), OmoConfigProfileSchema).default({}),
   _migrations: z.array(z.string()).optional(),
   legacy_migrations: z.record(z.string(), z.unknown()).optional(),
-}).strict();
+}).strict()
 
 export const OmoConfigLayerSchema = z.object({
   $schema: z.string().optional(),
@@ -94,10 +79,10 @@ export const OmoConfigLayerSchema = z.object({
   profiles: z.record(z.string(), OmoConfigProfileSchema).optional(),
   _migrations: z.array(z.string()).optional(),
   legacy_migrations: z.record(z.string(), z.unknown()).optional(),
-}).strict();
+}).strict()
 
-type OmoParsedConfig = z.infer<typeof OmoConfigSchema>;
+type OmoParsedConfig = z.infer<typeof OmoConfigSchema>
 
 export type OmoConfig = Omit<OmoParsedConfig, "profiles"> & {
-  readonly profiles?: OmoParsedConfig["profiles"];
-};
+  readonly profiles?: OmoParsedConfig["profiles"]
+}

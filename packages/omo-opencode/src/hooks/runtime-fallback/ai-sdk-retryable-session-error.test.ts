@@ -1,16 +1,16 @@
-import { afterEach, describe, expect, test } from "bun:test";
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
-import type { OhMyOpenCodeConfig, RuntimeFallbackConfig } from "../../config";
-import { SessionCategoryRegistry } from "../../shared/session-category-registry";
-import { releaseAllPromptAsyncReservationsForTesting } from "../shared/prompt-async-gate";
-import { createRuntimeFallbackHook } from "./hook";
-import type { RuntimeFallbackPluginInput } from "./types";
+import { afterEach, describe, expect, test } from "bun:test"
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import type { OhMyOpenCodeConfig, RuntimeFallbackConfig } from "../../config"
+import { SessionCategoryRegistry } from "../../shared/session-category-registry"
+import { releaseAllPromptAsyncReservationsForTesting } from "../shared/prompt-async-gate"
+import { createRuntimeFallbackHook } from "./hook"
+import type { RuntimeFallbackPluginInput } from "./types"
 
 describe("runtime-fallback AI SDK retryable session errors", () => {
   afterEach(() => {
-    SessionCategoryRegistry.clear();
-    releaseAllPromptAsyncReservationsForTesting();
-  });
+    SessionCategoryRegistry.clear()
+    releaseAllPromptAsyncReservationsForTesting()
+  })
 
   function createRuntimeFallbackConfig(): RuntimeFallbackConfig {
     return {
@@ -20,7 +20,7 @@ describe("runtime-fallback AI SDK retryable session errors", () => {
       cooldown_seconds: 60,
       notify_on_fallback: false,
       restore_primary_after_cooldown: false,
-    };
+    }
   }
 
   function createPluginConfig(): OhMyOpenCodeConfig {
@@ -35,46 +35,40 @@ describe("runtime-fallback AI SDK retryable session errors", () => {
           fallback_models: ["openai/gpt-5.4"],
         },
       },
-    };
+    }
   }
 
   test("dispatches fallback for nested AI SDK retryable Cloudflare timeout errors", async () => {
     //#given
-    const promptCalls: Array<Record<string, unknown>> = [];
+    const promptCalls: Array<Record<string, unknown>> = []
     const hook = createRuntimeFallbackHook(
       unsafeTestValue<RuntimeFallbackPluginInput>({
         client: {
           tui: { showToast: async () => ({}) },
           session: {
             messages: async () => ({
-              data: [{
-                info: { role: "user" },
-                parts: [{ type: "text", text: "continue" }],
-              }],
+              data: [{ info: { role: "user" }, parts: [{ type: "text", text: "continue" }] }],
             }),
             promptAsync: async (args: unknown) => {
-              promptCalls.push(args as Record<string, unknown>);
-              return {};
+              promptCalls.push(args as Record<string, unknown>)
+              return {}
             },
             abort: async () => ({}),
           },
         },
         directory: "/test/dir",
       }),
-      {
-        config: createRuntimeFallbackConfig(),
-        pluginConfig: createPluginConfig(),
-      },
-    );
-    const sessionID = "test-session-ai-sdk-cloudflare-timeout";
-    SessionCategoryRegistry.register(sessionID, "test");
+      { config: createRuntimeFallbackConfig(), pluginConfig: createPluginConfig() },
+    )
+    const sessionID = "test-session-ai-sdk-cloudflare-timeout"
+    SessionCategoryRegistry.register(sessionID, "test")
 
     await hook.event({
       event: {
         type: "session.created",
         properties: { info: { id: sessionID, model: "openai/gpt-5.5-fast" } },
       },
-    });
+    })
 
     //#when
     await hook.event({
@@ -87,22 +81,16 @@ describe("runtime-fallback AI SDK retryable session errors", () => {
               name: "AI_APICallError",
               statusCode: 524,
               isRetryable: true,
-              responseBody:
-                "<title>mengmota.com | 524: A timeout occurred</title>",
+              responseBody: "<title>mengmota.com | 524: A timeout occurred</title>",
             },
           },
         },
       },
-    });
+    })
 
     //#then
-    expect(promptCalls).toHaveLength(1);
-    const promptBody = promptCalls[0]?.body as {
-      model?: { providerID?: string; modelID?: string };
-    } | undefined;
-    expect(promptBody?.model).toEqual({
-      providerID: "openai",
-      modelID: "gpt-5.4",
-    });
-  });
-});
+    expect(promptCalls).toHaveLength(1)
+    const promptBody = promptCalls[0]?.body as { model?: { providerID?: string; modelID?: string } } | undefined
+    expect(promptBody?.model).toEqual({ providerID: "openai", modelID: "gpt-5.4" })
+  })
+})

@@ -1,31 +1,18 @@
 # Unsafe Discipline
 
-The reason Chris Allen's "implementing a persistent memory arena in Rust was not
-hard" works: the unsafe surface area is microscopic, it lives behind one newtype
-with one constructor, and every block has a SAFETY comment that names a specific
-invariant. Coding agents follow the pattern mechanically once the shape is
-established.
+The reason Chris Allen's "implementing a persistent memory arena in Rust was not hard" works: the unsafe surface area is microscopic, it lives behind one newtype with one constructor, and every block has a SAFETY comment that names a specific invariant. Coding agents follow the pattern mechanically once the shape is established.
 
 ## The Three Required Components
 
 Every `unsafe` block needs all three. No exceptions.
 
-1. **Safe wrapper.** No `unsafe fn` or raw pointer types in the crate's public
-   API. If a caller needs to construct an instance, the constructor either does
-   the work safely or is `unsafe` with a documented contract.
-2. **SAFETY comment.** A `// SAFETY:` line within 5 lines above the
-   `unsafe { ... }` block, stating which invariant is upheld and where it comes
-   from. Generic phrases ("this is safe because we checked") fail review.
-3. **miri proof.** A test that exercises the unsafe path under
-   `cargo +nightly miri nextest run`. If the path cannot be exercised under miri
-   (FFI, syscalls), provide an alternate proof and gate behind a feature flag
-   ending in `-skip-miri`.
+1. **Safe wrapper.** No `unsafe fn` or raw pointer types in the crate's public API. If a caller needs to construct an instance, the constructor either does the work safely or is `unsafe` with a documented contract.
+2. **SAFETY comment.** A `// SAFETY:` line within 5 lines above the `unsafe { ... }` block, stating which invariant is upheld and where it comes from. Generic phrases ("this is safe because we checked") fail review.
+3. **miri proof.** A test that exercises the unsafe path under `cargo +nightly miri nextest run`. If the path cannot be exercised under miri (FFI, syscalls), provide an alternate proof and gate behind a feature flag ending in `-skip-miri`.
 
 ## The Wrapper Pattern (`NonNull<T>` style)
 
-Reference the screenshot Chris Allen quoted - `std::ptr::NonNull<T>`. Mirror
-this shape for every raw pointer, raw slice, raw transmute, or uninit memory
-operation in your own code.
+Reference the screenshot Chris Allen quoted - `std::ptr::NonNull<T>`. Mirror this shape for every raw pointer, raw slice, raw transmute, or uninit memory operation in your own code.
 
 ```rust
 use core::marker::PhantomData;
@@ -95,14 +82,10 @@ impl<T> InitPtr<T> {
 
 The list of features this single shape gives you:
 
-- The agent cannot construct `InitPtr<T>` without going through a checked path
-  or accepting the `unsafe` obligation explicitly.
-- The agent cannot leak the raw pointer; `as_ref` / `as_mut` return safe
-  references with proper lifetimes.
-- The agent cannot accidentally Send/Sync where it shouldn't - the `unsafe impl`
-  is explicit per-bound.
-- `#[repr(transparent)]` means the type is layout-compatible with `*mut T` for
-  FFI, without exposing the raw pointer.
+- The agent cannot construct `InitPtr<T>` without going through a checked path or accepting the `unsafe` obligation explicitly.
+- The agent cannot leak the raw pointer; `as_ref` / `as_mut` return safe references with proper lifetimes.
+- The agent cannot accidentally Send/Sync where it shouldn't - the `unsafe impl` is explicit per-bound.
+- `#[repr(transparent)]` means the type is layout-compatible with `*mut T` for FFI, without exposing the raw pointer.
 
 ## SAFETY Comment Grammar
 
@@ -137,9 +120,7 @@ Good examples:
 
 ## Persistent Memory Arena Pattern (the Chris Allen example)
 
-A persistent memory arena (PMA) is an `mmap`-backed bump allocator that survives
-process restarts. It is the classic "lots of unsafe under one safe surface"
-project.
+A persistent memory arena (PMA) is an `mmap`-backed bump allocator that survives process restarts. It is the classic "lots of unsafe under one safe surface" project.
 
 Shape:
 
@@ -182,8 +163,7 @@ pub struct Handle<'a, T> {
 }
 ```
 
-Three `unsafe` blocks, three SAFETY comments, one safe handle type emerging on
-the other side. The agent now uses `Handle<T>` everywhere - never `*mut T`.
+Three `unsafe` blocks, three SAFETY comments, one safe handle type emerging on the other side. The agent now uses `Handle<T>` everywhere - never `*mut T`.
 
 ## Miri Invocation
 
@@ -205,35 +185,23 @@ What miri catches that the borrow checker cannot:
 - Pointer-from-integer reconstruction that violates strict provenance
 - Alignment lies (transmuting unaligned data)
 - Stacked borrows / Tree borrows aliasing violations
-- Data races (single-threaded model, but catches concurrent access through
-  `UnsafeCell` misuse)
+- Data races (single-threaded model, but catches concurrent access through `UnsafeCell` misuse)
 - Atomic ordering bugs in some patterns
 - Memory leaks (with `-Zmiri-track-pointer-tag`)
 
 ## When Miri Cannot Run
 
-Certain paths are off-limits for miri: most syscalls beyond a curated allowlist,
-real network I/O, `std::process` calls, OS-specific FFI, hardware-dependent
-intrinsics on non-x86. Strategy:
+Certain paths are off-limits for miri: most syscalls beyond a curated allowlist, real network I/O, `std::process` calls, OS-specific FFI, hardware-dependent intrinsics on non-x86. Strategy:
 
-1. **Isolate.** Put the un-mirifiable code in its own module behind
-   `#[cfg(feature = "ffi-real")]` or similar.
-2. **Mock at the boundary.** For everything below the FFI boundary, write a safe
-   Rust fake (a `Vec<u8>`-backed "disk", a fake clock, an in-memory socket
-   pair). Expose it as a trait the production code consumes.
-3. **Test the fake under miri.** The fake implementation exercises the same
-   logic minus the syscall. If the logic is unsafe (raw pointer manipulation in
-   the fake "disk" buffer), miri catches the bug.
-4. **Test the real path under regular `cargo test`.** With
-   `cargo nextest run --features ffi-real`. No miri, but the surface area is now
-   just the syscall boundary.
-5. **Document.** A `# Safety` section in the rustdoc names the obligations the
-   FFI puts on us, and a `# Testing` section explains the mock-vs-real split.
+1. **Isolate.** Put the un-mirifiable code in its own module behind `#[cfg(feature = "ffi-real")]` or similar.
+2. **Mock at the boundary.** For everything below the FFI boundary, write a safe Rust fake (a `Vec<u8>`-backed "disk", a fake clock, an in-memory socket pair). Expose it as a trait the production code consumes.
+3. **Test the fake under miri.** The fake implementation exercises the same logic minus the syscall. If the logic is unsafe (raw pointer manipulation in the fake "disk" buffer), miri catches the bug.
+4. **Test the real path under regular `cargo test`.** With `cargo nextest run --features ffi-real`. No miri, but the surface area is now just the syscall boundary.
+5. **Document.** A `# Safety` section in the rustdoc names the obligations the FFI puts on us, and a `# Testing` section explains the mock-vs-real split.
 
 ## Loom for Concurrency
 
-When `unsafe` participates in a concurrent algorithm (lock-free queue, hazard
-pointers, custom Arc), miri's single-thread model is insufficient. Use `loom`:
+When `unsafe` participates in a concurrent algorithm (lock-free queue, hazard pointers, custom Arc), miri's single-thread model is insufficient. Use `loom`:
 
 ```rust
 #[cfg(loom)]
@@ -261,32 +229,21 @@ mod tests {
 }
 ```
 
-Run: `RUSTFLAGS="--cfg loom" cargo test --release`. Loom exhaustively explores
-thread interleavings for the test scope. Combined with miri on the single-thread
-paths, you have machine-checked soundness over the full state space.
+Run: `RUSTFLAGS="--cfg loom" cargo test --release`. Loom exhaustively explores thread interleavings for the test scope. Combined with miri on the single-thread paths, you have machine-checked soundness over the full state space.
 
 ## The Forbidden List
 
 Reject in code review, automatic CI fail:
 
 - `unsafe { ... }` with no SAFETY comment within 5 lines above.
-- `unsafe { unsafe_op_a(); unsafe_op_b(); }` (multiple unsafe ops in one block -
-  split them, one SAFETY each). Clippy: `multiple_unsafe_ops_per_block`.
-- `unsafe fn` exposed publicly without a documented `# Safety` section in
-  rustdoc.
-- `std::mem::transmute` for anything but lifetime extension on the same layout
-  (and that should usually be `core::mem::transmute_copy` or `bytemuck::cast` if
-  the relayout is well-defined).
-- `std::ptr::read_unaligned` / `write_unaligned` without a comment explaining
-  why aligned access is impossible.
-- `from_raw_parts` / `from_raw_parts_mut` without proving the source pointer's
-  provenance covers the entire slice.
-- `Arc::get_mut_unchecked`, `Box::leak` to bypass ownership,
-  `MaybeUninit::assume_init` on partially-initialized data.
-- `unsafe impl Send`, `unsafe impl Sync` on types containing raw pointers,
-  without a comment naming exactly which interior-mutability rule is upheld.
-- Any `unsafe` block whose justification depends on "in practice this never
-  happens".
+- `unsafe { unsafe_op_a(); unsafe_op_b(); }` (multiple unsafe ops in one block - split them, one SAFETY each). Clippy: `multiple_unsafe_ops_per_block`.
+- `unsafe fn` exposed publicly without a documented `# Safety` section in rustdoc.
+- `std::mem::transmute` for anything but lifetime extension on the same layout (and that should usually be `core::mem::transmute_copy` or `bytemuck::cast` if the relayout is well-defined).
+- `std::ptr::read_unaligned` / `write_unaligned` without a comment explaining why aligned access is impossible.
+- `from_raw_parts` / `from_raw_parts_mut` without proving the source pointer's provenance covers the entire slice.
+- `Arc::get_mut_unchecked`, `Box::leak` to bypass ownership, `MaybeUninit::assume_init` on partially-initialized data.
+- `unsafe impl Send`, `unsafe impl Sync` on types containing raw pointers, without a comment naming exactly which interior-mutability rule is upheld.
+- Any `unsafe` block whose justification depends on "in practice this never happens".
 
 ## The One-Line Summary
 

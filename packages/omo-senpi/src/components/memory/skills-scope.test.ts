@@ -39,90 +39,65 @@
  * omo analog (recorded divergence); global -> senpi user scope; bundled -> senpi builtin.
  */
 
-import { afterEach, describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { realpathSync } from "node:fs";
-import { rmEfaultTolerant } from "./teardown.test-support";
+import { afterEach, describe, expect, test } from "bun:test"
+import { mkdir, mkdtemp } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { join, resolve } from "node:path"
+import { realpathSync } from "node:fs"
+import { rmEfaultTolerant } from "./teardown.test-support"
 
-import { buildIdentityPaths } from "@oh-my-opencode/memory-core";
+import { buildIdentityPaths } from "@oh-my-opencode/memory-core"
 
-import { FakeExtensionAPI } from "../../../test-support/fake-extension-api";
-import { createMemoryBinding } from "./binding";
+import { FakeExtensionAPI } from "../../../test-support/fake-extension-api"
+import { createMemoryBinding } from "./binding"
+import { createMemoryIdentityContext, type MemoryIdentityContext } from "./context"
 import {
-  createMemoryIdentityContext,
-  type MemoryIdentityContext,
-} from "./context";
-import {
-  createMemorySkillsScopeHandler,
   MEMORY_SKILLS_DIRNAME,
+  createMemorySkillsScopeHandler,
   memorySkillsDir,
-  type MemorySkillsDiscoverResult,
   registerMemorySkillsScope,
-} from "./skills-scope";
+  type MemorySkillsDiscoverResult,
+} from "./skills-scope"
 
-const IDENTITY = "skills-scope-agent";
+const IDENTITY = "skills-scope-agent"
 
-const tempDirs: string[] = [];
+const tempDirs: string[] = []
 
 afterEach(async () => {
-  await Promise.all(
-    tempDirs.splice(0).map((dir) =>
-      rmEfaultTolerant(dir, {
-        recursive: true,
-        force: true,
-        maxRetries: 10,
-        retryDelay: 200,
-      })
-    ),
-  );
-});
+  await Promise.all(tempDirs.splice(0).map((dir) => rmEfaultTolerant(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 })))
+})
 
-async function fixture(
-  createSkills = true,
-): Promise<{ context: MemoryIdentityContext; skillsDir: string }> {
-  const dir = realpathSync.native(
-    await mkdtemp(join(tmpdir(), "memory-skills-scope-")),
-  );
-  tempDirs.push(dir);
-  const identityPaths = buildIdentityPaths(join(dir, "memory"), IDENTITY);
-  const skillsDir = join(identityPaths.repo, MEMORY_SKILLS_DIRNAME);
-  if (createSkills) await mkdir(skillsDir, { recursive: true });
+async function fixture(createSkills = true): Promise<{ context: MemoryIdentityContext; skillsDir: string }> {
+  const dir = realpathSync.native(await mkdtemp(join(tmpdir(), "memory-skills-scope-")))
+  tempDirs.push(dir)
+  const identityPaths = buildIdentityPaths(join(dir, "memory"), IDENTITY)
+  const skillsDir = join(identityPaths.repo, MEMORY_SKILLS_DIRNAME)
+  if (createSkills) await mkdir(skillsDir, { recursive: true })
   const context = createMemoryIdentityContext({
     identity: IDENTITY,
     identityPaths,
-    binding: createMemoryBinding({
-      identity: IDENTITY,
-      repoPath: identityPaths.repo,
-      boundAt: 0,
-    }),
-  });
-  return { context, skillsDir };
+    binding: createMemoryBinding({ identity: IDENTITY, repoPath: identityPaths.repo, boundAt: 0 }),
+  })
+  return { context, skillsDir }
 }
 
 function discoverPayload(reason: "startup" | "reload", cwd: string): unknown {
-  return { type: "resources_discover", cwd, reason };
+  return { type: "resources_discover", cwd, reason }
 }
 
 function eventContext(sessionId: string): unknown {
-  return { sessionManager: { getSessionId: () => sessionId } };
+  return { sessionManager: { getSessionId: () => sessionId } }
 }
 
 function expectDiscoverResult(value: unknown): MemorySkillsDiscoverResult {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
-    throw new Error("expected a resources_discover result object");
+    throw new Error("expected a resources_discover result object")
   }
-  const skillPaths = Reflect.get(value, "skillPaths");
-  if (
-    !Array.isArray(skillPaths) ||
-    skillPaths.some((path) => typeof path !== "string")
-  ) {
-    throw new Error(
-      "expected resources_discover result with string skillPaths",
-    );
+  const skillPaths = Reflect.get(value, "skillPaths")
+  if (!Array.isArray(skillPaths) || skillPaths.some((path) => typeof path !== "string")) {
+    throw new Error("expected resources_discover result with string skillPaths")
   }
-  return { skillPaths };
+  return { skillPaths }
 }
 
 /**
@@ -130,257 +105,198 @@ function expectDiscoverResult(value: unknown): MemorySkillsDiscoverResult {
  * appended, canonical duplicates dropped. Pins that extension-returned paths survive alongside
  * pre-existing discovery instead of displacing it (spike evidence 2).
  */
-function mergeSkillPaths(
-  primary: readonly string[],
-  additional: readonly string[],
-): string[] {
-  const merged: string[] = [];
-  const seen = new Set<string>();
+function mergeSkillPaths(primary: readonly string[], additional: readonly string[]): string[] {
+  const merged: string[] = []
+  const seen = new Set<string>()
   for (const path of [...primary, ...additional]) {
-    const resolved = resolve(path);
-    if (seen.has(resolved)) continue;
-    seen.add(resolved);
-    merged.push(resolved);
+    const resolved = resolve(path)
+    if (seen.has(resolved)) continue
+    seen.add(resolved)
+    merged.push(resolved)
   }
-  return merged;
+  return merged
 }
 
 describe("memorySkillsDir", () => {
   test("resolves to the identity repo skills dir", async () => {
     // #given
-    const { context, skillsDir } = await fixture();
+    const { context, skillsDir } = await fixture()
 
     // #when
-    const dir = memorySkillsDir(context);
+    const dir = memorySkillsDir(context)
 
     // #then
-    expect(dir).toBe(skillsDir);
-    expect(dir).toBe(join(context.identityPaths.repo, "skills"));
-  });
-});
+    expect(dir).toBe(skillsDir)
+    expect(dir).toBe(join(context.identityPaths.repo, "skills"))
+  })
+})
 
 describe("createMemorySkillsScopeHandler", () => {
   test("returns the bound identity skills dir on startup", async () => {
     // #given
-    const { context, skillsDir } = await fixture();
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => context,
-    });
+    const { context, skillsDir } = await fixture()
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => context })
 
     // #when
-    const result = handler(
-      discoverPayload("startup", "/tmp/project"),
-      eventContext("session-1"),
-    );
+    const result = handler(discoverPayload("startup", "/tmp/project"), eventContext("session-1"))
 
     // #then
-    expect(result).toEqual({ skillPaths: [skillsDir] });
-  });
+    expect(result).toEqual({ skillPaths: [skillsDir] })
+  })
 
   test("returns the bound identity skills dir on reload", async () => {
     // #given
-    const { context, skillsDir } = await fixture();
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => context,
-    });
+    const { context, skillsDir } = await fixture()
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => context })
 
     // #when
-    const result = handler(
-      discoverPayload("reload", "/tmp/project"),
-      eventContext("session-1"),
-    );
+    const result = handler(discoverPayload("reload", "/tmp/project"), eventContext("session-1"))
 
     // #then
-    expect(result).toEqual({ skillPaths: [skillsDir] });
-  });
+    expect(result).toEqual({ skillPaths: [skillsDir] })
+  })
 
   test("resolves the context by event session id", async () => {
     // #given
-    const { context, skillsDir } = await fixture();
-    const seen: string[] = [];
+    const { context, skillsDir } = await fixture()
+    const seen: string[] = []
     const handler = createMemorySkillsScopeHandler({
       resolveContext: (sessionId) => {
-        seen.push(sessionId);
-        return sessionId === "session-bound" ? context : undefined;
+        seen.push(sessionId)
+        return sessionId === "session-bound" ? context : undefined
       },
-    });
+    })
 
     // #when
-    const bound = handler(
-      discoverPayload("startup", "/tmp/project"),
-      eventContext("session-bound"),
-    );
-    const other = handler(
-      discoverPayload("startup", "/tmp/project"),
-      eventContext("session-other"),
-    );
+    const bound = handler(discoverPayload("startup", "/tmp/project"), eventContext("session-bound"))
+    const other = handler(discoverPayload("startup", "/tmp/project"), eventContext("session-other"))
 
     // #then
-    expect(seen).toEqual(["session-bound", "session-other"]);
-    expect(bound).toEqual({ skillPaths: [skillsDir] });
-    expect(other).toBeUndefined();
-  });
+    expect(seen).toEqual(["session-bound", "session-other"])
+    expect(bound).toEqual({ skillPaths: [skillsDir] })
+    expect(other).toBeUndefined()
+  })
 
   test("returns undefined for an unbound session so the chain passes through", async () => {
     // #given
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => undefined,
-    });
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => undefined })
 
     // #when
-    const result = handler(
-      discoverPayload("startup", "/tmp/project"),
-      eventContext("session-1"),
-    );
+    const result = handler(discoverPayload("startup", "/tmp/project"), eventContext("session-1"))
 
     // #then
-    expect(result).toBeUndefined();
-  });
+    expect(result).toBeUndefined()
+  })
 
   test("returns undefined when the skills dir does not exist on disk", async () => {
     // #given
-    const { context, skillsDir } = await fixture(false);
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => context,
-    });
+    const { context, skillsDir } = await fixture(false)
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => context })
 
     // #when
-    const result = handler(
-      discoverPayload("startup", "/tmp/project"),
-      eventContext("session-1"),
-    );
+    const result = handler(discoverPayload("startup", "/tmp/project"), eventContext("session-1"))
 
     // #then
-    expect(result).toBeUndefined();
-    const { existsSync } = await import("node:fs");
-    expect(existsSync(skillsDir)).toBe(false);
-  });
+    expect(result).toBeUndefined()
+    const { existsSync } = await import("node:fs")
+    expect(existsSync(skillsDir)).toBe(false)
+  })
 
   test("ignores non-resources_discover payloads", async () => {
     // #given
-    const { context } = await fixture();
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => context,
-    });
+    const { context } = await fixture()
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => context })
 
     // #when
-    const wrongType = handler(
-      { type: "session_start" },
-      eventContext("session-1"),
-    );
-    const notRecord = handler("resources_discover", eventContext("session-1"));
+    const wrongType = handler({ type: "session_start" }, eventContext("session-1"))
+    const notRecord = handler("resources_discover", eventContext("session-1"))
 
     // #then
-    expect(wrongType).toBeUndefined();
-    expect(notRecord).toBeUndefined();
-  });
+    expect(wrongType).toBeUndefined()
+    expect(notRecord).toBeUndefined()
+  })
 
   test("returns undefined when the event context has no readable session id", async () => {
     // #given
-    const { context } = await fixture();
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => context,
-    });
+    const { context } = await fixture()
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => context })
 
     // #when
-    const missingCtx = handler(
-      discoverPayload("startup", "/tmp/project"),
-      undefined,
-    );
-    const noManager = handler(discoverPayload("startup", "/tmp/project"), {});
+    const missingCtx = handler(discoverPayload("startup", "/tmp/project"), undefined)
+    const noManager = handler(discoverPayload("startup", "/tmp/project"), {})
     const badId = handler(discoverPayload("startup", "/tmp/project"), {
       sessionManager: { getSessionId: () => 42 },
-    });
+    })
 
     // #then
-    expect(missingCtx).toBeUndefined();
-    expect(noManager).toBeUndefined();
-    expect(badId).toBeUndefined();
-  });
+    expect(missingCtx).toBeUndefined()
+    expect(noManager).toBeUndefined()
+    expect(badId).toBeUndefined()
+  })
 
   test("returned path survives into discovery additively without displacing existing paths", async () => {
     // #given
-    const { context, skillsDir } = await fixture();
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => context,
-    });
-    const preExisting = [
-      "/tmp/project/.pi/skills",
-      "/home/user/.pi/agent/skills",
-    ];
+    const { context, skillsDir } = await fixture()
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => context })
+    const preExisting = ["/tmp/project/.pi/skills", "/home/user/.pi/agent/skills"]
 
     // #when
-    const result = handler(
-      discoverPayload("startup", "/tmp/project"),
-      eventContext("session-1"),
-    );
-    const merged = mergeSkillPaths(preExisting, result?.skillPaths ?? []);
+    const result = handler(discoverPayload("startup", "/tmp/project"), eventContext("session-1"))
+    const merged = mergeSkillPaths(preExisting, result?.skillPaths ?? [])
 
     // #then
-    expect(merged).toEqual([
-      ...preExisting.map((path) => resolve(path)),
-      resolve(skillsDir),
-    ]);
-    expect(merged).toContain(resolve(preExisting[0]));
-    expect(merged).toContain(resolve(preExisting[1]));
-    expect(merged).toContain(resolve(skillsDir));
-  });
+    expect(merged).toEqual([...preExisting.map((path) => resolve(path)), resolve(skillsDir)])
+    expect(merged).toContain(resolve(preExisting[0]))
+    expect(merged).toContain(resolve(preExisting[1]))
+    expect(merged).toContain(resolve(skillsDir))
+  })
 
   test("merge dedupes a skills dir already present in discovery", async () => {
     // #given
-    const { context, skillsDir } = await fixture();
-    const handler = createMemorySkillsScopeHandler({
-      resolveContext: () => context,
-    });
+    const { context, skillsDir } = await fixture()
+    const handler = createMemorySkillsScopeHandler({ resolveContext: () => context })
 
     // #when
-    const result = handler(
-      discoverPayload("reload", "/tmp/project"),
-      eventContext("session-1"),
-    );
-    const merged = mergeSkillPaths([skillsDir], result?.skillPaths ?? []);
+    const result = handler(discoverPayload("reload", "/tmp/project"), eventContext("session-1"))
+    const merged = mergeSkillPaths([skillsDir], result?.skillPaths ?? [])
 
     // #then
-    expect(merged).toEqual([resolve(skillsDir)]);
-  });
-});
+    expect(merged).toEqual([resolve(skillsDir)])
+  })
+})
 
 describe("registerMemorySkillsScope", () => {
   test("registers a resources_discover handler that dispatches the bound skills dir", async () => {
     // #given
-    const { context, skillsDir } = await fixture();
-    const pi = new FakeExtensionAPI();
-    registerMemorySkillsScope(pi, { resolveContext: () => context });
+    const { context, skillsDir } = await fixture()
+    const pi = new FakeExtensionAPI()
+    registerMemorySkillsScope(pi, { resolveContext: () => context })
 
     // #when
     const results = await pi.dispatch(
       "resources_discover",
       discoverPayload("startup", "/tmp/project"),
       eventContext("session-1"),
-    );
+    )
 
     // #then
-    expect(pi.handlers.map((registration) => registration.event)).toEqual([
-      "resources_discover",
-    ]);
-    expect(results.map(expectDiscoverResult)).toEqual([{
-      skillPaths: [skillsDir],
-    }]);
-  });
+    expect(pi.handlers.map((registration) => registration.event)).toEqual(["resources_discover"])
+    expect(results.map(expectDiscoverResult)).toEqual([{ skillPaths: [skillsDir] }])
+  })
 
   test("contributes nothing for an unbound session during dispatch", async () => {
     // #given
-    const pi = new FakeExtensionAPI();
-    registerMemorySkillsScope(pi, { resolveContext: () => undefined });
+    const pi = new FakeExtensionAPI()
+    registerMemorySkillsScope(pi, { resolveContext: () => undefined })
 
     // #when
     const results = await pi.dispatch(
       "resources_discover",
       discoverPayload("reload", "/tmp/project"),
       eventContext("session-1"),
-    );
+    )
 
     // #then
-    expect(results).toEqual([undefined]);
-  });
-});
+    expect(results).toEqual([undefined])
+  })
+})

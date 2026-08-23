@@ -1,15 +1,15 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test";
-import { getUltraworkSource } from "./index";
-import type { UltraworkSource } from "./source-detector";
+import { describe, expect, test } from "bun:test"
+import { getUltraworkSource } from "./index"
+import type { UltraworkSource } from "./source-detector"
 
 type UltraworkRoutingBaseline = {
-  readonly name: string;
-  readonly agentName: string;
-  readonly modelID: string;
-  readonly expectedSource: UltraworkSource;
-};
+  readonly name: string
+  readonly agentName: string
+  readonly modelID: string
+  readonly expectedSource: UltraworkSource
+}
 
 const ULTRAWORK_ROUTING_BASELINES: readonly UltraworkRoutingBaseline[] = [
   {
@@ -42,14 +42,14 @@ const ULTRAWORK_ROUTING_BASELINES: readonly UltraworkRoutingBaseline[] = [
     modelID: "gpt-5.5",
     expectedSource: "planner",
   },
-];
+]
 
 describe("Ultrawork source routing", () => {
   test("#given agent and model #then getUltraworkSource routes to the expected variant", () => {
     for (const baseline of ULTRAWORK_ROUTING_BASELINES) {
-      const source = getUltraworkSource(baseline.agentName, baseline.modelID);
+      const source = getUltraworkSource(baseline.agentName, baseline.modelID)
 
-      expect(source, baseline.name).toBe(baseline.expectedSource);
+      expect(source, baseline.name).toBe(baseline.expectedSource)
     }
-  });
-});
+  })
+})

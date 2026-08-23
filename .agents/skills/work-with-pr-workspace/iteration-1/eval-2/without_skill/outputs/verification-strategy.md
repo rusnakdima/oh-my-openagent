@@ -3,13 +3,11 @@
 ## 1. Unit Tests (Direct Verification)
 
 ### boulder-state storage tests
-
 ```bash
 bun test src/features/boulder-state/storage.test.ts
 ```
 
 Verify:
-
 - `readBoulderState()` returns `null` when `active_plan` missing
 - `readBoulderState()` returns `null` when `plan_name` missing
 - `readBoulderState()` strips non-string `worktree_path` (e.g., `null`)
@@ -18,21 +16,16 @@ Verify:
 - Existing tests still pass (session_ids defaults, empty object, etc.)
 
 ### atlas hook tests
-
 ```bash
 bun test src/hooks/atlas/index.test.ts
 ```
 
 Verify:
-
-- session.idle handler works with boulder state missing `worktree_path` (no
-  crash, prompt injected)
-- session.idle handler includes `[Worktree: ...]` context when `worktree_path`
-  IS present
+- session.idle handler works with boulder state missing `worktree_path` (no crash, prompt injected)
+- session.idle handler includes `[Worktree: ...]` context when `worktree_path` IS present
 - All 30+ existing tests still pass
 
 ### atlas idle-event lineage tests
-
 ```bash
 bun test src/hooks/atlas/idle-event-lineage.test.ts
 ```
@@ -40,13 +33,11 @@ bun test src/hooks/atlas/idle-event-lineage.test.ts
 Verify existing lineage tests unaffected.
 
 ### start-work hook tests
-
 ```bash
 bun test src/hooks/start-work/index.test.ts
 ```
 
-Verify worktree-related start-work tests still pass (these create boulder states
-with/without `worktree_path`).
+Verify worktree-related start-work tests still pass (these create boulder states with/without `worktree_path`).
 
 ## 2. Type Safety
 
@@ -54,8 +45,7 @@ with/without `worktree_path`).
 bun run typecheck
 ```
 
-Verify zero new TypeScript errors. The changes are purely additive runtime
-guards that align with existing types (`worktree_path?: string`).
+Verify zero new TypeScript errors. The changes are purely additive runtime guards that align with existing types (`worktree_path?: string`).
 
 ## 3. LSP Diagnostics on Changed Files
 
@@ -101,7 +91,6 @@ echo '# Plan\n- [ ] Task 1' > .sisyphus/plans/test.md
 ```
 
 Also test the extreme case:
-
 ```bash
 # boulder.json with no required fields
 echo '{}' > .sisyphus/boulder.json
@@ -112,21 +101,19 @@ echo '{}' > .sisyphus/boulder.json
 ## 7. CI Pipeline
 
 After pushing the branch, verify:
-
-- `ci.yml` workflow passes: tests (split: mock-heavy isolated + batch),
-  typecheck, build
+- `ci.yml` workflow passes: tests (split: mock-heavy isolated + batch), typecheck, build
 - No new lint warnings
 
 ## 8. Edge Cases Covered
 
-| Scenario                                     | Expected Behavior                                      |
-| -------------------------------------------- | ------------------------------------------------------ |
-| `boulder.json` = `{}`                        | `readBoulderState` returns `null`                      |
-| `boulder.json` missing `active_plan`         | `readBoulderState` returns `null`                      |
-| `boulder.json` missing `plan_name`           | `readBoulderState` returns `null`                      |
-| `boulder.json` has `worktree_path: null`     | Field stripped, returned as `undefined`                |
-| `boulder.json` has `worktree_path: 42`       | Field stripped, returned as `undefined`                |
-| `boulder.json` has no `worktree_path`        | Works normally, no crash                               |
-| `boulder.json` has valid `worktree_path`     | Preserved, included in continuation prompt             |
-| setTimeout retry with corrupted boulder.json | Error caught and logged, no process crash              |
-| `getPlanProgress(undefined)`                 | Returns `{ total: 0, completed: 0, isComplete: true }` |
+| Scenario | Expected Behavior |
+|----------|-------------------|
+| `boulder.json` = `{}` | `readBoulderState` returns `null` |
+| `boulder.json` missing `active_plan` | `readBoulderState` returns `null` |
+| `boulder.json` missing `plan_name` | `readBoulderState` returns `null` |
+| `boulder.json` has `worktree_path: null` | Field stripped, returned as `undefined` |
+| `boulder.json` has `worktree_path: 42` | Field stripped, returned as `undefined` |
+| `boulder.json` has no `worktree_path` | Works normally, no crash |
+| `boulder.json` has valid `worktree_path` | Preserved, included in continuation prompt |
+| setTimeout retry with corrupted boulder.json | Error caught and logged, no process crash |
+| `getPlanProgress(undefined)` | Returns `{ total: 0, completed: 0, isComplete: true }` |

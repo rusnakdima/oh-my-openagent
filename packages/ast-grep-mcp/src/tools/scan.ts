@@ -1,4 +1,4 @@
-import { type NormalizedMatch, normalizeRecords } from "../normalize";
+import { normalizeRecords, type NormalizedMatch } from "../normalize";
 import {
   DEFAULT_MATCHES,
   DEFAULT_TIMEOUT_MS,
@@ -66,28 +66,16 @@ function parseScanInput(input: unknown): ScanInput {
   if (hasRuleFile === hasInlineRules) {
     throw new Error("Exactly one of ruleFile or inlineRules must be provided");
   }
-  if (
-    hasRuleFile &&
-    (typeof obj.ruleFile !== "string" || obj.ruleFile.length === 0)
-  ) {
+  if (hasRuleFile && (typeof obj.ruleFile !== "string" || obj.ruleFile.length === 0)) {
     throw new Error("ruleFile must be a non-empty string");
   }
-  if (
-    typeof obj.ruleFile === "string" &&
-    codePointLength(obj.ruleFile) > MAX_PATH_LENGTH
-  ) {
+  if (typeof obj.ruleFile === "string" && codePointLength(obj.ruleFile) > MAX_PATH_LENGTH) {
     throw new Error(`ruleFile must be at most ${MAX_PATH_LENGTH} characters`);
   }
-  if (
-    hasInlineRules &&
-    (typeof obj.inlineRules !== "string" || obj.inlineRules.length === 0)
-  ) {
+  if (hasInlineRules && (typeof obj.inlineRules !== "string" || obj.inlineRules.length === 0)) {
     throw new Error("inlineRules must be a non-empty string");
   }
-  if (
-    typeof obj.inlineRules === "string" &&
-    Buffer.byteLength(obj.inlineRules, "utf8") > MAX_INLINE_RULE_BYTES
-  ) {
+  if (typeof obj.inlineRules === "string" && Buffer.byteLength(obj.inlineRules, "utf8") > MAX_INLINE_RULE_BYTES) {
     throw new Error("inlineRules must be at most 64KiB");
   }
 
@@ -96,42 +84,22 @@ function parseScanInput(input: unknown): ScanInput {
     throw new Error(`paths must have 1-${MAX_PATHS} entries`);
   }
   for (const path of obj.paths) {
-    if (typeof path !== "string" || path.length === 0) {
-      throw new Error("each path must be a non-empty string");
-    }
-    if (codePointLength(path) > MAX_PATH_LENGTH) {
-      throw new Error(
-        `each path must be at most ${MAX_PATH_LENGTH} characters`,
-      );
-    }
+    if (typeof path !== "string" || path.length === 0) throw new Error("each path must be a non-empty string");
+    if (codePointLength(path) > MAX_PATH_LENGTH) throw new Error(`each path must be at most ${MAX_PATH_LENGTH} characters`);
   }
 
-  if (
-    obj.workdir !== undefined &&
-    (typeof obj.workdir !== "string" || obj.workdir.length === 0)
-  ) {
+  if (obj.workdir !== undefined && (typeof obj.workdir !== "string" || obj.workdir.length === 0)) {
     throw new Error("workdir must be a non-empty string");
   }
-  if (
-    typeof obj.workdir === "string" &&
-    codePointLength(obj.workdir) > MAX_PATH_LENGTH
-  ) {
+  if (typeof obj.workdir === "string" && codePointLength(obj.workdir) > MAX_PATH_LENGTH) {
     throw new Error(`workdir must be at most ${MAX_PATH_LENGTH} characters`);
   }
   if (obj.globs !== undefined) {
     if (!Array.isArray(obj.globs)) throw new Error("globs must be an array");
-    if (obj.globs.length > MAX_GLOBS) {
-      throw new Error(`globs must have at most ${MAX_GLOBS} entries`);
-    }
+    if (obj.globs.length > MAX_GLOBS) throw new Error(`globs must have at most ${MAX_GLOBS} entries`);
     for (const glob of obj.globs) {
-      if (typeof glob !== "string" || glob.length === 0) {
-        throw new Error("each glob must be a non-empty string");
-      }
-      if (codePointLength(glob) > MAX_GLOB_LENGTH) {
-        throw new Error(
-          `each glob must be at most ${MAX_GLOB_LENGTH} characters`,
-        );
-      }
+      if (typeof glob !== "string" || glob.length === 0) throw new Error("each glob must be a non-empty string");
+      if (codePointLength(glob) > MAX_GLOB_LENGTH) throw new Error(`each glob must be at most ${MAX_GLOB_LENGTH} characters`);
     }
   }
 
@@ -143,9 +111,7 @@ function parseScanInput(input: unknown): ScanInput {
       obj.maxMatches < 1 ||
       obj.maxMatches > MAX_MATCHES
     ) {
-      throw new Error(
-        `maxMatches must be an integer between 1 and ${MAX_MATCHES}`,
-      );
+      throw new Error(`maxMatches must be an integer between 1 and ${MAX_MATCHES}`);
     }
     maxMatches = obj.maxMatches;
   }
@@ -158,24 +124,13 @@ function parseScanInput(input: unknown): ScanInput {
       obj.timeoutMs < MIN_TIMEOUT_MS ||
       obj.timeoutMs > MAX_TIMEOUT_MS
     ) {
-      throw new Error(
-        `timeoutMs must be an integer between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS}`,
-      );
+      throw new Error(`timeoutMs must be an integer between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS}`);
     }
     timeoutMs = obj.timeoutMs;
   }
 
-  for (
-    const flag of [
-      "includeHidden",
-      "followSymlinks",
-      "includeMetadata",
-      "apply",
-    ] as const
-  ) {
-    if (obj[flag] !== undefined && typeof obj[flag] !== "boolean") {
-      throw new Error(`${flag} must be a boolean`);
-    }
+  for (const flag of ["includeHidden", "followSymlinks", "includeMetadata", "apply"] as const) {
+    if (obj[flag] !== undefined && typeof obj[flag] !== "boolean") throw new Error(`${flag} must be a boolean`);
   }
 
   return {
@@ -207,11 +162,7 @@ function sourceArgs(input: ScanInput): string[] {
 
 function scopeArgs(input: ScanInput): string[] {
   const args: string[] = [];
-  if (input.globs) {
-    for (const glob of input.globs) {
-      args.push("--globs", glob);
-    }
-  }
+  if (input.globs) for (const glob of input.globs) args.push("--globs", glob);
   if (input.includeHidden) args.push("--no-ignore", "hidden");
   if (input.followSymlinks) args.push("--follow");
   return args;
@@ -231,13 +182,7 @@ export function buildScanArgs(input: ScanInput): string[] {
 
 /** Pass 2 intentionally has --update-all and no JSON flag: JSON+update only previews. */
 export function buildScanApplyArgs(input: ScanInput): string[] {
-  return [
-    "scan",
-    ...sourceArgs(input),
-    "--update-all",
-    ...scopeArgs(input),
-    ...input.paths,
-  ];
+  return ["scan", ...sourceArgs(input), "--update-all", ...scopeArgs(input), ...input.paths];
 }
 
 export interface ScanRuleBlock {
@@ -275,17 +220,10 @@ export interface ScanSuccessPayload {
   readonly workdir: string;
   readonly applied: boolean;
   readonly matches: readonly ScanMatch[];
-  readonly counts: {
-    readonly plannedMatches: number;
-    readonly plannedFiles: number;
-  };
+  readonly counts: { readonly plannedMatches: number; readonly plannedFiles: number };
   readonly truncation: {
     readonly truncated: boolean;
-    readonly reason:
-      | "match_limit"
-      | "output_cap"
-      | "sg_output_truncated"
-      | null;
+    readonly reason: "match_limit" | "output_cap" | "sg_output_truncated" | null;
     readonly maxMatches: number;
     readonly maxPayloadBytes: number;
     readonly salvagedRecords: number;
@@ -316,13 +254,8 @@ export interface ScanErrorPayload {
 
 export type ScanPayload = ScanSuccessPayload | ScanErrorPayload;
 
-const RETRYABLE = new Set<ScanErrorCode>([
-  "ABORTED",
-  "OUTPUT_PARSE_FAILED",
-  "TIMEOUT",
-]);
-const RULE_PARSE_RE =
-  /Cannot parse rule|not a valid ast-grep rule|Fail to parse yaml as RuleConfig/i;
+const RETRYABLE = new Set<ScanErrorCode>(["ABORTED", "OUTPUT_PARSE_FAILED", "TIMEOUT"]);
+const RULE_PARSE_RE = /Cannot parse rule|not a valid ast-grep rule|Fail to parse yaml as RuleConfig/i;
 const DEPRECATION_WARNING_RE = /^warning:.*\bsg\b.*deprecated/im;
 const APPLY_PREVIEW_WARNING =
   "Mutation counts are based on the preview pass; sg scan --update-all does not return equivalent JSON.";
@@ -343,10 +276,7 @@ function failure(
   };
 }
 
-function runnerFailure(
-  error: SgRunnerError,
-  phase: ScanPhase,
-): ScanErrorPayload {
+function runnerFailure(error: SgRunnerError, phase: ScanPhase): ScanErrorPayload {
   if (RULE_PARSE_RE.test(error.stderr)) {
     return failure(
       "RULE_PARSE_FAILED",
@@ -356,19 +286,10 @@ function runnerFailure(
       { stderr: error.stderr },
     );
   }
-  return failure(
-    error.code as ScanErrorCode,
-    error.message,
-    phase,
-    error.durationMs,
-    { stderr: error.stderr },
-  );
+  return failure(error.code as ScanErrorCode, error.message, phase, error.durationMs, { stderr: error.stderr });
 }
 
-function toScanMatches(
-  records: readonly Record<string, unknown>[],
-  workdir: string,
-): ScanMatch[] {
+function toScanMatches(records: readonly Record<string, unknown>[], workdir: string): ScanMatch[] {
   return normalizeRecords(records, workdir).map((normalized) => {
     const raw = normalized as Record<string, unknown>;
     const rule: ScanRuleBlock = {
@@ -414,8 +335,7 @@ export async function executeScan(
     );
   }
 
-  const workdir = input.workdir ?? process.env.OMO_AST_GREP_PROJECT_CWD ??
-    process.cwd();
+  const workdir = input.workdir ?? process.env.OMO_AST_GREP_PROJECT_CWD ?? process.cwd();
   let preview: Awaited<ReturnType<typeof spawnSgRunner>>;
   try {
     preview = await spawnSgRunner({
@@ -428,12 +348,7 @@ export async function executeScan(
     });
   } catch (error) {
     if (error instanceof SgRunnerError) return runnerFailure(error, "preview");
-    return failure(
-      "SG_FAILED",
-      error instanceof Error ? error.message : String(error),
-      "preview",
-      elapsed(),
-    );
+    return failure("SG_FAILED", error instanceof Error ? error.message : String(error), "preview", elapsed());
   }
 
   const matches = toScanMatches(preview.records, workdir);
@@ -448,13 +363,9 @@ export async function executeScan(
     plannedMatches: matches.length,
     plannedFiles: new Set(matches.map((match) => match.path)).size,
   } as const;
-  const warnings = DEPRECATION_WARNING_RE.test(preview.stderr)
-    ? [preview.stderr.trim()]
-    : [];
+  const warnings = DEPRECATION_WARNING_RE.test(preview.stderr) ? [preview.stderr.trim()] : [];
 
-  const dryRun = (
-    extraWarnings: readonly string[] = [],
-  ): ScanSuccessPayload => ({
+  const dryRun = (extraWarnings: readonly string[] = []): ScanSuccessPayload => ({
     schemaVersion: 1,
     ok: true,
     kind: "scan",
@@ -483,9 +394,7 @@ export async function executeScan(
       { stderr: preview.stderr },
     );
   }
-  if (matches.length === 0) {
-    return dryRun(["Nothing to apply: the preview found no matches."]);
-  }
+  if (matches.length === 0) return dryRun(["Nothing to apply: the preview found no matches."]);
 
   const remainingBudgetMs = input.timeoutMs - elapsed();
   if (remainingBudgetMs <= 0) {
@@ -510,12 +419,7 @@ export async function executeScan(
     });
   } catch (error) {
     if (error instanceof SgRunnerError) return runnerFailure(error, "apply");
-    return failure(
-      "SG_FAILED",
-      error instanceof Error ? error.message : String(error),
-      "apply",
-      elapsed(),
-    );
+    return failure("SG_FAILED", error instanceof Error ? error.message : String(error), "apply", elapsed());
   }
 
   return {

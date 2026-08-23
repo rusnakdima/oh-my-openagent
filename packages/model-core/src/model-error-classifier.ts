@@ -1,6 +1,6 @@
-import type { FallbackEntry } from "./model-requirements";
-import type { ProviderCache } from "./provider-cache";
-import * as connectedProvidersCache from "./connected-providers-cache";
+import type { FallbackEntry } from "./model-requirements"
+import type { ProviderCache } from "./provider-cache"
+import * as connectedProvidersCache from "./connected-providers-cache"
 
 /**
  * Error names that indicate a retryable model error.
@@ -12,13 +12,13 @@ const RETRYABLE_ERROR_NAMES = new Set([
   "modelunavailableerror",
   "providerconnectionerror",
   "authenticationerror",
-]);
+])
 
 const STOP_ERROR_NAMES = new Set([
   "quotaexceedederror",
   "insufficientcreditserror",
   "freeusagelimiterror",
-]);
+])
 
 /**
  * Error names that should NOT trigger retry.
@@ -32,7 +32,7 @@ const NON_RETRYABLE_ERROR_NAMES = new Set([
   "validationerror",
   "syntaxerror",
   "usererror",
-]);
+])
 
 /**
  * Message patterns that indicate a retryable error even without a known error name.
@@ -79,14 +79,14 @@ const RETRYABLE_MESSAGE_PATTERNS = [
   "selected provider is forbidden",
   "provider is forbidden",
   // Chinese retryable patterns (Zhipu, etc.)
-  "频率限制", // "rate limit"
-  "请求过于频繁", // "too many requests"
-  "暂时不可用", // "temporarily unavailable"
-  "服务不可用", // "service unavailable"
+  "频率限制",           // "rate limit"
+  "请求过于频繁",       // "too many requests"
+  "暂时不可用",         // "temporarily unavailable"
+  "服务不可用",         // "service unavailable"
   "server_error",
   "an error occurred while processing",
   "upstream request failed",
-];
+]
 
 /**
  * Message patterns that indicate a non-retryable STOP error (quota/billing exhaustion).
@@ -121,26 +121,26 @@ const STOP_MESSAGE_PATTERNS = [
   "额度不足",
   "余额不足",
   "已耗尽",
-];
+]
 
 const AUTO_RETRY_GATE_PATTERNS = [
   "rate limit",
   "cooling down",
   "credentials for model",
-];
+]
 
 function hasProviderAutoRetrySignal(message: string): boolean {
   if (!message.includes("retrying in")) {
-    return false;
+    return false
   }
-  return AUTO_RETRY_GATE_PATTERNS.some((pattern) => message.includes(pattern));
+  return AUTO_RETRY_GATE_PATTERNS.some((pattern) => message.includes(pattern))
 }
 
 export interface ErrorInfo {
-  name?: string;
-  message?: string;
+  name?: string
+  message?: string
   /** HTTP status code from the provider response (e.g., 429 for rate limit) */
-  statusCode?: number;
+  statusCode?: number
 }
 
 /**
@@ -150,43 +150,42 @@ export interface ErrorInfo {
 export function isRetryableModelError(error: ErrorInfo): boolean {
   // If we have an error name, check against known lists
   if (error.name) {
-    const errorNameLower = error.name.toLowerCase();
+    const errorNameLower = error.name.toLowerCase()
     // Explicit non-retryable takes precedence
     if (NON_RETRYABLE_ERROR_NAMES.has(errorNameLower)) {
-      return false;
+      return false
     }
     if (STOP_ERROR_NAMES.has(errorNameLower)) {
-      return false;
+      return false
     }
     // Check if it's a known retryable error
     if (RETRYABLE_ERROR_NAMES.has(errorNameLower)) {
-      return true;
+      return true
     }
   }
 
   // Check message patterns for unknown errors
-  const msg = error.message?.toLowerCase() ?? "";
+  const msg = error.message?.toLowerCase() ?? ""
 
   // STOP patterns take precedence over retryable patterns
   if (STOP_MESSAGE_PATTERNS.some((pattern) => msg.includes(pattern))) {
-    return false;
+    return false
   }
 
   if (hasProviderAutoRetrySignal(msg)) {
-    return true;
+    return true
   }
 
   // HTTP status code check: catches rate-limit errors regardless of message format/language.
   // Uses the same codes as runtime-fallback config (400 excluded as it is a permanent client error).
   if (
     error.statusCode != null &&
-    (error.statusCode === 429 || error.statusCode === 503 ||
-      error.statusCode === 529)
+    (error.statusCode === 429 || error.statusCode === 503 || error.statusCode === 529)
   ) {
-    return true;
+    return true
   }
 
-  return RETRYABLE_MESSAGE_PATTERNS.some((pattern) => msg.includes(pattern));
+  return RETRYABLE_MESSAGE_PATTERNS.some((pattern) => msg.includes(pattern))
 }
 
 /**
@@ -194,7 +193,7 @@ export function isRetryableModelError(error: ErrorInfo): boolean {
  * Returns true for errors that halt execution.
  */
 export function shouldRetryError(error: ErrorInfo): boolean {
-  return isRetryableModelError(error);
+  return isRetryableModelError(error)
 }
 
 /**
@@ -205,7 +204,7 @@ export function getNextFallback(
   fallbackChain: FallbackEntry[],
   attemptCount: number,
 ): FallbackEntry | undefined {
-  return fallbackChain[attemptCount];
+  return fallbackChain[attemptCount]
 }
 
 /**
@@ -215,7 +214,7 @@ export function hasMoreFallbacks(
   fallbackChain: FallbackEntry[],
   attemptCount: number,
 ): boolean {
-  return attemptCount < fallbackChain.length;
+  return attemptCount < fallbackChain.length
 }
 
 /**
@@ -233,7 +232,7 @@ export function selectFallbackProvider(
     providers,
     connectedProvidersCache,
     preferredProviderID,
-  );
+  )
 }
 
 export function selectFallbackProviderWithCache(
@@ -241,15 +240,13 @@ export function selectFallbackProviderWithCache(
   providerCache: ProviderCache,
   preferredProviderID?: string,
 ): string {
-  const connectedProviders = providerCache.readConnectedProvidersCache();
+  const connectedProviders = providerCache.readConnectedProvidersCache()
   if (connectedProviders) {
-    const connectedSet = new Set(
-      connectedProviders.map((p) => p.toLowerCase()),
-    );
+    const connectedSet = new Set(connectedProviders.map(p => p.toLowerCase()))
 
     for (const provider of providers) {
       if (connectedSet.has(provider.toLowerCase())) {
-        return provider;
+        return provider
       }
     }
 
@@ -257,9 +254,9 @@ export function selectFallbackProviderWithCache(
       preferredProviderID &&
       connectedSet.has(preferredProviderID.toLowerCase())
     ) {
-      return preferredProviderID;
+      return preferredProviderID
     }
   }
 
-  return providers[0] || preferredProviderID || "opencode";
+  return providers[0] || preferredProviderID || "opencode"
 }

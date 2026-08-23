@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { z } from "zod"
 
 export const RalphLoopConfigSchema = z.object({
   enabled: z.boolean().default(false),
@@ -6,6 +6,6 @@ export const RalphLoopConfigSchema = z.object({
   /** Custom state file directory relative to project root (default: .opencode/) */
   state_dir: z.string().optional(),
   default_strategy: z.enum(["reset", "continue"]).default("continue"),
-});
+})
 
-export type RalphLoopConfig = z.infer<typeof RalphLoopConfigSchema>;
+export type RalphLoopConfig = z.infer<typeof RalphLoopConfigSchema>

@@ -1,5 +1,4 @@
-export const GIT_MASTER_COMMIT_EXECUTION_VERIFICATION_SECTION =
-  `## PHASE 4: Commit Strategy Decision
+export const GIT_MASTER_COMMIT_EXECUTION_VERIFICATION_SECTION = `## PHASE 4: Commit Strategy Decision
 
 <strategy_decision>
 ### 4.1 For Each Commit Group, Decide:
@@ -178,4 +177,4 @@ NEXT STEPS:
   - git push [--force-with-lease]
   - Create PR if ready
 \`\`\`
-</verification>`;
+</verification>`

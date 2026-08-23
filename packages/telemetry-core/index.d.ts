@@ -1,6 +1,5 @@
 export declare const DEFAULT_POSTHOG_HOST: "https://us.i.posthog.com";
-export declare const DEFAULT_POSTHOG_API_KEY:
-  "phc_CFJhj5HyvA62QPhvyaUCtaq23aUfznnijg5VaaGkNk74";
+export declare const DEFAULT_POSTHOG_API_KEY: "phc_CFJhj5HyvA62QPhvyaUCtaq23aUfznnijg5VaaGkNk74";
 /** A product default with this exact value is intentionally unconfigured and must fail closed. */
 export declare const UNCONFIGURED_POSTHOG_API_KEY: "phc_REPLACE_ME_OMO_NATIVE";
 
@@ -93,14 +92,9 @@ export type TelemetryClient = {
   readonly shutdown: () => Promise<void>;
 };
 
-export type EventPropertyAllowlist = Readonly<
-  Record<string, readonly string[]>
->;
+export type EventPropertyAllowlist = Readonly<Record<string, readonly string[]>>;
 export type EventTelemetryProperties = Readonly<Record<string, unknown>>;
-export type EventTelemetrySetTimeout = (
-  callback: () => void,
-  delay: number,
-) => unknown;
+export type EventTelemetrySetTimeout = (callback: () => void, delay: number) => unknown;
 
 export type CreateEventTelemetryClientInput = {
   readonly diagnostics?: (input: TelemetryDiagnosticInput) => void;
@@ -117,10 +111,7 @@ export type CreateEventTelemetryClientInput = {
 
 export type EventTelemetryClient = {
   readonly enabled: boolean;
-  readonly captureEvent: (
-    name: string,
-    properties: EventTelemetryProperties,
-  ) => void;
+  readonly captureEvent: (name: string, properties: EventTelemetryProperties) => void;
   readonly flush: () => Promise<void>;
   readonly shutdown: () => Promise<void>;
 };
@@ -167,10 +158,7 @@ export type RecordDailyActiveInput = {
 
 export type TelemetryClientEnabledInput = {
   readonly env?: TelemetryEnv;
-  readonly product: Pick<
-    TelemetryProductConfig,
-    "defaultApiKey" | "productEnvPrefix"
-  >;
+  readonly product: Pick<TelemetryProductConfig, "defaultApiKey" | "productEnvPrefix">;
 };
 
 export declare function createEventTelemetryClient(
@@ -180,9 +168,7 @@ export declare function createDefaultPostHogTransport(
   apiKey: string,
   options: TelemetryTransportOptions,
 ): TelemetryTransport;
-export declare function isTelemetryClientEnabled(
-  input: TelemetryClientEnabledInput,
-): boolean;
+export declare function isTelemetryClientEnabled(input: TelemetryClientEnabledInput): boolean;
 export declare function createTelemetryClient(input: {
   readonly diagnostics?: (input: TelemetryDiagnosticInput) => void;
   readonly env?: TelemetryEnv;
@@ -196,19 +182,10 @@ export declare function shouldDisableTelemetry(input: {
   readonly globalEnvPrefix?: string;
   readonly productEnvPrefix: string;
 }): boolean;
-export declare function getTelemetryApiKey(
-  env?: TelemetryEnv,
-  defaultApiKey?: string,
-): string;
+export declare function getTelemetryApiKey(env?: TelemetryEnv, defaultApiKey?: string): string;
 export declare function isConfiguredTelemetryApiKey(apiKey: string): boolean;
-export declare function hasTelemetryApiKey(
-  env?: TelemetryEnv,
-  defaultApiKey?: string,
-): boolean;
-export declare function getTelemetryHost(
-  env?: TelemetryEnv,
-  defaultHost?: string,
-): string;
+export declare function hasTelemetryApiKey(env?: TelemetryEnv, defaultApiKey?: string): boolean;
+export declare function getTelemetryHost(env?: TelemetryEnv, defaultHost?: string): string;
 export declare function getDefaultTelemetryOsProvider(): TelemetryOsProvider;
 export declare function getTelemetryDistinctId(
   machineIdPrefix: string,
@@ -218,22 +195,14 @@ export declare function resolveTelemetryStateDir(
   product: Pick<TelemetryProductConfig, "cacheDirName">,
   options?: ResolveTelemetryStateDirOptions,
 ): string;
-export declare function getTelemetryActivityStateFilePath(
-  stateDir: string,
-): string;
+export declare function getTelemetryActivityStateFilePath(stateDir: string): string;
 export declare function getDailyActiveCaptureState(
   input: DailyActiveCaptureStateInput,
 ): PostHogActivityCaptureState;
-export declare function getTelemetryDiagnosticsFilePath(
-  diagnosticsDir: string,
-): string;
+export declare function getTelemetryDiagnosticsFilePath(diagnosticsDir: string): string;
 export declare function writeTelemetryDiagnostic(
   input: TelemetryDiagnosticInput,
   options: WriteTelemetryDiagnosticOptions,
 ): void;
-export declare function cleanupTelemetryDiagnostics(
-  options: WriteTelemetryDiagnosticOptions,
-): void;
-export declare function recordDailyActive(
-  input: RecordDailyActiveInput,
-): Promise<void>;
+export declare function cleanupTelemetryDiagnostics(options: WriteTelemetryDiagnosticOptions): void;
+export declare function recordDailyActive(input: RecordDailyActiveInput): Promise<void>;

@@ -1,58 +1,33 @@
-import type { ToolDefinition } from "@opencode-ai/plugin";
-import type { AvailableCategory } from "../agents/dynamic-agent-prompt-builder";
-import type { OhMyOpenCodeConfig } from "../config";
-import type { Managers } from "../create-managers";
-import type { SkillContext } from "./skill-context";
-import type { PluginContext, ToolsRecord } from "./types";
-import type { ToolRegistryFactories } from "./tool-registry-factories";
+import type { ToolDefinition } from "@opencode-ai/plugin"
+import type { AvailableCategory } from "../agents/dynamic-agent-prompt-builder"
+import type { OhMyOpenCodeConfig } from "../config"
+import type { Managers } from "../create-managers"
+import type { SkillContext } from "./skill-context"
+import type { PluginContext, ToolsRecord } from "./types"
+import type { ToolRegistryFactories } from "./tool-registry-factories"
 
-import { getMainSessionID } from "../features/claude-code-session-state";
-import {
-  createGoalController,
-  type GoalController,
-} from "../hooks/goal/controller";
-import { createGoalTools } from "../hooks/goal/tools";
-import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch";
-import { log } from "../shared";
-import { getSisyphusJuniorModelOverride } from "./tool-registry-team-tools";
-import {
-  createNativeSkills,
-  getPluginInputNativeSkills,
-} from "./native-skills";
-import { enterWorktreeTool, exitWorktreeTool } from "../tools/worktree";
-import { createSkillContext } from "./skill-context";
-import {
-  createRuntimeSkillsResolver,
-  readRuntimeHostSkills,
-} from "./runtime-skill-resolver";
-import { createTuiTools } from "../tools/tui";
+import { getMainSessionID } from "../features/claude-code-session-state"
+import { createGoalController, type GoalController } from "../hooks/goal/controller"
+import { createGoalTools } from "../hooks/goal/tools"
+import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch"
+import { log } from "../shared"
+import { getSisyphusJuniorModelOverride } from "./tool-registry-team-tools"
+import { createNativeSkills, getPluginInputNativeSkills } from "./native-skills"
+import { enterWorktreeTool, exitWorktreeTool } from "../tools/worktree"
+import { createSkillContext } from "./skill-context"
+import { createRuntimeSkillsResolver, readRuntimeHostSkills } from "./runtime-skill-resolver"
+import { createTuiTools } from "../tools/tui"
 
 export function createCoreTools(args: {
-  readonly ctx: PluginContext;
-  readonly pluginConfig: OhMyOpenCodeConfig;
-  readonly managers: Pick<
-    Managers,
-    | "backgroundManager"
-    | "tmuxSessionManager"
-    | "skillMcpManager"
-    | "modelFallbackControllerAccessor"
-  >;
-  readonly skillContext: SkillContext;
-  readonly availableCategories: AvailableCategory[];
-  readonly factories: ToolRegistryFactories;
+  readonly ctx: PluginContext
+  readonly pluginConfig: OhMyOpenCodeConfig
+  readonly managers: Pick<Managers, "backgroundManager" | "tmuxSessionManager" | "skillMcpManager" | "modelFallbackControllerAccessor">
+  readonly skillContext: SkillContext
+  readonly availableCategories: AvailableCategory[]
+  readonly factories: ToolRegistryFactories
 }): Record<string, ToolDefinition> {
-  const {
-    ctx,
-    pluginConfig,
-    managers,
-    skillContext,
-    availableCategories,
-    factories,
-  } = args;
-  const backgroundTools = factories.createBackgroundTools(
-    managers.backgroundManager,
-    ctx.client,
-  );
+  const { ctx, pluginConfig, managers, skillContext, availableCategories, factories } = args
+  const backgroundTools = factories.createBackgroundTools(managers.backgroundManager, ctx.client)
   const callOmoAgent = factories.createCallOmoAgent(
     ctx,
     managers.backgroundManager,
@@ -60,25 +35,21 @@ export function createCoreTools(args: {
     pluginConfig.agents,
     pluginConfig.categories,
     managers.modelFallbackControllerAccessor,
-  );
+  )
   const isMultimodalLookerEnabled = !(pluginConfig.disabled_agents ?? []).some(
     (agent) => agent.toLowerCase() === "multimodal-looker",
-  );
+  )
   const nativeSkills = getPluginInputNativeSkills(ctx) ?? createNativeSkills({
     client: ctx.client,
     directory: ctx.directory,
-  });
-  const getSessionIDForMcp = (): string | undefined => getMainSessionID();
+  })
+  const getSessionIDForMcp = (): string | undefined => getMainSessionID()
   const getLoadedSkills = createRuntimeSkillsResolver({
     baseSkills: skillContext.mergedSkills,
     readRuntimeHostSkills: () => readRuntimeHostSkills(ctx.client),
     buildMergedSkills: async (hostSkills) =>
-      (await createSkillContext({
-        directory: ctx.directory,
-        pluginConfig,
-        hostSkills,
-      })).mergedSkills,
-  });
+      (await createSkillContext({ directory: ctx.directory, pluginConfig, hostSkills })).mergedSkills,
+  })
   const delegateTask = factories.createDelegateTask({
     manager: managers.backgroundManager,
     client: ctx.client,
@@ -86,9 +57,7 @@ export function createCoreTools(args: {
     userCategories: pluginConfig.categories,
     agentOverrides: pluginConfig.agents,
     gitMasterConfig: pluginConfig.git_master,
-    sisyphusJuniorModel: getSisyphusJuniorModelOverride(
-      pluginConfig.agents?.["sisyphus-junior"],
-    ),
+    sisyphusJuniorModel: getSisyphusJuniorModelOverride(pluginConfig.agents?.["sisyphus-junior"]),
     browserProvider: skillContext.browserProvider,
     disabledSkills: skillContext.disabledSkills,
     teamModeEnabled: pluginConfig.team_mode?.enabled ?? false,
@@ -104,7 +73,7 @@ export function createCoreTools(args: {
         sessionID: event.sessionID,
         parentID: event.parentID,
         title: event.title,
-      });
+      })
       await managers.tmuxSessionManager.onSessionCreated({
         type: "session.created",
         properties: {
@@ -114,7 +83,7 @@ export function createCoreTools(args: {
             title: event.title,
           },
         },
-      });
+      })
 
       if (pluginConfig.openclaw) {
         await openclawRuntimeDispatch.dispatchOpenClawEvent({
@@ -123,24 +92,22 @@ export function createCoreTools(args: {
           context: {
             sessionId: event.sessionID,
             projectPath: ctx.directory,
-            tmuxPaneId:
-              managers.tmuxSessionManager.getTrackedPaneId?.(event.sessionID) ??
-                process.env.TMUX_PANE,
+            tmuxPaneId: managers.tmuxSessionManager.getTrackedPaneId?.(event.sessionID) ?? process.env.TMUX_PANE,
           },
-        });
+        })
       }
     },
-  });
+  })
 
   const skillMcpTool = factories.createSkillMcpTool({
     manager: managers.skillMcpManager,
     getLoadedSkills,
     getSessionID: getSessionIDForMcp,
-  });
+  })
   const commands = factories.discoverCommandsSync(ctx.directory, {
     pluginsEnabled: pluginConfig.claude_code?.plugins ?? true,
     enabledPluginsOverride: pluginConfig.claude_code?.plugins_override,
-  });
+  })
   const skillTool = factories.createSkillTool({
     directory: ctx.directory,
     commands,
@@ -156,7 +123,7 @@ export function createCoreTools(args: {
     pluginsEnabled: pluginConfig.claude_code?.plugins ?? true,
     enabledPluginsOverride: pluginConfig.claude_code?.plugins_override,
     includeSkillsInDescription: true,
-  });
+  })
 
   const tools: ToolsRecord = {
     ...factories.createGrepTools(ctx),
@@ -164,31 +131,26 @@ export function createCoreTools(args: {
     ...factories.createSessionManagerTools(ctx),
     ...backgroundTools,
     call_omo_agent: callOmoAgent,
-  };
-  if (isMultimodalLookerEnabled) {
-    tools.look_at = factories.createLookAt(ctx);
   }
-  tools.task = delegateTask;
-  tools.enter_worktree = enterWorktreeTool;
-  tools.exit_worktree = exitWorktreeTool;
-  tools.skill_mcp = skillMcpTool;
-  tools.skill = skillTool;
+  if (isMultimodalLookerEnabled) {
+    tools.look_at = factories.createLookAt(ctx)
+  }
+  tools.task = delegateTask
+  tools.enter_worktree = enterWorktreeTool
+  tools.exit_worktree = exitWorktreeTool
+  tools.skill_mcp = skillMcpTool
+  tools.skill = skillTool
 
   if (pluginConfig.goal?.enabled) {
-    const goalController: GoalController = createGoalController({
-      projectDir: ctx.directory,
-    });
-    Object.assign(
-      tools,
-      createGoalTools({
-        controller: goalController,
-        getSessionID: getMainSessionID,
-      }),
-    );
+    const goalController: GoalController = createGoalController({ projectDir: ctx.directory })
+    Object.assign(tools, createGoalTools({
+      controller: goalController,
+      getSessionID: getMainSessionID,
+    }))
   }
 
   // TUI interaction tools (always-on, require tmux)
-  Object.assign(tools, createTuiTools(ctx));
+  Object.assign(tools, createTuiTools(ctx))
 
-  return tools;
+  return tools
 }

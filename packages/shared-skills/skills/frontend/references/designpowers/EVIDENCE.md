@@ -1,7 +1,6 @@
 # Designpowers Materialization Evidence
 
-Scenario: designpowers reference corpus is sourced from a pinned submodule and
-materialized into the frontend skill at build/package time.
+Scenario: designpowers reference corpus is sourced from a pinned submodule and materialized into the frontend skill at build/package time.
 
 ## Required Checks
 
@@ -88,9 +87,7 @@ normalized_skill_cmp_mismatches=0
 exit=0
 ```
 
-The 27 raw mismatches are expected frontmatter-only `description:` quoting
-changes from the materializer. The normalized check proves the shipped skill
-bodies have no upstream drift.
+The 27 raw mismatches are expected frontmatter-only `description:` quoting changes from the materializer. The normalized check proves the shipped skill bodies have no upstream drift.
 
 ### Excluded-router hard invocation absent
 

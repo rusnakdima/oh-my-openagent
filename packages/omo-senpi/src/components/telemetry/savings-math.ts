@@ -18,48 +18,48 @@
  */
 
 export type MeasurableCall = {
-  readonly startMs: number;
-  readonly endMs: number;
-};
+  readonly startMs: number
+  readonly endMs: number
+}
 
 export type MeasurableWave = {
-  readonly calls: readonly MeasurableCall[];
-  readonly spanMs: number;
-  readonly maxConcurrency: number;
-};
+  readonly calls: readonly MeasurableCall[]
+  readonly spanMs: number
+  readonly maxConcurrency: number
+}
 
 export type ModeledSavedMs = {
-  readonly label: "modeled";
-  readonly valueMs: number;
-};
+  readonly label: "modeled"
+  readonly valueMs: number
+}
 
 export type UpperBoundSavedMs = {
-  readonly label: "upper_bound";
-  readonly valueMs: number;
-};
+  readonly label: "upper_bound"
+  readonly valueMs: number
+}
 
 export function modeledWallClockSavedMs(wave: MeasurableWave): ModeledSavedMs {
-  const durations = usableDurations(wave.calls);
+  const durations = usableDurations(wave.calls)
   if (durations.length <= 1 || !Number.isFinite(wave.spanMs)) {
-    return { label: "modeled", valueMs: 0 };
+    return { label: "modeled", valueMs: 0 }
   }
-  return { label: "modeled", valueMs: sum(durations) - wave.spanMs };
+  return { label: "modeled", valueMs: sum(durations) - wave.spanMs }
 }
 
 export function upperBoundSavedMs(wave: MeasurableWave): UpperBoundSavedMs {
-  const durations = usableDurations(wave.calls);
-  if (durations.length <= 1) return { label: "upper_bound", valueMs: 0 };
-  const mean = sum(durations) / durations.length;
-  return { label: "upper_bound", valueMs: (durations.length - 1) * mean };
+  const durations = usableDurations(wave.calls)
+  if (durations.length <= 1) return { label: "upper_bound", valueMs: 0 }
+  const mean = sum(durations) / durations.length
+  return { label: "upper_bound", valueMs: (durations.length - 1) * mean }
 }
 
 export function savedRoundTrips(waves: readonly MeasurableWave[]): number {
-  let total = 0;
+  let total = 0
   for (const wave of waves) {
-    if (!Number.isFinite(wave.maxConcurrency)) continue;
-    total += Math.max(wave.maxConcurrency - 1, 0);
+    if (!Number.isFinite(wave.maxConcurrency)) continue
+    total += Math.max(wave.maxConcurrency - 1, 0)
   }
-  return total;
+  return total
 }
 
 /**
@@ -68,19 +68,17 @@ export function savedRoundTrips(waves: readonly MeasurableWave[]): number {
  * reach a reported metric.
  */
 function usableDurations(calls: readonly MeasurableCall[]): readonly number[] {
-  const durations: number[] = [];
+  const durations: number[] = []
   for (const call of calls) {
-    if (!Number.isFinite(call.startMs) || !Number.isFinite(call.endMs)) {
-      continue;
-    }
-    if (call.endMs < call.startMs) continue;
-    durations.push(call.endMs - call.startMs);
+    if (!Number.isFinite(call.startMs) || !Number.isFinite(call.endMs)) continue
+    if (call.endMs < call.startMs) continue
+    durations.push(call.endMs - call.startMs)
   }
-  return durations;
+  return durations
 }
 
 function sum(values: readonly number[]): number {
-  let total = 0;
-  for (const value of values) total += value;
-  return total;
+  let total = 0
+  for (const value of values) total += value
+  return total
 }

@@ -1,24 +1,22 @@
-import type { WebsearchConfig } from "../config/schema";
-import { log } from "../shared/logger";
+import type { WebsearchConfig } from "../config/schema"
+import { log } from "../shared/logger"
 
 type RemoteMcpConfig = {
-  type: "remote";
-  url: string;
-  enabled: boolean;
-  headers?: Record<string, string>;
-  oauth?: false;
-};
+  type: "remote"
+  url: string
+  enabled: boolean
+  headers?: Record<string, string>
+  oauth?: false
+}
 
-export function createWebsearchConfig(
-  config?: WebsearchConfig,
-): RemoteMcpConfig | undefined {
-  const provider = config?.provider || "exa";
+export function createWebsearchConfig(config?: WebsearchConfig): RemoteMcpConfig | undefined {
+  const provider = config?.provider || "exa"
 
   if (provider === "tavily") {
-    const tavilyKey = process.env.TAVILY_API_KEY;
+    const tavilyKey = process.env.TAVILY_API_KEY
     if (!tavilyKey) {
-      log("[websearch] Tavily API key not found, skipping websearch MCP");
-      return undefined;
+      log("[websearch] Tavily API key not found, skipping websearch MCP")
+      return undefined
     }
 
     return {
@@ -29,18 +27,16 @@ export function createWebsearchConfig(
         Authorization: `Bearer ${tavilyKey}`,
       },
       oauth: false as const,
-    };
+    }
   }
 
   return {
     type: "remote" as const,
     url: "https://mcp.exa.ai/mcp?tools=web_search_exa",
     enabled: true,
-    ...(process.env.EXA_API_KEY
-      ? { headers: { Authorization: `Bearer ${process.env.EXA_API_KEY}` } }
-      : {}),
+    ...(process.env.EXA_API_KEY ? { headers: { Authorization: `Bearer ${process.env.EXA_API_KEY}` } } : {}),
     oauth: false as const,
-  };
+  }
 }
 
-export const websearch = createWebsearchConfig();
+export const websearch = createWebsearchConfig()

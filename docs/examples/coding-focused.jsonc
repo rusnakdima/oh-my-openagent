@@ -17,21 +17,18 @@
       // Primary orchestrator: aggressive parallel delegation
       // omit model -> uses TUI Global Model / default_model
       "sisyphus": {
-        "prompt_append": "Delegate heavily to hephaestus for implementation. Parallelize exploration."
+        "prompt_append": "Delegate heavily to hephaestus for implementation. Parallelize exploration.",
       },
 
       // Heavy lifter: maximum autonomy for coding tasks
       "hephaestus": {
         "prompt_append": "You are the primary implementation agent. Own the codebase. Explore, decide, execute. Use LSP and AST-grep aggressively.",
-        "permission": {
-          "edit": "allow",
-          "bash": { "git": "allow", "test": "allow" }
-        }
+        "permission": { "edit": "allow", "bash": { "git": "allow", "test": "allow" } },
       },
 
       // Lightweight planner: quick planning for coding tasks
       "prometheus": {
-        "prompt_append": "Keep plans concise. Focus on file structure and key decisions."
+        "prompt_append": "Keep plans concise. Focus on file structure and key decisions.",
       },
 
       // Debugging and architecture
@@ -50,15 +47,13 @@
       "metis": {},
 
       // Code review focus
-      "momus": {
-        "prompt_append": "Focus on code quality, edge cases, and test coverage."
-      },
+      "momus": { "prompt_append": "Focus on code quality, edge cases, and test coverage." },
 
       // Long-running coding sessions
       "atlas": {},
 
       // Quick fixes and small tasks
-      "sisyphus-junior": {}
+      "sisyphus-junior": {},
     },
 
     "categories": {
@@ -67,7 +62,7 @@
       "unspecified-high": {},
       "visual-engineering": { "reasoning": "max" },
       "deep": { "reasoning": "medium" },
-      "ultrabrain": { "reasoning": "xhigh" }
+      "ultrabrain": { "reasoning": "xhigh" },
     },
 
     // High concurrency for parallel agent work
@@ -78,12 +73,12 @@
         "openai": 5,
         "google": 10,
         "github-copilot": 10,
-        "opencode": 15
-      }
+        "opencode": 15,
+      },
     },
 
     // Enable all coding aids
     "hashline_edit": true,
-    "experimental": { "aggressive_truncation": true, "task_system": true }
-  }
+    "experimental": { "aggressive_truncation": true, "task_system": true },
+  },
 }

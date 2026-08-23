@@ -1,56 +1,53 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
-import {
-  isWindowsAppDataDirectory,
-  resolveSessionDirectory,
-} from "./session-directory-resolver";
+import { isWindowsAppDataDirectory, resolveSessionDirectory } from "./session-directory-resolver"
 
 describe("session-directory-resolver", () => {
   describe("isWindowsAppDataDirectory", () => {
     test("returns true when path is under AppData Local", () => {
       //#given
-      const directory = "C:/Users/test/AppData/Local/opencode";
+      const directory = "C:/Users/test/AppData/Local/opencode"
 
       //#when
-      const result = isWindowsAppDataDirectory(directory);
+      const result = isWindowsAppDataDirectory(directory)
 
       //#then
-      expect(result).toBe(true);
-    });
+      expect(result).toBe(true)
+    })
 
     test("returns true when path ends with AppData directory segment", () => {
       //#given
-      const directory = "C:/Users/test/AppData/Local";
+      const directory = "C:/Users/test/AppData/Local"
 
       //#when
-      const result = isWindowsAppDataDirectory(directory);
+      const result = isWindowsAppDataDirectory(directory)
 
       //#then
-      expect(result).toBe(true);
-    });
+      expect(result).toBe(true)
+    })
 
     test("returns false when path is outside AppData", () => {
       //#given
-      const directory = "D:/projects/oh-my-opencode";
+      const directory = "D:/projects/oh-my-opencode"
 
       //#when
-      const result = isWindowsAppDataDirectory(directory);
+      const result = isWindowsAppDataDirectory(directory)
 
       //#then
-      expect(result).toBe(false);
-    });
+      expect(result).toBe(false)
+    })
 
     test("returns false for lookalike non-AppData segment", () => {
       //#given
-      const directory = "D:/projects/appdata/local-tools";
+      const directory = "D:/projects/appdata/local-tools"
 
       //#when
-      const result = isWindowsAppDataDirectory(directory);
+      const result = isWindowsAppDataDirectory(directory)
 
       //#then
-      expect(result).toBe(false);
-    });
-  });
+      expect(result).toBe(false)
+    })
+  })
 
   describe("resolveSessionDirectory", () => {
     test("uses process working directory on Windows when parent directory drifts to AppData", () => {
@@ -60,14 +57,14 @@ describe("session-directory-resolver", () => {
         fallbackDirectory: "C:\\Users\\test\\AppData\\Roaming\\opencode",
         platform: "win32" as const,
         currentWorkingDirectory: "D:\\projects\\oh-my-opencode",
-      };
+      }
 
       //#when
-      const result = resolveSessionDirectory(options);
+      const result = resolveSessionDirectory(options)
 
       //#then
-      expect(result).toBe("D:\\projects\\oh-my-opencode");
-    });
+      expect(result).toBe("D:\\projects\\oh-my-opencode")
+    })
 
     test("keeps AppData directory when current working directory is also AppData", () => {
       //#given
@@ -76,16 +73,14 @@ describe("session-directory-resolver", () => {
         fallbackDirectory: "C:\\Users\\test\\AppData\\Roaming\\opencode",
         platform: "win32" as const,
         currentWorkingDirectory: "C:\\Users\\test\\AppData\\Local\\Temp",
-      };
+      }
 
       //#when
-      const result = resolveSessionDirectory(options);
+      const result = resolveSessionDirectory(options)
 
       //#then
-      expect(result).toBe(
-        "C:\\Users\\test\\AppData\\Local\\ai.opencode.desktop",
-      );
-    });
+      expect(result).toBe("C:\\Users\\test\\AppData\\Local\\ai.opencode.desktop")
+    })
 
     test("keeps original directory outside Windows", () => {
       //#given
@@ -94,13 +89,13 @@ describe("session-directory-resolver", () => {
         fallbackDirectory: "/workspace/project",
         platform: "darwin" as const,
         currentWorkingDirectory: "/workspace/project",
-      };
+      }
 
       //#when
-      const result = resolveSessionDirectory(options);
+      const result = resolveSessionDirectory(options)
 
       //#then
-      expect(result).toBe("/tmp/opencode");
-    });
-  });
-});
+      expect(result).toBe("/tmp/opencode")
+    })
+  })
+})

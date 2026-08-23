@@ -1,7 +1,7 @@
 # JSON API 직접 호출
 
-> URL 변형이나 공개 엔드포인트로 구조화된 JSON을 직접 가져오는 패턴. 인증
-> 불필요. Jina Reader보다 빠르고 정확한 구조화 데이터 획득.
+> URL 변형이나 공개 엔드포인트로 구조화된 JSON을 직접 가져오는 패턴.
+> 인증 불필요. Jina Reader보다 빠르고 정확한 구조화 데이터 획득.
 
 ## Reddit
 
@@ -22,8 +22,8 @@ curl -sL -H "User-Agent: $UA" "https://www.reddit.com/r/{subreddit}/comments/{po
 # 정렬: hot.json / new.json / top.json?t=week
 ```
 
-데이터: `title`, `author`, `score`, `selftext`(전문), `num_comments`,
-`created_utc` 댓글: 응답 `[1]` 배열에 재귀적 트리
+데이터: `title`, `author`, `score`, `selftext`(전문), `num_comments`, `created_utc`
+댓글: 응답 `[1]` 배열에 재귀적 트리
 
 ## Hacker News (Firebase API)
 
@@ -39,11 +39,9 @@ curl -sL "https://hacker-news.firebaseio.com/v0/item/{id}.json"
 # 변형: beststories / newstories / askstories / showstories
 ```
 
-데이터: `title`, `url`, `score`, `by`(작성자), `descendants`(댓글수),
-`kids`(댓글 ID)
+데이터: `title`, `url`, `score`, `by`(작성자), `descendants`(댓글수), `kids`(댓글 ID)
 
 배치 조회:
-
 ```bash
 python3 -c "
 import urllib.request, json
@@ -88,8 +86,7 @@ curl -sL "https://dev.to/api/articles?top=7&per_page=5"
 curl -sL "https://dev.to/api/articles?username={user}&per_page=5"
 ```
 
-데이터: `title`, `user.name`, `public_reactions_count`, `reading_time_minutes`,
-`tags`
+데이터: `title`, `user.name`, `public_reactions_count`, `reading_time_minutes`, `tags`
 
 ## npm Registry
 
@@ -133,5 +130,4 @@ curl -sL "https://www.v2ex.com/api/topics/hot.json" -H "User-Agent: insane-searc
 
 ## RSS 피드
 
-→ [rss.md](rss.md)로 이동. 한국 언론 RSS, Google News RSS, feedparser 사용법 등
-상세 가이드 참조.
+→ [rss.md](rss.md)로 이동. 한국 언론 RSS, Google News RSS, feedparser 사용법 등 상세 가이드 참조.

@@ -1,7 +1,7 @@
-import { describe, expect, mock, test } from "bun:test";
-import type { PluginInput } from "@opencode-ai/plugin";
-import { resolveRecentPromptContextForSession } from "./recent-model-resolver";
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
+import { describe, expect, mock, test } from "bun:test"
+import type { PluginInput } from "@opencode-ai/plugin"
+import { resolveRecentPromptContextForSession } from "./recent-model-resolver"
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
 
 describe("resolveRecentPromptContextForSession", () => {
   test("uses message time.created rather than SDK array order for recent prompt context", async () => {
@@ -33,13 +33,13 @@ describe("resolveRecentPromptContextForSession", () => {
           })),
         },
       },
-    });
+    })
 
     // when
-    const result = await resolveRecentPromptContextForSession(ctx, "ses_123");
+    const result = await resolveRecentPromptContextForSession(ctx, "ses_123")
 
     // then
-    expect(result.model).toEqual({ providerID: "openai", modelID: "gpt-5.4" });
-    expect(result.tools).toEqual({ edit: true });
-  });
-});
+    expect(result.model).toEqual({ providerID: "openai", modelID: "gpt-5.4" })
+    expect(result.tools).toEqual({ edit: true })
+  })
+})

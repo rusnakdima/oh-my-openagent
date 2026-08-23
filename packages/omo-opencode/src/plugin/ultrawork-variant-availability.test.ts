@@ -1,7 +1,7 @@
-import { describe, expect, spyOn, test } from "bun:test";
-import * as dbOverrideModule from "./ultrawork-db-model-override";
-import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override";
-import { resolveValidUltraworkVariant } from "./ultrawork-variant-availability";
+import { describe, expect, spyOn, test } from "bun:test"
+import * as dbOverrideModule from "./ultrawork-db-model-override"
+import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override"
+import { resolveValidUltraworkVariant } from "./ultrawork-variant-availability"
 
 describe("resolveValidUltraworkVariant", () => {
   function createClient(models: Record<string, Record<string, unknown>>) {
@@ -16,7 +16,7 @@ describe("resolveValidUltraworkVariant", () => {
           },
         }),
       },
-    };
+    }
   }
 
   test("#given provider sdk metadata #when variant exists #then returns variant", async () => {
@@ -30,18 +30,18 @@ describe("resolveValidUltraworkVariant", () => {
           },
         },
       },
-    });
+    })
 
     // when
     const result = await resolveValidUltraworkVariant(
       client,
       { providerID: "anthropic", modelID: "claude-opus-4-7" },
       "max",
-    );
+    )
 
     // then
-    expect(result).toBe("max");
-  });
+    expect(result).toBe("max")
+  })
 
   test("#given provider sdk metadata #when variant does not exist #then returns undefined", async () => {
     // given
@@ -53,19 +53,19 @@ describe("resolveValidUltraworkVariant", () => {
           },
         },
       },
-    });
+    })
 
     // when
     const result = await resolveValidUltraworkVariant(
       client,
       { providerID: "anthropic", modelID: "claude-opus-4-7" },
       "max",
-    );
+    )
 
     // then
-    expect(result).toBeUndefined();
-  });
-});
+    expect(result).toBeUndefined()
+  })
+})
 
 describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
   function createClient(models: Record<string, Record<string, unknown>>) {
@@ -80,7 +80,7 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
           },
         }),
       },
-    };
+    }
   }
 
   test("#given ultrawork variant missing from target model #when override applies #then skips forced variant change", async () => {
@@ -93,11 +93,8 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
           },
         },
       },
-    });
-    const dbOverrideSpy = spyOn(
-      dbOverrideModule,
-      "scheduleDeferredModelOverride",
-    ).mockImplementation(() => {});
+    })
+    const dbOverrideSpy = spyOn(dbOverrideModule, "scheduleDeferredModelOverride").mockImplementation(() => {})
 
     const config = {
       agents: {
@@ -108,7 +105,7 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
           },
         },
       },
-    } as Parameters<typeof applyUltraworkModelOverrideOnMessage>[0];
+    } as Parameters<typeof applyUltraworkModelOverrideOnMessage>[0]
 
     const output = {
       message: {
@@ -116,7 +113,7 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
         model: { providerID: "anthropic", modelID: "claude-sonnet-4-6" },
       } as Record<string, unknown>,
       parts: [{ type: "text", text: "ultrawork do something" }],
-    };
+    }
 
     // when
     await applyUltraworkModelOverrideOnMessage(
@@ -126,18 +123,18 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
       { showToast: async () => {} },
       undefined,
       client,
-    );
+    )
 
     // then
-    expect(output.message["variant"]).toBeUndefined();
-    expect(output.message["thinking"]).toBeUndefined();
+    expect(output.message["variant"]).toBeUndefined()
+    expect(output.message["thinking"]).toBeUndefined()
     expect(dbOverrideSpy).toHaveBeenCalledWith(
       "msg_123",
       { providerID: "anthropic", modelID: "claude-opus-4-7" },
       undefined,
-    );
-    dbOverrideSpy.mockRestore();
-  });
+    )
+    dbOverrideSpy.mockRestore()
+  })
 
   test("#given variant only ultrawork config without valid current model variant #when override applies #then skips override entirely", async () => {
     // given
@@ -149,11 +146,8 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
           },
         },
       },
-    });
-    const dbOverrideSpy = spyOn(
-      dbOverrideModule,
-      "scheduleDeferredModelOverride",
-    ).mockImplementation(() => {});
+    })
+    const dbOverrideSpy = spyOn(dbOverrideModule, "scheduleDeferredModelOverride").mockImplementation(() => {})
 
     const config = {
       agents: {
@@ -163,14 +157,14 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
           },
         },
       },
-    } as Parameters<typeof applyUltraworkModelOverrideOnMessage>[0];
+    } as Parameters<typeof applyUltraworkModelOverrideOnMessage>[0]
 
     const output = {
       message: {
         model: { providerID: "anthropic", modelID: "claude-sonnet-4-6" },
       } as Record<string, unknown>,
       parts: [{ type: "text", text: "ultrawork do something" }],
-    };
+    }
 
     // when
     await applyUltraworkModelOverrideOnMessage(
@@ -180,16 +174,13 @@ describe("applyUltraworkModelOverrideOnMessage variant guard", () => {
       { showToast: async () => {} },
       undefined,
       client,
-    );
+    )
 
     // then
-    expect(output.message["variant"]).toBeUndefined();
-    expect(output.message["thinking"]).toBeUndefined();
-    expect(dbOverrideSpy).not.toHaveBeenCalled();
-    expect(output.message.model).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-sonnet-4-6",
-    });
-    dbOverrideSpy.mockRestore();
-  });
-});
+    expect(output.message["variant"]).toBeUndefined()
+    expect(output.message["thinking"]).toBeUndefined()
+    expect(dbOverrideSpy).not.toHaveBeenCalled()
+    expect(output.message.model).toEqual({ providerID: "anthropic", modelID: "claude-sonnet-4-6" })
+    dbOverrideSpy.mockRestore()
+  })
+})

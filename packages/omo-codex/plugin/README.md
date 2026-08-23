@@ -13,26 +13,13 @@ Internally each component remains isolated under `components/`:
 - `components/ulw-loop`
 - `components/telemetry`
 
-The root plugin manifest exports one Codex plugin named `omo`, with aggregate
-hooks, skills, and plugin-scoped MCP servers for `grep_app`, `context7`,
-`codegraph`, `git_bash`, and `lsp`. AST-aware search ships as the `ast-grep`
-skill, not as an MCP server.
+The root plugin manifest exports one Codex plugin named `omo`, with aggregate hooks, skills, and plugin-scoped MCP servers for `grep_app`, `context7`, `codegraph`, `git_bash`, and `lsp`. AST-aware search ships as the `ast-grep` skill, not as an MCP server.
 
 ## Telemetry
 
-The bundled telemetry component emits the anonymous `omo_codex_daily_active`
-event at most once per UTC day per machine when the Codex `SessionStart` hook
-runs. It uses `sha256("omo-codex:" + hostname)` as the distinct ID, disables
-PostHog person profiles, and stores daily deduplication state in
-`$XDG_DATA_HOME/omo-codex/posthog-activity.json` or
-`~/.local/share/omo-codex/posthog-activity.json`.
+The bundled telemetry component emits the anonymous `omo_codex_daily_active` event at most once per UTC day per machine when the Codex `SessionStart` hook runs. It uses `sha256("omo-codex:" + hostname)` as the distinct ID, disables PostHog person profiles, and stores daily deduplication state in `$XDG_DATA_HOME/omo-codex/posthog-activity.json` or `~/.local/share/omo-codex/posthog-activity.json`.
 
-Captured properties are limited to product/runtime metadata, operating-system
-metadata, coarse machine shape, locale/timezone, shell/terminal hints, `source`,
-`reason`, and `day_utc`. It does not send prompt contents, chat transcripts,
-source files, repository contents, file paths, access tokens, API keys, raw
-hostnames, Git remotes, usernames, email addresses, or runtime error
-diagnostics.
+Captured properties are limited to product/runtime metadata, operating-system metadata, coarse machine shape, locale/timezone, shell/terminal hints, `source`, `reason`, and `day_utc`. It does not send prompt contents, chat transcripts, source files, repository contents, file paths, access tokens, API keys, raw hostnames, Git remotes, usernames, email addresses, or runtime error diagnostics.
 
 Opt out before launching Codex:
 
@@ -48,6 +35,4 @@ export OMO_DISABLE_POSTHOG=1
 export OMO_SEND_ANONYMOUS_TELEMETRY=0
 ```
 
-Detailed implementation notes live in `components/telemetry/README.md`; the root
-product disclosure lives in `docs/reference/codex-telemetry.md` in the source
-repository.
+Detailed implementation notes live in `components/telemetry/README.md`; the root product disclosure lives in `docs/reference/codex-telemetry.md` in the source repository.

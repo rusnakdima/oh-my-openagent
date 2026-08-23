@@ -1,15 +1,13 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, test } from "bun:test"
 
 import {
-  analyzeParallelismRequests,
   EXPECTED_PARALLELISM_PROPERTY_KEYS,
+  analyzeParallelismRequests,
   verdict,
-} from "./parallelism-eval-e2e-analysis.mjs";
+} from "./parallelism-eval-e2e-analysis.mjs"
 
 function properties(overrides = {}) {
-  const value = Object.fromEntries(
-    EXPECTED_PARALLELISM_PROPERTY_KEYS.map((key) => [key, 0]),
-  );
+  const value = Object.fromEntries(EXPECTED_PARALLELISM_PROPERTY_KEYS.map((key) => [key, 0]))
   return {
     ...value,
     $geoip_disable: true,
@@ -31,7 +29,7 @@ function properties(overrides = {}) {
     eval_outer_joined_calls: 1,
     eval_only_waves: 1,
     ...overrides,
-  };
+  }
 }
 
 function request(summaryProperties = properties()) {
@@ -43,50 +41,41 @@ function request(summaryProperties = properties()) {
         { event: "parallelism_summary", properties: summaryProperties },
       ],
     },
-  };
+  }
 }
 
 describe("parallelism eval e2e analysis", () => {
   test("#given one exact v2 summary #when analyzed #then every manual-QA invariant passes", () => {
-    const checks = analyzeParallelismRequests([request()]);
+    const checks = analyzeParallelismRequests([request()])
 
-    expect(verdict(checks)).toEqual({ result: "PASS", failed: [] });
-  });
+    expect(verdict(checks)).toEqual({ result: "PASS", failed: [] })
+  })
 
   test("#given two summaries #when analyzed #then exactly-once fails", () => {
-    const duplicate = request();
-    duplicate.body.batch.push({
-      event: "parallelism_summary",
-      properties: properties(),
-    });
+    const duplicate = request()
+    duplicate.body.batch.push({ event: "parallelism_summary", properties: properties() })
 
-    expect(analyzeParallelismRequests([duplicate]).exactlyOneSummary).toBe(
-      false,
-    );
-  });
+    expect(analyzeParallelismRequests([duplicate]).exactlyOneSummary).toBe(false)
+  })
 
   test("#given an extra property #when analyzed #then fixed allowlist equality fails", () => {
-    const checks = analyzeParallelismRequests([
-      request(properties({ leaked_path: "/secret" })),
-    ]);
+    const checks = analyzeParallelismRequests([request(properties({ leaked_path: "/secret" }))])
 
-    expect(checks.fixedAllowlistedKeysOnly).toBe(false);
-  });
+    expect(checks.fixedAllowlistedKeysOnly).toBe(false)
+  })
 
   test("#given inconsistent nested statuses #when analyzed #then exact nested accounting fails", () => {
     const checks = analyzeParallelismRequests([
       request(properties({ eval_nested_tool_call_ok_count: 1 })),
-    ]);
+    ])
 
-    expect(checks.nestedCountsExact).toBe(false);
-  });
+    expect(checks.nestedCountsExact).toBe(false)
+  })
 
   test("#given non-loopback traffic #when analyzed #then localhost-only telemetry fails", () => {
-    const outside = request();
-    outside.remoteAddress = "10.0.0.2";
+    const outside = request()
+    outside.remoteAddress = "10.0.0.2"
 
-    expect(analyzeParallelismRequests([outside]).localhostOnlyTelemetry).toBe(
-      false,
-    );
-  });
-});
+    expect(analyzeParallelismRequests([outside]).localhostOnlyTelemetry).toBe(false)
+  })
+})

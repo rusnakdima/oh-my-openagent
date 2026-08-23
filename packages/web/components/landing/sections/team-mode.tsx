@@ -1,19 +1,11 @@
-import type { JSX } from "react";
-import { getTranslations } from "next-intl/server";
-import {
-  Network,
-  Shield,
-  Sparkles,
-  Sword,
-  Terminal,
-  Users,
-  Wrench,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { JSX } from "react"
+import { getTranslations } from "next-intl/server"
+import { Network, Users, Terminal, Wrench, Sparkles, Sword, Shield } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
 export async function TeamModeSection(): Promise<JSX.Element> {
-  const t = await getTranslations("landing");
+  const t = await getTranslations("landing")
 
   return (
     <section
@@ -28,10 +20,7 @@ export async function TeamModeSection(): Promise<JSX.Element> {
             <Badge className="border-violet-500/20 bg-violet-500/10 px-4 py-1.5 font-mono text-violet-300">
               {t("teamMode.badge")}
             </Badge>
-            <Badge
-              variant="outline"
-              className="border-zinc-700 text-xs text-zinc-400"
-            >
+            <Badge variant="outline" className="border-zinc-700 text-xs text-zinc-400">
               opt-in
             </Badge>
           </div>
@@ -113,15 +102,11 @@ export async function TeamModeSection(): Promise<JSX.Element> {
           </div>
 
           <div className="flex flex-col items-start gap-4 rounded-xl border border-zinc-800 bg-black/40 p-6 sm:flex-row sm:items-center sm:justify-between">
-            <code className="font-mono text-sm break-all text-cyan-300">
-              {t("teamMode.optIn")}
-            </code>
-            <p className="text-sm text-zinc-400 italic sm:text-right">
-              {t("teamMode.tagline")}
-            </p>
+            <code className="font-mono text-sm break-all text-cyan-300">{t("teamMode.optIn")}</code>
+            <p className="text-sm text-zinc-400 italic sm:text-right">{t("teamMode.tagline")}</p>
           </div>
         </div>
       </div>
     </section>
-  );
+  )
 }

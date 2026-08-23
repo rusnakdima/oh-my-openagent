@@ -30,4 +30,4 @@ If partially answerable, clearly state what the wiki covers vs what is "not in t
 If the answer combines multiple sources into new insight, offer:
 "This answer combines information from multiple pages. Save as a new page [[suggested-slug]]?"
 
-If yes: create page with citations, update index, run backlink audit, log to log.md.`;
+If yes: create page with citations, update index, run backlink audit, log to log.md.`

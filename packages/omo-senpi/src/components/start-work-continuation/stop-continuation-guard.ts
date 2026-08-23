@@ -1,4 +1,4 @@
-import type { SenpiExtensionAPI } from "../../extension/types";
+import type { SenpiExtensionAPI } from "../../extension/types"
 
 /**
  * Port of the OpenCode `stop-continuation-guard` (see
@@ -19,24 +19,24 @@ import type { SenpiExtensionAPI } from "../../extension/types";
  * marker to coordinate multiple processes.
  */
 export interface StopContinuationGuard {
-  stop(sessionId: string): void;
-  isStopped(sessionId: string): boolean;
-  clear(sessionId: string): void;
+  stop(sessionId: string): void
+  isStopped(sessionId: string): boolean
+  clear(sessionId: string): void
 }
 
 export function createStopContinuationGuard(): StopContinuationGuard {
-  const stoppedSessions = new Set<string>();
+  const stoppedSessions = new Set<string>()
   return {
     stop(sessionId) {
-      stoppedSessions.add(sessionId);
+      stoppedSessions.add(sessionId)
     },
     isStopped(sessionId) {
-      return stoppedSessions.has(sessionId);
+      return stoppedSessions.has(sessionId)
     },
     clear(sessionId) {
-      stoppedSessions.delete(sessionId);
+      stoppedSessions.delete(sessionId)
     },
-  };
+  }
 }
 
 // Two Senpi components need to share ONE guard for a given extension host: the
@@ -45,21 +45,17 @@ export function createStopContinuationGuard(): StopContinuationGuard {
 // `agent_end` injection while stopped). A per-pi WeakMap gives us that shared handle
 // without a global module singleton, so isolated unit tests using their own
 // `FakeExtensionAPI` instances stay independent.
-const GUARDS = new WeakMap<SenpiExtensionAPI, StopContinuationGuard>();
+const GUARDS = new WeakMap<SenpiExtensionAPI, StopContinuationGuard>()
 
-export function getOrCreateStopContinuationGuard(
-  pi: SenpiExtensionAPI,
-): StopContinuationGuard {
-  let guard = GUARDS.get(pi);
+export function getOrCreateStopContinuationGuard(pi: SenpiExtensionAPI): StopContinuationGuard {
+  let guard = GUARDS.get(pi)
   if (guard === undefined) {
-    guard = createStopContinuationGuard();
-    GUARDS.set(pi, guard);
+    guard = createStopContinuationGuard()
+    GUARDS.set(pi, guard)
   }
-  return guard;
+  return guard
 }
 
-export function peekStopContinuationGuard(
-  pi: SenpiExtensionAPI,
-): StopContinuationGuard | undefined {
-  return GUARDS.get(pi);
+export function peekStopContinuationGuard(pi: SenpiExtensionAPI): StopContinuationGuard | undefined {
+  return GUARDS.get(pi)
 }

@@ -35,13 +35,6 @@ export function buildFallbackSisyphusPrompt(
 ): string {
   return applyGeminiFallbackOverrides(
     model,
-    buildDynamicSisyphusPrompt(
-      model,
-      agents,
-      tools,
-      skills,
-      categories,
-      useTaskSystem,
-    ),
+    buildDynamicSisyphusPrompt(model, agents, tools, skills, categories, useTaskSystem),
   );
 }

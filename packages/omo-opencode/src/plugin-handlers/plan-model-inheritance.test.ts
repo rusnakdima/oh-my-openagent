@@ -1,18 +1,18 @@
-import { describe, expect, test } from "bun:test";
-import { buildPlanDemoteConfig } from "./plan-model-inheritance";
+import { describe, test, expect } from "bun:test"
+import { buildPlanDemoteConfig } from "./plan-model-inheritance"
 
 describe("buildPlanDemoteConfig", () => {
   test("returns only mode when prometheus and plan override are both undefined", () => {
     //#given
-    const prometheusConfig = undefined;
-    const planOverride = undefined;
+    const prometheusConfig = undefined
+    const planOverride = undefined
 
     //#when
-    const result = buildPlanDemoteConfig(prometheusConfig, planOverride);
+    const result = buildPlanDemoteConfig(prometheusConfig, planOverride)
 
     //#then
-    expect(result).toEqual({ mode: "subagent", hidden: true });
-  });
+    expect(result).toEqual({ mode: "subagent", hidden: true })
+  })
 
   test("extracts all model settings from prometheus config", () => {
     //#given
@@ -33,37 +33,34 @@ describe("buildPlanDemoteConfig", () => {
       reasoningEffort: "high",
       textVerbosity: "medium",
       providerOptions: { key: "value" },
-      fallback_models: [
-        { model: "openai/gpt-5.5", variant: "high" },
-        "opencode-go/glm-5.2",
-      ],
-    };
+      fallback_models: [{ model: "openai/gpt-5.5", variant: "high" }, "opencode-go/glm-5.2"],
+    }
 
     //#when
-    const result = buildPlanDemoteConfig(prometheusConfig, undefined);
+    const result = buildPlanDemoteConfig(prometheusConfig, undefined)
 
     //#then - picks model settings, NOT prompt/permission/description/color/name/mode
-    expect(result.mode).toBe("subagent");
-    expect(result.model).toBe("anthropic/claude-opus-4-7");
-    expect(result.variant).toBe("max");
-    expect(result.reasoning).toBe("xhigh");
-    expect(result.temperature).toBe(0.1);
-    expect(result.top_p).toBe(0.95);
-    expect(result.maxTokens).toBe(32000);
-    expect(result.thinking).toEqual({ type: "enabled", budgetTokens: 10000 });
-    expect(result.reasoningEffort).toBe("high");
-    expect(result.textVerbosity).toBe("medium");
-    expect(result.providerOptions).toEqual({ key: "value" });
+    expect(result.mode).toBe("subagent")
+    expect(result.model).toBe("anthropic/claude-opus-4-7")
+    expect(result.variant).toBe("max")
+    expect(result.reasoning).toBe("xhigh")
+    expect(result.temperature).toBe(0.1)
+    expect(result.top_p).toBe(0.95)
+    expect(result.maxTokens).toBe(32000)
+    expect(result.thinking).toEqual({ type: "enabled", budgetTokens: 10000 })
+    expect(result.reasoningEffort).toBe("high")
+    expect(result.textVerbosity).toBe("medium")
+    expect(result.providerOptions).toEqual({ key: "value" })
     expect(result.fallback_models).toEqual([
       { model: "openai/gpt-5.5", variant: "high" },
       "opencode-go/glm-5.2",
-    ]);
-    expect(result.prompt).toBeUndefined();
-    expect(result.permission).toBeUndefined();
-    expect(result.description).toBeUndefined();
-    expect(result.color).toBeUndefined();
-    expect(result.name).toBeUndefined();
-  });
+    ])
+    expect(result.prompt).toBeUndefined()
+    expect(result.permission).toBeUndefined()
+    expect(result.description).toBeUndefined()
+    expect(result.color).toBeUndefined()
+    expect(result.name).toBeUndefined()
+  })
 
   test("plan override takes priority over prometheus for all model settings", () => {
     //#given
@@ -74,7 +71,7 @@ describe("buildPlanDemoteConfig", () => {
       temperature: 0.1,
       reasoningEffort: "high",
       fallback_models: ["openai/gpt-5.5"],
-    };
+    }
     const planOverride = {
       model: "openai/gpt-5.4",
       variant: "high",
@@ -82,19 +79,19 @@ describe("buildPlanDemoteConfig", () => {
       temperature: 0.5,
       reasoningEffort: "low",
       fallback_models: [{ model: "opencode-go/glm-5.2" }],
-    };
+    }
 
     //#when
-    const result = buildPlanDemoteConfig(prometheusConfig, planOverride);
+    const result = buildPlanDemoteConfig(prometheusConfig, planOverride)
 
     //#then
-    expect(result.model).toBe("openai/gpt-5.4");
-    expect(result.variant).toBe("high");
-    expect(result.reasoning).toBe("low");
-    expect(result.temperature).toBe(0.5);
-    expect(result.reasoningEffort).toBe("low");
-    expect(result.fallback_models).toEqual([{ model: "opencode-go/glm-5.2" }]);
-  });
+    expect(result.model).toBe("openai/gpt-5.4")
+    expect(result.variant).toBe("high")
+    expect(result.reasoning).toBe("low")
+    expect(result.temperature).toBe(0.5)
+    expect(result.reasoningEffort).toBe("low")
+    expect(result.fallback_models).toEqual([{ model: "opencode-go/glm-5.2" }])
+  })
 
   test("falls back to prometheus when plan override has partial settings", () => {
     //#given
@@ -104,37 +101,33 @@ describe("buildPlanDemoteConfig", () => {
       reasoning: "high",
       temperature: 0.1,
       reasoningEffort: "high",
-    };
+    }
     const planOverride = {
       model: "openai/gpt-5.4",
-    };
+    }
 
     //#when
-    const result = buildPlanDemoteConfig(prometheusConfig, planOverride);
+    const result = buildPlanDemoteConfig(prometheusConfig, planOverride)
 
     //#then - plan model wins, rest inherits from prometheus
-    expect(result.model).toBe("openai/gpt-5.4");
-    expect(result.variant).toBe("max");
-    expect(result.reasoning).toBe("high");
-    expect(result.temperature).toBe(0.1);
-    expect(result.reasoningEffort).toBe("high");
-  });
+    expect(result.model).toBe("openai/gpt-5.4")
+    expect(result.variant).toBe("max")
+    expect(result.reasoning).toBe("high")
+    expect(result.temperature).toBe(0.1)
+    expect(result.reasoningEffort).toBe("high")
+  })
 
   test("skips undefined values from both sources", () => {
     //#given
     const prometheusConfig = {
       model: "anthropic/claude-opus-4-7",
-    };
+    }
 
     //#when
-    const result = buildPlanDemoteConfig(prometheusConfig, undefined);
+    const result = buildPlanDemoteConfig(prometheusConfig, undefined)
 
     //#then
-    expect(result).toEqual({
-      mode: "subagent",
-      hidden: true,
-      model: "anthropic/claude-opus-4-7",
-    });
-    expect(Object.keys(result)).toEqual(["mode", "hidden", "model"]);
-  });
-});
+    expect(result).toEqual({ mode: "subagent", hidden: true, model: "anthropic/claude-opus-4-7" })
+    expect(Object.keys(result)).toEqual(["mode", "hidden", "model"])
+  })
+})

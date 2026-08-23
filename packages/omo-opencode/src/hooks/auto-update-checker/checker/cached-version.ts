@@ -1,30 +1,27 @@
-import * as fs from "node:fs";
-import * as path from "node:path";
-import { fileURLToPath } from "node:url";
-import { log } from "../../../shared/logger";
-import type { PackageJson } from "../types";
-import { INSTALLED_PACKAGE_JSON_CANDIDATES } from "../constants";
-import { findPackageJsonUp } from "./package-json-locator";
+import * as fs from "node:fs"
+import * as path from "node:path"
+import { fileURLToPath } from "node:url"
+import { log } from "../../../shared/logger"
+import type { PackageJson } from "../types"
+import { INSTALLED_PACKAGE_JSON_CANDIDATES } from "../constants"
+import { findPackageJsonUp } from "./package-json-locator"
 
 interface CachedVersionOptions {
-  packageJsonCandidates?: readonly string[];
-  findPackageJson?: (startPath: string) => string | null;
-  currentDir?: string | null;
-  execDir?: string | null;
+  packageJsonCandidates?: readonly string[]
+  findPackageJson?: (startPath: string) => string | null
+  currentDir?: string | null
+  execDir?: string | null
 }
 
 function readPackageVersion(packageJsonPath: string): string | null {
-  const content = fs.readFileSync(packageJsonPath, "utf-8");
-  const pkg = JSON.parse(content) as PackageJson;
-  return pkg.version ?? null;
+  const content = fs.readFileSync(packageJsonPath, "utf-8")
+  const pkg = JSON.parse(content) as PackageJson
+  return pkg.version ?? null
 }
 
-export function getCachedVersion(
-  options: CachedVersionOptions = {},
-): string | null {
-  const packageJsonCandidates = options.packageJsonCandidates ??
-    INSTALLED_PACKAGE_JSON_CANDIDATES;
-  const findPackageJson = options.findPackageJson ?? findPackageJsonUp;
+export function getCachedVersion(options: CachedVersionOptions = {}): string | null {
+  const packageJsonCandidates = options.packageJsonCandidates ?? INSTALLED_PACKAGE_JSON_CANDIDATES
+  const findPackageJson = options.findPackageJson ?? findPackageJsonUp
 
   // Walk up from the loaded module first. OpenCode loads plugins from a
   // per-plugin sandbox at <CACHE_DIR>/<plugin-entry>/node_modules/<pkg>/, while
@@ -33,66 +30,50 @@ export function getCachedVersion(
   // first means the toast can announce a version the runtime isn't running.
   // The module-relative walk-up always reflects what is actually loaded.
   try {
-    const currentDir = options.currentDir === undefined
-      ? path.dirname(fileURLToPath(import.meta.url))
-      : options.currentDir;
+    const currentDir = options.currentDir === undefined ? path.dirname(fileURLToPath(import.meta.url)) : options.currentDir
     if (currentDir) {
-      const pkgPath = findPackageJson(currentDir);
+      const pkgPath = findPackageJson(currentDir)
       if (pkgPath) {
-        return readPackageVersion(pkgPath);
+        return readPackageVersion(pkgPath)
       }
     }
   } catch (err) {
     if (err instanceof Error) {
-      log(
-        "[auto-update-checker] Failed to resolve version from current directory:",
-        err,
-      );
+      log("[auto-update-checker] Failed to resolve version from current directory:", err)
     } else {
-      log(
-        "[auto-update-checker] Failed to resolve version from current directory:",
-        err,
-      );
+      log("[auto-update-checker] Failed to resolve version from current directory:", err)
     }
   }
 
   for (const candidate of packageJsonCandidates) {
     try {
       if (fs.existsSync(candidate)) {
-        return readPackageVersion(candidate);
+        return readPackageVersion(candidate)
       }
     } catch (err) {
       if (err instanceof Error) {
-        continue;
+        continue
       }
       // ignore; try next candidate
-      continue;
+      continue
     }
   }
 
   try {
-    const execDir = options.execDir === undefined
-      ? path.dirname(fs.realpathSync(process.execPath))
-      : options.execDir;
+    const execDir = options.execDir === undefined ? path.dirname(fs.realpathSync(process.execPath)) : options.execDir
     if (execDir) {
-      const pkgPath = findPackageJson(execDir);
+      const pkgPath = findPackageJson(execDir)
       if (pkgPath) {
-        return readPackageVersion(pkgPath);
+        return readPackageVersion(pkgPath)
       }
     }
   } catch (err) {
     if (err instanceof Error) {
-      log(
-        "[auto-update-checker] Failed to resolve version from execPath:",
-        err,
-      );
+      log("[auto-update-checker] Failed to resolve version from execPath:", err)
     } else {
-      log(
-        "[auto-update-checker] Failed to resolve version from execPath:",
-        err,
-      );
+      log("[auto-update-checker] Failed to resolve version from execPath:", err)
     }
   }
 
-  return null;
+  return null
 }
