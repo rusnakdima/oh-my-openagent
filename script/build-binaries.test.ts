@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { readFileSync, readdirSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { chmod, mkdir, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -25,7 +25,7 @@ async function writeFakeCli(tempDir: string): Promise<void> {
     cliPath,
     [
       "#!/usr/bin/env node",
-      "console.log(`bun-cli ${process.argv.slice(1).join(\" \")}`);",
+      'console.log(`bun-cli ${process.argv.slice(1).join(" ")}`);',
       "",
     ].join("\n"),
   );
@@ -41,13 +41,14 @@ describe("build-binaries", () => {
     it("includes baseline variants for non-AVX2 CPU support", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const platforms = (module as { PLATFORMS: { target: string }[] }).PLATFORMS;
+      const platforms =
+        (module as { PLATFORMS: { target: string }[] }).PLATFORMS;
       const targets = platforms.map((p) => p.target);
 
       // when
-      const hasAllBaselineTargets = EXPECTED_BASELINE_TARGETS.every((baseline) =>
-        targets.includes(baseline)
-      );
+      const hasAllBaselineTargets = EXPECTED_BASELINE_TARGETS.every((
+        baseline,
+      ) => targets.includes(baseline));
 
       // then
       expect(hasAllBaselineTargets).toBe(true);
@@ -59,7 +60,9 @@ describe("build-binaries", () => {
     it("uses exact package names as platform package directories", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const platforms = (module as { PLATFORMS: { packageName: string; packageDir: string }[] }).PLATFORMS;
+      const platforms =
+        (module as { PLATFORMS: { packageName: string; packageDir: string }[] })
+          .PLATFORMS;
 
       // when
       const packageNames = platforms.map((p) => p.packageName);
@@ -77,10 +80,18 @@ describe("build-binaries", () => {
     it("includes a windows-arm64 entry for Windows-on-ARM hosts", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const platforms = (module as { PLATFORMS: { platform: string; packageName: string; packageDir: string }[] }).PLATFORMS;
+      const platforms = (module as {
+        PLATFORMS: {
+          platform: string;
+          packageName: string;
+          packageDir: string;
+        }[];
+      }).PLATFORMS;
 
       // when
-      const windowsArm64 = platforms.find((p) => p.platform === "windows-arm64");
+      const windowsArm64 = platforms.find((p) =>
+        p.platform === "windows-arm64"
+      );
 
       // then
       expect(windowsArm64?.packageName).toBe("oh-my-opencode-windows-arm64");
@@ -90,11 +101,17 @@ describe("build-binaries", () => {
     it("uses JavaScript launcher names for baseline platforms", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const platforms = (module as { PLATFORMS: { packageDir: string; target: string; binary: string }[] }).PLATFORMS;
+      const platforms = (module as {
+        PLATFORMS: { packageDir: string; target: string; binary: string }[];
+      }).PLATFORMS;
 
       // when
-      const windowsBaseline = platforms.find((p) => p.target === "bun-windows-x64-baseline");
-      const linuxBaseline = platforms.find((p) => p.target === "bun-linux-x64-baseline");
+      const windowsBaseline = platforms.find((p) =>
+        p.target === "bun-windows-x64-baseline"
+      );
+      const linuxBaseline = platforms.find((p) =>
+        p.target === "bun-linux-x64-baseline"
+      );
 
       // then
       expect(windowsBaseline?.binary).toBe("oh-my-opencode.js");
@@ -104,7 +121,9 @@ describe("build-binaries", () => {
     it("launcher can print lazycodex help when Bun is unavailable", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const createPlatformLauncherSource = (module as { createPlatformLauncherSource: () => string }).createPlatformLauncherSource;
+      const createPlatformLauncherSource =
+        (module as { createPlatformLauncherSource: () => string })
+          .createPlatformLauncherSource;
       const root = fileURLToPath(new URL("..", import.meta.url));
       const tempDir = await mkdtemp(join(tmpdir(), "lazycodex-launcher-"));
       const launcherPath = join(tempDir, "oh-my-opencode.js");
@@ -131,25 +150,40 @@ describe("build-binaries", () => {
     it("launcher routes omo codex-only install through the Node installer before requiring Bun", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const createPlatformLauncherSource = (module as { createPlatformLauncherSource: () => string }).createPlatformLauncherSource;
+      const createPlatformLauncherSource =
+        (module as { createPlatformLauncherSource: () => string })
+          .createPlatformLauncherSource;
       const tempDir = await mkdtemp(join(tmpdir(), "omo-codex-only-launcher-"));
       const launcherPath = join(tempDir, "oh-my-opencode.js");
-      const installerPath = join(tempDir, "packages", "omo-codex", "scripts", "install-local.mjs");
-      await mkdir(join(tempDir, "packages", "omo-codex", "scripts"), { recursive: true });
+      const installerPath = join(
+        tempDir,
+        "packages",
+        "omo-codex",
+        "scripts",
+        "install-local.mjs",
+      );
+      await mkdir(join(tempDir, "packages", "omo-codex", "scripts"), {
+        recursive: true,
+      });
       await writeFile(launcherPath, createPlatformLauncherSource());
       await chmod(launcherPath, 0o755);
       await writeFile(
         installerPath,
         [
           "#!/usr/bin/env node",
-          "console.log(`node-installer ${process.argv.slice(2).join(\" \")}`);",
+          'console.log(`node-installer ${process.argv.slice(2).join(" ")}`);',
           "",
         ].join("\n"),
       );
       await chmod(installerPath, 0o755);
 
       // when
-      const result = spawnSync(process.execPath, [launcherPath, "install", "--platform=codex", "--no-tui"], {
+      const result = spawnSync(process.execPath, [
+        launcherPath,
+        "install",
+        "--platform=codex",
+        "--no-tui",
+      ], {
         encoding: "utf8",
         env: {
           ...process.env,
@@ -161,26 +195,46 @@ describe("build-binaries", () => {
 
       // then
       expect(result.status).toBe(0);
-      expect(result.stdout).toContain("node-installer install --platform=codex --no-tui");
+      expect(result.stdout).toContain(
+        "node-installer install --platform=codex --no-tui",
+      );
       expect(result.stderr).not.toContain("failed to execute Bun");
     });
 
     it("launcher preserves lazycodex explicit both-platform install on the Bun CLI path", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const createPlatformLauncherSource = (module as { createPlatformLauncherSource: () => string }).createPlatformLauncherSource;
+      const createPlatformLauncherSource =
+        (module as { createPlatformLauncherSource: () => string })
+          .createPlatformLauncherSource;
       const tempDir = await mkdtemp(join(tmpdir(), "lazycodex-both-launcher-"));
       const launcherPath = join(tempDir, "oh-my-opencode.js");
-      const installerPath = join(tempDir, "packages", "omo-codex", "scripts", "install-local.mjs");
-      await mkdir(join(tempDir, "packages", "omo-codex", "scripts"), { recursive: true });
+      const installerPath = join(
+        tempDir,
+        "packages",
+        "omo-codex",
+        "scripts",
+        "install-local.mjs",
+      );
+      await mkdir(join(tempDir, "packages", "omo-codex", "scripts"), {
+        recursive: true,
+      });
       await writeFile(launcherPath, createPlatformLauncherSource());
       await chmod(launcherPath, 0o755);
       await writeFakeCli(tempDir);
-      await writeFile(installerPath, "#!/usr/bin/env node\nconsole.log('node-installer');\n");
+      await writeFile(
+        installerPath,
+        "#!/usr/bin/env node\nconsole.log('node-installer');\n",
+      );
       await chmod(installerPath, 0o755);
 
       // when
-      const result = spawnSync(process.execPath, [launcherPath, "--platform=both", "install", "--no-tui"], {
+      const result = spawnSync(process.execPath, [
+        launcherPath,
+        "--platform=both",
+        "install",
+        "--no-tui",
+      ], {
         encoding: "utf8",
         env: {
           ...process.env,
@@ -193,22 +247,32 @@ describe("build-binaries", () => {
       // then
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("bun-cli");
-      expect(normalizeOutputPath(result.stdout)).toContain("dist/cli/index.js --platform=both install --no-tui");
+      expect(normalizeOutputPath(result.stdout)).toContain(
+        "dist/cli/index.js --platform=both install --no-tui",
+      );
       expect(result.stdout).not.toContain("node-installer");
     });
 
     it("launcher routes lazycodex ulw-loop through the Bun CLI instead of the installer", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const createPlatformLauncherSource = (module as { createPlatformLauncherSource: () => string }).createPlatformLauncherSource;
-      const tempDir = await mkdtemp(join(tmpdir(), "lazycodex-ulw-loop-launcher-"));
+      const createPlatformLauncherSource =
+        (module as { createPlatformLauncherSource: () => string })
+          .createPlatformLauncherSource;
+      const tempDir = await mkdtemp(
+        join(tmpdir(), "lazycodex-ulw-loop-launcher-"),
+      );
       const launcherPath = join(tempDir, "oh-my-opencode.js");
       await writeFile(launcherPath, createPlatformLauncherSource());
       await chmod(launcherPath, 0o755);
       await writeFakeCli(tempDir);
 
       // when
-      const result = spawnSync(process.execPath, [launcherPath, "ulw-loop", "--help"], {
+      const result = spawnSync(process.execPath, [
+        launcherPath,
+        "ulw-loop",
+        "--help",
+      ], {
         encoding: "utf8",
         env: {
           ...process.env,
@@ -221,17 +285,23 @@ describe("build-binaries", () => {
       // then
       expect(result.status).toBe(0);
       expect(result.stdout).toContain("bun-cli");
-      expect(normalizeOutputPath(result.stdout)).toContain("dist/cli/index.js ulw-loop --help");
+      expect(normalizeOutputPath(result.stdout)).toContain(
+        "dist/cli/index.js ulw-loop --help",
+      );
       expect(result.stdout).not.toContain("Unsupported lazycodex-ai command");
     });
 
     it("has descriptions mentioning no AVX2 for baseline platforms", async () => {
       // given
       const module = await import("./build-binaries.ts");
-      const platforms = (module as { PLATFORMS: { target: string; description: string }[] }).PLATFORMS;
+      const platforms =
+        (module as { PLATFORMS: { target: string; description: string }[] })
+          .PLATFORMS;
 
       // when
-      const baselinePlatforms = platforms.filter((p) => p.target.includes("baseline"));
+      const baselinePlatforms = platforms.filter((p) =>
+        p.target.includes("baseline")
+      );
 
       // then
       for (const platform of baselinePlatforms) {
@@ -249,7 +319,10 @@ describe("build-binaries", () => {
       // when
       const platformPackageJsons = platformPackageNames.map((packageName) => ({
         packageName,
-        manifest: readFileSync(new URL(`${packageName}/package.json`, packagesDir), "utf8"),
+        manifest: readFileSync(
+          new URL(`${packageName}/package.json`, packagesDir),
+          "utf8",
+        ),
       }));
 
       // then
@@ -257,7 +330,10 @@ describe("build-binaries", () => {
       for (const { packageName, manifest } of platformPackageJsons) {
         expect(manifest).toContain('"files"');
         expect(manifest).toContain('"bin"');
-        expect(manifest, `${packageName} must not expose a public package.json bin`).not.toContain('"bin": {');
+        expect(
+          manifest,
+          `${packageName} must not expose a public package.json bin`,
+        ).not.toContain('"bin": {');
       }
     });
   });

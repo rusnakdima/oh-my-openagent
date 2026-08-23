@@ -1,1 +1,6 @@
-{ "goal": { "objective": "Complete the durable ulw-loop plan", "status": "active" } }
+{
+  "goal": {
+    "objective": "Complete the durable ulw-loop plan",
+    "status": "active"
+  }
+}

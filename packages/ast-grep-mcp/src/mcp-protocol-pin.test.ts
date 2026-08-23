@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { PassThrough } from "node:stream";
-import { AST_GREP_MCP_TOOLS, handleAstGrepMcpRequest, runMcpStdioServer } from "./mcp";
+import {
+  AST_GREP_MCP_TOOLS,
+  handleAstGrepMcpRequest,
+  runMcpStdioServer,
+} from "./mcp";
 
 describe("ast_grep MCP protocol pins", () => {
   it("#given initialize request #when handled #then exact server info and capabilities stay stable", async () => {
@@ -9,7 +13,11 @@ describe("ast_grep MCP protocol pins", () => {
       jsonrpc: "2.0",
       id: 1,
       method: "initialize",
-      params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "todo-8", version: "0.0.0" } },
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "todo-8", version: "0.0.0" },
+      },
     });
 
     // then
@@ -25,7 +33,12 @@ describe("ast_grep MCP protocol pins", () => {
   });
 
   it("#given initialize without protocolVersion #when handled #then it falls back to 2024-11-05", async () => {
-    const response = await handleAstGrepMcpRequest({ jsonrpc: "2.0", id: "init", method: "initialize", params: {} });
+    const response = await handleAstGrepMcpRequest({
+      jsonrpc: "2.0",
+      id: "init",
+      method: "initialize",
+      params: {},
+    });
     expect(response?.result?.protocolVersion).toBe("2024-11-05");
   });
 
@@ -41,11 +54,19 @@ describe("ast_grep MCP protocol pins", () => {
 
   it("#given tools/list #when handled #then exactly the raw search/rewrite/scan names are returned", async () => {
     // given / when
-    const response = await handleAstGrepMcpRequest({ jsonrpc: "2.0", id: 2, method: "tools/list" });
+    const response = await handleAstGrepMcpRequest({
+      jsonrpc: "2.0",
+      id: 2,
+      method: "tools/list",
+    });
 
     // then
     const tools = response?.result?.tools ?? [];
-    expect(tools.map((tool) => tool.name)).toEqual(["search", "rewrite", "scan"]);
+    expect(tools.map((tool) => tool.name)).toEqual([
+      "search",
+      "rewrite",
+      "scan",
+    ]);
     for (const tool of tools) {
       expect(tool.description.length).toBeGreaterThan(0);
       const schema = tool.inputSchema as Record<string, unknown>;
@@ -53,16 +74,27 @@ describe("ast_grep MCP protocol pins", () => {
       expect(schema.additionalProperties).toBe(false);
       expect(Array.isArray(schema.required)).toBe(true);
     }
-    expect(AST_GREP_MCP_TOOLS.map((tool) => tool.name)).toEqual(["search", "rewrite", "scan"]);
+    expect(AST_GREP_MCP_TOOLS.map((tool) => tool.name)).toEqual([
+      "search",
+      "rewrite",
+      "scan",
+    ]);
   });
 
   it("#given ping #when handled #then an empty result is returned", async () => {
-    const response = await handleAstGrepMcpRequest({ jsonrpc: "2.0", id: 3, method: "ping" });
+    const response = await handleAstGrepMcpRequest({
+      jsonrpc: "2.0",
+      id: 3,
+      method: "ping",
+    });
     expect(response).toEqual({ jsonrpc: "2.0", id: 3, result: {} });
   });
 
   it("#given notifications/initialized #when handled #then no response is produced", async () => {
-    const response = await handleAstGrepMcpRequest({ jsonrpc: "2.0", method: "notifications/initialized" });
+    const response = await handleAstGrepMcpRequest({
+      jsonrpc: "2.0",
+      method: "notifications/initialized",
+    });
     expect(response).toBeUndefined();
   });
 
@@ -80,20 +112,33 @@ describe("ast_grep MCP protocol pins", () => {
   });
 
   it("#given an unknown method #when handled #then -32601 Method not found", async () => {
-    const response = await handleAstGrepMcpRequest({ jsonrpc: "2.0", id: 9, method: "resources/list" });
+    const response = await handleAstGrepMcpRequest({
+      jsonrpc: "2.0",
+      id: 9,
+      method: "resources/list",
+    });
     expect(response?.error?.code).toBe(-32601);
     expect(response?.error?.message).toContain("resources/list");
   });
 
   it("#given tools/call without params.name #when handled #then -32602 Invalid params", async () => {
-    const missingName = await handleAstGrepMcpRequest({ jsonrpc: "2.0", id: 10, method: "tools/call", params: { arguments: {} } });
+    const missingName = await handleAstGrepMcpRequest({
+      jsonrpc: "2.0",
+      id: 10,
+      method: "tools/call",
+      params: { arguments: {} },
+    });
     expect(missingName).toEqual({
       jsonrpc: "2.0",
       id: 10,
       error: { code: -32602, message: "tools/call requires params.name" },
     });
 
-    const missingParams = await handleAstGrepMcpRequest({ jsonrpc: "2.0", id: 11, method: "tools/call" });
+    const missingParams = await handleAstGrepMcpRequest({
+      jsonrpc: "2.0",
+      id: 11,
+      method: "tools/call",
+    });
     expect(missingParams?.error?.code).toBe(-32602);
   });
 
@@ -104,11 +149,16 @@ describe("ast_grep MCP protocol pins", () => {
     const received = nextOutput(output);
 
     // when
-    const server = runMcpStdioServer(input, output, { resolveSgPath: () => "/stub/sg" });
+    const server = runMcpStdioServer(input, output, {
+      resolveSgPath: () => "/stub/sg",
+    });
     input.end("garbage\n");
 
     // then
-    const parsed = JSON.parse(await received) as { id: unknown; error: { code: number } };
+    const parsed = JSON.parse(await received) as {
+      id: unknown;
+      error: { code: number };
+    };
     expect(parsed.id).toBeNull();
     expect(parsed.error.code).toBe(-32700);
     await server;

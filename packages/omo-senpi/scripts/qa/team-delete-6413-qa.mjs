@@ -7,29 +7,39 @@
 // it alongside the wrapper's recursively enumerated descendants. Every recorded PID must be gone before
 // the lead exits, preventing session-shutdown teardown from masking whether deletion owned cleanup.
 
-import { execFileSync, spawnSync } from "node:child_process"
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { dirname, join } from "node:path"
-import { fileURLToPath } from "node:url"
+import { execFileSync, spawnSync } from "node:child_process";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-import { createSandbox, seedSandbox } from "./drive.mjs"
-import { startSenpiRun } from "./team-e2e-runtime.mjs"
-import { parseEvents } from "./team-e2e-support.mjs"
+import { createSandbox, seedSandbox } from "./drive.mjs";
+import { startSenpiRun } from "./team-e2e-runtime.mjs";
+import { parseEvents } from "./team-e2e-support.mjs";
 
-const scriptDir = dirname(fileURLToPath(import.meta.url))
-const mockProviderEntry = join(scriptDir, "team-e2e-mock-provider.ts")
-const senpiBin = process.env.SENPI_BIN ?? "senpi"
-const inheritedEnvKeys = Object.keys(process.env).filter((key) => key.startsWith("SENPI_TASK_"))
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const mockProviderEntry = join(scriptDir, "team-e2e-mock-provider.ts");
+const senpiBin = process.env.SENPI_BIN ?? "senpi";
+const inheritedEnvKeys = Object.keys(process.env).filter((key) =>
+  key.startsWith("SENPI_TASK_")
+);
 const scrubbedEnv = Object.fromEntries(
-  [...inheritedEnvKeys, "OMO_PROFILE", "OCX_PROFILE", "OPENCODE_CONFIG_DIR"].map((key) => [key, undefined]),
-)
+  [...inheritedEnvKeys, "OMO_PROFILE", "OCX_PROFILE", "OPENCODE_CONFIG_DIR"]
+    .map((key) => [key, undefined]),
+);
 
 const QA_OMO_CONFIG = {
   categories: {
     quick: { models: ["omo-mock/mock-1"] },
   },
-}
+};
 
 const WAIT_MEMBER_SOURCE = `import { execFileSync } from "node:child_process"
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs"
@@ -98,9 +108,10 @@ function poll() {
   setTimeout(poll, 100)
 }
 poll()
-`
+`;
 
-const VERIFY_DEAD_SOURCE = `import { readFileSync, writeFileSync } from "node:fs"
+const VERIFY_DEAD_SOURCE =
+  `import { readFileSync, writeFileSync } from "node:fs"
 
 const { wrapper, children, detached } = JSON.parse(readFileSync("member-pids.json", "utf8"))
 const pids = [wrapper, ...children, detached]
@@ -130,9 +141,10 @@ function poll() {
   setTimeout(poll, 100)
 }
 poll()
-`
+`;
 
-const MEMBER_PROMPT = "You are team member 'alpha'. MOCKROLE=quick. Acknowledge, then end your turn."
+const MEMBER_PROMPT =
+  "You are team member 'alpha'. MOCKROLE=quick. Acknowledge, then end your turn.";
 
 function buildScript() {
   return {
@@ -143,13 +155,30 @@ function buildScript() {
         arguments: {
           inline_spec: {
             name: "issue6413",
-            members: [{ name: "alpha", kind: "category", category: "quick", prompt: MEMBER_PROMPT }],
+            members: [{
+              name: "alpha",
+              kind: "category",
+              category: "quick",
+              prompt: MEMBER_PROMPT,
+            }],
           },
         },
       },
-      { type: "tool_call", name: "bash", arguments: { command: "node wait-member.mjs" } },
-      { type: "tool_call", name: "team_delete", arguments: { team_run_id: "__TEAM_RUN_ID__" } },
-      { type: "tool_call", name: "bash", arguments: { command: "node verify-dead.mjs" } },
+      {
+        type: "tool_call",
+        name: "bash",
+        arguments: { command: "node wait-member.mjs" },
+      },
+      {
+        type: "tool_call",
+        name: "team_delete",
+        arguments: { team_run_id: "__TEAM_RUN_ID__" },
+      },
+      {
+        type: "tool_call",
+        name: "bash",
+        arguments: { command: "node verify-dead.mjs" },
+      },
       { type: "text", text: "issue6413 deleted and verified" },
     ],
     quick: [
@@ -157,47 +186,60 @@ function buildScript() {
         type: "tool_call",
         name: "bash",
         arguments: {
-          command: "nohup sh -c 'sleep 300' </dev/null >/dev/null 2>&1 & echo $! > detached-member.pid",
+          command:
+            "nohup sh -c 'sleep 300' </dev/null >/dev/null 2>&1 & echo $! > detached-member.pid",
         },
       },
       { type: "text", text: "alpha acknowledged" },
     ],
-  }
+  };
 }
 
 function assertDead(pid) {
   try {
-    process.kill(pid, 0)
-    throw new Error(`pid ${pid} still alive after team_delete`)
+    process.kill(pid, 0);
+    throw new Error(`pid ${pid} still alive after team_delete`);
   } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) throw error
+    if (
+      !(error instanceof Error && "code" in error && error.code === "ESRCH")
+    ) throw error;
   }
 }
 
 function killRecordedPid(pid) {
   try {
-    process.kill(pid, "SIGKILL")
+    process.kill(pid, "SIGKILL");
   } catch (error) {
-    if (!(error instanceof Error && "code" in error && error.code === "ESRCH")) {
-      console.error(`cleanup failed for pid ${pid}: ${error instanceof Error ? error.message : String(error)}`)
+    if (
+      !(error instanceof Error && "code" in error && error.code === "ESRCH")
+    ) {
+      console.error(
+        `cleanup failed for pid ${pid}: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
     }
   }
 }
 
 async function main() {
-  const evidenceDir = process.argv[2] ?? join(tmpdir(), `omo-team-delete-6413-${Date.now()}`)
-  console.error(`evidence-dir: ${evidenceDir}`)
-  mkdirSync(evidenceDir, { recursive: true })
+  const evidenceDir = process.argv[2] ??
+    join(tmpdir(), `omo-team-delete-6413-${Date.now()}`);
+  console.error(`evidence-dir: ${evidenceDir}`);
+  mkdirSync(evidenceDir, { recursive: true });
 
-  const sandbox = createSandbox()
-  let run
-  let recordedPids = []
+  const sandbox = createSandbox();
+  let run;
+  let recordedPids = [];
   try {
-    seedSandbox(sandbox)
-    mkdirSync(join(sandbox.cwd, ".omo"), { recursive: true })
-    writeFileSync(join(sandbox.cwd, ".omo", "omo.json"), `${JSON.stringify(QA_OMO_CONFIG, null, 2)}\n`)
-    writeFileSync(join(sandbox.cwd, "wait-member.mjs"), WAIT_MEMBER_SOURCE)
-    writeFileSync(join(sandbox.cwd, "verify-dead.mjs"), VERIFY_DEAD_SOURCE)
+    seedSandbox(sandbox);
+    mkdirSync(join(sandbox.cwd, ".omo"), { recursive: true });
+    writeFileSync(
+      join(sandbox.cwd, ".omo", "omo.json"),
+      `${JSON.stringify(QA_OMO_CONFIG, null, 2)}\n`,
+    );
+    writeFileSync(join(sandbox.cwd, "wait-member.mjs"), WAIT_MEMBER_SOURCE);
+    writeFileSync(join(sandbox.cwd, "verify-dead.mjs"), VERIFY_DEAD_SOURCE);
 
     run = startSenpiRun({
       senpiBin,
@@ -207,44 +249,109 @@ async function main() {
       prompt: "Drive the scripted issue-6413 team_delete verification exactly.",
       script: buildScript(),
       extraEnv: scrubbedEnv,
-    })
-    const result = await run.completion
-    writeFileSync(join(evidenceDir, "lead.stdout.log"), result.stdout)
-    writeFileSync(join(evidenceDir, "lead.stderr.log"), result.stderr)
+    });
+    const result = await run.completion;
+    writeFileSync(join(evidenceDir, "lead.stdout.log"), result.stdout);
+    writeFileSync(join(evidenceDir, "lead.stderr.log"), result.stderr);
 
-    const pidsPath = join(sandbox.cwd, "member-pids.json")
-    if (!existsSync(pidsPath)) throw new Error("member-pids.json was never written (member did not complete)")
-    const { wrapper, children, detached } = JSON.parse(readFileSync(pidsPath, "utf8"))
-    recordedPids = [wrapper, ...children, detached]
-    writeFileSync(join(evidenceDir, "member-pids.json"), JSON.stringify({ wrapper, children, detached }, null, 2))
+    const pidsPath = join(sandbox.cwd, "member-pids.json");
+    if (!existsSync(pidsPath)) {
+      throw new Error(
+        "member-pids.json was never written (member did not complete)",
+      );
+    }
+    const { wrapper, children, detached } = JSON.parse(
+      readFileSync(pidsPath, "utf8"),
+    );
+    recordedPids = [wrapper, ...children, detached];
+    writeFileSync(
+      join(evidenceDir, "member-pids.json"),
+      JSON.stringify({ wrapper, children, detached }, null, 2),
+    );
 
-    const verifyPath = join(sandbox.cwd, "verify-dead.json")
-    if (!existsSync(verifyPath)) throw new Error(`in-turn verification did not pass; run status ${String(result.status)}`)
-    writeFileSync(join(evidenceDir, "verify-dead.json"), readFileSync(verifyPath))
-    for (const pid of recordedPids) assertDead(pid)
+    const verifyPath = join(sandbox.cwd, "verify-dead.json");
+    if (!existsSync(verifyPath)) {
+      throw new Error(
+        `in-turn verification did not pass; run status ${
+          String(result.status)
+        }`,
+      );
+    }
+    writeFileSync(
+      join(evidenceDir, "verify-dead.json"),
+      readFileSync(verifyPath),
+    );
+    for (const pid of recordedPids) assertDead(pid);
 
-    const ps = spawnSync("ps", ["-p", recordedPids.join(","), "-o", "pid=,command="], { encoding: "utf8" })
-    if (ps.error !== undefined) throw ps.error
-    if (ps.status !== 0 && ps.status !== 1) throw new Error(`ps failed with status ${String(ps.status)}: ${ps.stderr}`)
-    const psRows = ps.stdout ?? ""
-    writeFileSync(join(evidenceDir, "post-delete-ps.txt"), psRows === "" ? "(no matching rows)\n" : psRows)
-    if (psRows !== "") throw new Error(`ps rows survived deletion: ${psRows}`)
+    const ps = spawnSync("ps", [
+      "-p",
+      recordedPids.join(","),
+      "-o",
+      "pid=,command=",
+    ], { encoding: "utf8" });
+    if (ps.error !== undefined) throw ps.error;
+    if (ps.status !== 0 && ps.status !== 1) {
+      throw new Error(
+        `ps failed with status ${String(ps.status)}: ${ps.stderr}`,
+      );
+    }
+    const psRows = ps.stdout ?? "";
+    writeFileSync(
+      join(evidenceDir, "post-delete-ps.txt"),
+      psRows === "" ? "(no matching rows)\n" : psRows,
+    );
+    if (psRows !== "") throw new Error(`ps rows survived deletion: ${psRows}`);
 
-    const runtimeDir = join(sandbox.cwd, ".omo", "senpi-task", "teams", "runtime")
-    const remainingTeams = existsSync(runtimeDir) ? readdirSync(runtimeDir) : []
-    const summary = { runStatus: result.status, wrapper, children, detached, allExited: true, remainingTeams }
-    writeFileSync(join(evidenceDir, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`)
-    if (result.status !== 0) throw new Error(`lead run exited with status ${String(result.status)}`)
-    if (remainingTeams.length !== 0) throw new Error(`team runtime directories remain: ${remainingTeams.join(", ")}`)
-    console.log(JSON.stringify({ pass: true, wrapper, children, detached, remainingTeams, evidenceDir }))
+    const runtimeDir = join(
+      sandbox.cwd,
+      ".omo",
+      "senpi-task",
+      "teams",
+      "runtime",
+    );
+    const remainingTeams = existsSync(runtimeDir)
+      ? readdirSync(runtimeDir)
+      : [];
+    const summary = {
+      runStatus: result.status,
+      wrapper,
+      children,
+      detached,
+      allExited: true,
+      remainingTeams,
+    };
+    writeFileSync(
+      join(evidenceDir, "summary.json"),
+      `${JSON.stringify(summary, null, 2)}\n`,
+    );
+    if (result.status !== 0) {
+      throw new Error(`lead run exited with status ${String(result.status)}`);
+    }
+    if (remainingTeams.length !== 0) {
+      throw new Error(
+        `team runtime directories remain: ${remainingTeams.join(", ")}`,
+      );
+    }
+    console.log(
+      JSON.stringify({
+        pass: true,
+        wrapper,
+        children,
+        detached,
+        remainingTeams,
+        evidenceDir,
+      }),
+    );
   } finally {
-    if (run !== undefined) await run.kill()
-    for (const pid of [...recordedPids].reverse()) killRecordedPid(pid)
-    rmSync(sandbox.root, { recursive: true, force: true })
+    if (run !== undefined) await run.kill();
+    for (const pid of [...recordedPids].reverse()) killRecordedPid(pid);
+    rmSync(sandbox.root, { recursive: true, force: true });
   }
 }
 
 main().catch((error) => {
-  console.error(error instanceof Error ? error.stack ?? error.message : String(error))
-  process.exitCode = 1
-})
+  console.error(
+    error instanceof Error ? error.stack ?? error.message : String(error),
+  );
+  process.exitCode = 1;
+});

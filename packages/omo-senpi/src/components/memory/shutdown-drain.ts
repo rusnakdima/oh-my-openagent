@@ -5,141 +5,168 @@
 // STARTS no further mutation or spawn once the handler returns. Work abandoned this way is
 // recovered by the session_start reconcile paths, never by fire-and-forget continuation.
 
-import type { ComponentLogger } from "../../extension/types"
+import type { ComponentLogger } from "../../extension/types";
 
 /** Hard drain budget in milliseconds. Pinned by test: senpi blocks shutdown on this handler. */
-export const SESSION_SHUTDOWN_DRAIN_BUDGET_MS = 1500
+export const SESSION_SHUTDOWN_DRAIN_BUDGET_MS = 1500;
 
-export type ShutdownReason = "quit" | "reload" | "new" | "resume" | "fork"
+export type ShutdownReason = "quit" | "reload" | "new" | "resume" | "fork";
 
 export interface ShutdownEvaluatorInput {
-  readonly reason: ShutdownReason
-  readonly sessionId: string
-  readonly deadlineAt: number
-  readonly signal: AbortSignal
+  readonly reason: ShutdownReason;
+  readonly sessionId: string;
+  readonly deadlineAt: number;
+  readonly signal: AbortSignal;
 }
 
 /** IC-10 evaluator: appended by registration, run sequentially in registration order. */
-export type ShutdownEvaluator = (input: ShutdownEvaluatorInput) => Promise<void> | void
+export type ShutdownEvaluator = (
+  input: ShutdownEvaluatorInput,
+) => Promise<void> | void;
 
 export interface ShutdownDrainInput {
-  readonly reason: ShutdownReason
-  readonly sessionId: string
-  readonly deadlineAt: number
+  readonly reason: ShutdownReason;
+  readonly sessionId: string;
+  readonly deadlineAt: number;
   /** Injectable clock; the fake-clock deadline test drives the race through it. */
-  readonly now?: () => number
+  readonly now?: () => number;
 }
 
 export interface ShutdownDrainSteps {
   /** (a) IC-11 journal flush. */
-  flushJournal(sessionId: string, signal: AbortSignal): Promise<void>
+  flushJournal(sessionId: string, signal: AbortSignal): Promise<void>;
   /** (b) final un-enqueued transcript delta. */
-  enqueueFinalDelta(sessionId: string, signal: AbortSignal): Promise<void>
+  enqueueFinalDelta(sessionId: string, signal: AbortSignal): Promise<void>;
   /** (c') debounced skills-usage writer, flushed before any launch. */
-  flushSkillsUsage(sessionId: string, signal: AbortSignal): Promise<void>
+  flushSkillsUsage(sessionId: string, signal: AbortSignal): Promise<void>;
   /** (c) facts child spawn, gated by the debounce threshold. */
-  launchFacts(sessionId: string, signal: AbortSignal): Promise<void>
+  launchFacts(sessionId: string, signal: AbortSignal): Promise<void>;
 }
 
 export interface ShutdownDrain {
-  registerEvaluator(evaluator: ShutdownEvaluator): void
-  run(input: ShutdownDrainInput): Promise<void>
+  registerEvaluator(evaluator: ShutdownEvaluator): void;
+  run(input: ShutdownDrainInput): Promise<void>;
 }
 
 export interface ShutdownDrainOptions {
-  readonly steps: ShutdownDrainSteps
-  readonly logger?: ComponentLogger
+  readonly steps: ShutdownDrainSteps;
+  readonly logger?: ComponentLogger;
 }
 
 /** The absolute deadline a shutdown handler hands to the drain. */
 export function shutdownDeadlineAt(now: () => number): number {
-  return now() + SESSION_SHUTDOWN_DRAIN_BUDGET_MS
+  return now() + SESSION_SHUTDOWN_DRAIN_BUDGET_MS;
 }
 
-export function createShutdownDrain(options: ShutdownDrainOptions): ShutdownDrain {
-  const evaluators: ShutdownEvaluator[] = []
+export function createShutdownDrain(
+  options: ShutdownDrainOptions,
+): ShutdownDrain {
+  const evaluators: ShutdownEvaluator[] = [];
 
   return {
     registerEvaluator(evaluator: ShutdownEvaluator): void {
-      evaluators.push(evaluator)
+      evaluators.push(evaluator);
     },
 
     async run(input: ShutdownDrainInput): Promise<void> {
-      const now = input.now ?? Date.now
-      const controller = new AbortController()
-      const signal = controller.signal
-      let budgetWarned = false
+      const now = input.now ?? Date.now;
+      const controller = new AbortController();
+      const signal = controller.signal;
+      let budgetWarned = false;
 
       const exhaust = (step: string): void => {
-        controller.abort()
-        if (budgetWarned) return
-        budgetWarned = true
+        controller.abort();
+        if (budgetWarned) return;
+        budgetWarned = true;
         options.logger?.warn("memory shutdown drain hit its budget", {
           step,
           reason: input.reason,
           sessionId: input.sessionId,
-        })
-      }
+        });
+      };
 
       /** Races one step against the remaining budget. Returns false once the budget is gone. */
-      const runStep = async (name: string, work: () => Promise<void>): Promise<boolean> => {
+      const runStep = async (
+        name: string,
+        work: () => Promise<void>,
+      ): Promise<boolean> => {
         if (signal.aborted || now() >= input.deadlineAt) {
-          exhaust(name)
-          return false
+          exhaust(name);
+          return false;
         }
         // Errors are settled at attach time so an abandoned step can never surface as an
         // unhandled rejection after the drain returned; only a step that wins its race is reported.
         const settled = work().then(
           () => undefined,
           (error: unknown) => error,
-        )
-        const remainingMs = Math.max(0, input.deadlineAt - now())
-        let timer: ReturnType<typeof setTimeout> | undefined
+        );
+        const remainingMs = Math.max(0, input.deadlineAt - now());
+        let timer: ReturnType<typeof setTimeout> | undefined;
         const expired = new Promise<typeof BUDGET_EXPIRED>((resolve) => {
-          timer = setTimeout(() => resolve(BUDGET_EXPIRED), remainingMs)
-        })
-        const outcome = await Promise.race([settled, expired])
-        if (timer !== undefined) clearTimeout(timer)
+          timer = setTimeout(() => resolve(BUDGET_EXPIRED), remainingMs);
+        });
+        const outcome = await Promise.race([settled, expired]);
+        if (timer !== undefined) clearTimeout(timer);
         if (outcome === BUDGET_EXPIRED) {
-          exhaust(name)
-          return false
+          exhaust(name);
+          return false;
         }
         if (outcome !== undefined) {
           options.logger?.warn("memory shutdown drain step failed", {
             step: name,
             reason: input.reason,
             error: String(outcome),
-          })
+          });
         }
-        return true
-      }
+        return true;
+      };
 
       const evaluatorInput: ShutdownEvaluatorInput = {
         reason: input.reason,
         sessionId: input.sessionId,
         deadlineAt: input.deadlineAt,
         signal,
-      }
+      };
 
       try {
-        if (!(await runStep("journal-flush", () => options.steps.flushJournal(input.sessionId, signal)))) return
-        if (!(await runStep("facts-enqueue", () => options.steps.enqueueFinalDelta(input.sessionId, signal)))) return
-        if (input.reason !== "quit") return
-        if (!(await runStep("skills-usage-flush", () => options.steps.flushSkillsUsage(input.sessionId, signal)))) return
-        if (!(await runStep("facts-launch", () => options.steps.launchFacts(input.sessionId, signal)))) return
+        if (
+          !(await runStep(
+            "journal-flush",
+            () => options.steps.flushJournal(input.sessionId, signal),
+          ))
+        ) return;
+        if (
+          !(await runStep(
+            "facts-enqueue",
+            () => options.steps.enqueueFinalDelta(input.sessionId, signal),
+          ))
+        ) return;
+        if (input.reason !== "quit") return;
+        if (
+          !(await runStep(
+            "skills-usage-flush",
+            () => options.steps.flushSkillsUsage(input.sessionId, signal),
+          ))
+        ) return;
+        if (
+          !(await runStep(
+            "facts-launch",
+            () => options.steps.launchFacts(input.sessionId, signal),
+          ))
+        ) return;
         for (const evaluator of evaluators) {
           const proceed = await runStep("shutdown-evaluator", async () => {
-            await evaluator(evaluatorInput)
-          })
-          if (!proceed) return
+            await evaluator(evaluatorInput);
+          });
+          if (!proceed) return;
         }
       } finally {
         // The handler is returning and the component releases the session next: nothing that
         // still holds this signal may start further work, budget spent or not.
-        controller.abort()
+        controller.abort();
       }
     },
-  }
+  };
 }
 
-const BUDGET_EXPIRED = Symbol("shutdown-drain-budget-expired")
+const BUDGET_EXPIRED = Symbol("shutdown-drain-budget-expired");

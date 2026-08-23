@@ -1,2 +1,2 @@
-export * from "./mirror"
-export * from "./redact"
+export * from "./mirror";
+export * from "./redact";

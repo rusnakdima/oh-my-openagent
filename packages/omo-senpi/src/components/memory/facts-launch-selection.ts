@@ -5,23 +5,28 @@
 // "no failures recorded" would relaunch every parked batch forever, which is precisely the
 // incident (1088 attempts on one digest) the ledger exists to prevent.
 
-import { FactsFailuresCorruptError, type FactsFailuresFile } from "@oh-my-opencode/memory-core"
+import {
+  FactsFailuresCorruptError,
+  type FactsFailuresFile,
+} from "@oh-my-opencode/memory-core";
 
 /** The read slice of `FactsFailureStore`; test doubles implement just this. */
 export interface FactsFailureReadPort {
-  readFailures(): Promise<FactsFailuresFile>
+  readFailures(): Promise<FactsFailuresFile>;
 }
 
 export type FactsFailuresRead =
   | { readonly ok: true; readonly failures: FactsFailuresFile }
-  | { readonly ok: false }
+  | { readonly ok: false };
 
-export function hasFailureReader(candidate: unknown): candidate is FactsFailureReadPort {
+export function hasFailureReader(
+  candidate: unknown,
+): candidate is FactsFailureReadPort {
   return (
     typeof candidate === "object" &&
     candidate !== null &&
     typeof (candidate as { readFailures?: unknown }).readFailures === "function"
-  )
+  );
 }
 
 /** Reads the ledger ONCE per launch attempt. A corrupt ledger returns `ok: false`. */
@@ -30,13 +35,13 @@ export async function readLaunchableFailures(
   warn: (message: string, fields: Readonly<Record<string, unknown>>) => void,
 ): Promise<FactsFailuresRead> {
   try {
-    return { ok: true, failures: await port.readFailures() }
+    return { ok: true, failures: await port.readFailures() };
   } catch (error) {
     warn("facts failure ledger is unreadable; refusing to launch", {
       error: error instanceof Error ? error.name : "unknown",
       detail: error instanceof Error ? error.message : String(error),
       corrupt: error instanceof FactsFailuresCorruptError,
-    })
-    return { ok: false }
+    });
+    return { ok: false };
   }
 }

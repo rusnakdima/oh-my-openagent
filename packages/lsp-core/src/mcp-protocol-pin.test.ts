@@ -8,7 +8,11 @@ describe("lsp MCP protocol pins", () => {
       jsonrpc: "2.0",
       id: 1,
       method: "initialize",
-      params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "todo-23", version: "0.0.0" } },
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "todo-23", version: "0.0.0" },
+      },
     });
 
     expect(response).toEqual({
@@ -25,7 +29,10 @@ describe("lsp MCP protocol pins", () => {
   it("#given malformed stdio line #when read #then parse error envelope includes parser data", async () => {
     const out: string[] = [];
 
-    await runMcpStdioServer(Readable.from(["garbage\n"]), collectingWritable(out));
+    await runMcpStdioServer(
+      Readable.from(["garbage\n"]),
+      collectingWritable(out),
+    );
 
     const response = JSON.parse(out.join(""));
     if (!isProtocolErrorResponse(response)) {
@@ -58,9 +65,15 @@ function collectingWritable(chunks: string[]): Writable {
 function isProtocolErrorResponse(value: unknown): value is {
   readonly jsonrpc: string;
   readonly id: null;
-  readonly error: { readonly code: number; readonly message: string; readonly data?: unknown };
+  readonly error: {
+    readonly code: number;
+    readonly message: string;
+    readonly data?: unknown;
+  };
 } {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
   const record = value;
   if (!("error" in record)) return false;
   const { error } = record;

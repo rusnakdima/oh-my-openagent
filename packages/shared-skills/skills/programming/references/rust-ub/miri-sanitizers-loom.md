@@ -1,6 +1,7 @@
 # Miri, Sanitizers, Loom, and Fuzzing — The UB Detection Arsenal
 
-Miri is the **primary weapon**. Everything else is supplementary for the gaps Miri cannot reach.
+Miri is the **primary weapon**. Everything else is supplementary for the gaps
+Miri cannot reach.
 
 ---
 
@@ -8,12 +9,17 @@ Miri is the **primary weapon**. Everything else is supplementary for the gaps Mi
 
 ### What Miri Is
 
-Miri is an interpreter for Rust's MIR (Mid-level IR). It executes your test suite inside a virtual machine that tracks every byte of memory for validity, provenance, alignment, initialization, and aliasing. It is **deterministic** — same inputs, same result — and it can find UB that no amount of testing on real hardware will ever trigger.
+Miri is an interpreter for Rust's MIR (Mid-level IR). It executes your test
+suite inside a virtual machine that tracks every byte of memory for validity,
+provenance, alignment, initialization, and aliasing. It is **deterministic** —
+same inputs, same result — and it can find UB that no amount of testing on real
+hardware will ever trigger.
 
 ### Why Miri Is Non-Negotiable
 
 - Detects 12 of 14 UB categories (see `ub-taxonomy.md`).
-- Catches aliasing violations that compile and run correctly on every platform today but are UB that future compiler optimizations will exploit.
+- Catches aliasing violations that compile and run correctly on every platform
+  today but are UB that future compiler optimizations will exploit.
 - Catches data races under a configurable scheduling model.
 - Catches provenance violations that are impossible to observe on real hardware.
 - **Zero false positives** — if Miri says it is UB, it is UB. Period.
@@ -26,6 +32,7 @@ rustup component add miri rust-src --toolchain nightly
 ```
 
 Verify:
+
 ```bash
 cargo +nightly miri --version
 ```
@@ -33,28 +40,33 @@ cargo +nightly miri --version
 ### Running Miri
 
 **Default run (Stacked Borrows, standard checks):**
+
 ```bash
 cargo +nightly miri test
 ```
 
 **With nextest (recommended for projects already using nextest):**
+
 ```bash
 cargo +nightly miri nextest run
 ```
 
 **Specific test:**
+
 ```bash
 cargo +nightly miri test -- test_name
 ```
 
 **Run a binary:**
+
 ```bash
 cargo +nightly miri run
 ```
 
 ### MIRIFLAGS — The Dial-Up Knobs
 
-These flags are set via the `MIRIFLAGS` environment variable. The agent should use ALL of the strictness flags during a UB audit.
+These flags are set via the `MIRIFLAGS` environment variable. The agent should
+use ALL of the strictness flags during a UB audit.
 
 #### Aliasing Model
 
@@ -66,7 +78,8 @@ cargo +nightly miri test
 MIRIFLAGS="-Zmiri-tree-borrows" cargo +nightly miri test
 ```
 
-**Protocol:** Run Stacked Borrows first. If it fails, fix it. Then run Tree Borrows to confirm. Code that passes Stacked Borrows is sound under both models.
+**Protocol:** Run Stacked Borrows first. If it fails, fix it. Then run Tree
+Borrows to confirm. Code that passes Stacked Borrows is sound under both models.
 
 #### Strict Provenance
 
@@ -74,7 +87,8 @@ MIRIFLAGS="-Zmiri-tree-borrows" cargo +nightly miri test
 MIRIFLAGS="-Zmiri-strict-provenance" cargo +nightly miri test
 ```
 
-Catches `ptr as usize as *const T` roundtrips where provenance is lost. **Should be ON for every audit.**
+Catches `ptr as usize as *const T` roundtrips where provenance is lost. **Should
+be ON for every audit.**
 
 #### Symbolic Alignment Checks
 
@@ -82,7 +96,8 @@ Catches `ptr as usize as *const T` roundtrips where provenance is lost. **Should
 MIRIFLAGS="-Zmiri-symbolic-alignment-check" cargo +nightly miri test
 ```
 
-Catches alignment UB that happens to be aligned on your machine but is not guaranteed by the type system.
+Catches alignment UB that happens to be aligned on your machine but is not
+guaranteed by the type system.
 
 #### Data Race Detection Tuning
 
@@ -107,6 +122,7 @@ cargo +nightly miri test
 ```
 
 Then a second pass with Tree Borrows:
+
 ```bash
 MIRIFLAGS="\
   -Zmiri-tree-borrows \
@@ -120,23 +136,26 @@ cargo +nightly miri test
 
 #### Isolation and I/O
 
-Miri runs in isolation by default — no file I/O, no network, no system calls. If your tests need the filesystem:
+Miri runs in isolation by default — no file I/O, no network, no system calls. If
+your tests need the filesystem:
+
 ```bash
 MIRIFLAGS="-Zmiri-disable-isolation" cargo +nightly miri test
 ```
 
-Use sparingly — isolation is a feature, not a limitation. Tests that need I/O should have a separate `#[cfg(not(miri))]` path.
+Use sparingly — isolation is a feature, not a limitation. Tests that need I/O
+should have a separate `#[cfg(not(miri))]` path.
 
 ### Miri Limitations
 
-| Cannot do | Workaround |
-|-----------|-----------|
-| Execute FFI / C code | ASAN, MSAN, Valgrind |
-| Run I/O-heavy tests (default) | `-Zmiri-disable-isolation` or `#[cfg(not(miri))]` |
-| Exhaustive interleaving exploration | loom |
-| Find performance bugs | criterion, flamegraph |
-| Run inline assembly | skip with `#[cfg(not(miri))]` |
-| Test OS-specific behavior | real hardware + sanitizers |
+| Cannot do                           | Workaround                                        |
+| ----------------------------------- | ------------------------------------------------- |
+| Execute FFI / C code                | ASAN, MSAN, Valgrind                              |
+| Run I/O-heavy tests (default)       | `-Zmiri-disable-isolation` or `#[cfg(not(miri))]` |
+| Exhaustive interleaving exploration | loom                                              |
+| Find performance bugs               | criterion, flamegraph                             |
+| Run inline assembly                 | skip with `#[cfg(not(miri))]`                     |
+| Test OS-specific behavior           | real hardware + sanitizers                        |
 
 ### Miri in CI
 
@@ -186,17 +205,21 @@ fn test_with_miri_fallback() {
 
 ## Sanitizers — Where Miri Cannot Reach
 
-Sanitizers are compiler instrumentation passes. They run your actual binary on real hardware with extra checks injected. Use them for FFI, I/O-heavy code, and integration tests.
+Sanitizers are compiler instrumentation passes. They run your actual binary on
+real hardware with extra checks injected. Use them for FFI, I/O-heavy code, and
+integration tests.
 
 ### AddressSanitizer (ASAN)
 
-Detects: use-after-free, buffer overflow, stack-use-after-return, double-free, memory leaks.
+Detects: use-after-free, buffer overflow, stack-use-after-return, double-free,
+memory leaks.
 
 ```bash
 RUSTFLAGS="-Zsanitizer=address" cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu
 ```
 
 On macOS:
+
 ```bash
 RUSTFLAGS="-Zsanitizer=address" cargo +nightly test -Zbuild-std --target aarch64-apple-darwin
 ```
@@ -209,7 +232,8 @@ Detects: data races on non-atomic accesses across threads.
 RUSTFLAGS="-Zsanitizer=thread" cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu
 ```
 
-**When to use over Miri:** Integration tests involving real threads + real I/O + FFI. Miri's data-race detector is superior for pure-Rust code.
+**When to use over Miri:** Integration tests involving real threads + real I/O +
+FFI. Miri's data-race detector is superior for pure-Rust code.
 
 ### MemorySanitizer (MSAN)
 
@@ -219,11 +243,13 @@ Detects: reads of uninitialized memory.
 RUSTFLAGS="-Zsanitizer=memory -Zsanitizer-memory-track-origins" cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu
 ```
 
-**When to use over Miri:** FFI code where C/C++ may return uninitialized memory into Rust.
+**When to use over Miri:** FFI code where C/C++ may return uninitialized memory
+into Rust.
 
 ### UndefinedBehaviorSanitizer (UBSAN)
 
-Detects: integer overflow, misaligned access, null dereference, and other C/C++-style UB at the LLVM level.
+Detects: integer overflow, misaligned access, null dereference, and other
+C/C++-style UB at the LLVM level.
 
 ```bash
 RUSTFLAGS="-Zsanitizer=undefined" cargo +nightly test -Zbuild-std --target x86_64-unknown-linux-gnu
@@ -231,8 +257,10 @@ RUSTFLAGS="-Zsanitizer=undefined" cargo +nightly test -Zbuild-std --target x86_6
 
 ### Sanitizer Limitations
 
-- Require nightly + `-Zbuild-std` (rebuilds the standard library with instrumentation).
-- MSAN requires ALL dependencies (including C libs) to be instrumented — practically hard.
+- Require nightly + `-Zbuild-std` (rebuilds the standard library with
+  instrumentation).
+- MSAN requires ALL dependencies (including C libs) to be instrumented —
+  practically hard.
 - Cannot catch aliasing violations (that is Miri's domain).
 - Significant runtime overhead (2-15x slower).
 - Linux has the best support; macOS works for ASAN; Windows support is minimal.
@@ -241,7 +269,8 @@ RUSTFLAGS="-Zsanitizer=undefined" cargo +nightly test -Zbuild-std --target x86_6
 
 ## Loom — Exhaustive Concurrency Testing
 
-Loom explores all possible thread interleavings of a bounded concurrent program. It is mandatory for lock-free and wait-free primitives.
+Loom explores all possible thread interleavings of a bounded concurrent program.
+It is mandatory for lock-free and wait-free primitives.
 
 ### When to Use Loom
 
@@ -252,8 +281,10 @@ Loom explores all possible thread interleavings of a bounded concurrent program.
 
 ### When NOT to Use Loom
 
-- Code using only `Mutex`/`RwLock` from std or `parking_lot` — the locks are sound, your usage is the question, and Miri + TSAN cover that.
-- Async code (loom does not model async runtimes — use `tokio::test` + Miri instead).
+- Code using only `Mutex`/`RwLock` from std or `parking_lot` — the locks are
+  sound, your usage is the question, and Miri + TSAN cover that.
+- Async code (loom does not model async runtimes — use `tokio::test` + Miri
+  instead).
 
 ### Setup
 
@@ -315,10 +346,12 @@ RUSTFLAGS="--cfg loom" cargo test --lib --release -- loom_tests
 ### Loom + Miri Interaction
 
 Loom and Miri solve different problems:
+
 - **Miri** checks a single execution for UB (aliasing, validity, provenance).
 - **Loom** checks all interleavings for correctness (ordering, atomicity).
 
 Run BOTH on lock-free code:
+
 ```bash
 # Step 1: loom for interleaving correctness
 RUSTFLAGS="--cfg loom" cargo test --lib --release -- loom_tests
@@ -331,7 +364,8 @@ cargo +nightly miri test -- concurrent_tests
 
 ## Cargo-Fuzz — Property-Based UB Hunting
 
-Fuzzing generates random inputs to maximize code coverage and find crashes, panics, and UB.
+Fuzzing generates random inputs to maximize code coverage and find crashes,
+panics, and UB.
 
 ### Setup
 
@@ -370,9 +404,11 @@ cargo +nightly fuzz tmin parse_input artifacts/parse_input/crash-xxxxx
 ### Fuzz + Miri Pipeline
 
 When the fuzzer finds a crashing input:
+
 1. Minimize it with `cargo fuzz tmin`.
 2. Add it as a regression test.
-3. Run the regression test under Miri to classify whether it is a panic (safe) or UB (must fix).
+3. Run the regression test under Miri to classify whether it is a panic (safe)
+   or UB (must fix).
 
 ```bash
 # After adding the input as a test case:
@@ -408,4 +444,6 @@ Start
 
 ## The One Rule
 
-> **When in doubt, run Miri.** If Miri cannot run it, write a version it can run, and test that under Miri. Then test the real version under sanitizers. Never ship `unsafe` code that has not passed Miri.
+> **When in doubt, run Miri.** If Miri cannot run it, write a version it can
+> run, and test that under Miri. Then test the real version under sanitizers.
+> Never ship `unsafe` code that has not passed Miri.

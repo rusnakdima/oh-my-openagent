@@ -1,55 +1,68 @@
-import { taskIdentityLabel, type TaskRecord } from "@oh-my-opencode/senpi-task"
+import { taskIdentityLabel, type TaskRecord } from "@oh-my-opencode/senpi-task";
 
-import type { SenpiExtensionAPI } from "../../extension/types"
+import type { SenpiExtensionAPI } from "../../extension/types";
 
 // The narrow manager seam the guard reads: the live resident set (exactly what a reload's
 // session_shutdown teardown would destroy) plus record lookup for status/labels.
 export interface ReloadGuardManager {
-  residentTaskIds(): readonly string[]
-  get(taskId: string): TaskRecord | undefined
+  residentTaskIds(): readonly string[];
+  get(taskId: string): TaskRecord | undefined;
 }
 
 // The DAG seam the guard reads: an in-flight run is durable but a reload PAUSES it mid-flight, so a
 // live run must veto the reload exactly like a running resident child does.
 export interface ReloadGuardDagRun {
-  readonly runId: string
-  readonly name: string
-  readonly status: string
+  readonly runId: string;
+  readonly name: string;
+  readonly status: string;
 }
 
 export interface ReloadGuardDagSource {
-  liveRuns(): readonly ReloadGuardDagRun[]
+  liveRuns(): readonly ReloadGuardDagRun[];
 }
 
-export type ReloadVeto = { readonly cancel: true; readonly reason: string } | undefined
+export type ReloadVeto =
+  | { readonly cancel: true; readonly reason: string }
+  | undefined;
 
-export function evaluateReloadVeto(manager: ReloadGuardManager, dag?: ReloadGuardDagSource): ReloadVeto {
+export function evaluateReloadVeto(
+  manager: ReloadGuardManager,
+  dag?: ReloadGuardDagSource,
+): ReloadVeto {
   const running = manager
     .residentTaskIds()
     .map((taskId) => manager.get(taskId))
-    .filter((entry): entry is TaskRecord => entry !== undefined && entry.status === "running")
-  const liveRuns = dag?.liveRuns() ?? []
-  if (running.length === 0 && liveRuns.length === 0) return undefined
+    .filter((entry): entry is TaskRecord =>
+      entry !== undefined && entry.status === "running"
+    );
+  const liveRuns = dag?.liveRuns() ?? [];
+  if (running.length === 0 && liveRuns.length === 0) return undefined;
   const labels = running.map((entry) =>
     taskIdentityLabel({
       taskId: entry.task_id,
       ...(entry.name !== undefined && { name: entry.name }),
-      ...(entry.description !== undefined && { description: entry.description }),
-      ...(entry.task_summary !== undefined && { taskSummary: entry.task_summary }),
-    }),
-  )
-  const reasons: string[] = []
+      ...(entry.description !== undefined &&
+        { description: entry.description }),
+      ...(entry.task_summary !== undefined &&
+        { taskSummary: entry.task_summary }),
+    })
+  );
+  const reasons: string[] = [];
   if (running.length > 0) {
     reasons.push(
-      `${running.length} subagent(s) still running: ${labels.join(", ")} - wait for them to finish or cancel them (task_cancel) before reloading.`,
-    )
+      `${running.length} subagent(s) still running: ${
+        labels.join(", ")
+      } - wait for them to finish or cancel them (task_cancel) before reloading.`,
+    );
   }
   if (liveRuns.length > 0) {
     reasons.push(
-      `${liveRuns.length} DAG run(s) still in flight: ${liveRuns.map((entry) => entry.name).join(", ")} - wait for them to finish or cancel them (dag cancel) before reloading.`,
-    )
+      `${liveRuns.length} DAG run(s) still in flight: ${
+        liveRuns.map((entry) => entry.name).join(", ")
+      } - wait for them to finish or cancel them (dag cancel) before reloading.`,
+    );
   }
-  return { cancel: true, reason: reasons.join(" ") }
+  return { cancel: true, reason: reasons.join(" ") };
 }
 
 /**
@@ -67,5 +80,5 @@ export function wireReloadGuard(
   manager: ReloadGuardManager,
   dag?: ReloadGuardDagSource,
 ): void {
-  pi.on("session_before_reload", () => evaluateReloadVeto(manager, dag))
+  pi.on("session_before_reload", () => evaluateReloadVeto(manager, dag));
 }

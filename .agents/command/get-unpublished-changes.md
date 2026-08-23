@@ -8,6 +8,7 @@ IMMEDIATELY output the analysis. NO questions. NO preamble.
 ## CRITICAL: DO NOT just copy commit messages!
 
 For each commit, you MUST:
+
 1. Read the actual diff to understand WHAT CHANGED
 2. Describe the REAL change in plain language
 3. Explain WHY it matters (if not obvious)
@@ -16,27 +17,33 @@ For each commit, you MUST:
 
 Analyze every change against these exact layers:
 
-| Layer | Includes | Version question |
-|---|---|---|
-| `omo pure components` | `packages/*-core`, MCP packages, `packages/shared-skills`, reusable scripts | Do shared components need a patch/minor/major release note even if adapters only consume them internally? |
-| `omo opencode` | Root `oh-my-opencode` / `oh-my-openagent`, `src/`, `.opencode/`, `.agents/`, CLI, config, hooks, tools, docs | What semver bump should the OpenCode/OpenAgent npm packages use? |
-| `omo codex` | `packages/omo-codex`, `lazycodex-ai`, Codex plugin metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace payload | Does LazyCodex need the same bump, a Codex-only note, or a marketplace release? |
+| Layer                 | Includes                                                                                                                              | Version question                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `omo pure components` | `packages/*-core`, MCP packages, `packages/shared-skills`, reusable scripts                                                           | Do shared components need a patch/minor/major release note even if adapters only consume them internally? |
+| `omo opencode`        | Root `oh-my-opencode` / `oh-my-openagent`, `src/`, `.opencode/`, `.agents/`, CLI, config, hooks, tools, docs                          | What semver bump should the OpenCode/OpenAgent npm packages use?                                          |
+| `omo codex`           | `packages/omo-codex`, `lazycodex-ai`, Codex plugin metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace payload | Does LazyCodex need the same bump, a Codex-only note, or a marketplace release?                           |
 
-Exclude commits and paths matching `senpi`, `omo-senpi`, `senpi-task`, `pi-goal`, or `pi-webfetch` from user-facing notes and version recommendations. Record them only in a separate internal-adapter exclusion ledger.
+Exclude commits and paths matching `senpi`, `omo-senpi`, `senpi-task`,
+`pi-goal`, or `pi-webfetch` from user-facing notes and version recommendations.
+Record them only in a separate internal-adapter exclusion ledger.
 
 ## Steps:
-1. Detect latest published versions for `oh-my-opencode`, `oh-my-openagent`, and `lazycodex-ai`.
+
+1. Detect latest published versions for `oh-my-opencode`, `oh-my-openagent`, and
+   `lazycodex-ai`.
 2. Run `git diff v{published-version}..HEAD` to see actual changes.
-3. Classify every file into one or more release layers before grouping by feat/fix/refactor/docs.
+3. Classify every file into one or more release layers before grouping by
+   feat/fix/refactor/docs.
 4. Describe the REAL changes and why each layer cares.
 5. Note breaking changes by affected layer.
 6. Recommend a layer-specific version bump and one overall workflow bump.
 
 ## Output Format:
+
 - feat: "Added X that does Y" (not just "add X feature")
 - fix: "Fixed bug where X happened, now Y" (not just "fix X bug")
 - refactor: "Changed X from A to B, now supports C" (not just "rename X")
-</command-instruction>
+  </command-instruction>
 
 <version-context>
 <published-version>
@@ -69,62 +76,74 @@ Exclude commits and paths matching `senpi`, `omo-senpi`, `senpi-task`, `pi-goal`
 ## Unpublished Changes (v{published} → HEAD)
 
 ### feat
-| Scope | What Changed |
-|-------|--------------|
-| X | Description of actual changes |
+
+| Scope | What Changed                  |
+| ----- | ----------------------------- |
+| X     | Description of actual changes |
 
 ### fix
-| Scope | What Changed |
-|-------|--------------|
-| X | Description of actual changes |
+
+| Scope | What Changed                  |
+| ----- | ----------------------------- |
+| X     | Description of actual changes |
 
 ### refactor
-| Scope | What Changed |
-|-------|--------------|
-| X | Description of actual changes |
+
+| Scope | What Changed                  |
+| ----- | ----------------------------- |
+| X     | Description of actual changes |
 
 ### docs
-| Scope | What Changed |
-|-------|--------------|
-| X | Description of actual changes |
+
+| Scope | What Changed                  |
+| ----- | ----------------------------- |
+| X     | Description of actual changes |
 
 ### Breaking Changes
+
 None or list
 
 ### Files Changed
+
 {diff-stat}
 
 ### Layered Impact Matrix
-| Layer | Impact | Breaking Risk |
-|-------|--------|---------------|
-| omo pure components | ... | ... |
-| omo opencode | ... | ... |
-| omo codex | ... | ... |
+
+| Layer               | Impact | Breaking Risk |
+| ------------------- | ------ | ------------- |
+| omo pure components | ...    | ...           |
+| omo opencode        | ...    | ...           |
+| omo codex           | ...    | ...           |
 
 ### Layer-specific Version Recommendation
-| Layer | Recommendation | Reason |
-|-------|----------------|--------|
-| omo pure components | patch|minor|major | ... |
-| omo opencode | patch|minor|major | ... |
-| omo codex | patch|minor|major | ... |
+
+| Layer               | Recommendation | Reason |
+| ------------------- | -------------- | ------ |
+| omo pure components | patch          | minor  |
+| omo opencode        | patch          | minor  |
+| omo codex           | patch          | minor  |
 
 ### Overall Suggested Version Bump
+
 - **Recommendation**: patch|minor|major
 - **Reason**: Reason for recommendation
-</output-format>
+  </output-format>
 
 <oracle-safety-review>
 ## Oracle Deployment Safety Review (Only when user explicitly requests)
 
-**Trigger keywords**: "safe to deploy", "can I deploy", "is it safe", "review", "check", "oracle"
+**Trigger keywords**: "safe to deploy", "can I deploy", "is it safe", "review",
+"check", "oracle"
 
 When user includes any of the above keywords in their request:
 
 ### 1. Pre-validation
+
 ```bash
 bun run typecheck
 bun test
 ```
+
 - On failure → Report "❌ Cannot deploy" immediately without invoking Oracle
 
 ### 2. Oracle Invocation Prompt
@@ -164,16 +183,20 @@ Suggest keywords to monitor after deployment if any.
 ### Verdict: ✅ SAFE / ⚠️ CAUTION / ❌ UNSAFE
 
 ### Risk Analysis
+
 | Area | Risk Level | Description |
-|------|------------|-------------|
-| ... | 🟢/🟡/🔴 | ... |
+| ---- | ---------- | ----------- |
+| ...  | 🟢/🟡/🔴   | ...         |
 
 ### Recommendations
+
 - ...
 
 ### Post-deployment Monitoring Keywords
+
 - ...
 
 ### Conclusion
+
 {Oracle's final judgment}
 </oracle-safety-review>

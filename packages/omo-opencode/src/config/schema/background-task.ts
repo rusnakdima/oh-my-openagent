@@ -1,10 +1,10 @@
-import { z } from "zod"
+import { z } from "zod";
 
 const CircuitBreakerConfigSchema = z.object({
   enabled: z.boolean().optional(),
   maxToolCalls: z.number().int().min(10).optional(),
   consecutiveThreshold: z.number().int().min(5).optional(),
-})
+});
 
 export const BackgroundTaskConfigSchema = z.object({
   defaultConcurrency: z.number().min(1).optional(),
@@ -27,6 +27,6 @@ export const BackgroundTaskConfigSchema = z.object({
   circuitBreaker: CircuitBreakerConfigSchema.optional(),
   /** Wake the parent session on each individual task completion, not just when all complete or on failure (default: false) */
   wakeOnEachCompletion: z.boolean().optional(),
-})
+});
 
-export type BackgroundTaskConfig = z.infer<typeof BackgroundTaskConfigSchema>
+export type BackgroundTaskConfig = z.infer<typeof BackgroundTaskConfigSchema>;

@@ -3,6 +3,7 @@
 ## Template 1: DuckDB for Simple/Complex SQL Queries
 
 **Use when:**
+
 - Simple aggregation on single file
 - Complex multi-table joins
 - Heavy GROUP BY operations
@@ -36,6 +37,7 @@ print(f'\\nProcessed {len(result)} categories')
 ## Template 2: Polars for Filtering & Sorting
 
 **Use when:**
+
 - Primary operation is filtering large dataset
 - Sorting required
 - Chain transformations
@@ -67,6 +69,7 @@ print(f'\\nFound {len(result)} matching rows')
 ## Template 3: Hybrid Approach (Best of Both)
 
 **Use when:**
+
 - Need joins AND heavy filtering
 - Complex SQL followed by transformations
 - Optimize different operation stages
@@ -132,6 +135,7 @@ print(final)
 ## Template 4: Polars Streaming for Large Files
 
 **Use when:**
+
 - Dataset larger than available RAM
 - Need to process data in batches
 - Memory constraints
@@ -164,6 +168,7 @@ print(f'\\nProcessed {result[\"count\"].sum():,} total rows')
 ## Template 5: Visualization with Matplotlib
 
 **Use when:**
+
 - User requests charts, graphs, or plots
 - Exploratory data analysis (EDA)
 - Time-series or distribution analysis

@@ -1,20 +1,25 @@
-import { extractRuntimeFallbackAutoRetrySignal as extractBuiltInSignal, type RuntimeFallbackAutoRetrySignal as AutoRetrySignal } from "@oh-my-opencode/model-core"
+import {
+  extractRuntimeFallbackAutoRetrySignal as extractBuiltInSignal,
+  type RuntimeFallbackAutoRetrySignal as AutoRetrySignal,
+} from "@oh-my-opencode/model-core";
 
-export { extractBuiltInSignal as extractAutoRetrySignal }
-export type { AutoRetrySignal }
+export { extractBuiltInSignal as extractAutoRetrySignal };
+export type { AutoRetrySignal };
 
 function appendStringCandidate(candidates: string[], value: unknown): void {
-  if (typeof value === "string") candidates.push(value)
+  if (typeof value === "string") candidates.push(value);
 }
 
-function extractMessageFromInfo(info: Record<string, unknown> | undefined): string | undefined {
-  if (!info) return undefined
-  const candidates: string[] = []
-  appendStringCandidate(candidates, info.status)
-  appendStringCandidate(candidates, info.summary)
-  appendStringCandidate(candidates, info.message)
-  appendStringCandidate(candidates, info.details)
-  return candidates.join("\n")
+function extractMessageFromInfo(
+  info: Record<string, unknown> | undefined,
+): string | undefined {
+  if (!info) return undefined;
+  const candidates: string[] = [];
+  appendStringCandidate(candidates, info.status);
+  appendStringCandidate(candidates, info.summary);
+  appendStringCandidate(candidates, info.message);
+  appendStringCandidate(candidates, info.details);
+  return candidates.join("\n");
 }
 
 /**
@@ -26,21 +31,21 @@ export function extractAutoRetrySignalWithUserPatterns(
   info: Record<string, unknown> | undefined,
   userPatterns: string[],
 ): AutoRetrySignal | undefined {
-  const builtIn = extractBuiltInSignal(info)
-  if (builtIn) return builtIn
-  if (!userPatterns.length) return undefined
+  const builtIn = extractBuiltInSignal(info);
+  if (builtIn) return builtIn;
+  if (!userPatterns.length) return undefined;
 
-  const message = extractMessageFromInfo(info)
-  if (!message) return undefined
+  const message = extractMessageFromInfo(info);
+  if (!message) return undefined;
 
   for (const pattern of userPatterns) {
     try {
       if (new RegExp(pattern, "i").test(message)) {
-        return { signal: message }
+        return { signal: message };
       }
     } catch {
       // invalid regex — skip
     }
   }
-  return undefined
+  return undefined;
 }

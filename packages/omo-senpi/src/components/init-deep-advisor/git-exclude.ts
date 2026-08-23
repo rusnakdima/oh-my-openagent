@@ -1,77 +1,87 @@
-import { execFileSync } from "node:child_process"
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs"
-import { dirname, isAbsolute, join } from "node:path"
+import { execFileSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, isAbsolute, join } from "node:path";
 
 function resolveExcludePath(root: string): string | null {
   try {
-    const relative = execFileSync("git", ["rev-parse", "--git-path", "info/exclude"], {
+    const relative = execFileSync("git", [
+      "rev-parse",
+      "--git-path",
+      "info/exclude",
+    ], {
       cwd: root,
       encoding: "utf8",
-    }).trim()
-    return isAbsolute(relative) ? relative : join(root, relative)
+    }).trim();
+    return isAbsolute(relative) ? relative : join(root, relative);
   } catch {
-    return null
+    return null;
   }
 }
 
 function readExcludeContent(excludePath: string): string {
   try {
-    return readFileSync(excludePath, "utf8")
+    return readFileSync(excludePath, "utf8");
   } catch {
-    return ""
+    return "";
   }
 }
 
-export function addLocalExcludePaths(root: string, paths: readonly string[]): void {
-  const excludePath = resolveExcludePath(root)
-  if (excludePath === null) return
+export function addLocalExcludePaths(
+  root: string,
+  paths: readonly string[],
+): void {
+  const excludePath = resolveExcludePath(root);
+  if (excludePath === null) return;
 
-  const content = readExcludeContent(excludePath)
-  const lines = content.split("\n")
+  const content = readExcludeContent(excludePath);
+  const lines = content.split("\n");
 
-  const newLines = [...lines]
+  const newLines = [...lines];
   for (const path of paths) {
     if (!newLines.includes(path)) {
       if (newLines.length > 0 && newLines[newLines.length - 1] !== "") {
-        newLines.push("")
+        newLines.push("");
       }
-      newLines.push(path)
+      newLines.push(path);
     }
   }
 
-  if (newLines.join("\n") === content) return
+  if (newLines.join("\n") === content) return;
 
-  mkdirSync(dirname(excludePath), { recursive: true })
-  writeFileSync(excludePath, newLines.join("\n"))
+  mkdirSync(dirname(excludePath), { recursive: true });
+  writeFileSync(excludePath, newLines.join("\n"));
 }
 
-export function removeLocalExcludePaths(root: string, paths: readonly string[]): void {
-  const excludePath = resolveExcludePath(root)
-  if (excludePath === null) return
+export function removeLocalExcludePaths(
+  root: string,
+  paths: readonly string[],
+): void {
+  const excludePath = resolveExcludePath(root);
+  if (excludePath === null) return;
 
-  const content = readExcludeContent(excludePath)
-  if (content === "") return
+  const content = readExcludeContent(excludePath);
+  if (content === "") return;
 
-  const pathSet = new Set(paths)
+  const pathSet = new Set(paths);
   const filtered = content
     .split("\n")
     .filter((line) => !pathSet.has(line))
-    .join("\n")
+    .join("\n");
 
-  if (filtered === content) return
+  if (filtered === content) return;
 
-  mkdirSync(dirname(excludePath), { recursive: true })
-  writeFileSync(excludePath, filtered)
+  mkdirSync(dirname(excludePath), { recursive: true });
+  writeFileSync(excludePath, filtered);
 }
 
 export function isExcluded(root: string, path: string): boolean {
-  const excludePath = resolveExcludePath(root)
-  if (excludePath === null) return false
+  const excludePath = resolveExcludePath(root);
+  if (excludePath === null) return false;
 
-  const content = readExcludeContent(excludePath)
-  if (content === "") return false
+  const content = readExcludeContent(excludePath);
+  if (content === "") return false;
 
   return content
     .split("\n")
-    .some((line) => line.trim() === path)
+    .some((line) => line.trim() === path);
 }

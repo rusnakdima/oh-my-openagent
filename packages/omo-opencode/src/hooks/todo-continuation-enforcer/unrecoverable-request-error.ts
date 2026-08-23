@@ -1,6 +1,9 @@
-import { getRuntimeFallbackRetryableSignal, getRuntimeFallbackStatusCode } from "@oh-my-opencode/model-core"
+import {
+  getRuntimeFallbackRetryableSignal,
+  getRuntimeFallbackStatusCode,
+} from "@oh-my-opencode/model-core";
 
-const UNRECOVERABLE_REQUEST_STATUS_CODES = new Set([400, 422])
+const UNRECOVERABLE_REQUEST_STATUS_CODES = new Set([400, 422]);
 
 /**
  * A malformed-request error the provider will reject identically on every retry, for
@@ -12,13 +15,16 @@ const UNRECOVERABLE_REQUEST_STATUS_CODES = new Set([400, 422])
  */
 export function isUnrecoverableRequestError(error: unknown): boolean {
   if (!error) {
-    return false
+    return false;
   }
 
-  const statusCode = getRuntimeFallbackStatusCode(error)
-  if (statusCode === undefined || !UNRECOVERABLE_REQUEST_STATUS_CODES.has(statusCode)) {
-    return false
+  const statusCode = getRuntimeFallbackStatusCode(error);
+  if (
+    statusCode === undefined ||
+    !UNRECOVERABLE_REQUEST_STATUS_CODES.has(statusCode)
+  ) {
+    return false;
   }
 
-  return getRuntimeFallbackRetryableSignal(error) === false
+  return getRuntimeFallbackRetryableSignal(error) === false;
 }

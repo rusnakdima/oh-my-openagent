@@ -1,15 +1,15 @@
-import { describe, expect, it } from "bun:test"
-import packageJson from "../../../../package.json" with { type: "json" }
-import { PLUGIN_NAME } from "./plugin-identity"
-import { createOpencodeTelemetryProductConfig } from "./telemetry-product-identity"
+import { describe, expect, it } from "bun:test";
+import packageJson from "../../../../package.json" with { type: "json" };
+import { PLUGIN_NAME } from "./plugin-identity";
+import { createOpencodeTelemetryProductConfig } from "./telemetry-product-identity";
 
 describe("createOpencodeTelemetryProductConfig", () => {
   it("pins the omo-opencode telemetry identity for zero data breakage", () => {
     // given
-    const expectedVersion = packageJson.version
+    const expectedVersion = packageJson.version;
 
     // when
-    const product = createOpencodeTelemetryProductConfig()
+    const product = createOpencodeTelemetryProductConfig();
 
     // then
     expect(product).toMatchObject({
@@ -24,6 +24,6 @@ describe("createOpencodeTelemetryProductConfig", () => {
       additionalProperties: {
         plugin_name: PLUGIN_NAME,
       },
-    })
-  })
-})
+    });
+  });
+});

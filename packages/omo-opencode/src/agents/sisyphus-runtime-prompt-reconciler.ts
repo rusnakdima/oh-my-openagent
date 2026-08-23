@@ -19,7 +19,9 @@ export type SisyphusRuntimePromptContext = {
 
 let context: SisyphusRuntimePromptContext | undefined;
 
-export function setSisyphusRuntimePromptContext(ctx: SisyphusRuntimePromptContext): void {
+export function setSisyphusRuntimePromptContext(
+  ctx: SisyphusRuntimePromptContext,
+): void {
   context = ctx;
 }
 
@@ -52,26 +54,26 @@ export function reconcileSisyphusRuntimePrompt(
   system: string[],
   runtimeModel: string | undefined,
 ): boolean {
-  if (!runtimeModel || !context) return false
+  if (!runtimeModel || !context) return false;
 
   // Same exact model => the baked body already matches the runtime model; leave it.
   if (runtimeModel === context.configuredModel) {
-    return false
+    return false;
   }
 
-  const rebuilt = context.rebuildPromptForModel(runtimeModel)
-  if (rebuilt === context.bakedPrompt) return false
+  const rebuilt = context.rebuildPromptForModel(runtimeModel);
+  if (rebuilt === context.bakedPrompt) return false;
 
   // Substring replace rather than exact-equality: opencode core may concatenate
   // the agent prompt with other system text in a single array entry, so match
   // the baked body wherever it appears.
-  let swapped = false
+  let swapped = false;
   for (let i = 0; i < system.length; i++) {
-    const part = system[i]
+    const part = system[i];
     if (part.includes(context.bakedPrompt)) {
-      system[i] = part.split(context.bakedPrompt).join(rebuilt)
-      swapped = true
+      system[i] = part.split(context.bakedPrompt).join(rebuilt);
+      swapped = true;
     }
   }
-  return swapped
+  return swapped;
 }

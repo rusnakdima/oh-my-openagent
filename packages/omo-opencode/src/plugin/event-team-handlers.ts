@@ -13,36 +13,49 @@ export function createEventTeamHandlers(args: {
   pluginContext: PluginEventContext;
   managers: Managers;
 }) {
-  const disabledHooks = new Set(args.pluginConfig.disabled_hooks ?? [])
-  const isHookEnabled = (name: string) => !disabledHooks.has(name)
+  const disabledHooks = new Set(args.pluginConfig.disabled_hooks ?? []);
+  const isHookEnabled = (name: string) => !disabledHooks.has(name);
 
-  const teamModeConfig = args.pluginConfig.team_mode?.enabled ? args.pluginConfig.team_mode : undefined
+  const teamModeConfig = args.pluginConfig.team_mode?.enabled
+    ? args.pluginConfig.team_mode
+    : undefined;
 
-  const teamIdleWakeHint = teamModeConfig && isHookEnabled("team-idle-wake-hint")
-    ? createTeamIdleWakeHint({
+  const teamIdleWakeHint =
+    teamModeConfig && isHookEnabled("team-idle-wake-hint")
+      ? createTeamIdleWakeHint({
         directory: args.pluginContext.directory,
         client: buildTeamIdleWakeHintClient(args.pluginContext.client),
       }, teamModeConfig)
-    : undefined
+      : undefined;
 
-  const teamLeadOrphanHandler = teamModeConfig && isHookEnabled("team-lead-orphan-handler")
-    ? createTeamLeadOrphanHandler(teamModeConfig, args.managers.tmuxSessionManager, args.managers.backgroundManager)
-    : undefined
+  const teamLeadOrphanHandler =
+    teamModeConfig && isHookEnabled("team-lead-orphan-handler")
+      ? createTeamLeadOrphanHandler(
+        teamModeConfig,
+        args.managers.tmuxSessionManager,
+        args.managers.backgroundManager,
+      )
+      : undefined;
 
-  const teamMemberErrorHandler = teamModeConfig && isHookEnabled("team-member-error-handler")
-    ? createTeamMemberErrorHandler(teamModeConfig, { client: args.pluginContext.client })
-    : undefined
+  const teamMemberErrorHandler =
+    teamModeConfig && isHookEnabled("team-member-error-handler")
+      ? createTeamMemberErrorHandler(teamModeConfig, {
+        client: args.pluginContext.client,
+      })
+      : undefined;
 
-  const teamMemberStatusHandler = teamModeConfig && isHookEnabled("team-member-status-handler")
-    ? createTeamMemberStatusHandler(teamModeConfig)
-    : undefined
+  const teamMemberStatusHandler =
+    teamModeConfig && isHookEnabled("team-member-status-handler")
+      ? createTeamMemberStatusHandler(teamModeConfig)
+      : undefined;
 
-  const teamLeadQuiescenceHandler = teamModeConfig && isHookEnabled("team-lead-quiescence-handler")
-    ? createTeamLeadQuiescenceHandler(teamModeConfig, {
+  const teamLeadQuiescenceHandler =
+    teamModeConfig && isHookEnabled("team-lead-quiescence-handler")
+      ? createTeamLeadQuiescenceHandler(teamModeConfig, {
         directory: args.pluginContext.directory,
         client: args.pluginContext.client,
       })
-    : undefined
+      : undefined;
 
   return {
     teamIdleWakeHint,

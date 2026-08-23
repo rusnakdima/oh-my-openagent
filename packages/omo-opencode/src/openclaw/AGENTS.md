@@ -4,11 +4,18 @@
 
 ## OVERVIEW
 
-This module provides a bidirectional integration system: **outbound** session event notifications (Discord/Telegram/HTTP webhook/shell command) AND **inbound** reply handling (daemon polls chat apps, injects replies back into tmux session). Harness-neutral gateway, daemon, session registry, and tmux injection primitives are extracted to [`packages/openclaw-core/`](../../../../packages/openclaw-core); this directory keeps OpenCode startup/event wiring stable.
+This module provides a bidirectional integration system: **outbound** session
+event notifications (Discord/Telegram/HTTP webhook/shell command) AND
+**inbound** reply handling (daemon polls chat apps, injects replies back into
+tmux session). Harness-neutral gateway, daemon, session registry, and tmux
+injection primitives are extracted to
+[`packages/openclaw-core/`](../../../../packages/openclaw-core); this directory
+keeps OpenCode startup/event wiring stable.
 
 ## BIDIRECTIONAL FLOW
 
 ### Outbound (OpenCode → External)
+
 ```
 OpenCode session event → dispatchOpenClawEvent()
   → runtime-dispatch.ts: map event to OpenClaw event
@@ -17,6 +24,7 @@ OpenCode session event → dispatchOpenClawEvent()
 ```
 
 ### Inbound (External → OpenCode)
+
 ```
 Discord/Telegram API → reply-listener daemon (separate Bun process)
   → reply-listener-{discord,telegram}.ts: poll every 3s
@@ -26,37 +34,40 @@ Discord/Telegram API → reply-listener daemon (separate Bun process)
 
 ## KEY FILES
 
-| File | Purpose |
-|------|---------|
-| `index.ts` | `wakeOpenClaw()`, `initializeOpenClaw()` — main entry |
-| `types.ts` | `OpenClawConfig`, `OpenClawPayload`, `WakeResult` types |
-| `config.ts` | Gateway resolution + URL validation (HTTPS required, localhost exception) |
-| `dispatcher.ts` | HTTP POST + shell command execution with variable interpolation |
-| `runtime-dispatch.ts` | Maps OpenCode events → OpenClaw events, orchestrates dispatch |
-| `session-registry.ts` | JSONL registry correlating message IDs ↔ sessions ↔ panes (file-locked) |
-| `reply-listener.ts` | Daemon lifecycle: start/stop, poll loop, state persistence |
-| `reply-listener-discord.ts` | Discord API polling |
-| `reply-listener-telegram.ts` | Telegram API polling |
-| `reply-listener-injection.ts` | Inject received reply into tmux pane (rate limiting + user filtering) |
-| `reply-listener-state.ts` | Daemon state: PID, config signature, poll tracking |
-| `daemon.ts` | Daemon entry point (runs as detached Bun process) |
-| `tmux.ts` | `capturePane()`, `sendToPane()` utilities |
+| File                          | Purpose                                                                   |
+| ----------------------------- | ------------------------------------------------------------------------- |
+| `index.ts`                    | `wakeOpenClaw()`, `initializeOpenClaw()` — main entry                     |
+| `types.ts`                    | `OpenClawConfig`, `OpenClawPayload`, `WakeResult` types                   |
+| `config.ts`                   | Gateway resolution + URL validation (HTTPS required, localhost exception) |
+| `dispatcher.ts`               | HTTP POST + shell command execution with variable interpolation           |
+| `runtime-dispatch.ts`         | Maps OpenCode events → OpenClaw events, orchestrates dispatch             |
+| `session-registry.ts`         | JSONL registry correlating message IDs ↔ sessions ↔ panes (file-locked)   |
+| `reply-listener.ts`           | Daemon lifecycle: start/stop, poll loop, state persistence                |
+| `reply-listener-discord.ts`   | Discord API polling                                                       |
+| `reply-listener-telegram.ts`  | Telegram API polling                                                      |
+| `reply-listener-injection.ts` | Inject received reply into tmux pane (rate limiting + user filtering)     |
+| `reply-listener-state.ts`     | Daemon state: PID, config signature, poll tracking                        |
+| `daemon.ts`                   | Daemon entry point (runs as detached Bun process)                         |
+| `tmux.ts`                     | `capturePane()`, `sendToPane()` utilities                                 |
 
 ## GATEWAY TYPES
 
-| Type | Config | Execution |
-|------|--------|-----------|
-| **HTTP webhook** | `url` field | POST with JSON payload |
+| Type              | Config          | Execution                          |
+| ----------------- | --------------- | ---------------------------------- |
+| **HTTP webhook**  | `url` field     | POST with JSON payload             |
 | **Shell command** | `command` field | Execute with env vars (OPENCLAW_*) |
 
 ## PAYLOAD VARIABLES (interpolation)
 
-`{sessionId}`, `{projectPath}`, `{tmuxSession}`, `{timestamp}`, `{eventType}` (session.created/deleted/idle), `{messageContent}`, `{promptSummary}`
+`{sessionId}`, `{projectPath}`, `{tmuxSession}`, `{timestamp}`, `{eventType}`
+(session.created/deleted/idle), `{messageContent}`, `{promptSummary}`
 
 ## INTEGRATION POINTS
 
-- `src/index.ts` — calls `initializeOpenClaw(pluginConfig.openclaw)` at plugin startup (if `enabled`)
-- `src/plugin/event.ts` — calls `dispatchOpenClawEvent()` for session.created/deleted/idle
+- `src/index.ts` — calls `initializeOpenClaw(pluginConfig.openclaw)` at plugin
+  startup (if `enabled`)
+- `src/plugin/event.ts` — calls `dispatchOpenClawEvent()` for
+  session.created/deleted/idle
 - `src/config/schema/openclaw.ts` — Zod config schema
 
 ## DAEMON LIFECYCLE

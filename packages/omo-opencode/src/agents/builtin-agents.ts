@@ -1,33 +1,41 @@
-import type { AgentConfig } from "@opencode-ai/sdk"
-import type { BuiltinAgentName, AgentOverrides, AgentFactory, AgentPromptMetadata } from "./types"
-import type { CategoriesConfig, GitMasterConfig } from "../config/schema"
-import type { LoadedSkill } from "../features/opencode-skill-loader/types"
-import type { BrowserAutomationProvider } from "../config/schema"
-import { createSisyphusAgent } from "./sisyphus"
-import { createOracleAgent, ORACLE_PROMPT_METADATA } from "./oracle"
-import { createLibrarianAgent, LIBRARIAN_PROMPT_METADATA } from "./librarian"
-import { createExploreAgent, EXPLORE_PROMPT_METADATA } from "./explore"
-import { createMultimodalLookerAgent, MULTIMODAL_LOOKER_PROMPT_METADATA } from "./multimodal-looker"
-import { createMetisAgent, metisPromptMetadata } from "./metis"
-import { createAtlasAgent, atlasPromptMetadata } from "./atlas"
-import { createMomusAgent, momusPromptMetadata } from "./momus"
-import { createHephaestusAgent } from "./hephaestus"
-import { createSisyphusJuniorAgentWithOverrides } from "./sisyphus-junior"
-import type { AvailableCategory } from "./dynamic-agent-prompt-builder"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import type {
+  AgentFactory,
+  AgentOverrides,
+  AgentPromptMetadata,
+  BuiltinAgentName,
+} from "./types";
+import type { CategoriesConfig, GitMasterConfig } from "../config/schema";
+import type { LoadedSkill } from "../features/opencode-skill-loader/types";
+import type { BrowserAutomationProvider } from "../config/schema";
+import { createSisyphusAgent } from "./sisyphus";
+import { createOracleAgent, ORACLE_PROMPT_METADATA } from "./oracle";
+import { createLibrarianAgent, LIBRARIAN_PROMPT_METADATA } from "./librarian";
+import { createExploreAgent, EXPLORE_PROMPT_METADATA } from "./explore";
+import {
+  createMultimodalLookerAgent,
+  MULTIMODAL_LOOKER_PROMPT_METADATA,
+} from "./multimodal-looker";
+import { createMetisAgent, metisPromptMetadata } from "./metis";
+import { atlasPromptMetadata, createAtlasAgent } from "./atlas";
+import { createMomusAgent, momusPromptMetadata } from "./momus";
+import { createHephaestusAgent } from "./hephaestus";
+import { createSisyphusJuniorAgentWithOverrides } from "./sisyphus-junior";
+import type { AvailableCategory } from "./dynamic-agent-prompt-builder";
 import {
   fetchAvailableModels,
   readConnectedProvidersCache,
   readProviderModelsCache,
-} from "../shared"
-import { CATEGORY_DESCRIPTIONS } from "../tools/delegate-task/constants"
-import { mergeCategories } from "../shared/merge-categories"
-import { buildAvailableSkills } from "./builtin-agents/available-skills"
-import { collectPendingBuiltinAgents } from "./builtin-agents/general-agents"
-import { maybeCreateSisyphusConfig } from "./builtin-agents/sisyphus-agent"
-import { maybeCreateHephaestusConfig } from "./builtin-agents/hephaestus-agent"
-import { maybeCreateAtlasConfig } from "./builtin-agents/atlas-agent"
+} from "../shared";
+import { CATEGORY_DESCRIPTIONS } from "../tools/delegate-task/constants";
+import { mergeCategories } from "../shared/merge-categories";
+import { buildAvailableSkills } from "./builtin-agents/available-skills";
+import { collectPendingBuiltinAgents } from "./builtin-agents/general-agents";
+import { maybeCreateSisyphusConfig } from "./builtin-agents/sisyphus-agent";
+import { maybeCreateHephaestusConfig } from "./builtin-agents/hephaestus-agent";
+import { maybeCreateAtlasConfig } from "./builtin-agents/atlas-agent";
 
-type AgentSource = AgentFactory | AgentConfig
+type AgentSource = AgentFactory | AgentConfig;
 
 const agentSources: Record<BuiltinAgentName, AgentSource> = {
   sisyphus: createSisyphusAgent,
@@ -42,7 +50,7 @@ const agentSources: Record<BuiltinAgentName, AgentSource> = {
   // because it needs OrchestratorContext, not just a model string
   atlas: createAtlasAgent as AgentFactory,
   "sisyphus-junior": createSisyphusJuniorAgentWithOverrides as AgentFactory,
-}
+};
 
 /**
  * Metadata for each agent, used to build Sisyphus's dynamic prompt sections
@@ -56,7 +64,7 @@ const agentMetadata: Partial<Record<BuiltinAgentName, AgentPromptMetadata>> = {
   metis: metisPromptMetadata,
   momus: momusPromptMetadata,
   atlas: atlasPromptMetadata,
-}
+};
 
 export async function createBuiltinAgents(
   disabledAgents: string[] = [],
@@ -76,31 +84,35 @@ export async function createBuiltinAgents(
   teamModeEnabled = false,
   openspecEnabled = false,
 ): Promise<Record<string, AgentConfig>> {
-
-  const connectedProviders = readConnectedProvidersCache()
+  const connectedProviders = readConnectedProvidersCache();
   const providerModelsConnected = connectedProviders
     ? (readProviderModelsCache()?.connected ?? [])
-    : []
+    : [];
   const mergedConnectedProviders = Array.from(
-    new Set([...(connectedProviders ?? []), ...providerModelsConnected])
-  )
+    new Set([...(connectedProviders ?? []), ...providerModelsConnected]),
+  );
   // IMPORTANT: Do NOT call OpenCode client APIs during plugin initialization.
   // This function is called from config handler, and calling client API causes deadlock.
   // See: https://github.com/code-yeongyu/oh-my-openagent/issues/1301
   const availableModels = await fetchAvailableModels(undefined, {
-    connectedProviders: mergedConnectedProviders.length > 0 ? mergedConnectedProviders : undefined,
-  })
-  const isFirstRunNoCache =
-    availableModels.size === 0 && mergedConnectedProviders.length === 0
+    connectedProviders: mergedConnectedProviders.length > 0
+      ? mergedConnectedProviders
+      : undefined,
+  });
+  const isFirstRunNoCache = availableModels.size === 0 &&
+    mergedConnectedProviders.length === 0;
 
-  const result: Record<string, AgentConfig> = {}
+  const result: Record<string, AgentConfig> = {};
 
-  const mergedCategories = mergeCategories(categories)
+  const mergedCategories = mergeCategories(categories);
 
-  const availableCategories: AvailableCategory[] = Object.entries(mergedCategories).map(([name]) => ({
+  const availableCategories: AvailableCategory[] = Object.entries(
+    mergedCategories,
+  ).map(([name]) => ({
     name,
-    description: categories?.[name]?.description ?? CATEGORY_DESCRIPTIONS[name] ?? "General tasks",
-  }))
+    description: categories?.[name]?.description ??
+      CATEGORY_DESCRIPTIONS[name] ?? "General tasks",
+  }));
 
   // Collect general agents first (for availableAgents), but don't add to result yet
   const { pendingAgentConfigs, availableAgents } = collectPendingBuiltinAgents({
@@ -120,7 +132,7 @@ export async function createBuiltinAgents(
     disabledSkills,
     teamModeEnabled,
     disableOmoEnv,
-  })
+  });
 
   const sisyphusConfig = maybeCreateSisyphusConfig({
     disabledAgents,
@@ -131,41 +143,52 @@ export async function createBuiltinAgents(
     defaultModel,
     isFirstRunNoCache,
     availableAgents,
-    availableSkills: buildAvailableSkills(discoveredSkills, browserProvider, disabledSkills, teamModeEnabled, openspecEnabled, "sisyphus"),
+    availableSkills: buildAvailableSkills(
+      discoveredSkills,
+      browserProvider,
+      disabledSkills,
+      teamModeEnabled,
+      openspecEnabled,
+      "sisyphus",
+    ),
     availableCategories,
     mergedCategories,
     directory,
     userCategories: categories,
     useTaskSystem,
     disableOmoEnv,
-  })
+  });
   if (sisyphusConfig) {
-    result["sisyphus"] = sisyphusConfig
+    result["sisyphus"] = sisyphusConfig;
   }
 
   const hephaestusConfig = maybeCreateHephaestusConfig({
     disabledAgents,
     agentOverrides,
     availableModels,
-    systemDefaultModel,
-    defaultModel,
     isFirstRunNoCache,
     availableAgents,
-    availableSkills: buildAvailableSkills(discoveredSkills, browserProvider, disabledSkills, teamModeEnabled, openspecEnabled, "hephaestus"),
+    availableSkills: buildAvailableSkills(
+      discoveredSkills,
+      browserProvider,
+      disabledSkills,
+      teamModeEnabled,
+      openspecEnabled,
+      "hephaestus",
+    ),
     availableCategories,
     mergedCategories,
     directory,
     useTaskSystem,
     disableOmoEnv,
-    uiSelectedModel,
-  })
+  });
   if (hephaestusConfig) {
-    result["hephaestus"] = hephaestusConfig
+    result["hephaestus"] = hephaestusConfig;
   }
 
   // Add pending agents after sisyphus and hephaestus to maintain order
   for (const [name, config] of pendingAgentConfigs) {
-    result[name] = config
+    result[name] = config;
   }
 
   const atlasConfig = maybeCreateAtlasConfig({
@@ -176,14 +199,21 @@ export async function createBuiltinAgents(
     systemDefaultModel,
     defaultModel,
     availableAgents,
-    availableSkills: buildAvailableSkills(discoveredSkills, browserProvider, disabledSkills, teamModeEnabled, openspecEnabled, "atlas"),
+    availableSkills: buildAvailableSkills(
+      discoveredSkills,
+      browserProvider,
+      disabledSkills,
+      teamModeEnabled,
+      openspecEnabled,
+      "atlas",
+    ),
     mergedCategories,
     directory,
     userCategories: categories,
-  })
+  });
   if (atlasConfig) {
-    result["atlas"] = atlasConfig
+    result["atlas"] = atlasConfig;
   }
 
-  return result
+  return result;
 }

@@ -1,13 +1,13 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { ULTIMATE_FALLBACK } from "./model-fallback"
+import { ULTIMATE_FALLBACK } from "./model-fallback";
 import {
-	getNoModelProvidersWarning,
-	hasAnyConfiguredProvider,
-	isProviderAvailable,
-	toProviderAvailability,
-} from "./provider-availability"
-import type { InstallConfig } from "./types"
+  getNoModelProvidersWarning,
+  hasAnyConfiguredProvider,
+  isProviderAvailable,
+  toProviderAvailability,
+} from "./provider-availability";
+import type { InstallConfig } from "./types";
 
 function createConfig(overrides: Partial<InstallConfig> = {}): InstallConfig {
   return {
@@ -29,27 +29,33 @@ function createConfig(overrides: Partial<InstallConfig> = {}): InstallConfig {
     hasMinimaxCodingPlan: false,
     hasVercelAiGateway: false,
     ...overrides,
-  }
+  };
 }
 
 describe("provider availability", () => {
   test("maps Bailian Coding Plan install flag to provider ID", () => {
     // #given
-    const availability = toProviderAvailability(createConfig({ hasBailianCodingPlan: true }))
+    const availability = toProviderAvailability(
+      createConfig({ hasBailianCodingPlan: true }),
+    );
 
     // #when / #then
-    expect(isProviderAvailable("bailian-coding-plan", availability)).toBe(true)
-    expect(isProviderAvailable("minimax-coding-plan", availability)).toBe(false)
-  })
+    expect(isProviderAvailable("bailian-coding-plan", availability)).toBe(true);
+    expect(isProviderAvailable("minimax-coding-plan", availability)).toBe(
+      false,
+    );
+  });
 
   test("installer warning copy uses ultimate fallback constant", () => {
     expect(getNoModelProvidersWarning()).toBe(
       `No model providers configured. Using ${ULTIMATE_FALLBACK} as fallback.`,
-    )
-  })
+    );
+  });
 
   test("hasAnyConfiguredProvider treats Bailian-only config as configured", () => {
-    expect(hasAnyConfiguredProvider(createConfig({ hasBailianCodingPlan: true }))).toBe(true)
-    expect(hasAnyConfiguredProvider(createConfig())).toBe(false)
-  })
-})
+    expect(
+      hasAnyConfiguredProvider(createConfig({ hasBailianCodingPlan: true })),
+    ).toBe(true);
+    expect(hasAnyConfiguredProvider(createConfig())).toBe(false);
+  });
+});

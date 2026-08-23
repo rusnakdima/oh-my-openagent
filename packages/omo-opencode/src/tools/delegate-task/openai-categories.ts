@@ -1,5 +1,5 @@
-import { isGpt5_5Model, isGpt5_6Model } from "../../agents/types"
-import type { BuiltinCategoryDefinition } from "./builtin-category-definition"
+import { isGpt5_5Model, isGpt5_6Model } from "../../agents/types";
+import type { BuiltinCategoryDefinition } from "./builtin-category-definition";
 
 const ULTRABRAIN_CATEGORY_PROMPT_APPEND = `<Category_Context>
 You are working on DEEP LOGICAL REASONING / COMPLEX ARCHITECTURE tasks.
@@ -21,7 +21,7 @@ Response format:
 - Bottom line (2-3 sentences)
 - Action plan (numbered steps)
 - Risks and mitigations (if relevant)
-</Category_Context>`
+</Category_Context>`;
 
 export const DEEP_CATEGORY_PROMPT_APPEND = `<Category_Context>
 You are working on GOAL-ORIENTED AUTONOMOUS tasks.
@@ -42,9 +42,10 @@ Genuinely independent tasks = flag and refuse, require separate delegations.
 Approach: explore extensively, understand deeply, then act decisively. Prefer comprehensive solutions over quick patches. If the goal is unclear, make reasonable assumptions and proceed.
 
 Minimal status updates. Focus on results, not play-by-play. Report completion with summary of changes.
-</Category_Context>`
+</Category_Context>`;
 
-export const DEEP_CATEGORY_PROMPT_APPEND_GPT_5_5 = `<Category_Context name="deep">
+export const DEEP_CATEGORY_PROMPT_APPEND_GPT_5_5 =
+  `<Category_Context name="deep">
 You are operating in DEEP mode. This is the category reserved for goal-oriented autonomous work on hairy problems that reward thorough exploration and comprehensive solutions.
 
 The orchestrator chose this category because the task benefits from depth over speed. You should feel empowered to spend the time needed: five to fifteen minutes of silent exploration before the first edit is normal and correct. Rushing to implementation on a deep task is a failure mode, not a feature.
@@ -64,13 +65,15 @@ The orchestrator chose this category because the task benefits from depth over s
 **Completion bar: full delivery.** "Simplified version", "proof of concept", and "you can extend this later" are not acceptable deliveries for a deep task. The orchestrator routed here specifically for a complete solution. If you hit a genuine blocker (missing secret, design decision only the user can make, three materially different attempts all failed), document it and return; otherwise, finish the task.
 
 **Status cadence: sparse.** The user is not on the other side of this conversation; the orchestrator is, and they will synthesize your progress. Send commentary only at meaningful phase transitions (starting exploration, starting implementation, starting verification, hitting a genuine blocker). Do not narrate every tool call; silence during focused work is expected.
-</Category_Context>`
+</Category_Context>`;
 
-export function resolveDeepCategoryPromptAppend(model: string | undefined): string {
+export function resolveDeepCategoryPromptAppend(
+  model: string | undefined,
+): string {
   if (model && (isGpt5_5Model(model) || isGpt5_6Model(model))) {
-    return DEEP_CATEGORY_PROMPT_APPEND_GPT_5_5
+    return DEEP_CATEGORY_PROMPT_APPEND_GPT_5_5;
   }
-  return DEEP_CATEGORY_PROMPT_APPEND
+  return DEEP_CATEGORY_PROMPT_APPEND;
 }
 
 const QUICK_CATEGORY_PROMPT_APPEND = `<Category_Context>
@@ -86,35 +89,40 @@ Approach:
 - Minimal viable implementation
 - Skip unnecessary abstractions
 - Direct and concise
-</Category_Context>`
+</Category_Context>`;
 
-const QUICK_CATEGORY_CALLER_GUIDANCE = `<Caller_Warning>Small/fast model: before delegating, write an explicit prompt with numbered must-do steps, forbidden deviations, and concrete success criteria.</Caller_Warning>`
+const QUICK_CATEGORY_CALLER_GUIDANCE =
+  `<Caller_Warning>Small/fast model: before delegating, write an explicit prompt with numbered must-do steps, forbidden deviations, and concrete success criteria.</Caller_Warning>`;
 
 const UNSPECIFIED_LOW_CATEGORY_PROMPT_APPEND = `<Category_Context>
 You are working on tasks that don't fit specific categories but require moderate effort.
-</Category_Context>`
+</Category_Context>`;
 
-const UNSPECIFIED_LOW_CATEGORY_CALLER_GUIDANCE = `<Selection_Gate>Use only when no specialist category fits, effort is moderate, and scope stays within a few files/modules. Prefer any matching specialist category.</Selection_Gate>
-<Caller_Warning>Provide explicit must-do steps, forbidden scope, and concrete success criteria.</Caller_Warning>`
+const UNSPECIFIED_LOW_CATEGORY_CALLER_GUIDANCE =
+  `<Selection_Gate>Use only when no specialist category fits, effort is moderate, and scope stays within a few files/modules. Prefer any matching specialist category.</Selection_Gate>
+<Caller_Warning>Provide explicit must-do steps, forbidden scope, and concrete success criteria.</Caller_Warning>`;
 
 export const OPENAI_CATEGORIES: BuiltinCategoryDefinition[] = [
   {
     name: "ultrabrain",
     config: { variant: "xhigh" },
-    description: "Use ONLY for genuinely hard, logic-heavy tasks. Give clear goals only, not step-by-step instructions.",
+    description:
+      "Use ONLY for genuinely hard, logic-heavy tasks. Give clear goals only, not step-by-step instructions.",
     promptAppend: ULTRABRAIN_CATEGORY_PROMPT_APPEND,
   },
   {
     name: "deep",
     config: { variant: "medium" },
-    description: "Goal-oriented autonomous problem-solving on hairy problems requiring deep research. ONE goal + ONE deliverable per call — multiple goals must fan out as parallel `deep` calls, never bundled into one.",
+    description:
+      "Goal-oriented autonomous problem-solving on hairy problems requiring deep research. ONE goal + ONE deliverable per call — multiple goals must fan out as parallel `deep` calls, never bundled into one.",
     promptAppend: DEEP_CATEGORY_PROMPT_APPEND,
     resolvePromptAppend: resolveDeepCategoryPromptAppend,
   },
   {
     name: "quick",
     config: {},
-    description: "Trivial tasks - single file changes, typo fixes, simple modifications",
+    description:
+      "Trivial tasks - single file changes, typo fixes, simple modifications",
     callerGuidance: QUICK_CATEGORY_CALLER_GUIDANCE,
     promptAppend: QUICK_CATEGORY_PROMPT_APPEND,
   },
@@ -125,4 +133,4 @@ export const OPENAI_CATEGORIES: BuiltinCategoryDefinition[] = [
     callerGuidance: UNSPECIFIED_LOW_CATEGORY_CALLER_GUIDANCE,
     promptAppend: UNSPECIFIED_LOW_CATEGORY_PROMPT_APPEND,
   },
-]
+];

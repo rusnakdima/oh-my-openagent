@@ -1,18 +1,29 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import { ArrowRight, Terminal } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Section } from "@/components/ui/section"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import { ArrowRight, Terminal } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Section } from "@/components/ui/section";
 
 export async function CognitiveLoadSection(): Promise<JSX.Element> {
-  const t = await getTranslations("manifesto")
-  const ultraworkStepKeys = ["analyze", "breakdown", "execute", "verify", "commit"] as const
+  const t = await getTranslations("manifesto");
+  const ultraworkStepKeys = [
+    "analyze",
+    "breakdown",
+    "execute",
+    "verify",
+    "commit",
+  ] as const;
 
   return (
-    <Section data-section="manifesto-cognitive-load" className="mx-auto max-w-5xl">
+    <Section
+      data-section="manifesto-cognitive-load"
+      className="mx-auto max-w-5xl"
+    >
       <div className="mb-16 text-center">
-        <h2 className="mb-4 text-3xl font-bold md:text-4xl">{t("cognitiveLoad.title")}</h2>
+        <h2 className="mb-4 text-3xl font-bold md:text-4xl">
+          {t("cognitiveLoad.title")}
+        </h2>
         <p className="text-muted-foreground mx-auto max-w-2xl text-xl">
           {t("cognitiveLoad.subtitle")}
         </p>
@@ -24,16 +35,24 @@ export async function CognitiveLoadSection(): Promise<JSX.Element> {
             <Terminal className="h-24 w-24" />
           </div>
           <CardHeader>
-            <Badge className="mb-2 w-fit">{t("cognitiveLoad.ultrawork.badge")}</Badge>
-            <CardTitle className="text-2xl">{t("cognitiveLoad.ultrawork.title")}</CardTitle>
-            <p className="text-muted-foreground">{t("cognitiveLoad.ultrawork.subtitle")}</p>
+            <Badge className="mb-2 w-fit">
+              {t("cognitiveLoad.ultrawork.badge")}
+            </Badge>
+            <CardTitle className="text-2xl">
+              {t("cognitiveLoad.ultrawork.title")}
+            </CardTitle>
+            <p className="text-muted-foreground">
+              {t("cognitiveLoad.ultrawork.subtitle")}
+            </p>
           </CardHeader>
           <CardContent>
             <div className="border-primary/20 relative ml-2 space-y-6 border-l pl-4">
               {ultraworkStepKeys.map((key) => (
                 <div key={key} className="relative">
                   <div className="bg-primary border-background absolute top-1.5 -left-[21px] h-3 w-3 rounded-full border-2" />
-                  <p className="text-sm">{t(`cognitiveLoad.ultrawork.steps.${key}`)}</p>
+                  <p className="text-sm">
+                    {t(`cognitiveLoad.ultrawork.steps.${key}`)}
+                  </p>
                 </div>
               ))}
             </div>
@@ -48,8 +67,12 @@ export async function CognitiveLoadSection(): Promise<JSX.Element> {
             <Badge variant="secondary" className="mb-2 w-fit">
               {t("cognitiveLoad.prometheus.badge")}
             </Badge>
-            <CardTitle className="text-2xl">{t("cognitiveLoad.prometheus.title")}</CardTitle>
-            <p className="text-muted-foreground">{t("cognitiveLoad.prometheus.subtitle")}</p>
+            <CardTitle className="text-2xl">
+              {t("cognitiveLoad.prometheus.title")}
+            </CardTitle>
+            <p className="text-muted-foreground">
+              {t("cognitiveLoad.prometheus.subtitle")}
+            </p>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
@@ -80,5 +103,5 @@ export async function CognitiveLoadSection(): Promise<JSX.Element> {
         </Card>
       </div>
     </Section>
-  )
+  );
 }

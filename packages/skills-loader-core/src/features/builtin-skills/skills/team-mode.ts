@@ -1,4 +1,4 @@
-import type { BuiltinSkill } from "../types"
+import type { BuiltinSkill } from "../types";
 
 export const teamModeSkill: BuiltinSkill = {
   name: "team-mode",
@@ -201,4 +201,4 @@ Members should:
 Team mode is a docs-only skill. The team_* tools are registered globally when \`team_mode.enabled=true\`.
 Use \`~/.omo/teams/{name}/config.json\` plus worktree or tmux visibility to understand how the team is laid out.
 `,
-}
+};

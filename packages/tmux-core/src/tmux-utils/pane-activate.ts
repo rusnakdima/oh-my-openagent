@@ -1,14 +1,17 @@
-import { runTmuxCommand } from "../runner"
-import { isCmuxCompatEnvironment } from "../cmux-detect"
-import { isInsideTmux } from "./environment"
-import { buildPaneAuthEnvironmentArgs, buildTmuxAttachCommand } from "./pane-command"
+import { runTmuxCommand } from "../runner";
+import { isCmuxCompatEnvironment } from "../cmux-detect";
+import { isInsideTmux } from "./environment";
+import {
+  buildPaneAuthEnvironmentArgs,
+  buildTmuxAttachCommand,
+} from "./pane-command";
 
 export type ActivateTmuxPaneDeps = {
-  readonly isInsideTmux: () => boolean
-  readonly getTmuxPath: () => Promise<string | null | undefined>
-  readonly runTmuxCommand: typeof runTmuxCommand
-  readonly log: (message: string, data?: unknown) => void
-}
+  readonly isInsideTmux: () => boolean;
+  readonly getTmuxPath: () => Promise<string | null | undefined>;
+  readonly runTmuxCommand: typeof runTmuxCommand;
+  readonly log: (message: string, data?: unknown) => void;
+};
 
 export async function activateTmuxPane(
   paneId: string,
@@ -23,23 +26,26 @@ export async function activateTmuxPane(
   },
 ): Promise<boolean> {
   if (!deps.isInsideTmux()) {
-    deps.log("[activateTmuxPane] SKIP: not inside tmux", { paneId, sessionId })
-    return false
+    deps.log("[activateTmuxPane] SKIP: not inside tmux", { paneId, sessionId });
+    return false;
   }
 
-  const authEnvArgs = buildPaneAuthEnvironmentArgs()
+  const authEnvArgs = buildPaneAuthEnvironmentArgs();
   if (isCmuxCompatEnvironment() && authEnvArgs.length > 0) {
-    deps.log("[activateTmuxPane] SKIP: authenticated cmux panes are unsupported", { paneId, sessionId })
-    return false
+    deps.log(
+      "[activateTmuxPane] SKIP: authenticated cmux panes are unsupported",
+      { paneId, sessionId },
+    );
+    return false;
   }
 
-  const tmux = await deps.getTmuxPath()
+  const tmux = await deps.getTmuxPath();
   if (!tmux) {
-    deps.log("[activateTmuxPane] SKIP: tmux not found", { paneId, sessionId })
-    return false
+    deps.log("[activateTmuxPane] SKIP: tmux not found", { paneId, sessionId });
+    return false;
   }
 
-  const opencodeCmd = buildTmuxAttachCommand(serverUrl, sessionId, directory)
+  const opencodeCmd = buildTmuxAttachCommand(serverUrl, sessionId, directory);
   const result = await deps.runTmuxCommand(tmux, [
     "respawn-pane",
     "-k",
@@ -47,12 +53,17 @@ export async function activateTmuxPane(
     "-t",
     paneId,
     opencodeCmd,
-  ])
+  ]);
   if (result.exitCode !== 0) {
-    deps.log("[activateTmuxPane] FAILED", { paneId, sessionId, exitCode: result.exitCode, stderr: result.stderr.trim() })
-    return false
+    deps.log("[activateTmuxPane] FAILED", {
+      paneId,
+      sessionId,
+      exitCode: result.exitCode,
+      stderr: result.stderr.trim(),
+    });
+    return false;
   }
 
-  deps.log("[activateTmuxPane] SUCCESS", { paneId, sessionId })
-  return true
+  deps.log("[activateTmuxPane] SUCCESS", { paneId, sessionId });
+  return true;
 }

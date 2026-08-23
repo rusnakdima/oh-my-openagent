@@ -1,1 +1,1 @@
-export { createWorktreeCleanupHook } from "./hook"
+export { createWorktreeCleanupHook } from "./hook";

@@ -1,7 +1,7 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test"
-import { latestAssistantTurnBlocksInternalPrompt } from "./pending-tool-turn"
+import { describe, expect, test } from "bun:test";
+import { latestAssistantTurnBlocksInternalPrompt } from "./pending-tool-turn";
 
 describe("latestAssistantTurnBlocksInternalPrompt metadata-only messages", () => {
   test("#given empty unknown assistant turn has no parts loaded #when checking prompt safety #then internal prompts stay blocked", () => {
@@ -20,14 +20,14 @@ describe("latestAssistantTurnBlocksInternalPrompt metadata-only messages", () =>
           time: { created: 2000, completed: 3000 },
         },
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
+    expect(blocks).toBe(true);
+  });
 
   test("#given completed tool-calls assistant turn has no parts loaded #when checking prompt safety #then internal prompts stay blocked", () => {
     // given
@@ -45,12 +45,12 @@ describe("latestAssistantTurnBlocksInternalPrompt metadata-only messages", () =>
           time: { created: 2000, completed: 3000 },
         },
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
-})
+    expect(blocks).toBe(true);
+  });
+});

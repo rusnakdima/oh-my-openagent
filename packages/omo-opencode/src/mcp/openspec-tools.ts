@@ -9,43 +9,45 @@
  *   - handleOpenSpecMcpRequest(name, args, cwd, specDir): executes a tool and returns MCP result
  */
 
-import { join } from "node:path"
-import { mkdir, rename } from "node:fs/promises"
+import { join } from "node:path";
+import { mkdir, rename } from "node:fs/promises";
 
 import {
-  resolveSpecRoot,
-  resolveSpecFile,
-  readSpecFile,
-  writeSpecFile,
-  specExists,
   listSpecs,
   markPendingAsInProgress,
-} from "../tools/openspec/store"
-import { verifySpec } from "../tools/openspec/verify"
-import { applySpec } from "../tools/openspec/apply"
+  readSpecFile,
+  resolveSpecFile,
+  resolveSpecRoot,
+  specExists,
+  writeSpecFile,
+} from "../tools/openspec/store";
+import { verifySpec } from "../tools/openspec/verify";
+import { applySpec } from "../tools/openspec/apply";
 
 export type OpenSpecMcpToolsOptions = {
-  readonly specDir?: string
-}
+  readonly specDir?: string;
+};
 
 // ─── Tool descriptors ────────────────────────────────────────────────────────
 
 export interface McpToolArgSchema {
-  readonly type?: string
-  readonly enum?: readonly string[]
-  readonly properties?: Record<string, McpToolArgSchema>
-  readonly required?: readonly string[]
-  readonly items?: McpToolArgSchema
-  readonly description?: string
+  readonly type?: string;
+  readonly enum?: readonly string[];
+  readonly properties?: Record<string, McpToolArgSchema>;
+  readonly required?: readonly string[];
+  readonly items?: McpToolArgSchema;
+  readonly description?: string;
 }
 
 export interface McpToolDefinition {
-  readonly name: string
-  readonly description: string
-  readonly inputSchema: McpToolArgSchema
+  readonly name: string;
+  readonly description: string;
+  readonly inputSchema: McpToolArgSchema;
 }
 
-export function createOpenSpecMcpTools(_options: OpenSpecMcpToolsOptions = {}): McpToolDefinition[] {
+export function createOpenSpecMcpTools(
+  _options: OpenSpecMcpToolsOptions = {},
+): McpToolDefinition[] {
   return [
     {
       name: "openspec_read",
@@ -60,7 +62,8 @@ export function createOpenSpecMcpTools(_options: OpenSpecMcpToolsOptions = {}): 
           },
           spec_name: {
             type: "string",
-            description: "Optional spec name subdirectory. Defaults to the root spec_dir.",
+            description:
+              "Optional spec name subdirectory. Defaults to the root spec_dir.",
           },
         },
         required: ["file"],
@@ -68,7 +71,8 @@ export function createOpenSpecMcpTools(_options: OpenSpecMcpToolsOptions = {}): 
     },
     {
       name: "openspec_verify",
-      description: "Verify the consistency and completeness of one or all specs.",
+      description:
+        "Verify the consistency and completeness of one or all specs.",
       inputSchema: {
         type: "object",
         properties: {
@@ -81,7 +85,8 @@ export function createOpenSpecMcpTools(_options: OpenSpecMcpToolsOptions = {}): 
     },
     {
       name: "openspec_status",
-      description: "Dump current OpenSpec state including task counts per spec.",
+      description:
+        "Dump current OpenSpec state including task counts per spec.",
       inputSchema: {
         type: "object",
         properties: {
@@ -99,8 +104,14 @@ export function createOpenSpecMcpTools(_options: OpenSpecMcpToolsOptions = {}): 
         type: "object",
         properties: {
           title: { type: "string", description: "Spec title." },
-          spec_name: { type: "string", description: "Directory name for the spec." },
-          requirements: { type: "string", description: "Requirements section text." },
+          spec_name: {
+            type: "string",
+            description: "Directory name for the spec.",
+          },
+          requirements: {
+            type: "string",
+            description: "Requirements section text.",
+          },
           plan_summary: { type: "string", description: "Plan section text." },
           tasks: {
             type: "array",
@@ -117,7 +128,13 @@ export function createOpenSpecMcpTools(_options: OpenSpecMcpToolsOptions = {}): 
             },
           },
         },
-        required: ["title", "spec_name", "requirements", "plan_summary", "tasks"],
+        required: [
+          "title",
+          "spec_name",
+          "requirements",
+          "plan_summary",
+          "tasks",
+        ],
       },
     },
     {
@@ -142,14 +159,16 @@ export function createOpenSpecMcpTools(_options: OpenSpecMcpToolsOptions = {}): 
         required: ["spec_name"],
       },
     },
-  ]
+  ];
 }
 
 // ─── Request handler ─────────────────────────────────────────────────────────
 
 export interface OpenSpecMcpResult {
-  readonly content: ReadonlyArray<{ readonly type: "text"; readonly text: string }>
-  readonly isError?: boolean
+  readonly content: ReadonlyArray<
+    { readonly type: "text"; readonly text: string }
+  >;
+  readonly isError?: boolean;
 }
 
 export async function handleOpenSpecMcpRequest(
@@ -158,134 +177,176 @@ export async function handleOpenSpecMcpRequest(
   cwd: string,
   specDir: string,
 ): Promise<OpenSpecMcpResult> {
-  const specRoot = resolveSpecRoot(cwd, specDir)
+  const specRoot = resolveSpecRoot(cwd, specDir);
 
   switch (toolName) {
     case "openspec_read": {
-      const file = args["file"] as string
-      const specName = args["spec_name"] as string | undefined
+      const file = args["file"] as string;
+      const specName = args["spec_name"] as string | undefined;
       // Determine if specName is present: when provided it selects a subdirectory
       const filePath = specName
-        ? resolveSpecFile(cwd, specDir, specName, file as "spec.md" | "plan.md" | "tasks.md")
-        : join(specRoot, file)
-      const content = await readSpecFile(filePath)
-      return { content: [{ type: "text", text: content ?? `No ${file} found.` }] }
+        ? resolveSpecFile(
+          cwd,
+          specDir,
+          specName,
+          file as "spec.md" | "plan.md" | "tasks.md",
+        )
+        : join(specRoot, file);
+      const content = await readSpecFile(filePath);
+      return {
+        content: [{ type: "text", text: content ?? `No ${file} found.` }],
+      };
     }
 
     case "openspec_verify": {
-      const specName = args["spec_name"] as string | undefined
-      const results = await verifySpec(cwd, specDir, specName)
+      const specName = args["spec_name"] as string | undefined;
+      const results = await verifySpec(cwd, specDir, specName);
       if (results.length === 0) {
-        return { content: [{ type: "text", text: "No specs found." }] }
+        return { content: [{ type: "text", text: "No specs found." }] };
       }
-      const lines: string[] = ["## OpenSpec Verification Results\n"]
+      const lines: string[] = ["## OpenSpec Verification Results\n"];
       for (const r of results) {
-        const icon = r.valid ? "✅" : "❌"
-        lines.push(`### ${icon} ${r.specName}`)
+        const icon = r.valid ? "✅" : "❌";
+        lines.push(`### ${icon} ${r.specName}`);
         for (const f of r.files) {
-          const status = !f.exists ? "MISSING" : !f.nonEmpty ? "EMPTY" : "OK"
-          lines.push(`  - ${f.name}: ${status}`)
+          const status = !f.exists ? "MISSING" : !f.nonEmpty ? "EMPTY" : "OK";
+          lines.push(`  - ${f.name}: ${status}`);
         }
       }
-      return { content: [{ type: "text", text: lines.join("\n") }] }
+      return { content: [{ type: "text", text: lines.join("\n") }] };
     }
 
     case "openspec_status": {
-      const specName = args["spec_name"] as string | undefined
-      const toCheck = specName ? [specName] : await listSpecs(specRoot)
+      const specName = args["spec_name"] as string | undefined;
+      const toCheck = specName ? [specName] : await listSpecs(specRoot);
       if (toCheck.length === 0) {
-        return { content: [{ type: "text", text: "No specs found." }] }
+        return { content: [{ type: "text", text: "No specs found." }] };
       }
-      const lines: string[] = ["## OpenSpec Status\n"]
+      const lines: string[] = ["## OpenSpec Status\n"];
       for (const spec of toCheck) {
-        const tasksPath = resolveSpecFile(cwd, specDir, spec, "tasks.md")
-        const content = await readSpecFile(tasksPath) ?? ""
-        let open = 0, done = 0, blocked = 0, inProg = 0
+        const tasksPath = resolveSpecFile(cwd, specDir, spec, "tasks.md");
+        const content = await readSpecFile(tasksPath) ?? "";
+        let open = 0, done = 0, blocked = 0, inProg = 0;
         for (const l of content.split("\n")) {
-          if (l.includes("[ ]")) open++
-          else if (l.includes("[x]")) done++
-          else if (l.includes("[~]")) inProg++
-          else if (l.includes("[!!]")) blocked++
+          if (l.includes("[ ]")) open++;
+          else if (l.includes("[x]")) done++;
+          else if (l.includes("[~]")) inProg++;
+          else if (l.includes("[!!]")) blocked++;
         }
-        lines.push(`### ${spec}`)
-        lines.push(`- spec: \`${specDir}/${spec}/spec.md\``)
-        lines.push(`- tasks: ${open} open, ${inProg} in-progress, ${done} completed, ${blocked} blocked`)
+        lines.push(`### ${spec}`);
+        lines.push(`- spec: \`${specDir}/${spec}/spec.md\``);
+        lines.push(
+          `- tasks: ${open} open, ${inProg} in-progress, ${done} completed, ${blocked} blocked`,
+        );
       }
-      return { content: [{ type: "text", text: lines.join("\n") }] }
+      return { content: [{ type: "text", text: lines.join("\n") }] };
     }
 
     case "openspec_propose": {
       const { title, spec_name, requirements, plan_summary, tasks } = args as {
-        title: string
-        spec_name: string
-        requirements: string
-        plan_summary: string
-        tasks: Array<{ description: string; status?: string }>
-      }
-      const specPath = join(specRoot, spec_name)
+        title: string;
+        spec_name: string;
+        requirements: string;
+        plan_summary: string;
+        tasks: Array<{ description: string; status?: string }>;
+      };
+      const specPath = join(specRoot, spec_name);
 
       // Check spec doesn't already exist
       if (await specExists(specPath)) {
         return {
-          content: [{ type: "text", text: `Spec "${spec_name}" already exists at ${specDir}/${spec_name}/.` }],
+          content: [{
+            type: "text",
+            text:
+              `Spec "${spec_name}" already exists at ${specDir}/${spec_name}/.`,
+          }],
           isError: true,
-        }
+        };
       }
 
-      await mkdir(specPath, { recursive: true })
+      await mkdir(specPath, { recursive: true });
 
-      const specContent = `# ${title}\n\n${requirements}\n`
-      const planContent = `# ${title} — Technical Plan\n\n${plan_summary}\n`
+      const specContent = `# ${title}\n\n${requirements}\n`;
+      const planContent = `# ${title} — Technical Plan\n\n${plan_summary}\n`;
 
-      const taskLines: string[] = ["# Tasks\n", "\n", "| Status | Description |\n", "| ------ | ------------- |\n"]
+      const taskLines: string[] = [
+        "# Tasks\n",
+        "\n",
+        "| Status | Description |\n",
+        "| ------ | ------------- |\n",
+      ];
       for (const t of tasks ?? []) {
-        const marker =
-          t.status === "in_progress" ? "~" : t.status === "completed" ? "x" : t.status === "blocked" ? "!!" : " "
-        const safeDesc = (t.description ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ")
-        taskLines.push(`| [${marker}] | ${safeDesc} |\n`)
+        const marker = t.status === "in_progress"
+          ? "~"
+          : t.status === "completed"
+          ? "x"
+          : t.status === "blocked"
+          ? "!!"
+          : " ";
+        const safeDesc = (t.description ?? "").replace(/\|/g, "\\|").replace(
+          /\n/g,
+          " ",
+        );
+        taskLines.push(`| [${marker}] | ${safeDesc} |\n`);
       }
 
-      await writeSpecFile(join(specPath, "spec.md"), specContent)
-      await writeSpecFile(join(specPath, "plan.md"), planContent)
-      await writeSpecFile(join(specPath, "tasks.md"), taskLines.join(""))
+      await writeSpecFile(join(specPath, "spec.md"), specContent);
+      await writeSpecFile(join(specPath, "plan.md"), planContent);
+      await writeSpecFile(join(specPath, "tasks.md"), taskLines.join(""));
 
       return {
         content: [
           {
             type: "text",
-            text: `Spec "${title}" created at ${specDir}/${spec_name}/\n\n- spec.md: ${requirements.split("\n").length} lines\n- plan.md: ${plan_summary.split("\n").length} lines\n- tasks.md: ${(tasks ?? []).length} tasks`,
+            text:
+              `Spec "${title}" created at ${specDir}/${spec_name}/\n\n- spec.md: ${
+                requirements.split("\n").length
+              } lines\n- plan.md: ${
+                plan_summary.split("\n").length
+              } lines\n- tasks.md: ${(tasks ?? []).length} tasks`,
           },
         ],
-      }
+      };
     }
 
     case "openspec_apply": {
-      const { spec_name } = args as { spec_name: string }
-      const result = await applySpec(cwd, specDir, spec_name)
-      return { content: [{ type: "text", text: result.message }] }
+      const { spec_name } = args as { spec_name: string };
+      const result = await applySpec(cwd, specDir, spec_name);
+      return { content: [{ type: "text", text: result.message }] };
     }
 
     case "openspec_archive": {
-      const { spec_name } = args as { spec_name: string }
-      const srcPath = join(specRoot, spec_name)
-      const destPath = join(specRoot, "ARCHIVE", spec_name)
+      const { spec_name } = args as { spec_name: string };
+      const srcPath = join(specRoot, spec_name);
+      const destPath = join(specRoot, "ARCHIVE", spec_name);
 
       if (!(await specExists(srcPath))) {
-        return { content: [{ type: "text", text: `Spec "${spec_name}" not found.` }], isError: true }
+        return {
+          content: [{ type: "text", text: `Spec "${spec_name}" not found.` }],
+          isError: true,
+        };
       }
       if (await specExists(destPath)) {
         return {
-          content: [{ type: "text", text: `Archived spec "${spec_name}" already exists in ARCHIVE/.` }],
+          content: [{
+            type: "text",
+            text: `Archived spec "${spec_name}" already exists in ARCHIVE/.`,
+          }],
           isError: true,
-        }
+        };
       }
 
-      await mkdir(join(specRoot, "ARCHIVE"), { recursive: true })
-      await rename(srcPath, destPath)
-      return { content: [{ type: "text", text: `Spec "${spec_name}" archived.` }] }
+      await mkdir(join(specRoot, "ARCHIVE"), { recursive: true });
+      await rename(srcPath, destPath);
+      return {
+        content: [{ type: "text", text: `Spec "${spec_name}" archived.` }],
+      };
     }
 
     default:
-      return { content: [{ type: "text", text: `Unknown tool: ${toolName}` }], isError: true }
+      return {
+        content: [{ type: "text", text: `Unknown tool: ${toolName}` }],
+        isError: true,
+      };
   }
 }

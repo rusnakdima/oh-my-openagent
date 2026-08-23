@@ -4,7 +4,12 @@
 
 ## OVERVIEW
 
-`bunx oh-my-opencode doctor` — parallel diagnostic checks. `getAllCheckDefinitions()` registers **8** checks; a second function `getCodexCheckDefinitions()` registers **3** Codex-only checks. Four of the eight are category aggregators (System, Config, Tools, Models); the rest register standalone. Catches broken installs, config typos, missing dependencies, provider misconfigurations before they become runtime errors.
+`bunx oh-my-opencode doctor` — parallel diagnostic checks.
+`getAllCheckDefinitions()` registers **8** checks; a second function
+`getCodexCheckDefinitions()` registers **3** Codex-only checks. Four of the
+eight are category aggregators (System, Config, Tools, Models); the rest
+register standalone. Catches broken installs, config typos, missing
+dependencies, provider misconfigurations before they become runtime errors.
 
 ## COMMAND FLAGS
 
@@ -19,20 +24,23 @@ bunx oh-my-opencode doctor --json       # Machine-readable output
 
 Registered by `getAllCheckDefinitions()` (8):
 
-| Check | File | Validates |
-|----------|------|-----------|
-| **SYSTEM** | `checks/system.ts` | OpenCode binary found + version >= `MIN_OPENCODE_VERSION` (`1.4.0`), plugin registered in opencode.json, loaded plugin version matches installed |
-| **CONFIG** | `checks/config.ts` | JSONC validity, Zod schema passes, no unknown keys, model override syntax correct |
-| **TUI_PLUGIN** | `checks/tui-plugin-config.ts` | TUI sidebar plugin entry resolvable |
+| Check                       | File                                  | Validates                                                                                                                                                                                                                                                                                                                  |
+| --------------------------- | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **SYSTEM**                  | `checks/system.ts`                    | OpenCode binary found + version >= `MIN_OPENCODE_VERSION` (`1.4.0`), plugin registered in opencode.json, loaded plugin version matches installed                                                                                                                                                                           |
+| **CONFIG**                  | `checks/config.ts`                    | JSONC validity, Zod schema passes, no unknown keys, model override syntax correct                                                                                                                                                                                                                                          |
+| **TUI_PLUGIN**              | `checks/tui-plugin-config.ts`         | TUI sidebar plugin entry resolvable                                                                                                                                                                                                                                                                                        |
 | `deprecated-reasoning-keys` | `checks/deprecated-reasoning-keys.ts` | Scans `~/.omo/omo.json[c]` for deprecated `variant` / `reasoningEffort` / `thinking` / `textVerbosity` / `fallback_models` keys, reporting file + dotted path and a `config migrate` hint. Skips the `[opencode]` block and passthrough containers (`provider_options`). Registered with a literal id, NOT in `CHECK_IDS`. |
-| **TOOLS** | `checks/tools.ts` | AST-Grep CLI + NAPI, comment-checker binary, LSP servers reachable, GitHub CLI auth, built-in MCP reachability |
-| **MODELS** | `checks/model-resolution.ts` | models.json cache exists, per-agent fallback resolution, category overrides valid, provider availability |
-| **TELEMETRY** | `checks/telemetry.ts` | Telemetry configuration state |
-| **TEAM_MODE** | `checks/team-mode.ts` | Team-mode dependencies |
+| **TOOLS**                   | `checks/tools.ts`                     | AST-Grep CLI + NAPI, comment-checker binary, LSP servers reachable, GitHub CLI auth, built-in MCP reachability                                                                                                                                                                                                             |
+| **MODELS**                  | `checks/model-resolution.ts`          | models.json cache exists, per-agent fallback resolution, category overrides valid, provider availability                                                                                                                                                                                                                   |
+| **TELEMETRY**               | `checks/telemetry.ts`                 | Telemetry configuration state                                                                                                                                                                                                                                                                                              |
+| **TEAM_MODE**               | `checks/team-mode.ts`                 | Team-mode dependencies                                                                                                                                                                                                                                                                                                     |
 
-Registered by `getCodexCheckDefinitions()` (3): **CODEX** (critical, `checks/codex.ts`), **CODEX_COMPONENTS** (`checks/codex-components.ts`), `codex-runtime-wrapper` (literal id, `checks/codex-runtime-wrapper.ts`).
+Registered by `getCodexCheckDefinitions()` (3): **CODEX** (critical,
+`checks/codex.ts`), **CODEX_COMPONENTS** (`checks/codex-components.ts`),
+`codex-runtime-wrapper` (literal id, `checks/codex-runtime-wrapper.ts`).
 
-`checks/legacy-config-leftovers.ts` is not registered standalone; the Config aggregator invokes it.
+`checks/legacy-config-leftovers.ts` is not registered standalone; the Config
+aggregator invokes it.
 
 ## SUPPORTING CHECK FILES (25 total)
 
@@ -77,23 +85,29 @@ doctor command
   → exit code: EXIT_CODES.SUCCESS (0) | EXIT_CODES.FAILURE (1)
 ```
 
-`CheckStatus` is `pass` / `warn` (`STATUS_COLORS` also carries `fail` / `skip`). There is no `"ok"` or `"error"` status and no `detail` string field.
+`CheckStatus` is `pass` / `warn` (`STATUS_COLORS` also carries `fail` / `skip`).
+There is no `"ok"` or `"error"` status and no `detail` string field.
 
 ## KEY FILES
 
-| File | Purpose |
-|------|---------|
-| `index.ts` | CLI command entry, flag parsing |
-| `runner.ts` | Parallel `Promise.allSettled()` orchestration, 30s timeout per check |
-| `formatter.ts` | Pretty printing: colored status, hierarchical output |
-| `types.ts` | `DoctorCheck`, `CheckResult`, `DoctorReport` types |
+| File           | Purpose                                                              |
+| -------------- | -------------------------------------------------------------------- |
+| `index.ts`     | CLI command entry, flag parsing                                      |
+| `runner.ts`    | Parallel `Promise.allSettled()` orchestration, 30s timeout per check |
+| `formatter.ts` | Pretty printing: colored status, hierarchical output                 |
+| `types.ts`     | `DoctorCheck`, `CheckResult`, `DoctorReport` types                   |
 
 ## HOW TO ADD A CHECK
 
-1. Create `src/cli/doctor/checks/{name}.ts` exporting check function matching `DoctorCheck`
-2. Register in `checks/index.ts` — either standalone in `getAllCheckDefinitions()`, or have a category aggregator (system/config/tools/model-resolution) invoke it
-3. Return a `CheckResult` (`{ name, status, message, issues }`) — no throws, all errors caught by runner
-4. Add the id/name to `framework/constants.ts` `CHECK_IDS`/`CHECK_NAMES` unless registering with a literal id
+1. Create `src/cli/doctor/checks/{name}.ts` exporting check function matching
+   `DoctorCheck`
+2. Register in `checks/index.ts` — either standalone in
+   `getAllCheckDefinitions()`, or have a category aggregator
+   (system/config/tools/model-resolution) invoke it
+3. Return a `CheckResult` (`{ name, status, message, issues }`) — no throws, all
+   errors caught by runner
+4. Add the id/name to `framework/constants.ts` `CHECK_IDS`/`CHECK_NAMES` unless
+   registering with a literal id
 
 ## EXIT CODES
 

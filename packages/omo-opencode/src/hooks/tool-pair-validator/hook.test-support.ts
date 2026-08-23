@@ -1,31 +1,31 @@
-import type { MessagesTransformHook } from "./types"
+import type { MessagesTransformHook } from "./types";
 
 export type TestPart = {
-  type: string
-  [key: string]: unknown
-}
+  type: string;
+  [key: string]: unknown;
+};
 
 export type TestMessage = {
-  info: { role: "assistant" | "user"; id?: string; sessionID?: string }
-  parts: TestPart[]
-}
+  info: { role: "assistant" | "user"; id?: string; sessionID?: string };
+  parts: TestPart[];
+};
 
 type ToolPartOptions = {
-  callID: string
-  status: "pending" | "running" | "completed" | "error"
-  tool?: string
-  input?: Record<string, unknown>
-  output?: string
-  error?: string
-  start?: number
-}
+  callID: string;
+  status: "pending" | "running" | "completed" | "error";
+  tool?: string;
+  input?: Record<string, unknown>;
+  output?: string;
+  error?: string;
+  start?: number;
+};
 
 /**
  * Mirrors the real OpenCode `ToolPart` shape (`@opencode-ai/sdk`): one part carries
  * the call id AND the state that later becomes the provider's `tool_result`.
  */
 export function createToolPart(options: ToolPartOptions): TestPart {
-  const start = options.start ?? 1_700_000_000_000
+  const start = options.start ?? 1_700_000_000_000;
   const base = {
     id: `prt_${options.callID}`,
     sessionID: "ses_test",
@@ -33,14 +33,20 @@ export function createToolPart(options: ToolPartOptions): TestPart {
     type: "tool",
     callID: options.callID,
     tool: options.tool ?? "bash",
-  }
+  };
 
   if (options.status === "pending") {
-    return { ...base, state: { status: "pending", input: options.input ?? {}, raw: "" } }
+    return {
+      ...base,
+      state: { status: "pending", input: options.input ?? {}, raw: "" },
+    };
   }
 
   if (options.status === "running") {
-    return { ...base, state: { status: "running", input: options.input ?? {}, time: { start } } }
+    return {
+      ...base,
+      state: { status: "running", input: options.input ?? {}, time: { start } },
+    };
   }
 
   if (options.status === "completed") {
@@ -54,7 +60,7 @@ export function createToolPart(options: ToolPartOptions): TestPart {
         metadata: {},
         time: { start, end: start + 10 },
       },
-    }
+    };
   }
 
   return {
@@ -65,14 +71,17 @@ export function createToolPart(options: ToolPartOptions): TestPart {
       error: options.error ?? "failed",
       time: { start, end: start + 10 },
     },
-  }
+  };
 }
 
-export async function runToolPairValidator(hook: MessagesTransformHook, messages: TestMessage[]): Promise<void> {
-  const transform = hook["experimental.chat.messages.transform"]
+export async function runToolPairValidator(
+  hook: MessagesTransformHook,
+  messages: TestMessage[],
+): Promise<void> {
+  const transform = hook["experimental.chat.messages.transform"];
   if (!transform) {
-    throw new Error("missing tool pair validator transform")
+    throw new Error("missing tool pair validator transform");
   }
 
-  await transform({}, { messages: messages as never })
+  await transform({}, { messages: messages as never });
 }

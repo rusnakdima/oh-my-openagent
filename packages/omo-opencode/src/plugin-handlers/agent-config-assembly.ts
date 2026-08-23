@@ -31,7 +31,9 @@ type AssemblyResult = {
   configuredDefaultAgent: string | undefined;
 };
 
-export function getConfiguredDefaultAgent(config: Record<string, unknown>): string | undefined {
+export function getConfiguredDefaultAgent(
+  config: Record<string, unknown>,
+): string | undefined {
   const defaultAgent = config.default_agent;
   if (typeof defaultAgent !== "string") return undefined;
   const trimmedDefaultAgent = defaultAgent.trim();
@@ -43,7 +45,9 @@ function filterDisabledAgents(
   disabledAgentNames: ReadonlySet<string>,
 ): Record<string, unknown> {
   return Object.fromEntries(
-    Object.entries(agents).filter(([name]) => !disabledAgentNames.has(name.toLowerCase())),
+    Object.entries(agents).filter(([name]) =>
+      !disabledAgentNames.has(name.toLowerCase())
+    ),
   );
 }
 
@@ -63,8 +67,14 @@ function filterCustomAgentSources(
   protectedBuiltinAgentNames: ReadonlySet<string>,
 ): Omit<AgentSources, "configAgent" | "customAgentSummaries"> {
   return {
-    userAgents: filterProtectedAgentOverrides(sources.userAgents, protectedBuiltinAgentNames),
-    projectAgents: filterProtectedAgentOverrides(sources.projectAgents, protectedBuiltinAgentNames),
+    userAgents: filterProtectedAgentOverrides(
+      sources.userAgents,
+      protectedBuiltinAgentNames,
+    ),
+    projectAgents: filterProtectedAgentOverrides(
+      sources.projectAgents,
+      protectedBuiltinAgentNames,
+    ),
     opencodeGlobalAgents: filterProtectedAgentOverrides(
       sources.opencodeGlobalAgents,
       protectedBuiltinAgentNames,
@@ -73,7 +83,10 @@ function filterCustomAgentSources(
       sources.opencodeProjectAgents,
       protectedBuiltinAgentNames,
     ),
-    pluginAgents: filterProtectedAgentOverrides(sources.pluginAgents, protectedBuiltinAgentNames),
+    pluginAgents: filterProtectedAgentOverrides(
+      sources.pluginAgents,
+      protectedBuiltinAgentNames,
+    ),
     agentDefinitionAgents: filterProtectedAgentOverrides(
       sources.agentDefinitionAgents,
       protectedBuiltinAgentNames,
@@ -108,16 +121,32 @@ function orderedCustomAgentSources(
   const builtinAgentNameSet = new Set<string>(BUILTIN_AGENT_NAMES);
   const isNotBuiltinAgent = (name: string) => !builtinAgentNameSet.has(name);
 
-  const filterBuiltinAgents = <T extends Record<string, unknown>>(agents: T): T =>
-    Object.fromEntries(Object.entries(agents).filter(([k]) => isNotBuiltinAgent(k))) as T;
+  const filterBuiltinAgents = <T extends Record<string, unknown>>(
+    agents: T,
+  ): T =>
+    Object.fromEntries(
+      Object.entries(agents).filter(([k]) => isNotBuiltinAgent(k)),
+    ) as T;
 
   return {
-    ...filterBuiltinAgents(filterDisabledAgents(sources.pluginAgents, disabledAgentNames)),
-    ...filterBuiltinAgents(filterDisabledAgents(sources.userAgents, disabledAgentNames)),
-    ...filterBuiltinAgents(filterDisabledAgents(sources.opencodeGlobalAgents, disabledAgentNames)),
-    ...filterBuiltinAgents(filterDisabledAgents(sources.projectAgents, disabledAgentNames)),
-    ...filterBuiltinAgents(filterDisabledAgents(sources.opencodeProjectAgents, disabledAgentNames)),
-    ...filterBuiltinAgents(filterDisabledAgents(sources.agentDefinitionAgents, disabledAgentNames)),
+    ...filterBuiltinAgents(
+      filterDisabledAgents(sources.pluginAgents, disabledAgentNames),
+    ),
+    ...filterBuiltinAgents(
+      filterDisabledAgents(sources.userAgents, disabledAgentNames),
+    ),
+    ...filterBuiltinAgents(
+      filterDisabledAgents(sources.opencodeGlobalAgents, disabledAgentNames),
+    ),
+    ...filterBuiltinAgents(
+      filterDisabledAgents(sources.projectAgents, disabledAgentNames),
+    ),
+    ...filterBuiltinAgents(
+      filterDisabledAgents(sources.opencodeProjectAgents, disabledAgentNames),
+    ),
+    ...filterBuiltinAgents(
+      filterDisabledAgents(sources.agentDefinitionAgents, disabledAgentNames),
+    ),
     ...filterBuiltinAgents(
       filterDisabledAgents(sources.opencodeConfigAgents, disabledAgentNames),
     ),
@@ -127,7 +156,8 @@ function orderedCustomAgentSources(
 async function createCoreAgentConfig(
   params: AssembleAgentConfigParams,
 ): Promise<Record<string, unknown>> {
-  const { builtinAgents, pluginConfig, sources, currentModel, useTaskSystem } = params;
+  const { builtinAgents, pluginConfig, sources, currentModel, useTaskSystem } =
+    params;
   const agentConfig: Record<string, unknown> = {
     sisyphus: builtinAgents.sisyphus,
   };
@@ -155,7 +185,8 @@ async function createCoreAgentConfig(
 
   agentConfig["sisyphus-junior"] = createSisyphusJuniorAgentWithOverrides(
     pluginConfig.agents?.["sisyphus-junior"],
-    params.currentModel ?? (builtinAgents.atlas as { model?: string } | undefined)?.model,
+    params.currentModel ??
+      (builtinAgents.atlas as { model?: string } | undefined)?.model,
     pluginConfig.default_model,
     useTaskSystem,
   );
@@ -170,72 +201,92 @@ function applyDefaultAgent(
 ): void {
   if (configuredDefaultAgent) {
     const configKey = getAgentConfigKey(configuredDefaultAgent);
-    const runtimeConfigKey = normalizeAgentForPromptKey(configuredDefaultAgent) ?? configKey;
-    config.default_agent = getAgentDisplayName(runtimeConfigKey, pluginConfig?.agents);
+    const runtimeConfigKey =
+      normalizeAgentForPromptKey(configuredDefaultAgent) ?? configKey;
+    config.default_agent = getAgentDisplayName(
+      runtimeConfigKey,
+      pluginConfig?.agents,
+    );
     return;
   }
 
   config.default_agent = getAgentDisplayName("sisyphus", pluginConfig?.agents);
 }
 
-async function assembleSisyphusEnabledConfig(params: AssembleAgentConfigParams): Promise<void> {
+async function assembleSisyphusEnabledConfig(
+  params: AssembleAgentConfigParams,
+): Promise<void> {
   const configuredDefaultAgent = getConfiguredDefaultAgent(params.config);
   applyDefaultAgent(params.config, configuredDefaultAgent, params.pluginConfig);
 
   const agentConfig = await createCoreAgentConfig(params);
   const { configAgent } = params.sources;
-  const plannerEnabled = params.pluginConfig.sisyphus_agent?.planner_enabled ?? true;
+  const plannerEnabled = params.pluginConfig.sisyphus_agent?.planner_enabled ??
+    true;
   const replacePlan = params.pluginConfig.sisyphus_agent?.replace_plan ?? true;
   const shouldDemotePlan = plannerEnabled && replacePlan;
 
   if (params.pluginConfig.sisyphus_agent?.default_builder_enabled ?? false) {
-    const { name: _buildName, ...buildConfigWithoutName } = configAgent?.build ?? {};
+    const { name: _buildName, ...buildConfigWithoutName } =
+      configAgent?.build ?? {};
     const migratedBuildConfig = migrateAgentConfig(buildConfigWithoutName);
     const override = params.pluginConfig.agents?.["OpenCode-Builder"];
     const base = {
       ...migratedBuildConfig,
-      description: `${(configAgent?.build?.description as string) ?? "Build agent"} (OpenCode default)`,
+      description: `${
+        (configAgent?.build?.description as string) ?? "Build agent"
+      } (OpenCode default)`,
     };
-    agentConfig["OpenCode-Builder"] = override ? { ...base, ...override } : base;
+    agentConfig["OpenCode-Builder"] = override
+      ? { ...base, ...override }
+      : base;
   }
 
-  const migratedBuild = configAgent?.build ? migrateAgentConfig(configAgent.build) : {};
+  const migratedBuild = configAgent?.build
+    ? migrateAgentConfig(configAgent.build)
+    : {};
   const planDemoteConfig = shouldDemotePlan
     ? buildPlanDemoteConfig(
-        agentConfig.prometheus as Record<string, unknown> | undefined,
-        params.pluginConfig.agents?.plan as Record<string, unknown> | undefined,
-      )
+      agentConfig.prometheus as Record<string, unknown> | undefined,
+      params.pluginConfig.agents?.plan as Record<string, unknown> | undefined,
+    )
     : undefined;
   const protectedBuiltinAgentNames = createProtectedAgentNameSet([
     ...Object.keys(agentConfig),
     ...Object.keys(params.builtinAgents),
   ]);
-  const filteredSources = filterCustomAgentSources(params.sources, protectedBuiltinAgentNames);
+  const filteredSources = filterCustomAgentSources(
+    params.sources,
+    protectedBuiltinAgentNames,
+  );
   const filteredConfigAgents = configAgent
     ? defaultSubagentMode(
-        filterProtectedAgentOverrides(
-          Object.fromEntries(
-            Object.entries(configAgent).filter(([key]) => {
-              if (key === "build") return false;
-              if (key === "plan" && shouldDemotePlan) return false;
-              // Exclude builtin agent names so they don't overwrite correct modes from builtinAgents
-              if ((BUILTIN_AGENT_NAMES as readonly string[]).includes(key)) return false;
-              // Exclude OpenCode native agents
-              const nativeAgents = ["compaction", "general"];
-              if (nativeAgents.includes(key)) return false;
-              return true;
-            }),
-          ),
-          protectedBuiltinAgentNames,
+      filterProtectedAgentOverrides(
+        Object.fromEntries(
+          Object.entries(configAgent).filter(([key]) => {
+            if (key === "build") return false;
+            if (key === "plan" && shouldDemotePlan) return false;
+            // Exclude builtin agent names so they don't overwrite correct modes from builtinAgents
+            if (
+              (BUILTIN_AGENT_NAMES as readonly string[]).includes(key)
+            ) return false;
+            // Exclude OpenCode native agents
+            const nativeAgents = ["compaction", "general"];
+            if (nativeAgents.includes(key)) return false;
+            return true;
+          }),
         ),
-      )
+        protectedBuiltinAgentNames,
+      ),
+    )
     : {};
 
   params.config.agent = {
     ...agentConfig,
     ...Object.fromEntries(
       Object.entries(params.builtinAgents).filter(
-        ([key]) => key !== "sisyphus" && key !== "hephaestus" && key !== "atlas",
+        ([key]) =>
+          key !== "sisyphus" && key !== "hephaestus" && key !== "atlas",
       ),
     ),
     ...orderedCustomAgentSources(filteredSources, params.disabledAgentNames),
@@ -245,13 +296,23 @@ async function assembleSisyphusEnabledConfig(params: AssembleAgentConfigParams):
   };
 }
 
-function assembleSisyphusDisabledConfig(params: AssembleAgentConfigParams): void {
-  const protectedBuiltinAgentNames = createProtectedAgentNameSet(Object.keys(params.builtinAgents));
-  const filteredSources = filterCustomAgentSources(params.sources, protectedBuiltinAgentNames);
+function assembleSisyphusDisabledConfig(
+  params: AssembleAgentConfigParams,
+): void {
+  const protectedBuiltinAgentNames = createProtectedAgentNameSet(
+    Object.keys(params.builtinAgents),
+  );
+  const filteredSources = filterCustomAgentSources(
+    params.sources,
+    protectedBuiltinAgentNames,
+  );
   const filteredConfigAgents = params.sources.configAgent
     ? defaultSubagentMode(
-        filterProtectedAgentOverrides(params.sources.configAgent, protectedBuiltinAgentNames),
-      )
+      filterProtectedAgentOverrides(
+        params.sources.configAgent,
+        protectedBuiltinAgentNames,
+      ),
+    )
     : {};
 
   params.config.agent = {
@@ -261,9 +322,12 @@ function assembleSisyphusDisabledConfig(params: AssembleAgentConfigParams): void
   };
 }
 
-export async function assembleAgentConfig(params: AssembleAgentConfigParams): Promise<AssemblyResult> {
+export async function assembleAgentConfig(
+  params: AssembleAgentConfigParams,
+): Promise<AssemblyResult> {
   const configuredDefaultAgent = getConfiguredDefaultAgent(params.config);
-  const isSisyphusEnabled = params.pluginConfig.sisyphus_agent?.disabled !== true;
+  const isSisyphusEnabled =
+    params.pluginConfig.sisyphus_agent?.disabled !== true;
 
   if (isSisyphusEnabled && params.builtinAgents.sisyphus) {
     await assembleSisyphusEnabledConfig(params);

@@ -1,6 +1,6 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { createToolExecuteBeforeHandler } from "./tool-execute-before"
+import { createToolExecuteBeforeHandler } from "./tool-execute-before";
 
 function createTestContext() {
   return {
@@ -9,7 +9,7 @@ function createTestContext() {
         messages: async () => ({ data: [] }),
       },
     },
-  }
+  };
 }
 
 describe("createToolExecuteBeforeHandler background wait guard", () => {
@@ -17,94 +17,114 @@ describe("createToolExecuteBeforeHandler background wait guard", () => {
     //#given
     const backgroundManager = {
       hasActiveChildTasks: (sessionID: string) => sessionID === "ses_parent",
-    }
+    };
     const handler = createToolExecuteBeforeHandler({
       ctx: createTestContext(),
       hooks: {},
       backgroundManager,
-    })
+    });
     const output = {
       args: {
         command: "# Placeholder wait\nsleep 1",
       } as Record<string, unknown>,
-    }
+    };
 
     //#when
-    const run = handler({ tool: "bash", sessionID: "ses_parent", callID: "call_wait" }, output)
+    const run = handler({
+      tool: "bash",
+      sessionID: "ses_parent",
+      callID: "call_wait",
+    }, output);
 
     //#then
-    await expect(run).rejects.toThrow("Background task wait is already managed")
-  })
+    await expect(run).rejects.toThrow(
+      "Background task wait is already managed",
+    );
+  });
 
   test("allows sleep commands when the session has no active background children", async () => {
     //#given
     const backgroundManager = {
       hasActiveChildTasks: () => false,
       hasPendingParentWake: () => false,
-    }
+    };
     const handler = createToolExecuteBeforeHandler({
       ctx: createTestContext(),
       hooks: {},
       backgroundManager,
-    })
+    });
     const output = {
       args: {
         command: "sleep 1",
       } as Record<string, unknown>,
-    }
+    };
 
     //#when
-    const run = handler({ tool: "bash", sessionID: "ses_parent", callID: "call_sleep" }, output)
+    const run = handler({
+      tool: "bash",
+      sessionID: "ses_parent",
+      callID: "call_sleep",
+    }, output);
 
     //#then
-    await expect(run).resolves.toBeUndefined()
-  })
+    await expect(run).resolves.toBeUndefined();
+  });
 
   test("blocks placeholder sleep waits while a parent wake is pending", async () => {
     //#given
     const backgroundManager = {
       hasActiveChildTasks: () => false,
       hasPendingParentWake: (sessionID: string) => sessionID === "ses_parent",
-    }
+    };
     const handler = createToolExecuteBeforeHandler({
       ctx: createTestContext(),
       hooks: {},
       backgroundManager,
-    })
+    });
     const output = {
       args: {
         command: "# Placeholder wait\nsleep 1",
       } as Record<string, unknown>,
-    }
+    };
 
     //#when
-    const run = handler({ tool: "bash", sessionID: "ses_parent", callID: "call_wake" }, output)
+    const run = handler({
+      tool: "bash",
+      sessionID: "ses_parent",
+      callID: "call_wake",
+    }, output);
 
     //#then
-    await expect(run).rejects.toThrow("Background task wait is already managed")
-  })
+    await expect(run).rejects.toThrow(
+      "Background task wait is already managed",
+    );
+  });
 
   test("allows non-wait bash commands while background children are active", async () => {
     //#given
     const backgroundManager = {
       hasActiveChildTasks: () => true,
       hasPendingParentWake: () => false,
-    }
+    };
     const handler = createToolExecuteBeforeHandler({
       ctx: createTestContext(),
       hooks: {},
       backgroundManager,
-    })
+    });
     const output = {
       args: {
         command: "sleep 1 && echo ready",
       } as Record<string, unknown>,
-    }
+    };
 
     //#when
-    const run = handler({ tool: "bash", sessionID: "ses_parent", callID: "call_work" }, output)
+    const run = handler({
+      tool: "bash",
+      sessionID: "ses_parent",
+      callID: "call_work",
+    }, output);
 
     //#then
-    await expect(run).resolves.toBeUndefined()
-  })
-})
+    await expect(run).resolves.toBeUndefined();
+  });
+});

@@ -1,104 +1,115 @@
-import type { MonitorBatcher } from "./batcher"
-import type { LineStream, LineStreamResult } from "./line-stream"
-import type { MonitorRingBuffer } from "./ring-buffer"
-import type { MonitorCounters, OutputBatch, OutputLine, OutputStreamType } from "./types"
+import type { MonitorBatcher } from "./batcher";
+import type { LineStream, LineStreamResult } from "./line-stream";
+import type { MonitorRingBuffer } from "./ring-buffer";
+import type {
+  MonitorCounters,
+  OutputBatch,
+  OutputLine,
+  OutputStreamType,
+} from "./types";
 
 interface MonitorFilter {
-  matches(text: string): boolean
+  matches(text: string): boolean;
 }
 
 interface MonitorPipelineComponents {
-  lineStream: Record<OutputStreamType, LineStream>
-  filter: MonitorFilter
-  ring: MonitorRingBuffer
-  batcher: MonitorBatcher
+  lineStream: Record<OutputStreamType, LineStream>;
+  filter: MonitorFilter;
+  ring: MonitorRingBuffer;
+  batcher: MonitorBatcher;
 }
 
 interface MonitorPipelineDeps {
-  stdout: ReadableStream<Uint8Array>
-  stderr: ReadableStream<Uint8Array>
-  log(error: unknown): void
+  stdout: ReadableStream<Uint8Array>;
+  stderr: ReadableStream<Uint8Array>;
+  log(error: unknown): void;
 }
 
 interface MonitorPipeline {
-  onBatch(cb: (batch: OutputBatch) => void): void
-  counters(): MonitorCounters
-  isStopped(): boolean
-  stop(): void
+  onBatch(cb: (batch: OutputBatch) => void): void;
+  counters(): MonitorCounters;
+  isStopped(): boolean;
+  stop(): void;
 }
 
-type ByteStreamReader = ReturnType<ReadableStream<Uint8Array>["getReader"]>
+type ByteStreamReader = ReturnType<ReadableStream<Uint8Array>["getReader"]>;
 
 export function createMonitorPipeline(
   components: MonitorPipelineComponents,
   deps: MonitorPipelineDeps,
 ): MonitorPipeline {
-  const readers = new Set<ByteStreamReader>()
-  let stopped = false
-  let nextSequence = 1
+  const readers = new Set<ByteStreamReader>();
+  let stopped = false;
+  let nextSequence = 1;
 
-  function pushDecodedLine(stream: OutputStreamType, decodedLine: { text: string; truncated?: boolean }): void {
+  function pushDecodedLine(
+    stream: OutputStreamType,
+    decodedLine: { text: string; truncated?: boolean },
+  ): void {
     if (stopped) {
-      return
+      return;
     }
 
     const outputLine: OutputLine = {
       stream,
       seq: nextSequence,
       text: decodedLine.text,
-    }
-    nextSequence += 1
+    };
+    nextSequence += 1;
 
     if (decodedLine.truncated) {
-      outputLine.truncated = true
+      outputLine.truncated = true;
     }
 
-    const matched = components.filter.matches(outputLine.text)
-    components.ring.push(outputLine, matched)
+    const matched = components.filter.matches(outputLine.text);
+    components.ring.push(outputLine, matched);
     if (matched) {
-      components.batcher.push(outputLine)
+      components.batcher.push(outputLine);
     }
   }
 
-  function consumeLineStreamResult(stream: OutputStreamType, result: LineStreamResult): void {
+  function consumeLineStreamResult(
+    stream: OutputStreamType,
+    result: LineStreamResult,
+  ): void {
     for (const decodedLine of result.lines) {
-      pushDecodedLine(stream, decodedLine)
+      pushDecodedLine(stream, decodedLine);
     }
   }
 
   function flushLineStream(stream: OutputStreamType): void {
-    consumeLineStreamResult(stream, components.lineStream[stream].flush())
+    consumeLineStreamResult(stream, components.lineStream[stream].flush());
   }
 
   function flushAllLineStreams(): void {
-    flushLineStream("stdout")
-    flushLineStream("stderr")
+    flushLineStream("stdout");
+    flushLineStream("stderr");
   }
 
   function cancelReaders(): void {
     for (const reader of readers) {
-      void reader.cancel().catch((error) => deps.log(error))
+      void reader.cancel().catch((error) => deps.log(error));
     }
   }
 
   function finish(): void {
     if (stopped) {
-      return
+      return;
     }
 
-    components.batcher.flushNow()
-    stopped = true
+    components.batcher.flushNow();
+    stopped = true;
   }
 
   function stopReading(): void {
     if (stopped) {
-      return
+      return;
     }
 
-    flushAllLineStreams()
-    components.batcher.flushNow()
-    stopped = true
-    cancelReaders()
+    flushAllLineStreams();
+    components.batcher.flushNow();
+    stopped = true;
+    cancelReaders();
   }
 
   async function readStream(
@@ -106,26 +117,26 @@ export function createMonitorPipeline(
     input: ReadableStream<Uint8Array>,
     lineStream: LineStream,
   ): Promise<void> {
-    const reader = input.getReader()
-    readers.add(reader)
+    const reader = input.getReader();
+    readers.add(reader);
 
     try {
       while (!stopped) {
-        const result = await reader.read()
+        const result = await reader.read();
         if (stopped) {
-          break
+          break;
         }
 
         if (result.done) {
-          flushLineStream(stream)
-          break
+          flushLineStream(stream);
+          break;
         }
 
-        consumeLineStreamResult(stream, lineStream.feed(result.value))
+        consumeLineStreamResult(stream, lineStream.feed(result.value));
       }
     } finally {
-      readers.delete(reader)
-      reader.releaseLock()
+      readers.delete(reader);
+      reader.releaseLock();
     }
   }
 
@@ -133,33 +144,33 @@ export function createMonitorPipeline(
     await Promise.all([
       readStream("stdout", deps.stdout, components.lineStream.stdout),
       readStream("stderr", deps.stderr, components.lineStream.stderr),
-    ])
-    finish()
+    ]);
+    finish();
   }
 
   void readLoop().catch((error) => {
     if (stopped) {
-      return
+      return;
     }
 
-    deps.log(error)
-    components.batcher.flushNow()
-    stopped = true
-    cancelReaders()
-  })
+    deps.log(error);
+    components.batcher.flushNow();
+    stopped = true;
+    cancelReaders();
+  });
 
   return {
     onBatch(cb: (batch: OutputBatch) => void): void {
-      components.batcher.onBatch(cb)
+      components.batcher.onBatch(cb);
     },
     counters(): MonitorCounters {
-      return components.ring.getCounters()
+      return components.ring.getCounters();
     },
     isStopped(): boolean {
-      return stopped
+      return stopped;
     },
     stop(): void {
-      stopReading()
+      stopReading();
     },
-  }
+  };
 }

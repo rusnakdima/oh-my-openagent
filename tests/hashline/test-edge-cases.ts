@@ -79,7 +79,8 @@ const TEST_CASES: TestCase[] = [
       }
       return {
         passed: false,
-        reason: `expected one line 'only_line_updated', got ${lines.length} lines`,
+        reason:
+          `expected one line 'only_line_updated', got ${lines.length} lines`,
       };
     },
   },
@@ -88,7 +89,7 @@ const TEST_CASES: TestCase[] = [
     fileName: "twenty-lines.txt",
     fileContent: Array.from(
       { length: 20 },
-      (_, i) => `line${String(i + 1).padStart(2, "0")}: value-${i + 1}`
+      (_, i) => `line${String(i + 1).padStart(2, "0")}: value-${i + 1}`,
     ).join("\n"),
     prompt: [
       "Read twenty-lines.txt with read_file.",
@@ -177,7 +178,9 @@ const TEST_CASES: TestCase[] = [
         if (lines[i] !== expected[i]) {
           return {
             passed: false,
-            reason: `line ${i + 1} expected '${expected[i]}' but got '${lines[i]}'`,
+            reason: `line ${i + 1} expected '${expected[i]}' but got '${
+              lines[i]
+            }'`,
           };
         }
       }
@@ -232,7 +235,9 @@ const TEST_CASES: TestCase[] = [
         if (lines[idx] !== expected) {
           return {
             passed: false,
-            reason: `line ${idx + 1} expected '${expected}' but got '${lines[idx]}'`,
+            reason: `line ${idx + 1} expected '${expected}' but got '${
+              lines[idx]
+            }'`,
           };
         }
       }
@@ -276,7 +281,9 @@ const TEST_CASES: TestCase[] = [
         if (lines[i] !== expected[i]) {
           return {
             passed: false,
-            reason: `line ${i + 1} expected '${expected[i]}' but got '${lines[i]}'`,
+            reason: `line ${i + 1} expected '${expected[i]}' but got '${
+              lines[i]
+            }'`,
           };
         }
       }
@@ -358,7 +365,9 @@ const TEST_CASES: TestCase[] = [
       if (lines[1] !== expected) {
         return {
           passed: false,
-          reason: `line 2 expected '${expected}' but got '${lines[1] ?? "<missing>"}'`,
+          reason: `line 2 expected '${expected}' but got '${
+            lines[1] ?? "<missing>"
+          }'`,
         };
       }
       if (content.includes("const msg = 'old';")) {
@@ -404,14 +413,14 @@ const TEST_CASES: TestCase[] = [
     prompt: [
       "Read path.cfg with read_file.",
       "Replace line 1 using edit_file with edits: [{ op: 'replace', pos: '<line1 anchor>', lines: ['path = \"C:\\\\Users\\\\admin\\\\file.txt\"'] }].",
-      'The file should contain a Windows-style path with backslashes: C:\\Users\\admin\\file.txt.',
+      "The file should contain a Windows-style path with backslashes: C:\\Users\\admin\\file.txt.",
     ].join(" "),
     validate: (content) => {
       const lines = content.replace(/\r/g, "").trimEnd().split("\n");
       const line1 = lines[0] ?? "";
       // Accept either single or double backslashes — both are valid model interpretations
-      const hasSingleBS = line1.includes('C:\\Users\\admin\\file.txt');
-      const hasDoubleBS = line1.includes('C:\\\\Users\\\\admin\\\\file.txt');
+      const hasSingleBS = line1.includes("C:\\Users\\admin\\file.txt");
+      const hasDoubleBS = line1.includes("C:\\\\Users\\\\admin\\\\file.txt");
       const hasPath = hasSingleBS || hasDoubleBS;
       const hasQuotes = line1.includes('"');
       if (hasPath && hasQuotes) {
@@ -456,7 +465,9 @@ const TEST_CASES: TestCase[] = [
     fileContent: ["line-1", "short-line"].join("\n"),
     prompt: [
       "Read long-line.txt with read_file.",
-      `Replace line 2 using edit_file with edits: [{ op: 'replace', pos: '<line2 anchor>', lines: ['${"L".repeat(180)}'] }].`,
+      `Replace line 2 using edit_file with edits: [{ op: 'replace', pos: '<line2 anchor>', lines: ['${
+        "L".repeat(180)
+      }'] }].`,
       "Expected line 2 to be exactly 180 characters.",
     ].join(" "),
     validate: (content) => {
@@ -476,7 +487,10 @@ const TEST_CASES: TestCase[] = [
           reason: "line 2 content does not match expected repeated-L string",
         };
       }
-      return { passed: true, reason: `long line replaced (${lines[1].length} chars)` };
+      return {
+        passed: true,
+        reason: `long line replaced (${lines[1].length} chars)`,
+      };
     },
   },
   {
@@ -602,7 +616,9 @@ const TEST_CASES: TestCase[] = [
       if (lines[1] !== "middle-content") {
         return {
           passed: false,
-          reason: `line 2 expected 'middle-content' but got ${JSON.stringify(lines[1])}`,
+          reason: `line 2 expected 'middle-content' but got ${
+            JSON.stringify(lines[1])
+          }`,
         };
       }
       return {
@@ -629,14 +645,17 @@ const TEST_CASES: TestCase[] = [
       if (lines.length !== expected.length) {
         return {
           passed: false,
-          reason: `expected ${expected.length} lines after deleting one blank, got ${lines.length}`,
+          reason:
+            `expected ${expected.length} lines after deleting one blank, got ${lines.length}`,
         };
       }
       for (let i = 0; i < expected.length; i++) {
         if (lines[i] !== expected[i]) {
           return {
             passed: false,
-            reason: `line ${i + 1} expected ${JSON.stringify(expected[i])} but got ${JSON.stringify(lines[i])}`,
+            reason: `line ${i + 1} expected ${
+              JSON.stringify(expected[i])
+            } but got ${JSON.stringify(lines[i])}`,
           };
         }
       }
@@ -666,7 +685,9 @@ const TEST_CASES: TestCase[] = [
       if (lines[1] !== "        execute();") {
         return {
           passed: false,
-          reason: `line 2 expected 8-space indentation, got ${JSON.stringify(lines[1])}`,
+          reason: `line 2 expected 8-space indentation, got ${
+            JSON.stringify(lines[1])
+          }`,
         };
       }
       if (lines[0] !== "if (flag) {" || lines[2] !== "}") {
@@ -722,7 +743,9 @@ const TEST_CASES: TestCase[] = [
       if (lines[0] !== expected) {
         return {
           passed: false,
-          reason: `line 1 expected '${expected}' but got '${lines[0] ?? "<missing>"}'`,
+          reason: `line 1 expected '${expected}' but got '${
+            lines[0] ?? "<missing>"
+          }'`,
         };
       }
       return {
@@ -760,7 +783,9 @@ const TEST_CASES: TestCase[] = [
         if (lines[i] !== expected[i]) {
           return {
             passed: false,
-            reason: `line ${i + 1} expected '${expected[i]}' but got '${lines[i]}'`,
+            reason: `line ${i + 1} expected '${expected[i]}' but got '${
+              lines[i]
+            }'`,
           };
         }
       }
@@ -788,7 +813,9 @@ const TEST_CASES: TestCase[] = [
       if (lines[1] !== "short") {
         return {
           passed: false,
-          reason: `line 2 expected 'short' but got '${lines[1] ?? "<missing>"}'`,
+          reason: `line 2 expected 'short' but got '${
+            lines[1] ?? "<missing>"
+          }'`,
         };
       }
       if (content.includes("intentionally very long")) {
@@ -866,7 +893,9 @@ const TEST_CASES: TestCase[] = [
         if (lines[i] !== expected[i]) {
           return {
             passed: false,
-            reason: `line ${i + 1} expected '${expected[i]}' but got '${lines[i]}'`,
+            reason: `line ${i + 1} expected '${expected[i]}' but got '${
+              lines[i]
+            }'`,
           };
         }
       }
@@ -925,7 +954,7 @@ function isToolResultEvent(event: AnyEvent): event is ToolResultEvent {
 // ── Run single test case ─────────────────────────────────────
 async function runTestCase(
   tc: TestCase,
-  testDir: string
+  testDir: string,
 ): Promise<{
   passed: boolean;
   editCalls: number;
@@ -972,7 +1001,7 @@ async function runTestCase(
         proc.kill("SIGTERM");
         reject(new Error("Timed out after 4 minutes"));
       },
-      4 * 60 * 1000
+      4 * 60 * 1000,
     );
 
     proc.on("close", (code) => {
@@ -1015,7 +1044,7 @@ async function runTestCase(
   const editErrors = editResults.filter((e) => e.error);
   for (const err of editErrors) {
     const matchingCall = editCalls.find(
-      (c) => c.tool_call_id === err.tool_call_id
+      (c) => c.tool_call_id === err.tool_call_id,
     );
     info(`  blocked: ${err.error?.slice(0, 120)}`);
     if (matchingCall) {
@@ -1049,7 +1078,7 @@ async function runTestCase(
 // ── Main ──────────────────────────────────────────────────────
 const main = async () => {
   console.log(
-    `\n${BOLD}Headless Edit Operations Test — ${TEST_CASES.length} Types${RESET}\n`
+    `\n${BOLD}Headless Edit Operations Test — ${TEST_CASES.length} Types${RESET}\n`,
   );
 
   const testDir = join(tmpdir(), `edit-ops-${Date.now()}`);
@@ -1070,7 +1099,10 @@ const main = async () => {
       const status = result.passed
         ? `${GREEN}PASS${RESET}`
         : `${RED}FAIL${RESET}`;
-      const detail = `edit_file: ${result.editSuccesses}/${result.editCalls} succeeded, ${(result.duration / 1000).toFixed(1)}s`;
+      const detail =
+        `edit_file: ${result.editSuccesses}/${result.editCalls} succeeded, ${
+          (result.duration / 1000).toFixed(1)
+        }s`;
 
       console.log(`  ${status} — ${detail}`);
 
@@ -1085,10 +1117,12 @@ const main = async () => {
         const v = tc.validate(content);
         fail(v.reason);
         info(
-          `Final content:\n${content
-            .split("\n")
-            .map((l, i) => `    ${i + 1}: ${l}`)
-            .join("\n")}`
+          `Final content:\n${
+            content
+              .split("\n")
+              .map((l, i) => `    ${i + 1}: ${l}`)
+              .join("\n")
+          }`,
         );
       }
 
@@ -1118,7 +1152,9 @@ const main = async () => {
   }
   console.log();
   console.log(
-    `${BOLD}Result: ${totalPassed}/${TEST_CASES.length} passed (${Math.round((totalPassed / TEST_CASES.length) * 100)}%)${RESET}`
+    `${BOLD}Result: ${totalPassed}/${TEST_CASES.length} passed (${
+      Math.round((totalPassed / TEST_CASES.length) * 100)
+    }%)${RESET}`,
   );
 
   // Cleanup
@@ -1130,7 +1166,7 @@ const main = async () => {
 
   if (totalPassed === TEST_CASES.length) {
     console.log(
-      `\n${BOLD}${GREEN}🎉 ALL TESTS PASSED — 100% success rate!${RESET}\n`
+      `\n${BOLD}${GREEN}🎉 ALL TESTS PASSED — 100% success rate!${RESET}\n`,
     );
     process.exit(0);
   } else {

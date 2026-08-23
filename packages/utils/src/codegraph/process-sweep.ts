@@ -1,24 +1,31 @@
-export { createDefaultCodegraphProcessKiller, enumerateCodegraphProcesses, type CodegraphProcessKiller } from "./process-exec"
 export {
+  type CodegraphProcessKiller,
+  createDefaultCodegraphProcessKiller,
+  enumerateCodegraphProcesses,
+} from "./process-exec";
+export {
+  type CodegraphDaemonLock,
+  type CodegraphDaemonStaleness,
   daemonLockCandidates,
   evaluateDaemonStaleness,
   parseDaemonLock,
-  type CodegraphDaemonLock,
-  type CodegraphDaemonStaleness,
-} from "./daemon-lock"
+} from "./daemon-lock";
 export {
-  parsePosixProcessTable,
-  parseWindowsProcessTable,
-  selectZombieCodegraphProcesses,
   type CodegraphProcessInfo,
   type CodegraphProcessMatchKind,
   type CodegraphZombieProcess,
+  parsePosixProcessTable,
+  parseWindowsProcessTable,
+  selectZombieCodegraphProcesses,
   type SelectZombieCodegraphProcessesOptions,
-} from "./process-match"
-export { discoverCodegraphOwnedRoots, type CodegraphOwnedRootsOptions } from "./process-roots"
+} from "./process-match";
 export {
-  sweepCodegraphZombies,
+  type CodegraphOwnedRootsOptions,
+  discoverCodegraphOwnedRoots,
+} from "./process-roots";
+export {
   type CodegraphSweepAction,
+  sweepCodegraphZombies,
   type SweepCodegraphZombiesOptions,
   type SweepCodegraphZombiesResult,
-} from "./process-sweeper"
+} from "./process-sweeper";

@@ -3,7 +3,7 @@
 ## 1. `src/config/schema/background-task.ts` — Add schema field
 
 ```typescript
-import { z } from "zod"
+import { z } from "zod";
 
 export const BackgroundTaskConfigSchema = z.object({
   defaultConcurrency: z.number().min(1).optional(),
@@ -18,85 +18,97 @@ export const BackgroundTaskConfigSchema = z.object({
   /** Timeout for tasks that never received any progress update, falling back to startedAt (default: 1800000 = 30 minutes, minimum: 60000 = 1 minute) */
   messageStalenessTimeoutMs: z.number().min(60000).optional(),
   syncPollTimeoutMs: z.number().min(60000).optional(),
-})
+});
 
-export type BackgroundTaskConfig = z.infer<typeof BackgroundTaskConfigSchema>
+export type BackgroundTaskConfig = z.infer<typeof BackgroundTaskConfigSchema>;
 ```
 
-**Rationale:** Follows exact same pattern as `maxDepth` and `maxDescendants` — `z.number().int().min(1).optional()`. The field is optional; runtime default of 5 is applied in `ConcurrencyManager`. No barrel export changes needed since `src/config/schema.ts` already does `export * from "./schema/background-task"` and the type is inferred.
+**Rationale:** Follows exact same pattern as `maxDepth` and `maxDescendants` —
+`z.number().int().min(1).optional()`. The field is optional; runtime default of
+5 is applied in `ConcurrencyManager`. No barrel export changes needed since
+`src/config/schema.ts` already does `export * from "./schema/background-task"`
+and the type is inferred.
 
 ---
 
 ## 2. `src/config/schema/background-task.test.ts` — Add validation tests
 
-Append after the existing `syncPollTimeoutMs` describe block (before the closing `})`):
+Append after the existing `syncPollTimeoutMs` describe block (before the closing
+`})`):
 
 ```typescript
-  describe("maxBackgroundAgents", () => {
-    describe("#given valid maxBackgroundAgents (10)", () => {
-      test("#when parsed #then returns correct value", () => {
-        const result = BackgroundTaskConfigSchema.parse({ maxBackgroundAgents: 10 })
+describe("maxBackgroundAgents", () => {
+  describe("#given valid maxBackgroundAgents (10)", () => {
+    test("#when parsed #then returns correct value", () => {
+      const result = BackgroundTaskConfigSchema.parse({
+        maxBackgroundAgents: 10,
+      });
 
-        expect(result.maxBackgroundAgents).toBe(10)
-      })
-    })
+      expect(result.maxBackgroundAgents).toBe(10);
+    });
+  });
 
-    describe("#given maxBackgroundAgents of 1 (minimum)", () => {
-      test("#when parsed #then returns correct value", () => {
-        const result = BackgroundTaskConfigSchema.parse({ maxBackgroundAgents: 1 })
+  describe("#given maxBackgroundAgents of 1 (minimum)", () => {
+    test("#when parsed #then returns correct value", () => {
+      const result = BackgroundTaskConfigSchema.parse({
+        maxBackgroundAgents: 1,
+      });
 
-        expect(result.maxBackgroundAgents).toBe(1)
-      })
-    })
+      expect(result.maxBackgroundAgents).toBe(1);
+    });
+  });
 
-    describe("#given maxBackgroundAgents below minimum (0)", () => {
-      test("#when parsed #then throws ZodError", () => {
-        let thrownError: unknown
+  describe("#given maxBackgroundAgents below minimum (0)", () => {
+    test("#when parsed #then throws ZodError", () => {
+      let thrownError: unknown;
 
-        try {
-          BackgroundTaskConfigSchema.parse({ maxBackgroundAgents: 0 })
-        } catch (error) {
-          thrownError = error
-        }
+      try {
+        BackgroundTaskConfigSchema.parse({ maxBackgroundAgents: 0 });
+      } catch (error) {
+        thrownError = error;
+      }
 
-        expect(thrownError).toBeInstanceOf(ZodError)
-      })
-    })
+      expect(thrownError).toBeInstanceOf(ZodError);
+    });
+  });
 
-    describe("#given maxBackgroundAgents not provided", () => {
-      test("#when parsed #then field is undefined", () => {
-        const result = BackgroundTaskConfigSchema.parse({})
+  describe("#given maxBackgroundAgents not provided", () => {
+    test("#when parsed #then field is undefined", () => {
+      const result = BackgroundTaskConfigSchema.parse({});
 
-        expect(result.maxBackgroundAgents).toBeUndefined()
-      })
-    })
+      expect(result.maxBackgroundAgents).toBeUndefined();
+    });
+  });
 
-    describe('#given maxBackgroundAgents is non-integer (2.5)', () => {
-      test("#when parsed #then throws ZodError", () => {
-        let thrownError: unknown
+  describe("#given maxBackgroundAgents is non-integer (2.5)", () => {
+    test("#when parsed #then throws ZodError", () => {
+      let thrownError: unknown;
 
-        try {
-          BackgroundTaskConfigSchema.parse({ maxBackgroundAgents: 2.5 })
-        } catch (error) {
-          thrownError = error
-        }
+      try {
+        BackgroundTaskConfigSchema.parse({ maxBackgroundAgents: 2.5 });
+      } catch (error) {
+        thrownError = error;
+      }
 
-        expect(thrownError).toBeInstanceOf(ZodError)
-      })
-    })
-  })
+      expect(thrownError).toBeInstanceOf(ZodError);
+    });
+  });
+});
 ```
 
-**Rationale:** Follows exact test pattern from `maxDepth`, `maxDescendants`, and `syncPollTimeoutMs` tests. Uses `#given`/`#when`/`#then` nested describe style. Tests valid, minimum boundary, below minimum, not provided, and non-integer cases.
+**Rationale:** Follows exact test pattern from `maxDepth`, `maxDescendants`, and
+`syncPollTimeoutMs` tests. Uses `#given`/`#when`/`#then` nested describe style.
+Tests valid, minimum boundary, below minimum, not provided, and non-integer
+cases.
 
 ---
 
 ## 3. `src/features/background-agent/concurrency.ts` — Add global agent limit
 
 ```typescript
-import type { BackgroundTaskConfig } from "../../config/schema"
+import type { BackgroundTaskConfig } from "../../config/schema";
 
-const DEFAULT_MAX_BACKGROUND_AGENTS = 5
+const DEFAULT_MAX_BACKGROUND_AGENTS = 5;
 
 /**
  * Queue entry with settled-flag pattern to prevent double-resolution.
@@ -105,40 +117,40 @@ const DEFAULT_MAX_BACKGROUND_AGENTS = 5
  * an entry that was already resolved by release().
  */
 interface QueueEntry {
-  resolve: () => void
-  rawReject: (error: Error) => void
-  settled: boolean
+  resolve: () => void;
+  rawReject: (error: Error) => void;
+  settled: boolean;
 }
 
 export class ConcurrencyManager {
-  private config?: BackgroundTaskConfig
-  private counts: Map<string, number> = new Map()
-  private queues: Map<string, QueueEntry[]> = new Map()
-  private globalRunningCount = 0
+  private config?: BackgroundTaskConfig;
+  private counts: Map<string, number> = new Map();
+  private queues: Map<string, QueueEntry[]> = new Map();
+  private globalRunningCount = 0;
 
   constructor(config?: BackgroundTaskConfig) {
-    this.config = config
+    this.config = config;
   }
 
   getMaxBackgroundAgents(): number {
-    return this.config?.maxBackgroundAgents ?? DEFAULT_MAX_BACKGROUND_AGENTS
+    return this.config?.maxBackgroundAgents ?? DEFAULT_MAX_BACKGROUND_AGENTS;
   }
 
   getGlobalRunningCount(): number {
-    return this.globalRunningCount
+    return this.globalRunningCount;
   }
 
   canSpawnGlobally(): boolean {
-    return this.globalRunningCount < this.getMaxBackgroundAgents()
+    return this.globalRunningCount < this.getMaxBackgroundAgents();
   }
 
   acquireGlobal(): void {
-    this.globalRunningCount++
+    this.globalRunningCount++;
   }
 
   releaseGlobal(): void {
     if (this.globalRunningCount > 0) {
-      this.globalRunningCount--
+      this.globalRunningCount--;
     }
   }
 
@@ -160,27 +172,29 @@ export class ConcurrencyManager {
 
   clear(): void {
     for (const [model] of this.queues) {
-      this.cancelWaiters(model)
+      this.cancelWaiters(model);
     }
-    this.counts.clear()
-    this.queues.clear()
-    this.globalRunningCount = 0
+    this.counts.clear();
+    this.queues.clear();
+    this.globalRunningCount = 0;
   }
 
   getCount(model: string): number {
-    return this.counts.get(model) ?? 0
+    return this.counts.get(model) ?? 0;
   }
 
   getQueueLength(model: string): number {
-    return this.queues.get(model)?.length ?? 0
+    return this.queues.get(model)?.length ?? 0;
   }
 }
 ```
 
 **Key changes:**
+
 - Add `DEFAULT_MAX_BACKGROUND_AGENTS = 5` constant
 - Add `globalRunningCount` private field
-- Add `getMaxBackgroundAgents()`, `getGlobalRunningCount()`, `canSpawnGlobally()`, `acquireGlobal()`, `releaseGlobal()` methods
+- Add `getMaxBackgroundAgents()`, `getGlobalRunningCount()`,
+  `canSpawnGlobally()`, `acquireGlobal()`, `releaseGlobal()` methods
 - `clear()` resets `globalRunningCount` to 0
 - All existing per-model methods remain unchanged
 
@@ -194,94 +208,94 @@ Append new describe block:
 describe("ConcurrencyManager global background agent limit", () => {
   test("should default max background agents to 5 when no config", () => {
     // given
-    const manager = new ConcurrencyManager()
+    const manager = new ConcurrencyManager();
 
     // when
-    const max = manager.getMaxBackgroundAgents()
+    const max = manager.getMaxBackgroundAgents();
 
     // then
-    expect(max).toBe(5)
-  })
+    expect(max).toBe(5);
+  });
 
   test("should use configured maxBackgroundAgents", () => {
     // given
-    const config: BackgroundTaskConfig = { maxBackgroundAgents: 10 }
-    const manager = new ConcurrencyManager(config)
+    const config: BackgroundTaskConfig = { maxBackgroundAgents: 10 };
+    const manager = new ConcurrencyManager(config);
 
     // when
-    const max = manager.getMaxBackgroundAgents()
+    const max = manager.getMaxBackgroundAgents();
 
     // then
-    expect(max).toBe(10)
-  })
+    expect(max).toBe(10);
+  });
 
   test("should allow spawning when under global limit", () => {
     // given
-    const config: BackgroundTaskConfig = { maxBackgroundAgents: 2 }
-    const manager = new ConcurrencyManager(config)
+    const config: BackgroundTaskConfig = { maxBackgroundAgents: 2 };
+    const manager = new ConcurrencyManager(config);
 
     // when
-    manager.acquireGlobal()
+    manager.acquireGlobal();
 
     // then
-    expect(manager.canSpawnGlobally()).toBe(true)
-    expect(manager.getGlobalRunningCount()).toBe(1)
-  })
+    expect(manager.canSpawnGlobally()).toBe(true);
+    expect(manager.getGlobalRunningCount()).toBe(1);
+  });
 
   test("should block spawning when at global limit", () => {
     // given
-    const config: BackgroundTaskConfig = { maxBackgroundAgents: 2 }
-    const manager = new ConcurrencyManager(config)
+    const config: BackgroundTaskConfig = { maxBackgroundAgents: 2 };
+    const manager = new ConcurrencyManager(config);
 
     // when
-    manager.acquireGlobal()
-    manager.acquireGlobal()
+    manager.acquireGlobal();
+    manager.acquireGlobal();
 
     // then
-    expect(manager.canSpawnGlobally()).toBe(false)
-    expect(manager.getGlobalRunningCount()).toBe(2)
-  })
+    expect(manager.canSpawnGlobally()).toBe(false);
+    expect(manager.getGlobalRunningCount()).toBe(2);
+  });
 
   test("should allow spawning again after release", () => {
     // given
-    const config: BackgroundTaskConfig = { maxBackgroundAgents: 1 }
-    const manager = new ConcurrencyManager(config)
-    manager.acquireGlobal()
+    const config: BackgroundTaskConfig = { maxBackgroundAgents: 1 };
+    const manager = new ConcurrencyManager(config);
+    manager.acquireGlobal();
 
     // when
-    manager.releaseGlobal()
+    manager.releaseGlobal();
 
     // then
-    expect(manager.canSpawnGlobally()).toBe(true)
-    expect(manager.getGlobalRunningCount()).toBe(0)
-  })
+    expect(manager.canSpawnGlobally()).toBe(true);
+    expect(manager.getGlobalRunningCount()).toBe(0);
+  });
 
   test("should not go below zero on extra release", () => {
     // given
-    const manager = new ConcurrencyManager()
+    const manager = new ConcurrencyManager();
 
     // when
-    manager.releaseGlobal()
+    manager.releaseGlobal();
 
     // then
-    expect(manager.getGlobalRunningCount()).toBe(0)
-  })
+    expect(manager.getGlobalRunningCount()).toBe(0);
+  });
 
   test("should reset global count on clear", () => {
     // given
-    const config: BackgroundTaskConfig = { maxBackgroundAgents: 5 }
-    const manager = new ConcurrencyManager(config)
-    manager.acquireGlobal()
-    manager.acquireGlobal()
-    manager.acquireGlobal()
+    const config: BackgroundTaskConfig = { maxBackgroundAgents: 5 };
+    const manager = new ConcurrencyManager(config);
+    manager.acquireGlobal();
+    manager.acquireGlobal();
+    manager.acquireGlobal();
 
     // when
-    manager.clear()
+    manager.clear();
 
     // then
-    expect(manager.getGlobalRunningCount()).toBe(0)
-  })
-})
+    expect(manager.getGlobalRunningCount()).toBe(0);
+  });
+});
 ```
 
 ---
@@ -400,22 +414,22 @@ describe("ConcurrencyManager global background agent limit", () => {
 ### In `handleEvent()` session.error handler — release global slot:
 
 ```typescript
-    if (event.type === "session.error") {
-      // ... existing error handling ...
+if (event.type === "session.error") {
+  // ... existing error handling ...
 
-      task.status = "error"
-      // ...
+  task.status = "error";
+  // ...
 
-      if (task.concurrencyKey) {
-        this.concurrencyManager.release(task.concurrencyKey)
-        task.concurrencyKey = undefined
-      }
+  if (task.concurrencyKey) {
+    this.concurrencyManager.release(task.concurrencyKey);
+    task.concurrencyKey = undefined;
+  }
 
-      // Release global slot
-      this.concurrencyManager.releaseGlobal()
+  // Release global slot
+  this.concurrencyManager.releaseGlobal();
 
-      // ... rest unchanged ...
-    }
+  // ... rest unchanged ...
+}
 ```
 
 ### In prompt error handler inside `startTask()` — release global slot:
@@ -443,12 +457,12 @@ describe("ConcurrencyManager global background agent limit", () => {
 
 ## Summary of Changes
 
-| File | Lines Added | Lines Modified |
-|------|-------------|----------------|
-| `src/config/schema/background-task.ts` | 2 | 0 |
-| `src/config/schema/background-task.test.ts` | ~50 | 0 |
-| `src/features/background-agent/concurrency.ts` | ~25 | 1 (`clear()`) |
-| `src/features/background-agent/concurrency.test.ts` | ~70 | 0 |
-| `src/features/background-agent/manager.ts` | ~20 | 0 |
+| File                                                | Lines Added | Lines Modified |
+| --------------------------------------------------- | ----------- | -------------- |
+| `src/config/schema/background-task.ts`              | 2           | 0              |
+| `src/config/schema/background-task.test.ts`         | ~50         | 0              |
+| `src/features/background-agent/concurrency.ts`      | ~25         | 1 (`clear()`)  |
+| `src/features/background-agent/concurrency.test.ts` | ~70         | 0              |
+| `src/features/background-agent/manager.ts`          | ~20         | 0              |
 
 Total: ~167 lines added, 1 line modified across 5 files.

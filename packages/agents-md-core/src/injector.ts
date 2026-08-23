@@ -1,6 +1,6 @@
 import {
-  findAgentsMdUp,
   type AgentsMdCache,
+  findAgentsMdUp,
   type FindAgentsMdUpInput,
 } from "@oh-my-opencode/rules-engine";
 import { promises as fsPromises } from "node:fs";
@@ -49,7 +49,9 @@ export async function processFilePathForAgentsInjection(input: {
     const agentsDir = dirname(agentsPath);
     if (cache.has(agentsDir)) continue;
 
-    const content = await fsPromises.readFile(agentsPath, "utf-8").catch(() => null);
+    const content = await fsPromises.readFile(agentsPath, "utf-8").catch(() =>
+      null
+    );
     if (content === null) continue;
 
     cache.add(agentsDir);

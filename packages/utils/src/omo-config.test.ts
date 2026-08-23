@@ -1,6 +1,6 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it } from "bun:test";
 
-import { validateOmoConfig } from "./omo-config"
+import { validateOmoConfig } from "./omo-config";
 
 describe("validateOmoConfig", () => {
   it("accepts codegraph settings with codex and opencode override blocks", () => {
@@ -25,38 +25,44 @@ describe("validateOmoConfig", () => {
           watch_debounce_ms: 500,
         },
       },
-    }
+    };
 
     // when
-    const result = validateOmoConfig(config)
+    const result = validateOmoConfig(config);
 
     // then
-    expect(result).toEqual({ errors: [], ok: true })
-  })
+    expect(result).toEqual({ errors: [], ok: true });
+  });
 
   it("rejects a SessionStart cooldown below the safety floor", () => {
     // given
-    const config = { "[codex]": { codegraph: { session_start_cooldown_ms: 59_999 } } }
+    const config = {
+      "[codex]": { codegraph: { session_start_cooldown_ms: 59_999 } },
+    };
 
     // when
-    const result = validateOmoConfig(config)
+    const result = validateOmoConfig(config);
 
     // then
-    expect(result.ok).toBe(false)
-    expect(result.errors).toContain("[codex].codegraph.session_start_cooldown_ms must be a finite number of at least 60000")
-  })
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      "[codex].codegraph.session_start_cooldown_ms must be a finite number of at least 60000",
+    );
+  });
 
   it("rejects unknown harness override blocks", () => {
     // given
-    const config = { "[android]": {} }
+    const config = { "[android]": {} };
 
     // when
-    const result = validateOmoConfig(config)
+    const result = validateOmoConfig(config);
 
     // then
-    expect(result.ok).toBe(false)
-    expect(result.errors).toContain('Unknown harness override block "[android]"')
-  })
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      'Unknown harness override block "[android]"',
+    );
+  });
 
   it("flags settings used under unsupported harness blocks", () => {
     // given
@@ -66,13 +72,15 @@ describe("validateOmoConfig", () => {
           watch_debounce_ms: 250,
         },
       },
-    }
+    };
 
     // when
-    const result = validateOmoConfig(config)
+    const result = validateOmoConfig(config);
 
     // then
-    expect(result.ok).toBe(false)
-    expect(result.errors).toContain("codegraph.watch_debounce_ms is not supported for harness codex")
-  })
-})
+    expect(result.ok).toBe(false);
+    expect(result.errors).toContain(
+      "codegraph.watch_debounce_ms is not supported for harness codex",
+    );
+  });
+});

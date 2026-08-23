@@ -15,7 +15,8 @@ import type { ApplyAgentConfigParams } from "./agent-config-types";
 export async function discoverAgentSkills(
   params: Pick<ApplyAgentConfigParams, "config" | "pluginConfig" | "ctx">,
 ): Promise<LoadedSkill[]> {
-  const includeClaudeSkillsForAwareness = params.pluginConfig.claude_code?.skills ?? true;
+  const includeClaudeSkillsForAwareness =
+    params.pluginConfig.claude_code?.skills ?? true;
   const hostSkillConfig = adaptHostSkillConfig(params.config.skills);
   const [
     discoveredConfigSourceSkills,
@@ -35,7 +36,9 @@ export async function discoverAgentSkills(
       config: hostSkillConfig,
       configDir: params.ctx.directory,
     }),
-    includeClaudeSkillsForAwareness ? discoverUserClaudeSkills() : Promise.resolve([]),
+    includeClaudeSkillsForAwareness
+      ? discoverUserClaudeSkills()
+      : Promise.resolve([]),
     includeClaudeSkillsForAwareness
       ? discoverProjectClaudeSkills(params.ctx.directory)
       : Promise.resolve([]),
@@ -44,7 +47,9 @@ export async function discoverAgentSkills(
       : Promise.resolve([]),
     discoverOpencodeGlobalSkills(),
     discoverOpencodeProjectSkills(params.ctx.directory),
-    includeClaudeSkillsForAwareness ? discoverGlobalAgentsSkills() : Promise.resolve([]),
+    includeClaudeSkillsForAwareness
+      ? discoverGlobalAgentsSkills()
+      : Promise.resolve([]),
   ]);
 
   return deduplicateSkillsByName([

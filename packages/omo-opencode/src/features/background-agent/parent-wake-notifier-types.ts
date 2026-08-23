@@ -1,45 +1,50 @@
-import type { PromptDispatchClient, PromptMessagesQuery } from "../../shared/prompt-async-gate/types"
-import type { ParentWakePromptContext } from "./parent-wake-dedupe"
-import type { ParentWakeLedger } from "./parent-wake-ledger"
+import type {
+  PromptDispatchClient,
+  PromptMessagesQuery,
+} from "../../shared/prompt-async-gate/types";
+import type { ParentWakePromptContext } from "./parent-wake-dedupe";
+import type { ParentWakeLedger } from "./parent-wake-ledger";
 
 type ParentWakePromptBody = ParentWakePromptContext & {
-  readonly noReply?: boolean
-  readonly parts: { readonly type: "text"; readonly text: string }[]
-}
+  readonly noReply?: boolean;
+  readonly parts: { readonly type: "text"; readonly text: string }[];
+};
 
 type ParentWakePromptAsyncInput = {
-  readonly path: { readonly id: string }
-  readonly body: ParentWakePromptBody
-  readonly query: { readonly directory: string }
-}
+  readonly path: { readonly id: string };
+  readonly body: ParentWakePromptBody;
+  readonly query: { readonly directory: string };
+};
 
 export type ParentWakeNotifierClient = PromptDispatchClient & {
   readonly session: NonNullable<PromptDispatchClient["session"]> & {
     readonly messages: (input: {
-      readonly path: { readonly id: string }
-      readonly query: PromptMessagesQuery
-    }) => Promise<unknown>
-    readonly promptAsync: (input: ParentWakePromptAsyncInput) => Promise<unknown>
-  }
-}
+      readonly path: { readonly id: string };
+      readonly query: PromptMessagesQuery;
+    }) => Promise<unknown>;
+    readonly promptAsync: (
+      input: ParentWakePromptAsyncInput,
+    ) => Promise<unknown>;
+  };
+};
 
 export type ParentWakeNotifierDeps = {
-  readonly client: ParentWakeNotifierClient
-  readonly directory: string
-  readonly ledger: ParentWakeLedger
+  readonly client: ParentWakeNotifierClient;
+  readonly directory: string;
+  readonly ledger: ParentWakeLedger;
   readonly enqueueNotificationForParent: (
     parentSessionID: string | undefined,
     operation: () => Promise<void>,
-  ) => Promise<void>
-  readonly onPendingWakeRequeued?: (sessionID: string) => void
-  readonly onScheduledFlushSettled?: (sessionID: string) => void
-}
+  ) => Promise<void>;
+  readonly onPendingWakeRequeued?: (sessionID: string) => void;
+  readonly onScheduledFlushSettled?: (sessionID: string) => void;
+};
 
 export type ParentWakeNotifierOptions = {
-  readonly pendingRetryMs: number
-  readonly acceptedMessageSkewMs: number
-  readonly toolCallDeferMaxMs: number
-  readonly failureRequeueWindowMs: number
+  readonly pendingRetryMs: number;
+  readonly acceptedMessageSkewMs: number;
+  readonly toolCallDeferMaxMs: number;
+  readonly failureRequeueWindowMs: number;
   /**
    * If the latest message in the parent session is a `user` message added
    * within this window, the parent-wake injection is deferred. Prevents the
@@ -47,6 +52,6 @@ export type ParentWakeNotifierOptions = {
    * user prompt, which on macOS/Electron has triggered native SIGABRT crashes
    * inside OpenCode's `@parcel/watcher` TSFN callback path. See issue #4120.
    */
-  readonly userMessageInProgressWindowMs: number
-  readonly parentSessionActivityInProgressWindowMs?: number
-}
+  readonly userMessageInProgressWindowMs: number;
+  readonly parentSessionActivityInProgressWindowMs?: number;
+};

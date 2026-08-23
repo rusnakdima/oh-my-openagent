@@ -4,7 +4,10 @@
 
 ## OVERVIEW
 
-Public-facing marketing site for oh-my-opencode / oh-my-openagent. Next.js 15 (App Router) deployed to Cloudflare Workers via [@opennextjs/cloudflare](https://opennext.js.org/cloudflare). Independent of the npm plugin — its own `package.json`, `bun.lock`, and `tsconfig.json`.
+Public-facing marketing site for oh-my-opencode / oh-my-openagent. Next.js 15
+(App Router) deployed to Cloudflare Workers via
+[@opennextjs/cloudflare](https://opennext.js.org/cloudflare). Independent of the
+npm plugin — its own `package.json`, `bun.lock`, and `tsconfig.json`.
 
 ## STACK
 
@@ -73,23 +76,35 @@ bun run cf-typegen       # regenerate cloudflare-env.d.ts from wrangler.toml bin
 - `CLOUDFLARE_API_TOKEN` — token with `Workers Scripts: Edit` permission
 - `CLOUDFLARE_ACCOUNT_ID` — Cloudflare account ID
 
-A `web-production` GitHub environment is referenced by the deploy workflow so deploys can be gated behind required reviewers / wait timers if desired.
+A `web-production` GitHub environment is referenced by the deploy workflow so
+deploys can be gated behind required reviewers / wait timers if desired.
 
 ## RELATIONSHIP TO npm PACKAGE
 
-The npm package `oh-my-opencode` ships only `dist/`, `bin/`, and `postinstall.mjs` (see root `package.json` `files` field). `packages/web/` is **not** included in any npm publish — it is exclusively a separate Cloudflare deployment target.
+The npm package `oh-my-opencode` ships only `dist/`, `bin/`, and
+`postinstall.mjs` (see root `package.json` `files` field). `packages/web/` is
+**not** included in any npm publish — it is exclusively a separate Cloudflare
+deployment target.
 
-Root `bun test` ignores `packages/web/**` through `bunfig.toml` so `packages/web/e2e/*.spec.ts` does not pollute plugin tests.
+Root `bun test` ignores `packages/web/**` through `bunfig.toml` so
+`packages/web/e2e/*.spec.ts` does not pollute plugin tests.
 
 ## CONVENTIONS
 
-- **No path aliases globally** in the omo project, but `packages/web/` is a Next.js app where `@/*` aliases are the framework default. Keep `@/*` confined to packages/web/.
-- Use the existing shadcn primitives in `components/ui/` rather than installing new UI libs.
-- All user-facing copy goes through `messages/{locale}.json`; never hardcode strings in components.
+- **No path aliases globally** in the omo project, but `packages/web/` is a
+  Next.js app where `@/*` aliases are the framework default. Keep `@/*` confined
+  to packages/web/.
+- Use the existing shadcn primitives in `components/ui/` rather than installing
+  new UI libs.
+- All user-facing copy goes through `messages/{locale}.json`; never hardcode
+  strings in components.
 - Format with prettier before commit — `web-ci.yml` enforces `format:check`.
 
 ## ANTI-PATTERNS
 
-- Never run `npm install` in `packages/web/`. Use `bun install` only. (Root `.gitignore` already blocks `package-lock.json`.)
-- Never commit `.next/`, `.open-next/`, `.wrangler/`, `node_modules/` (covered by `packages/web/.gitignore`).
-- Never deploy locally with `bun run deploy` against production — use the GitHub Actions workflow so Cloudflare credentials live in one place.
+- Never run `npm install` in `packages/web/`. Use `bun install` only. (Root
+  `.gitignore` already blocks `package-lock.json`.)
+- Never commit `.next/`, `.open-next/`, `.wrangler/`, `node_modules/` (covered
+  by `packages/web/.gitignore`).
+- Never deploy locally with `bun run deploy` against production — use the GitHub
+  Actions workflow so Cloudflare credentials live in one place.

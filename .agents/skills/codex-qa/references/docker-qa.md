@@ -30,8 +30,8 @@ script/agent/qa-docker.sh exec bash .claude/skills/codex-qa/scripts/tui-smoke.sh
 script/agent/qa-docker.sh --clean   # remove the QA images
 ```
 
-`omo-qa` is `omo-dev` (`.devcontainer/Dockerfile`) plus the latest `@openai/codex`
-and `opencode-ai` npm packages and `sqlite3 jq curl rsync`.
+`omo-qa` is `omo-dev` (`.devcontainer/Dockerfile`) plus the latest
+`@openai/codex` and `opencode-ai` npm packages and `sqlite3 jq curl rsync`.
 
 ## Isolation still applies inside
 

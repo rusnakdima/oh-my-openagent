@@ -16,8 +16,8 @@ import { fileURLToPath } from "node:url";
 const SKILLS_PROBE_SPECIFIERS = ["./skills/", "../skills/", "../../skills/"];
 
 export function sharedSkillsRootPath() {
-	const candidates = SKILLS_PROBE_SPECIFIERS.map((specifier) =>
-		fileURLToPath(new URL(specifier, import.meta.url)),
-	);
-	return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
+  const candidates = SKILLS_PROBE_SPECIFIERS.map((specifier) =>
+    fileURLToPath(new URL(specifier, import.meta.url))
+  );
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0];
 }

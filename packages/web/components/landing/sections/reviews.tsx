@@ -1,14 +1,17 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import { Card, CardContent } from "@/components/ui/card"
-import { Star } from "lucide-react"
-import { REVIEW_KEYS } from "@/components/landing/constants"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import { Card, CardContent } from "@/components/ui/card";
+import { Star } from "lucide-react";
+import { REVIEW_KEYS } from "@/components/landing/constants";
 
 export async function ReviewsSection(): Promise<JSX.Element> {
-  const t = await getTranslations("landing")
+  const t = await getTranslations("landing");
 
   return (
-    <section className="border-t border-white/5 bg-[#0a0a0a] py-24" data-section="reviews">
+    <section
+      className="border-t border-white/5 bg-[#0a0a0a] py-24"
+      data-section="reviews"
+    >
       <div className="reveal-on-enter container mx-auto px-4 md:px-6">
         <div>
           <h2 className="mb-16 text-center text-4xl font-bold text-white md:text-5xl">
@@ -36,5 +39,5 @@ export async function ReviewsSection(): Promise<JSX.Element> {
         </div>
       </div>
     </section>
-  )
+  );
 }

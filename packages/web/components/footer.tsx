@@ -1,12 +1,14 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import { Link } from "@/i18n/routing"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import { Link } from "@/i18n/routing";
 
-export async function Footer({ locale }: { readonly locale?: string } = {}): Promise<JSX.Element> {
+export async function Footer(
+  { locale }: { readonly locale?: string } = {},
+): Promise<JSX.Element> {
   const t = locale
     ? await getTranslations({ locale, namespace: "footer" })
-    : await getTranslations("footer")
-  const currentYear = new Date().getUTCFullYear()
+    : await getTranslations("footer");
+  const currentYear = new Date().getUTCFullYear();
 
   return (
     <footer className="border-t border-white/10 bg-black py-12">
@@ -35,7 +37,11 @@ export async function Footer({ locale }: { readonly locale?: string } = {}): Pro
             >
               {t("discord")}
             </a>
-            <Link href="/docs" locale={locale} className="transition-colors hover:text-cyan-400">
+            <Link
+              href="/docs"
+              locale={locale}
+              className="transition-colors hover:text-cyan-400"
+            >
               {t("documentation")}
             </Link>
             <Link
@@ -49,5 +55,5 @@ export async function Footer({ locale }: { readonly locale?: string } = {}): Pro
         </div>
       </div>
     </footer>
-  )
+  );
 }

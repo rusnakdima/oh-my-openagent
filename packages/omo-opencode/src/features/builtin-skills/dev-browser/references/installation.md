@@ -26,6 +26,7 @@ rm -rf /tmp/dev-browser-skill
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 # Clone dev-browser to temp location
 git clone https://github.com/sawyerhood/dev-browser $env:TEMP\dev-browser-skill
@@ -46,6 +47,7 @@ npm install
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 cd "$env:USERPROFILE\.config\opencode\skills\dev-browser"
 npm install
@@ -56,6 +58,7 @@ npm install
 #### Standalone Mode (New Browser Instance)
 
 **macOS/Linux:**
+
 ```bash
 cd ~/.config/opencode/skills/dev-browser
 ./server.sh &
@@ -64,6 +67,7 @@ cd ~/.config/opencode/skills/dev-browser
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 cd "$env:USERPROFILE\.config\opencode\skills\dev-browser"
 Start-Process -NoNewWindow -FilePath "node" -ArgumentList "server.js"
@@ -72,6 +76,7 @@ Start-Process -NoNewWindow -FilePath "node" -ArgumentList "server.js", "--headle
 ```
 
 **Windows (CMD):**
+
 ```cmd
 cd %USERPROFILE%\.config\opencode\skills\dev-browser
 start /B node server.js
@@ -82,12 +87,14 @@ Wait for the `Ready` message before running scripts.
 #### Extension Mode (Use Existing Chrome)
 
 **macOS/Linux:**
+
 ```bash
 cd ~/.config/opencode/skills/dev-browser
 npm run start-extension &
 ```
 
 **Windows (PowerShell):**
+
 ```powershell
 cd "$env:USERPROFILE\.config\opencode\skills\dev-browser"
 Start-Process -NoNewWindow -FilePath "npm" -ArgumentList "run", "start-extension"
@@ -97,11 +104,13 @@ Wait for `Extension connected` message.
 
 ## Chrome Extension Setup (Optional)
 
-The Chrome extension allows controlling your existing Chrome browser with all your logged-in sessions.
+The Chrome extension allows controlling your existing Chrome browser with all
+your logged-in sessions.
 
 ### Installation
 
-1. Download `extension.zip` from [latest release](https://github.com/sawyerhood/dev-browser/releases/latest)
+1. Download `extension.zip` from
+   [latest release](https://github.com/sawyerhood/dev-browser/releases/latest)
 2. Extract to a permanent location:
    - **macOS/Linux:** `~/.dev-browser-extension`
    - **Windows:** `%USERPROFILE%\.dev-browser-extension`
@@ -121,11 +130,13 @@ The Chrome extension allows controlling your existing Chrome browser with all yo
 ### Server Won't Start
 
 **Check Node.js version:**
+
 ```bash
 node --version  # Should be v18+
 ```
 
 **Check port availability:**
+
 ```bash
 # macOS/Linux
 lsof -i :3000
@@ -137,20 +148,21 @@ netstat -ano | findstr :3000
 ### Playwright Installation Issues
 
 If Chromium fails to install:
+
 ```bash
 npx playwright install chromium
 ```
 
 ### Windows-Specific Issues
 
-**Execution Policy:**
-If PowerShell scripts are blocked:
+**Execution Policy:** If PowerShell scripts are blocked:
+
 ```powershell
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-**Path Issues:**
-Use forward slashes or escaped backslashes in paths:
+**Path Issues:** Use forward slashes or escaped backslashes in paths:
+
 ```powershell
 # Good
 cd "$env:USERPROFILE/.config/opencode/skills/dev-browser"
@@ -186,6 +198,7 @@ npm install
 ```
 
 **Windows:**
+
 ```powershell
 cd "$env:USERPROFILE\.config\opencode\skills\dev-browser"
 git pull

@@ -1,6 +1,8 @@
 # Security Research - Team Mode Vulnerability Audit
 
-Use this skill to run a parallel security audit that separates real exploitability from generic concern. The team has 3 vulnerability hunters and 2 PoC engineers.
+Use this skill to run a parallel security audit that separates real
+exploitability from generic concern. The team has 3 vulnerability hunters and 2
+PoC engineers.
 
 ## Hard Preconditions
 
@@ -9,18 +11,24 @@ Before starting, verify:
 1. `team_*` tools are available. If not, stop and tell the user:
    `security-research requires team-mode. Set team_mode.enabled: true in your oh-my-openagent config, restart opencode, then retry.`
 2. You are in the main session, not a background subagent.
-3. You have a concrete target: repository, diff range, PR, release candidate, path list, or threat surface.
+3. You have a concrete target: repository, diff range, PR, release candidate,
+   path list, or threat surface.
 
-If the user provided no target, audit the current repository and current branch diff against its upstream or merge base. If there is no diff, audit the security-sensitive surfaces in the working tree.
+If the user provided no target, audit the current repository and current branch
+diff against its upstream or merge base. If there is no diff, audit the
+security-sensitive surfaces in the working tree.
 
 ## Severity Standard
 
 Use these references as the scoring frame:
 
 - CWE for root-cause weakness classification: https://cwe.mitre.org/
-- OWASP WSTG for test methodology: https://devguide.owasp.org/en/06-verification/01-guides/01-wstg/
-- OWASP ASVS for control verification: https://owasp.org/www-project-application-security-verification-standard/
-- CVSS v4.0 for exploitability and impact scoring: https://www.first.org/cvss/v4.0/specification-document
+- OWASP WSTG for test methodology:
+  https://devguide.owasp.org/en/06-verification/01-guides/01-wstg/
+- OWASP ASVS for control verification:
+  https://owasp.org/www-project-application-security-verification-standard/
+- CVSS v4.0 for exploitability and impact scoring:
+  https://www.first.org/cvss/v4.0/specification-document
 
 Rules:
 
@@ -29,19 +37,20 @@ Rules:
 - Keep CWE category separate from severity.
 - Prefer a small, reproducible PoC over theoretical language.
 - Never run destructive exploits against real services or third-party systems.
-- Use local fixtures, toy payloads, dry runs, or static proof when real execution would be unsafe.
+- Use local fixtures, toy payloads, dry runs, or static proof when real
+  execution would be unsafe.
 
 ## Team Roster
 
 Create one Team Mode run with these 5 members:
 
-| Member | Kind | Category | Role |
-|--------|------|----------|------|
-| `surface-hunter` | category | `deep` | Map entry points, trust boundaries, and reachable attack surfaces. |
-| `auth-data-hunter` | category | `ultrabrain` | Hunt auth, authorization, data isolation, injection, and secret handling flaws. |
-| `runtime-supply-hunter` | category | `unspecified-high` | Hunt filesystem, subprocess, archive, dependency, hook, MCP, and config risks. |
-| `poc-engineer-a` | category | `unspecified-high` | Build minimal PoCs for the strongest candidate findings. |
-| `poc-engineer-b` | category | `deep` | Independently reproduce, falsify, or downgrade candidate findings. |
+| Member                  | Kind     | Category           | Role                                                                            |
+| ----------------------- | -------- | ------------------ | ------------------------------------------------------------------------------- |
+| `surface-hunter`        | category | `deep`             | Map entry points, trust boundaries, and reachable attack surfaces.              |
+| `auth-data-hunter`      | category | `ultrabrain`       | Hunt auth, authorization, data isolation, injection, and secret handling flaws. |
+| `runtime-supply-hunter` | category | `unspecified-high` | Hunt filesystem, subprocess, archive, dependency, hook, MCP, and config risks.  |
+| `poc-engineer-a`        | category | `unspecified-high` | Build minimal PoCs for the strongest candidate findings.                        |
+| `poc-engineer-b`        | category | `deep`             | Independently reproduce, falsify, or downgrade candidate findings.              |
 
 Call `team_create` with an inline spec:
 
@@ -55,38 +64,44 @@ team_create({
         name: "surface-hunter",
         kind: "category",
         category: "deep",
-        prompt: "You map attack surface. Enumerate entry points, trust boundaries, attacker-controlled inputs, data sinks, privilege transitions, and sensitive assets. Return evidence with file paths and exact functions. Do not assign severity unless you can name an attack path."
+        prompt:
+          "You map attack surface. Enumerate entry points, trust boundaries, attacker-controlled inputs, data sinks, privilege transitions, and sensitive assets. Return evidence with file paths and exact functions. Do not assign severity unless you can name an attack path.",
       },
       {
         name: "auth-data-hunter",
         kind: "category",
         category: "ultrabrain",
-        prompt: "You hunt auth, authorization, tenant/data isolation, injection, SSRF, credential exposure, and confused-deputy flaws. Reason from attacker capability to impact. Return only findings with concrete exploit preconditions, CWE candidates, and verification steps."
+        prompt:
+          "You hunt auth, authorization, tenant/data isolation, injection, SSRF, credential exposure, and confused-deputy flaws. Reason from attacker capability to impact. Return only findings with concrete exploit preconditions, CWE candidates, and verification steps.",
       },
       {
         name: "runtime-supply-hunter",
         kind: "category",
         category: "unspecified-high",
-        prompt: "You hunt filesystem, subprocess, archive extraction, dependency, hook execution, MCP, config, and environment-variable risks. Check path traversal, command injection, unsafe downloads, permission boundaries, and supply-chain assumptions. Cite file paths and commands used."
+        prompt:
+          "You hunt filesystem, subprocess, archive extraction, dependency, hook execution, MCP, config, and environment-variable risks. Check path traversal, command injection, unsafe downloads, permission boundaries, and supply-chain assumptions. Cite file paths and commands used.",
       },
       {
         name: "poc-engineer-a",
         kind: "category",
         category: "unspecified-high",
-        prompt: "You build minimal safe PoCs for candidate findings. Use toy inputs and local-only execution. Your job is to prove or disprove exploitability, not to broaden scope. Report exact reproduction steps and expected output."
+        prompt:
+          "You build minimal safe PoCs for candidate findings. Use toy inputs and local-only execution. Your job is to prove or disprove exploitability, not to broaden scope. Report exact reproduction steps and expected output.",
       },
       {
         name: "poc-engineer-b",
         kind: "category",
         category: "deep",
-        prompt: "You independently reproduce candidate findings and try to falsify them. Downgrade anything without a working path. If a PoC is unsafe to run, design a safe static or dry-run proof and explain the limit."
-      }
-    ]
-  }
-})
+        prompt:
+          "You independently reproduce candidate findings and try to falsify them. Downgrade anything without a working path. If a PoC is unsafe to run, design a safe static or dry-run proof and explain the limit.",
+      },
+    ],
+  },
+});
 ```
 
-If a category is unavailable, retry once by replacing only that category with `unspecified-high`. Do not reduce the team below 5 members.
+If a category is unavailable, retry once by replacing only that category with
+`unspecified-high`. Do not reduce the team below 5 members.
 
 ## Workflow
 
@@ -131,7 +146,8 @@ Wait for all hunters.
 
 ### Phase 2: PoC Pass
 
-Deduplicate hunter candidates. Send the strongest candidates to both PoC engineers.
+Deduplicate hunter candidates. Send the strongest candidates to both PoC
+engineers.
 
 Each PoC engineer must return:
 
@@ -160,19 +176,24 @@ Produce this report:
 ## Security Research Result
 
 ### Verdict
+
 PASS | PASS WITH FINDINGS | BLOCK
 
 ### Scope
+
 - Target:
 - Base/diff:
 - Commands run:
 
 ### Findings
+
 | Severity | Title | CWE | Exploitability | Impact | PoC | Fix |
-|----------|-------|-----|----------------|--------|-----|-----|
+| -------- | ----- | --- | -------------- | ------ | --- | --- |
 
 ### Finding Details
+
 For each finding:
+
 - Evidence:
 - Attack path:
 - PoC:
@@ -181,10 +202,12 @@ For each finding:
 - Regression check:
 
 ### Downgraded or Rejected Candidates
+
 | Candidate | Reason |
-|-----------|--------|
+| --------- | ------ |
 
 ### Residual Risk
+
 - What was not tested and why.
 ```
 

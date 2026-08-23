@@ -1,6 +1,6 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 import {
   AgentOverrideConfigSchema,
   BrowserAutomationConfigSchema,
@@ -12,112 +12,120 @@ import {
   GitMasterConfigSchema,
   HookNameSchema,
   OhMyOpenCodeConfigSchema,
-} from "./schema"
+} from "./schema";
 
 describe("disabled_mcps schema", () => {
   test("should accept built-in MCP names", () => {
     // given
     const config = {
       disabled_mcps: ["context7", "grep_app"],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disabled_mcps).toEqual(["context7", "grep_app"])
+      expect(result.data.disabled_mcps).toEqual(["context7", "grep_app"]);
     }
-  })
+  });
 
   test("should accept custom MCP names", () => {
     // given
     const config = {
       disabled_mcps: ["playwright", "sqlite", "custom-mcp"],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disabled_mcps).toEqual(["playwright", "sqlite", "custom-mcp"])
+      expect(result.data.disabled_mcps).toEqual([
+        "playwright",
+        "sqlite",
+        "custom-mcp",
+      ]);
     }
-  })
+  });
 
   test("should accept mixed built-in and custom names", () => {
     // given
     const config = {
       disabled_mcps: ["context7", "playwright", "custom-server"],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disabled_mcps).toEqual(["context7", "playwright", "custom-server"])
+      expect(result.data.disabled_mcps).toEqual([
+        "context7",
+        "playwright",
+        "custom-server",
+      ]);
     }
-  })
+  });
 
   test("should accept empty array", () => {
     // given
     const config = {
       disabled_mcps: [],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disabled_mcps).toEqual([])
+      expect(result.data.disabled_mcps).toEqual([]);
     }
-  })
+  });
 
   test("should reject non-string values", () => {
     // given
     const config = {
       disabled_mcps: [123, true, null],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("should accept undefined (optional field)", () => {
     // given
-    const config = {}
+    const config = {};
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disabled_mcps).toBeUndefined()
+      expect(result.data.disabled_mcps).toBeUndefined();
     }
-  })
+  });
 
   test("should reject empty strings", () => {
     // given
     const config = {
       disabled_mcps: [""],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("should accept MCP names with various naming patterns", () => {
     // given
@@ -129,13 +137,13 @@ describe("disabled_mcps schema", () => {
         "my.custom.mcp",
         "my-custom-mcp-123",
       ],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.disabled_mcps).toEqual([
         "my-custom-mcp",
@@ -143,10 +151,10 @@ describe("disabled_mcps schema", () => {
         "myCustomMcp",
         "my.custom.mcp",
         "my-custom-mcp-123",
-      ])
+      ]);
     }
-  })
-})
+  });
+});
 
 describe("OhMyOpenCodeConfigSchema - model_capabilities", () => {
   test("accepts valid model capabilities config", () => {
@@ -157,15 +165,15 @@ describe("OhMyOpenCodeConfigSchema - model_capabilities", () => {
         refresh_timeout_ms: 5000,
         source_url: "https://models.dev/api.json",
       },
-    }
+    };
 
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.model_capabilities).toEqual(input.model_capabilities)
+      expect(result.data.model_capabilities).toEqual(input.model_capabilities);
     }
-  })
+  });
 
   test("rejects invalid model capabilities config", () => {
     const result = OhMyOpenCodeConfigSchema.safeParse({
@@ -173,421 +181,452 @@ describe("OhMyOpenCodeConfigSchema - model_capabilities", () => {
         refresh_timeout_ms: -1,
         source_url: "not-a-url",
       },
-    })
+    });
 
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("AgentOverrideConfigSchema", () => {
   describe("category field", () => {
     test("accepts category as optional string", () => {
       // given
-      const config = { category: "visual-engineering" }
+      const config = { category: "visual-engineering" };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.category).toBe("visual-engineering")
+        expect(result.data.category).toBe("visual-engineering");
       }
-    })
+    });
 
     test("accepts config without category", () => {
       // given
-      const config = { temperature: 0.5 }
+      const config = { temperature: 0.5 };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
-    })
+      expect(result.success).toBe(true);
+    });
 
     test("rejects non-string category", () => {
       // given
-      const config = { category: 123 }
+      const config = { category: 123 };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(false)
-    })
-  })
+      expect(result.success).toBe(false);
+    });
+  });
 
   describe("variant field", () => {
     test("accepts variant as optional string", () => {
       // given
-      const config = { variant: "high" }
+      const config = { variant: "high" };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.variant).toBe("high")
+        expect(result.data.variant).toBe("high");
       }
-    })
+    });
 
     test("rejects non-string variant", () => {
       // given
-      const config = { variant: 123 }
+      const config = { variant: 123 };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(false)
-    })
-  })
+      expect(result.success).toBe(false);
+    });
+  });
 
   describe("skills field", () => {
     test("accepts skills as optional string array", () => {
       // given
-      const config = { skills: ["frontend", "code-reviewer"] }
+      const config = { skills: ["frontend", "code-reviewer"] };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.skills).toEqual(["frontend", "code-reviewer"])
+        expect(result.data.skills).toEqual(["frontend", "code-reviewer"]);
       }
-    })
+    });
 
     test("accepts empty skills array", () => {
       // given
-      const config = { skills: [] }
+      const config = { skills: [] };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.skills).toEqual([])
+        expect(result.data.skills).toEqual([]);
       }
-    })
+    });
 
     test("accepts config without skills", () => {
       // given
-      const config = { temperature: 0.5 }
+      const config = { temperature: 0.5 };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
-    })
+      expect(result.success).toBe(true);
+    });
 
     test("rejects non-array skills", () => {
       // given
-      const config = { skills: "frontend" }
+      const config = { skills: "frontend" };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(false)
-    })
-  })
+      expect(result.success).toBe(false);
+    });
+  });
 
   describe("backward compatibility", () => {
     test("still accepts model field (deprecated)", () => {
       // given
-      const config = { model: "openai/gpt-5.4" }
+      const config = { model: "openai/gpt-5.4" };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.model).toBe("openai/gpt-5.4")
+        expect(result.data.model).toBe("openai/gpt-5.4");
       }
-    })
+    });
 
     test("accepts both model and category (deprecated usage)", () => {
       // given - category should take precedence at runtime, but both should validate
-      const config = { 
+      const config = {
         model: "openai/gpt-5.4",
-        category: "ultrabrain"
-      }
+        category: "ultrabrain",
+      };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.model).toBe("openai/gpt-5.4")
-        expect(result.data.category).toBe("ultrabrain")
+        expect(result.data.model).toBe("openai/gpt-5.4");
+        expect(result.data.category).toBe("ultrabrain");
       }
-    })
-  })
+    });
+  });
 
   describe("combined fields", () => {
     test("accepts category with skills", () => {
       // given
-      const config = { 
+      const config = {
         category: "visual-engineering",
-        skills: ["frontend"]
-      }
+        skills: ["frontend"],
+      };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.category).toBe("visual-engineering")
-        expect(result.data.skills).toEqual(["frontend"])
+        expect(result.data.category).toBe("visual-engineering");
+        expect(result.data.skills).toEqual(["frontend"]);
       }
-    })
+    });
 
     test("accepts category with skills and other fields", () => {
       // given
-      const config = { 
+      const config = {
         category: "ultrabrain",
         skills: ["code-reviewer"],
         temperature: 0.3,
-        prompt_append: "Extra instructions"
-      }
+        prompt_append: "Extra instructions",
+      };
 
       // when
-      const result = AgentOverrideConfigSchema.safeParse(config)
+      const result = AgentOverrideConfigSchema.safeParse(config);
 
       // then
-      expect(result.success).toBe(true)
+      expect(result.success).toBe(true);
       if (result.success) {
-        expect(result.data.category).toBe("ultrabrain")
-        expect(result.data.skills).toEqual(["code-reviewer"])
-        expect(result.data.temperature).toBe(0.3)
-        expect(result.data.prompt_append).toBe("Extra instructions")
+        expect(result.data.category).toBe("ultrabrain");
+        expect(result.data.skills).toEqual(["code-reviewer"]);
+        expect(result.data.temperature).toBe(0.3);
+        expect(result.data.prompt_append).toBe("Extra instructions");
       }
-    })
-  })
-})
+    });
+  });
+});
 
 describe("CategoryConfigSchema", () => {
   test("accepts variant as optional string", () => {
     // given
-    const config = { model: "openai/gpt-5.4", variant: "xhigh" }
+    const config = { model: "openai/gpt-5.4", variant: "xhigh" };
 
     // when
-    const result = CategoryConfigSchema.safeParse(config)
+    const result = CategoryConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.variant).toBe("xhigh")
+      expect(result.data.variant).toBe("xhigh");
     }
-  })
+  });
 
   test("accepts reasoningEffort as optional string with xhigh", () => {
     // given
-    const config = { reasoningEffort: "xhigh" }
+    const config = { reasoningEffort: "xhigh" };
 
     // when
-    const result = CategoryConfigSchema.safeParse(config)
+    const result = CategoryConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.reasoningEffort).toBe("xhigh")
+      expect(result.data.reasoningEffort).toBe("xhigh");
     }
-  })
+  });
 
   test("accepts reasoningEffort values none and minimal", () => {
     // given
-    const noneConfig = { reasoningEffort: "none" }
-    const minimalConfig = { reasoningEffort: "minimal" }
+    const noneConfig = { reasoningEffort: "none" };
+    const minimalConfig = { reasoningEffort: "minimal" };
 
     // when
-    const noneResult = CategoryConfigSchema.safeParse(noneConfig)
-    const minimalResult = CategoryConfigSchema.safeParse(minimalConfig)
+    const noneResult = CategoryConfigSchema.safeParse(noneConfig);
+    const minimalResult = CategoryConfigSchema.safeParse(minimalConfig);
 
     // then
-    expect(noneResult.success).toBe(true)
-    expect(minimalResult.success).toBe(true)
+    expect(noneResult.success).toBe(true);
+    expect(minimalResult.success).toBe(true);
     if (noneResult.success) {
-      expect(noneResult.data.reasoningEffort).toBe("none")
+      expect(noneResult.data.reasoningEffort).toBe("none");
     }
     if (minimalResult.success) {
-      expect(minimalResult.data.reasoningEffort).toBe("minimal")
+      expect(minimalResult.data.reasoningEffort).toBe("minimal");
     }
-  })
+  });
 
   // regression: issue #4165 — doctor used to falsely report "max" invalid; lock
   // the full enum and assert all three reasoningEffort schemas agree.
   test("accepts reasoningEffort 'max' on CategoryConfigSchema", () => {
     // given
-    const config = { reasoningEffort: "max" }
+    const config = { reasoningEffort: "max" };
 
     // when
-    const result = CategoryConfigSchema.safeParse(config)
+    const result = CategoryConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.reasoningEffort).toBe("max")
+      expect(result.data.reasoningEffort).toBe("max");
     }
-  })
+  });
 
   test("accepts reasoningEffort 'max' on AgentOverrideConfigSchema", () => {
     // given
-    const config = { reasoningEffort: "max" }
+    const config = { reasoningEffort: "max" };
 
     // when
-    const result = AgentOverrideConfigSchema.safeParse(config)
+    const result = AgentOverrideConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.reasoningEffort).toBe("max")
+      expect(result.data.reasoningEffort).toBe("max");
     }
-  })
+  });
 
   test("accepts reasoningEffort 'max' on FallbackModelObjectSchema", () => {
     // given
-    const config = { model: "openai/gpt-5", reasoningEffort: "max" }
+    const config = { model: "openai/gpt-5", reasoningEffort: "max" };
 
     // when
-    const result = FallbackModelObjectSchema.safeParse(config)
+    const result = FallbackModelObjectSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.reasoningEffort).toBe("max")
+      expect(result.data.reasoningEffort).toBe("max");
     }
-  })
+  });
 
   test("all three reasoningEffort enums share the same accepted values", () => {
     // given: the full list of values declared in src/config/schema/*.ts
-    const validValues = ["none", "minimal", "low", "medium", "high", "xhigh", "max"] as const
+    const validValues = [
+      "none",
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+    ] as const;
     const schemas = [
-      { name: "Category", schema: CategoryConfigSchema, build: (v: string) => ({ reasoningEffort: v }) },
-      { name: "AgentOverride", schema: AgentOverrideConfigSchema, build: (v: string) => ({ reasoningEffort: v }) },
-      { name: "FallbackModel", schema: FallbackModelObjectSchema, build: (v: string) => ({ model: "openai/gpt-5", reasoningEffort: v }) },
-    ]
+      {
+        name: "Category",
+        schema: CategoryConfigSchema,
+        build: (v: string) => ({ reasoningEffort: v }),
+      },
+      {
+        name: "AgentOverride",
+        schema: AgentOverrideConfigSchema,
+        build: (v: string) => ({ reasoningEffort: v }),
+      },
+      {
+        name: "FallbackModel",
+        schema: FallbackModelObjectSchema,
+        build: (v: string) => ({ model: "openai/gpt-5", reasoningEffort: v }),
+      },
+    ];
 
     // when / then: every schema accepts every value — guards against drift
     for (const { name, schema, build } of schemas) {
       for (const value of validValues) {
-        const result = schema.safeParse(build(value))
-        expect(result.success, `${name}Schema should accept reasoningEffort '${value}'`).toBe(true)
+        const result = schema.safeParse(build(value));
+        expect(
+          result.success,
+          `${name}Schema should accept reasoningEffort '${value}'`,
+        ).toBe(true);
       }
     }
-  })
+  });
 
   test("rejects non-string variant", () => {
     // given
-    const config = { model: "openai/gpt-5.4", variant: 123 }
+    const config = { model: "openai/gpt-5.4", variant: 123 };
 
     // when
-    const result = CategoryConfigSchema.safeParse(config)
+    const result = CategoryConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("BuiltinCategoryNameSchema", () => {
   test("accepts all builtin category names", () => {
     // given
-    const categories = ["visual-engineering", "ultrabrain", "artistry", "quick", "unspecified-low", "unspecified-high", "writing"]
+    const categories = [
+      "visual-engineering",
+      "ultrabrain",
+      "artistry",
+      "quick",
+      "unspecified-low",
+      "unspecified-high",
+      "writing",
+    ];
 
     // when / #then
     for (const cat of categories) {
-      const result = BuiltinCategoryNameSchema.safeParse(cat)
-      expect(result.success).toBe(true)
+      const result = BuiltinCategoryNameSchema.safeParse(cat);
+      expect(result.success).toBe(true);
     }
-  })
-})
+  });
+});
 
 describe("HookNameSchema", () => {
   test("accepts image proxy hook name", () => {
     //#given
-    const input = "image-proxy"
+    const input = "image-proxy";
 
     //#when
-    const result = HookNameSchema.safeParse(input)
+    const result = HookNameSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(true)
-  })
+    expect(result.success).toBe(true);
+  });
 
   test("accepts codegraph bootstrap hook name", () => {
     //#given
-    const input = "codegraph-bootstrap"
+    const input = "codegraph-bootstrap";
 
     //#when
-    const result = HookNameSchema.safeParse(input)
+    const result = HookNameSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(true)
-  })
+    expect(result.success).toBe(true);
+  });
 
   test("rejects removed beast-mode-system hook name", () => {
     //#given
-    const input = "beast-mode-system"
+    const input = "beast-mode-system";
 
     //#when
-    const result = HookNameSchema.safeParse(input)
+    const result = HookNameSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("rejects removed delegate-task-english-directive hook name", () => {
     //#given
-    const input = "delegate-task-english-directive"
+    const input = "delegate-task-english-directive";
 
     //#when
-    const result = HookNameSchema.safeParse(input)
+    const result = HookNameSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("rejects removed context-window-monitor hook name", () => {
     //#given
-    const input = "context-window-monitor"
+    const input = "context-window-monitor";
 
     //#when
-    const result = HookNameSchema.safeParse(input)
+    const result = HookNameSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("rejects removed thinking-block-validator hook name", () => {
     //#given
-    const input = "thinking-block-validator"
+    const input = "thinking-block-validator";
 
     //#when
-    const result = HookNameSchema.safeParse(input)
+    const result = HookNameSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("rejects removed session-recovery hook name", () => {
     //#given
-    const input = "session-recovery"
+    const input = "session-recovery";
 
     //#when
-    const result = HookNameSchema.safeParse(input)
+    const result = HookNameSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("Sisyphus-Junior agent override", () => {
   test("schema accepts agents['Sisyphus-Junior'] and retains the key after parsing", () => {
@@ -599,19 +638,21 @@ describe("Sisyphus-Junior agent override", () => {
           temperature: 0.2,
         },
       },
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.agents?.["sisyphus-junior"]).toBeDefined()
-      expect(result.data.agents?.["sisyphus-junior"]?.model).toBe("openai/gpt-5.4")
-      expect(result.data.agents?.["sisyphus-junior"]?.temperature).toBe(0.2)
+      expect(result.data.agents?.["sisyphus-junior"]).toBeDefined();
+      expect(result.data.agents?.["sisyphus-junior"]?.model).toBe(
+        "openai/gpt-5.4",
+      );
+      expect(result.data.agents?.["sisyphus-junior"]?.temperature).toBe(0.2);
     }
-  })
+  });
 
   test("schema accepts sisyphus-junior with prompt_append", () => {
     // given
@@ -621,19 +662,19 @@ describe("Sisyphus-Junior agent override", () => {
           prompt_append: "Additional instructions for sisyphus-junior",
         },
       },
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.agents?.["sisyphus-junior"]?.prompt_append).toBe(
-        "Additional instructions for sisyphus-junior"
-      )
+        "Additional instructions for sisyphus-junior",
+      );
     }
-  })
+  });
 
   test("schema accepts sisyphus-junior with tools override", () => {
     // given
@@ -646,20 +687,20 @@ describe("Sisyphus-Junior agent override", () => {
           },
         },
       },
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.agents?.["sisyphus-junior"]?.tools).toEqual({
         read: true,
         write: false,
-      })
+      });
     }
-  })
+  });
 
   test("schema accepts lowercase agent names (sisyphus, atlas, prometheus)", () => {
     // given
@@ -675,19 +716,19 @@ describe("Sisyphus-Junior agent override", () => {
           temperature: 0.3,
         },
       },
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.agents?.sisyphus?.temperature).toBe(0.1)
-      expect(result.data.agents?.atlas?.temperature).toBe(0.2)
-      expect(result.data.agents?.prometheus?.temperature).toBe(0.3)
+      expect(result.data.agents?.sisyphus?.temperature).toBe(0.1);
+      expect(result.data.agents?.atlas?.temperature).toBe(0.2);
+      expect(result.data.agents?.prometheus?.temperature).toBe(0.3);
     }
-  })
+  });
 
   test("schema accepts lowercase metis and momus agent names", () => {
     // given
@@ -700,128 +741,135 @@ describe("Sisyphus-Junior agent override", () => {
           category: "quick",
         },
       },
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.agents?.metis?.category).toBe("ultrabrain")
-      expect(result.data.agents?.momus?.category).toBe("quick")
+      expect(result.data.agents?.metis?.category).toBe("ultrabrain");
+      expect(result.data.agents?.momus?.category).toBe("quick");
     }
-  })
-})
+  });
+});
 
 describe("BrowserAutomationProviderSchema", () => {
   test("accepts 'playwright' as valid provider", () => {
     // given
-    const input = "playwright"
+    const input = "playwright";
 
     // when
-    const result = BrowserAutomationProviderSchema.safeParse(input)
+    const result = BrowserAutomationProviderSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(true)
-    expect(result.data).toBe("playwright")
-  })
+    expect(result.success).toBe(true);
+    expect(result.data).toBe("playwright");
+  });
 
   test("accepts 'agent-browser' as valid provider", () => {
     // given
-    const input = "agent-browser"
+    const input = "agent-browser";
 
     // when
-    const result = BrowserAutomationProviderSchema.safeParse(input)
+    const result = BrowserAutomationProviderSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(true)
-    expect(result.data).toBe("agent-browser")
-  })
+    expect(result.success).toBe(true);
+    expect(result.data).toBe("agent-browser");
+  });
 
   test("rejects invalid provider", () => {
     // given
-    const input = "invalid-provider"
+    const input = "invalid-provider";
 
     // when
-    const result = BrowserAutomationProviderSchema.safeParse(input)
+    const result = BrowserAutomationProviderSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("accepts 'playwright-cli' as valid provider", () => {
     // given
-    const input = "playwright-cli"
+    const input = "playwright-cli";
 
     // when
-    const result = BrowserAutomationProviderSchema.safeParse(input)
+    const result = BrowserAutomationProviderSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(true)
-    expect(result.data).toBe("playwright-cli")
-  })
-})
+    expect(result.success).toBe(true);
+    expect(result.data).toBe("playwright-cli");
+  });
+});
 
 describe("BrowserAutomationConfigSchema", () => {
   test("defaults provider to 'playwright' when not specified", () => {
     // given
-    const input = {}
+    const input = {};
 
     // when
-    const result = BrowserAutomationConfigSchema.parse(input)
+    const result = BrowserAutomationConfigSchema.parse(input);
 
     // then
-    expect(result.provider).toBe("playwright")
-  })
+    expect(result.provider).toBe("playwright");
+  });
 
   test("accepts agent-browser provider", () => {
     // given
-    const input = { provider: "agent-browser" }
+    const input = { provider: "agent-browser" };
 
     // when
-    const result = BrowserAutomationConfigSchema.parse(input)
+    const result = BrowserAutomationConfigSchema.parse(input);
 
     // then
-    expect(result.provider).toBe("agent-browser")
-  })
+    expect(result.provider).toBe("agent-browser");
+  });
 
   test("accepts playwright-cli provider in config", () => {
     // given
-    const input = { provider: "playwright-cli" }
+    const input = { provider: "playwright-cli" };
 
     // when
-    const result = BrowserAutomationConfigSchema.parse(input)
+    const result = BrowserAutomationConfigSchema.parse(input);
 
     // then
-    expect(result.provider).toBe("playwright-cli")
-  })
+    expect(result.provider).toBe("playwright-cli");
+  });
 
   test("accepts Playwright MCP arguments and preserves argv boundaries", () => {
     // given
     const input = {
       provider: "playwright",
-      playwright_mcp_args: ["--headless", "--executable-path", "/opt/chromium/chrome"],
-    }
+      playwright_mcp_args: [
+        "--headless",
+        "--executable-path",
+        "/opt/chromium/chrome",
+      ],
+    };
 
     // when
-    const result = BrowserAutomationConfigSchema.parse(input)
+    const result = BrowserAutomationConfigSchema.parse(input);
 
     // then
-    expect(result.playwright_mcp_args).toEqual(input.playwright_mcp_args)
-  })
+    expect(result.playwright_mcp_args).toEqual(input.playwright_mcp_args);
+  });
 
   test("rejects non-string Playwright MCP arguments", () => {
     // given
-    const input = { provider: "playwright", playwright_mcp_args: ["--headless", 42] }
+    const input = {
+      provider: "playwright",
+      playwright_mcp_args: ["--headless", 42],
+    };
 
     // when
-    const result = BrowserAutomationConfigSchema.safeParse(input)
+    const result = BrowserAutomationConfigSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("OhMyOpenCodeConfigSchema - browser_automation_engine", () => {
   test("accepts browser_automation_engine config", () => {
@@ -830,358 +878,361 @@ describe("OhMyOpenCodeConfigSchema - browser_automation_engine", () => {
       browser_automation_engine: {
         provider: "agent-browser",
       },
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(true)
-    expect(result.data?.browser_automation_engine?.provider).toBe("agent-browser")
-  })
+    expect(result.success).toBe(true);
+    expect(result.data?.browser_automation_engine?.provider).toBe(
+      "agent-browser",
+    );
+  });
 
   test("accepts config without browser_automation_engine", () => {
     // given
-    const input = {}
+    const input = {};
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(true)
-    expect(result.data?.browser_automation_engine).toBeUndefined()
-  })
+    expect(result.success).toBe(true);
+    expect(result.data?.browser_automation_engine).toBeUndefined();
+  });
 
   test("accepts browser_automation_engine with playwright-cli", () => {
     // given
-    const input = { browser_automation_engine: { provider: "playwright-cli" } }
+    const input = { browser_automation_engine: { provider: "playwright-cli" } };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
     // then
-    expect(result.success).toBe(true)
-    expect(result.data?.browser_automation_engine?.provider).toBe("playwright-cli")
-  })
-})
+    expect(result.success).toBe(true);
+    expect(result.data?.browser_automation_engine?.provider).toBe(
+      "playwright-cli",
+    );
+  });
+});
 
 describe("OhMyOpenCodeConfigSchema - hashline_edit", () => {
   test("accepts hashline_edit as true", () => {
     //#given
-    const input = { hashline_edit: true }
+    const input = { hashline_edit: true };
 
     //#when
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(true)
-    expect(result.data?.hashline_edit).toBe(true)
-  })
+    expect(result.success).toBe(true);
+    expect(result.data?.hashline_edit).toBe(true);
+  });
 
   test("accepts hashline_edit as false", () => {
     //#given
-    const input = { hashline_edit: false }
+    const input = { hashline_edit: false };
 
     //#when
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(true)
-    expect(result.data?.hashline_edit).toBe(false)
-  })
+    expect(result.success).toBe(true);
+    expect(result.data?.hashline_edit).toBe(false);
+  });
 
   test("hashline_edit is optional", () => {
     //#given
-    const input = { auto_update: true }
+    const input = { auto_update: true };
 
     //#when
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(true)
-    expect(result.data?.hashline_edit).toBeUndefined()
-  })
+    expect(result.success).toBe(true);
+    expect(result.data?.hashline_edit).toBeUndefined();
+  });
 
   test("rejects non-boolean hashline_edit", () => {
     //#given
-    const input = { hashline_edit: "true" }
+    const input = { hashline_edit: "true" };
 
     //#when
-    const result = OhMyOpenCodeConfigSchema.safeParse(input)
+    const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
     //#then
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("ExperimentalConfigSchema feature flags", () => {
   test("accepts plugin_load_timeout_ms as number", () => {
     //#given
-    const config = { plugin_load_timeout_ms: 5000 }
+    const config = { plugin_load_timeout_ms: 5000 };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.plugin_load_timeout_ms).toBe(5000)
+      expect(result.data.plugin_load_timeout_ms).toBe(5000);
     }
-  })
+  });
 
   test("rejects plugin_load_timeout_ms below 1000", () => {
     //#given
-    const config = { plugin_load_timeout_ms: 500 }
+    const config = { plugin_load_timeout_ms: 500 };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("accepts safe_hook_creation as boolean", () => {
     //#given
-    const config = { safe_hook_creation: false }
+    const config = { safe_hook_creation: false };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.safe_hook_creation).toBe(false)
+      expect(result.data.safe_hook_creation).toBe(false);
     }
-  })
+  });
 
   test("both fields are optional", () => {
     //#given
-    const config = {}
+    const config = {};
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.plugin_load_timeout_ms).toBeUndefined()
-      expect(result.data.safe_hook_creation).toBeUndefined()
+      expect(result.data.plugin_load_timeout_ms).toBeUndefined();
+      expect(result.data.safe_hook_creation).toBeUndefined();
     }
-  })
+  });
 
   test("accepts disable_omo_env as true", () => {
     //#given
-    const config = { disable_omo_env: true }
+    const config = { disable_omo_env: true };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disable_omo_env).toBe(true)
+      expect(result.data.disable_omo_env).toBe(true);
     }
-  })
+  });
 
   test("accepts disable_omo_env as false", () => {
     //#given
-    const config = { disable_omo_env: false }
+    const config = { disable_omo_env: false };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disable_omo_env).toBe(false)
+      expect(result.data.disable_omo_env).toBe(false);
     }
-  })
+  });
 
   test("disable_omo_env is optional", () => {
     //#given
-    const config = { safe_hook_creation: true }
+    const config = { safe_hook_creation: true };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disable_omo_env).toBeUndefined()
+      expect(result.data.disable_omo_env).toBeUndefined();
     }
-  })
+  });
 
   test("rejects non-boolean disable_omo_env", () => {
     //#given
-    const config = { disable_omo_env: "true" }
+    const config = { disable_omo_env: "true" };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("accepts disable_live_parent_wake_routing as true", () => {
     //#given
-    const config = { disable_live_parent_wake_routing: true }
+    const config = { disable_live_parent_wake_routing: true };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disable_live_parent_wake_routing).toBe(true)
+      expect(result.data.disable_live_parent_wake_routing).toBe(true);
     }
-  })
+  });
 
   test("accepts disable_live_parent_wake_routing as false", () => {
     //#given
-    const config = { disable_live_parent_wake_routing: false }
+    const config = { disable_live_parent_wake_routing: false };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disable_live_parent_wake_routing).toBe(false)
+      expect(result.data.disable_live_parent_wake_routing).toBe(false);
     }
-  })
+  });
 
   test("disable_live_parent_wake_routing is optional (absent = routing enabled)", () => {
     //#given
-    const config = {}
+    const config = {};
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.disable_live_parent_wake_routing).toBeUndefined()
+      expect(result.data.disable_live_parent_wake_routing).toBeUndefined();
     }
-  })
+  });
 
   test("rejects non-boolean disable_live_parent_wake_routing", () => {
     //#given
-    const config = { disable_live_parent_wake_routing: "yes" }
+    const config = { disable_live_parent_wake_routing: "yes" };
 
     //#when
-    const result = ExperimentalConfigSchema.safeParse(config)
+    const result = ExperimentalConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(false)
-  })
-
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("GitMasterConfigSchema", () => {
   test("accepts boolean true for commit_footer", () => {
     //#given
-    const config = { commit_footer: true }
+    const config = { commit_footer: true };
 
     //#when
-    const result = GitMasterConfigSchema.safeParse(config)
+    const result = GitMasterConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.commit_footer).toBe(true)
+      expect(result.data.commit_footer).toBe(true);
     }
-  })
+  });
 
   test("accepts boolean false for commit_footer", () => {
     //#given
-    const config = { commit_footer: false }
+    const config = { commit_footer: false };
 
     //#when
-    const result = GitMasterConfigSchema.safeParse(config)
+    const result = GitMasterConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.commit_footer).toBe(false)
+      expect(result.data.commit_footer).toBe(false);
     }
-  })
+  });
 
   test("accepts string value for commit_footer", () => {
     //#given
-    const config = { commit_footer: "Custom footer text" }
+    const config = { commit_footer: "Custom footer text" };
 
     //#when
-    const result = GitMasterConfigSchema.safeParse(config)
+    const result = GitMasterConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.commit_footer).toBe("Custom footer text")
+      expect(result.data.commit_footer).toBe("Custom footer text");
     }
-  })
+  });
 
   test("defaults commit_footer to true when not provided", () => {
     //#given
-    const config = {}
+    const config = {};
 
     //#when
-    const result = GitMasterConfigSchema.safeParse(config)
+    const result = GitMasterConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.commit_footer).toBe(true)
+      expect(result.data.commit_footer).toBe(true);
     }
-  })
+  });
 
   test("rejects number for commit_footer", () => {
     //#given
-    const config = { commit_footer: 123 }
+    const config = { commit_footer: 123 };
 
     //#when
-    const result = GitMasterConfigSchema.safeParse(config)
+    const result = GitMasterConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(false)
-  })
+    expect(result.success).toBe(false);
+  });
 
   test("accepts shell-safe git_env_prefix", () => {
-    const config = { git_env_prefix: "MY_HOOK=active" }
+    const config = { git_env_prefix: "MY_HOOK=active" };
 
-    const result = GitMasterConfigSchema.safeParse(config)
+    const result = GitMasterConfigSchema.safeParse(config);
 
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.git_env_prefix).toBe("MY_HOOK=active")
+      expect(result.data.git_env_prefix).toBe("MY_HOOK=active");
     }
-  })
+  });
 
   test("rejects git_env_prefix with shell metacharacters", () => {
-    const config = { git_env_prefix: "A=1; rm -rf /" }
+    const config = { git_env_prefix: "A=1; rm -rf /" };
 
-    const result = GitMasterConfigSchema.safeParse(config)
+    const result = GitMasterConfigSchema.safeParse(config);
 
-    expect(result.success).toBe(false)
-  })
-})
+    expect(result.success).toBe(false);
+  });
+});
 
 describe("OhMyOpenCodeConfigSchema - git_master defaults (#2040)", () => {
   test("git_master defaults are applied when section is missing from config", () => {
     //#given
-    const config = {}
+    const config = {};
 
     //#when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.git_master).toBeDefined()
-      expect(result.data.git_master.commit_footer).toBe(true)
-      expect(result.data.git_master.include_co_authored_by).toBe(true)
-      expect(result.data.git_master.git_env_prefix).toBe("GIT_MASTER=1")
+      expect(result.data.git_master).toBeDefined();
+      expect(result.data.git_master.commit_footer).toBe(true);
+      expect(result.data.git_master.include_co_authored_by).toBe(true);
+      expect(result.data.git_master.git_env_prefix).toBe("GIT_MASTER=1");
     }
-  })
+  });
 
   test("git_master respects explicit false values", () => {
     //#given
@@ -1190,19 +1241,19 @@ describe("OhMyOpenCodeConfigSchema - git_master defaults (#2040)", () => {
         commit_footer: false,
         include_co_authored_by: false,
       },
-    }
+    };
 
     //#when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.git_master.commit_footer).toBe(false)
-      expect(result.data.git_master.include_co_authored_by).toBe(false)
+      expect(result.data.git_master.commit_footer).toBe(false);
+      expect(result.data.git_master.include_co_authored_by).toBe(false);
     }
-  })
-})
+  });
+});
 
 describe("skills schema", () => {
   test("accepts skills.sources configuration", () => {
@@ -1211,12 +1262,12 @@ describe("skills schema", () => {
       skills: {
         sources: [{ path: "skill/", recursive: true }],
       },
-    }
+    };
 
     //#when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     //#then
-    expect(result.success).toBe(true)
-  })
-})
+    expect(result.success).toBe(true);
+  });
+});

@@ -24,23 +24,23 @@
 import { GPT_APPLY_PATCH_GUIDANCE } from "../gpt-apply-patch-guard";
 import type {
   AvailableAgent,
-  AvailableTool,
-  AvailableSkill,
   AvailableCategory,
+  AvailableSkill,
+  AvailableTool,
 } from "../dynamic-agent-prompt-builder";
 import {
   buildAgentIdentitySection,
-  buildKeyTriggersSection,
-  buildToolSelectionTable,
-  buildExploreSection,
-  buildLibrarianSection,
-  buildDelegationTable,
-  buildCategorySkillsDelegationGuide,
-  buildOracleSection,
-  buildHardBlocksSection,
-  buildAntiPatternsSection,
   buildAntiDuplicationSection,
+  buildAntiPatternsSection,
+  buildCategorySkillsDelegationGuide,
+  buildDelegationTable,
+  buildExploreSection,
+  buildHardBlocksSection,
+  buildKeyTriggersSection,
+  buildLibrarianSection,
   buildNonClaudePlannerSection,
+  buildOracleSection,
+  buildToolSelectionTable,
   categorizeTools,
 } from "../dynamic-agent-prompt-builder";
 
@@ -397,9 +397,13 @@ Keep IDs separate: background task IDs (\`bg_...\`) are for \`background_output(
 
 This preserves full context, avoids repeated exploration, saves 70%+ tokens.
 
-${oracleSection ? `### Oracle
+${
+    oracleSection
+      ? `### Oracle
 
-${oracleSection}` : ""}
+${oracleSection}`
+      : ""
+  }
 </delegation>`;
 
   const styleBlock = `<style>

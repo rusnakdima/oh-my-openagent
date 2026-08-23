@@ -1,147 +1,182 @@
-import { randomUUID } from "node:crypto"
-import { appendFile, mkdir, readFile, rename, writeFile } from "node:fs/promises"
-import { join } from "node:path"
+import { randomUUID } from "node:crypto";
+import {
+  appendFile,
+  mkdir,
+  readFile,
+  rename,
+  writeFile,
+} from "node:fs/promises";
+import { join } from "node:path";
 
 import {
   captureCursorSnapshot,
   deriveState,
   finalizeCursor,
   initialReflectionState,
-  type ReflectionSnapshot, type ReflectionTranscriptState,
-} from "./cursor"
+  type ReflectionSnapshot,
+  type ReflectionTranscriptState,
+} from "./cursor";
 import {
   projectTranscriptEntries,
   type TranscriptEntry,
   type TranscriptProjection,
-} from "./entries"
-import { withLocalJournalLock, JournalLockTimeoutError, type JournalLock } from "./lock"
-import { syncJournalDirectory, syncJournalFile } from "./fsync"
+} from "./entries";
+import {
+  type JournalLock,
+  JournalLockTimeoutError,
+  withLocalJournalLock,
+} from "./lock";
+import { syncJournalDirectory, syncJournalFile } from "./fsync";
 
-export { withLocalJournalLock, JournalLockTimeoutError, type JournalLock }
+export { type JournalLock, JournalLockTimeoutError, withLocalJournalLock };
 
 export type TranscriptJournalOptions = {
-  readonly journalDir: string
-  readonly now?: () => Date
-  readonly lock?: JournalLock
-}
+  readonly journalDir: string;
+  readonly now?: () => Date;
+  readonly lock?: JournalLock;
+};
 
-export type AppendResult = { readonly appended: number; readonly skipped: number }
+export type AppendResult = {
+  readonly appended: number;
+  readonly skipped: number;
+};
 
 function errorCode(error: unknown): string | undefined {
-  if (!(error instanceof Error) || !("code" in error)) return undefined
-  return typeof error.code === "string" ? error.code : undefined
+  if (!(error instanceof Error) || !("code" in error)) return undefined;
+  return typeof error.code === "string" ? error.code : undefined;
 }
 
 function isTranscriptEntry(value: unknown): value is TranscriptEntry {
-  if (!value || typeof value !== "object") return false
-  const row = value as Record<string, unknown>
+  if (!value || typeof value !== "object") return false;
+  const row = value as Record<string, unknown>;
   if (
     typeof row.kind !== "string" ||
     typeof row.captured_at !== "string" ||
     typeof row.source_line_id !== "string" ||
     typeof row.source_message_id !== "string"
-  ) return false
-  if (row.kind === "tool_call") return true
+  ) return false;
+  if (row.kind === "tool_call") return true;
   return (
-    (row.kind === "user" || row.kind === "assistant" || row.kind === "reasoning" || row.kind === "error") &&
+    (row.kind === "user" || row.kind === "assistant" ||
+      row.kind === "reasoning" || row.kind === "error") &&
     typeof row.text === "string"
-  )
+  );
 }
 
 function optionalString(value: unknown): string | undefined {
-  return typeof value === "string" && value.length > 0 ? value : undefined
+  return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
 function nonNegativeInteger(value: unknown): number {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : 0;
 }
 
 function parseState(raw: string | null): ReflectionTranscriptState {
-  if (raw === null) return initialReflectionState()
+  if (raw === null) return initialReflectionState();
   try {
-    const parsed: unknown = JSON.parse(raw)
-    if (!parsed || typeof parsed !== "object") return initialReflectionState()
-    const state = parsed as Record<string, unknown>
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") return initialReflectionState();
+    const state = parsed as Record<string, unknown>;
     return {
       schema_version: "v3_assistant_steps",
-      reflected_through_message_id: optionalString(state.reflected_through_message_id),
+      reflected_through_message_id: optionalString(
+        state.reflected_through_message_id,
+      ),
       total_completed_steps: nonNegativeInteger(state.total_completed_steps),
-      reflected_completed_steps: nonNegativeInteger(state.reflected_completed_steps),
+      reflected_completed_steps: nonNegativeInteger(
+        state.reflected_completed_steps,
+      ),
       steps_since_last_successful_reflection: nonNegativeInteger(
         state.steps_since_last_successful_reflection,
       ),
-      last_reflection_started_at: optionalString(state.last_reflection_started_at),
-      last_reflection_succeeded_at: optionalString(state.last_reflection_succeeded_at),
-      pending_compaction:
-        typeof state.pending_compaction === "boolean" ? state.pending_compaction : undefined,
-    }
+      last_reflection_started_at: optionalString(
+        state.last_reflection_started_at,
+      ),
+      last_reflection_succeeded_at: optionalString(
+        state.last_reflection_succeeded_at,
+      ),
+      pending_compaction: typeof state.pending_compaction === "boolean"
+        ? state.pending_compaction
+        : undefined,
+    };
   } catch {
-    return initialReflectionState()
+    return initialReflectionState();
   }
 }
 
 export class TranscriptJournal {
-  readonly transcriptPath: string
-  readonly statePath: string
-  readonly lockPath: string
-  private readonly now: () => Date
-  private readonly lock: JournalLock
+  readonly transcriptPath: string;
+  readonly statePath: string;
+  readonly lockPath: string;
+  private readonly now: () => Date;
+  private readonly lock: JournalLock;
 
   constructor(readonly options: TranscriptJournalOptions) {
-    this.transcriptPath = join(options.journalDir, "transcript.jsonl")
-    this.statePath = join(options.journalDir, "state.json")
-    this.lockPath = join(options.journalDir, "state.lock")
-    this.now = options.now ?? (() => new Date())
-    this.lock = options.lock ?? withLocalJournalLock
+    this.transcriptPath = join(options.journalDir, "transcript.jsonl");
+    this.statePath = join(options.journalDir, "state.json");
+    this.lockPath = join(options.journalDir, "state.lock");
+    this.now = options.now ?? (() => new Date());
+    this.lock = options.lock ?? withLocalJournalLock;
   }
 
-  async reconcile(messages: readonly TranscriptProjection[]): Promise<AppendResult> {
+  async reconcile(
+    messages: readonly TranscriptProjection[],
+  ): Promise<AppendResult> {
     return this.locked(async () => {
-      const capturedAt = this.now().toISOString()
+      const capturedAt = this.now().toISOString();
       return this.appendUnlocked(
-        messages.flatMap((message) => projectTranscriptEntries(message, capturedAt)),
-      )
-    })
+        messages.flatMap((message) =>
+          projectTranscriptEntries(message, capturedAt)
+        ),
+      );
+    });
   }
 
   async append(entries: readonly TranscriptEntry[]): Promise<AppendResult> {
-    return this.locked(() => this.appendUnlocked(entries))
+    return this.locked(() => this.appendUnlocked(entries));
   }
 
   async readEntries(): Promise<TranscriptEntry[]> {
-    return this.locked(() => this.readEntriesUnlocked())
+    return this.locked(() => this.readEntriesUnlocked());
   }
 
   async getState(): Promise<ReflectionTranscriptState> {
     return this.locked(async () => {
-      const entries = await this.readEntriesUnlocked()
-      const state = deriveState(await this.readStateUnlocked(), entries)
-      await this.writeStateUnlocked(state, entries)
-      return state
-    })
+      const entries = await this.readEntriesUnlocked();
+      const state = deriveState(await this.readStateUnlocked(), entries);
+      await this.writeStateUnlocked(state, entries);
+      return state;
+    });
   }
 
   async setPendingCompaction(pending: boolean): Promise<void> {
     await this.locked(async () => {
-      const entries = await this.readEntriesUnlocked()
-      const state = { ...(await this.readStateUnlocked()), pending_compaction: pending }
-      await this.writeStateUnlocked(state, entries)
-    })
+      const entries = await this.readEntriesUnlocked();
+      const state = {
+        ...(await this.readStateUnlocked()),
+        pending_compaction: pending,
+      };
+      await this.writeStateUnlocked(state, entries);
+    });
   }
 
-  async captureReflectionSnapshot(signal?: AbortSignal): Promise<ReflectionSnapshot | null> {
+  async captureReflectionSnapshot(
+    signal?: AbortSignal,
+  ): Promise<ReflectionSnapshot | null> {
     return this.locked(async () => {
-      const entries = await this.readEntriesUnlocked()
-      const state = deriveState(await this.readStateUnlocked(), entries)
-      const snapshot = captureCursorSnapshot(entries, state)
-      if (snapshot === null) return null
-      signal?.throwIfAborted()
+      const entries = await this.readEntriesUnlocked();
+      const state = deriveState(await this.readStateUnlocked(), entries);
+      const snapshot = captureCursorSnapshot(entries, state);
+      if (snapshot === null) return null;
+      signal?.throwIfAborted();
       await this.writeStateUnlocked(
         { ...state, last_reflection_started_at: this.now().toISOString() },
         entries,
-      )
-      return snapshot
-    }, signal)
+      );
+      return snapshot;
+    }, signal);
   }
 
   /**
@@ -152,45 +187,59 @@ export class TranscriptJournal {
   async flush(signal?: AbortSignal): Promise<void> {
     // Read through a call so the check is re-evaluated after every await: abort can fire
     // between two fsyncs, which a narrowed property read would miss.
-    const aborted = (): boolean => signal?.aborted ?? false
+    const aborted = (): boolean => signal?.aborted ?? false;
     await this.locked(async () => {
-      if (aborted()) return
-      await syncJournalFile(this.transcriptPath)
-      if (aborted()) return
-      await syncJournalFile(this.statePath)
-      if (aborted()) return
-      await syncJournalDirectory(this.options.journalDir)
-    }, signal)
+      if (aborted()) return;
+      await syncJournalFile(this.transcriptPath);
+      if (aborted()) return;
+      await syncJournalFile(this.statePath);
+      if (aborted()) return;
+      await syncJournalDirectory(this.options.journalDir);
+    }, signal);
   }
 
-  async finalizeReflection(snapshot: ReflectionSnapshot, success: boolean): Promise<void> {
+  async finalizeReflection(
+    snapshot: ReflectionSnapshot,
+    success: boolean,
+  ): Promise<void> {
     await this.locked(async () => {
-      const entries = await this.readEntriesUnlocked()
-      const state = deriveState(await this.readStateUnlocked(), entries)
+      const entries = await this.readEntriesUnlocked();
+      const state = deriveState(await this.readStateUnlocked(), entries);
       await this.writeStateUnlocked(
-        finalizeCursor(state, entries, snapshot, success, this.now().toISOString()),
+        finalizeCursor(
+          state,
+          entries,
+          snapshot,
+          success,
+          this.now().toISOString(),
+        ),
         entries,
-      )
-    })
+      );
+    });
   }
 
-  private async locked<T>(task: () => Promise<T>, signal?: AbortSignal): Promise<T> {
-    signal?.throwIfAborted()
-    await mkdir(this.options.journalDir, { recursive: true, mode: 0o700 })
-    return this.lock(this.lockPath, task, signal)
+  private async locked<T>(
+    task: () => Promise<T>,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    signal?.throwIfAborted();
+    await mkdir(this.options.journalDir, { recursive: true, mode: 0o700 });
+    return this.lock(this.lockPath, task, signal);
   }
 
-  private async appendUnlocked(entries: readonly TranscriptEntry[]): Promise<AppendResult> {
-    const existing = await this.readEntriesUnlocked()
-    const sourceIds = new Set(existing.map((entry) => entry.source_line_id))
-    const fresh: TranscriptEntry[] = []
-    let skipped = 0
+  private async appendUnlocked(
+    entries: readonly TranscriptEntry[],
+  ): Promise<AppendResult> {
+    const existing = await this.readEntriesUnlocked();
+    const sourceIds = new Set(existing.map((entry) => entry.source_line_id));
+    const fresh: TranscriptEntry[] = [];
+    let skipped = 0;
     for (const entry of entries) {
       if (sourceIds.has(entry.source_line_id)) {
-        skipped += 1
+        skipped += 1;
       } else {
-        sourceIds.add(entry.source_line_id)
-        fresh.push(entry)
+        sourceIds.add(entry.source_line_id);
+        fresh.push(entry);
       }
     }
     if (fresh.length > 0) {
@@ -198,38 +247,40 @@ export class TranscriptJournal {
         this.transcriptPath,
         `${fresh.map((entry) => JSON.stringify(entry)).join("\n")}\n`,
         "utf8",
-      )
+      );
     }
-    const allEntries = [...existing, ...fresh]
-    await this.writeStateUnlocked(await this.readStateUnlocked(), allEntries)
-    return { appended: fresh.length, skipped }
+    const allEntries = [...existing, ...fresh];
+    await this.writeStateUnlocked(await this.readStateUnlocked(), allEntries);
+    return { appended: fresh.length, skipped };
   }
 
   private async readEntriesUnlocked(): Promise<TranscriptEntry[]> {
-    let raw: string
+    let raw: string;
     try {
-      raw = await readFile(this.transcriptPath, "utf8")
+      raw = await readFile(this.transcriptPath, "utf8");
     } catch (error) {
-      if (errorCode(error) !== "ENOENT") throw error
-      await writeFile(this.transcriptPath, "", { encoding: "utf8", flag: "a" })
-      return []
+      if (errorCode(error) !== "ENOENT") throw error;
+      await writeFile(this.transcriptPath, "", { encoding: "utf8", flag: "a" });
+      return [];
     }
     return raw
       .split("\n")
       .filter((line) => line.trim().length > 0)
       .map((line) => {
-        const parsed: unknown = JSON.parse(line)
-        if (!isTranscriptEntry(parsed)) throw new Error("Invalid transcript journal row")
-        return parsed
-      })
+        const parsed: unknown = JSON.parse(line);
+        if (!isTranscriptEntry(parsed)) {
+          throw new Error("Invalid transcript journal row");
+        }
+        return parsed;
+      });
   }
 
   private async readStateUnlocked(): Promise<ReflectionTranscriptState> {
     try {
-      return parseState(await readFile(this.statePath, "utf8"))
+      return parseState(await readFile(this.statePath, "utf8"));
     } catch (error) {
-      if (errorCode(error) === "ENOENT") return initialReflectionState()
-      throw error
+      if (errorCode(error) === "ENOENT") return initialReflectionState();
+      throw error;
     }
   }
 
@@ -237,9 +288,13 @@ export class TranscriptJournal {
     state: ReflectionTranscriptState,
     entries: readonly TranscriptEntry[],
   ): Promise<void> {
-    const derived = deriveState(state, entries)
-    const temporaryPath = `${this.statePath}.tmp-${randomUUID()}`
-    await writeFile(temporaryPath, `${JSON.stringify(derived, null, 2)}\n`, "utf8")
-    await rename(temporaryPath, this.statePath)
+    const derived = deriveState(state, entries);
+    const temporaryPath = `${this.statePath}.tmp-${randomUUID()}`;
+    await writeFile(
+      temporaryPath,
+      `${JSON.stringify(derived, null, 2)}\n`,
+      "utf8",
+    );
+    await rename(temporaryPath, this.statePath);
   }
 }

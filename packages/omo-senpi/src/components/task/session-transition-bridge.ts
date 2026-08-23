@@ -1,30 +1,30 @@
-import type { FlushInput, FlushResult } from "@oh-my-opencode/senpi-task"
+import type { FlushInput, FlushResult } from "@oh-my-opencode/senpi-task";
 
-import type { ParentTransition } from "./runtime-context"
+import type { ParentTransition } from "./runtime-context";
 
 // The completion-notifier seam the bridge drives: flushing a session's buffered completions. During a
 // parent transition (compacting / switching / shutdown) the completion push BUFFERS terminals instead
 // of injecting into a mid-transition session; the bridge is the ONLY caller that releases that buffer.
 export interface FlushingNotifier {
-  flushBuffered(input: FlushInput): FlushResult
+  flushBuffered(input: FlushInput): FlushResult;
 }
 
 // The runtime seam: marking the live parent transition so routeCompletion sends terminals to the buffer.
 export interface TransitionRuntime {
-  setTransition(transition: ParentTransition): void
+  setTransition(transition: ParentTransition): void;
 }
 
 export interface SessionTransitionBridgeDeps {
-  readonly runtime: TransitionRuntime
-  readonly notifier: FlushingNotifier
+  readonly runtime: TransitionRuntime;
+  readonly notifier: FlushingNotifier;
 }
 
 export interface SessionTransitionBridge {
-  onBeforeSwitch(sessionId: string | undefined): void
-  onBeforeCompact(sessionId: string | undefined): void
-  onCompact(sessionId: string | undefined): void
-  onShutdown(sessionId: string | undefined): void
-  onSessionStart(sessionId: string | undefined): void
+  onBeforeSwitch(sessionId: string | undefined): void;
+  onBeforeCompact(sessionId: string | undefined): void;
+  onCompact(sessionId: string | undefined): void;
+  onShutdown(sessionId: string | undefined): void;
+  onSessionStart(sessionId: string | undefined): void;
 }
 
 /**
@@ -36,22 +36,28 @@ export interface SessionTransitionBridge {
  * transitioning session id; the next resume edge of the SAME session flushes-and-delivers, while a
  * DIFFERENT session taking over flushes-as-dropped (the notification_dropped path).
  */
-export function createSessionTransitionBridge(deps: SessionTransitionBridgeDeps): SessionTransitionBridge {
-  let transitioningSessionId: string | undefined
+export function createSessionTransitionBridge(
+  deps: SessionTransitionBridgeDeps,
+): SessionTransitionBridge {
+  let transitioningSessionId: string | undefined;
 
-  function mark(transition: Exclude<ParentTransition, undefined>, sessionId: string | undefined): void {
-    deps.runtime.setTransition(transition)
-    transitioningSessionId = sessionId
+  function mark(
+    transition: Exclude<ParentTransition, undefined>,
+    sessionId: string | undefined,
+  ): void {
+    deps.runtime.setTransition(transition);
+    transitioningSessionId = sessionId;
   }
 
   // Resolve a resume edge: deliver the buffer when the same session returns, drop it when replaced.
   function resolve(currentSessionId: string | undefined): void {
-    const buffered = transitioningSessionId
-    deps.runtime.setTransition(undefined)
-    transitioningSessionId = undefined
-    if (buffered === undefined) return
-    const replaced = currentSessionId === undefined || currentSessionId !== buffered
-    deps.notifier.flushBuffered({ sessionId: buffered, replaced })
+    const buffered = transitioningSessionId;
+    deps.runtime.setTransition(undefined);
+    transitioningSessionId = undefined;
+    if (buffered === undefined) return;
+    const replaced = currentSessionId === undefined ||
+      currentSessionId !== buffered;
+    deps.notifier.flushBuffered({ sessionId: buffered, replaced });
   }
 
   return {
@@ -61,5 +67,5 @@ export function createSessionTransitionBridge(deps: SessionTransitionBridgeDeps)
     // Compaction resumes the SAME session, so its completion buffer is delivered, never dropped.
     onCompact: (sessionId) => resolve(sessionId),
     onSessionStart: (sessionId) => resolve(sessionId),
-  }
+  };
 }

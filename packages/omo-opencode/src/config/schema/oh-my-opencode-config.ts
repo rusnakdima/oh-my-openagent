@@ -1,37 +1,37 @@
-import { z } from "zod"
-import { AnyMcpNameSchema } from "../../mcp/types"
-import { AgentDefinitionsConfigSchema } from "./agent-definitions"
-import { AgentOverridesSchema } from "./agent-overrides"
-import { BabysittingConfigSchema } from "./babysitting"
-import { BackgroundTaskConfigSchema } from "./background-task"
-import { BrowserAutomationConfigSchema } from "./browser-automation"
-import { CategoriesConfigSchema } from "./categories"
-import { ClaudeCodeConfigSchema } from "./claude-code"
-import { CodegraphConfigSchema } from "./codegraph"
-import { CommentCheckerConfigSchema } from "./comment-checker"
-import { BuiltinCommandNameSchema } from "./commands"
-import { DefaultModeConfigSchema } from "./default-mode"
-import { ExperimentalConfigSchema } from "./experimental"
-import { GitMasterConfigSchema } from "./git-master"
-import { I18nConfigSchema } from "./i18n"
-import { KeywordDetectorConfigSchema } from "./keyword-detector"
-import { NotificationConfigSchema } from "./notification"
-import { OpenClawConfigSchema } from "./openclaw"
-import { ModelCapabilitiesConfigSchema } from "./model-capabilities"
-import { GoalConfigSchema } from "./goal"
-import { InteractiveMenuConfigSchema } from "./interactive-menu"
-import { OpenSpecConfigSchema } from "./openspec"
-import { MonitorConfigSchema } from "./monitor"
-import { RuntimeFallbackConfigSchema } from "./runtime-fallback"
-import { TeamModeConfigSchema } from "./team-mode"
-import { SkillsConfigSchema } from "./skills"
-import { SisyphusConfigSchema } from "./sisyphus"
-import { SisyphusAgentConfigSchema } from "./sisyphus-agent"
-import { TmuxConfigSchema } from "./tmux"
-import { TuiConfigSchema } from "./tui"
-import { StartWorkConfigSchema } from "./start-work"
-import { WebsearchConfigSchema } from "./websearch"
-import { VoiceConfigSchema } from "./voice"
+import { z } from "zod";
+import { AnyMcpNameSchema } from "../../mcp/types";
+import { AgentDefinitionsConfigSchema } from "./agent-definitions";
+import { AgentOverridesSchema } from "./agent-overrides";
+import { BabysittingConfigSchema } from "./babysitting";
+import { BackgroundTaskConfigSchema } from "./background-task";
+import { BrowserAutomationConfigSchema } from "./browser-automation";
+import { CategoriesConfigSchema } from "./categories";
+import { ClaudeCodeConfigSchema } from "./claude-code";
+import { CodegraphConfigSchema } from "./codegraph";
+import { CommentCheckerConfigSchema } from "./comment-checker";
+import { BuiltinCommandNameSchema } from "./commands";
+import { DefaultModeConfigSchema } from "./default-mode";
+import { ExperimentalConfigSchema } from "./experimental";
+import { GitMasterConfigSchema } from "./git-master";
+import { I18nConfigSchema } from "./i18n";
+import { KeywordDetectorConfigSchema } from "./keyword-detector";
+import { NotificationConfigSchema } from "./notification";
+import { OpenClawConfigSchema } from "./openclaw";
+import { ModelCapabilitiesConfigSchema } from "./model-capabilities";
+import { GoalConfigSchema } from "./goal";
+import { InteractiveMenuConfigSchema } from "./interactive-menu";
+import { OpenSpecConfigSchema } from "./openspec";
+import { MonitorConfigSchema } from "./monitor";
+import { RuntimeFallbackConfigSchema } from "./runtime-fallback";
+import { TeamModeConfigSchema } from "./team-mode";
+import { SkillsConfigSchema } from "./skills";
+import { SisyphusConfigSchema } from "./sisyphus";
+import { SisyphusAgentConfigSchema } from "./sisyphus-agent";
+import { TmuxConfigSchema } from "./tmux";
+import { TuiConfigSchema } from "./tui";
+import { StartWorkConfigSchema } from "./start-work";
+import { WebsearchConfigSchema } from "./websearch";
+import { VoiceConfigSchema } from "./voice";
 
 export const OhMyOpenCodeConfigSchema = z.object({
   $schema: z.string().optional(),
@@ -68,7 +68,9 @@ export const OhMyOpenCodeConfigSchema = z.object({
   /** Enable hashline_edit tool/hook integrations (default: false) */
   hashline_edit: z.boolean().optional(),
   /** Enable anonymous telemetry. Default: enabled when omitted. Set to false to disable. Independent of codegraph.telemetry. */
-  telemetry: z.boolean().optional().describe("Enable or disable anonymous telemetry. Default: enabled when omitted. Set to false to disable. Independent of codegraph.telemetry."),
+  telemetry: z.boolean().optional().describe(
+    "Enable or disable anonymous telemetry. Default: enabled when omitted. Set to false to disable. Independent of codegraph.telemetry.",
+  ),
   /** Enable model fallback on API errors (default: false). Set to true to enable automatic model switching when model errors occur. */
   model_fallback: z.boolean().optional(),
   /** Enable model fallback chains (default: false). When false, provider default wins instead of hardcoded fallback chains. */
@@ -90,7 +92,8 @@ export const OhMyOpenCodeConfigSchema = z.object({
    * Set to false to disable, or use object for advanced config:
    * { "enabled": true, "retry_on_errors": [429, 500, 502, 503, 504], "timeout_seconds": 30 }
    */
-  runtime_fallback: z.union([z.boolean(), RuntimeFallbackConfigSchema]).optional(),
+  runtime_fallback: z.union([z.boolean(), RuntimeFallbackConfigSchema])
+    .optional(),
   background_task: BackgroundTaskConfigSchema.optional(),
   notification: NotificationConfigSchema.optional(),
   model_capabilities: ModelCapabilitiesConfigSchema.optional(),
@@ -121,6 +124,6 @@ export const OhMyOpenCodeConfigSchema = z.object({
   interactive_menu: InteractiveMenuConfigSchema.optional(),
   /** Migration history to prevent re-applying migrations (e.g., model version upgrades) */
   _migrations: z.array(z.string()).optional(),
-})
+});
 
-export type OhMyOpenCodeConfig = z.infer<typeof OhMyOpenCodeConfigSchema>
+export type OhMyOpenCodeConfig = z.infer<typeof OhMyOpenCodeConfigSchema>;

@@ -1,5 +1,5 @@
-import type { MessageRenderer } from "@code-yeongyu/senpi"
-import { buildNoticeBox } from "@oh-my-opencode/senpi-task/notice-box"
+import type { MessageRenderer } from "@code-yeongyu/senpi";
+import { buildNoticeBox } from "@oh-my-opencode/senpi-task/notice-box";
 
 /**
  * User-visible upgrade notice emitted alongside the hidden fallback-architect directive.
@@ -11,11 +11,11 @@ import { buildNoticeBox } from "@oh-my-opencode/senpi-task/notice-box"
  * session keeps top-tier reasoning through the architect consult lane, so say so.
  */
 
-export const FALLBACK_ARCHITECT_NOTICE_TYPE = "omo-fallback-architect:notice"
+export const FALLBACK_ARCHITECT_NOTICE_TYPE = "omo-fallback-architect:notice";
 
 export interface FallbackArchitectNoticeDetails {
-  readonly from: string
-  readonly to: string
+  readonly from: string;
+  readonly to: string;
 }
 
 // Display flavor only: unknown selectors fall through to their bare model id, so the copy never
@@ -25,28 +25,32 @@ const FRIENDLY_MODEL_NAMES: readonly (readonly [RegExp, string])[] = [
   [/claude-fable-5/i, "Fable 5"],
   [/claude-opus-5/i, "Opus 5"],
   [/glm-5/i, "GLM 5.2"],
-]
+];
 
 export function friendlyModelName(selector: string): string {
   for (const [pattern, name] of FRIENDLY_MODEL_NAMES) {
-    if (pattern.test(selector)) return name
+    if (pattern.test(selector)) return name;
   }
-  const id = selector.slice(selector.lastIndexOf("/") + 1)
-  return id.length === 0 ? selector : id
+  const id = selector.slice(selector.lastIndexOf("/") + 1);
+  return id.length === 0 ? selector : id;
 }
 
-export function buildFallbackArchitectNotice(input: FallbackArchitectNoticeDetails): string {
-  const from = friendlyModelName(input.from)
-  const to = friendlyModelName(input.to)
+export function buildFallbackArchitectNotice(
+  input: FallbackArchitectNoticeDetails,
+): string {
+  const from = friendlyModelName(input.from);
+  const to = friendlyModelName(input.to);
   return [
     `Model fallback engaged: ${input.from} -> ${input.to}.`,
     `${from} declined that one, so ${to} now drives the session — and top-tier reasoning stays one consult away through task(category: "architect"), which still runs Fable 5 at xhigh.`,
     `${to} on execution + Fable 5 xhigh on deep reasoning: two frontier brains on one session.`,
-  ].join("\n")
+  ].join("\n");
 }
 
-export const renderFallbackArchitectNotice: MessageRenderer<FallbackArchitectNoticeDetails> = (message, options, theme) => {
-  const details = message.details
+export const renderFallbackArchitectNotice: MessageRenderer<
+  FallbackArchitectNoticeDetails
+> = (message, options, theme) => {
+  const details = message.details;
   if (details === undefined) {
     return buildNoticeBox(
       {
@@ -56,19 +60,23 @@ export const renderFallbackArchitectNotice: MessageRenderer<FallbackArchitectNot
       },
       options,
       theme,
-    )
+    );
   }
-  const from = friendlyModelName(details.from)
-  const to = friendlyModelName(details.to)
+  const from = friendlyModelName(details.from);
+  const to = friendlyModelName(details.to);
   return buildNoticeBox(
     {
       title: "⚡ Fallback upgrade engaged",
       tone: "accent",
       why: `${from} declined that one — ${to} takes the wheel, zero downtime.`,
-      extra: [{ text: `Top-tier reasoning stays on call: task(category: "architect") still consults Fable 5 at xhigh.` }],
-      expandedLine: `${to} on execution + Fable 5 xhigh on hard thinking — two frontier brains, one session.`,
+      extra: [{
+        text:
+          `Top-tier reasoning stays on call: task(category: "architect") still consults Fable 5 at xhigh.`,
+      }],
+      expandedLine:
+        `${to} on execution + Fable 5 xhigh on hard thinking — two frontier brains, one session.`,
     },
     options,
     theme,
-  )
-}
+  );
+};

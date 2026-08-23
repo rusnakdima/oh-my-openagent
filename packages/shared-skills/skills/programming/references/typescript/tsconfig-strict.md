@@ -10,23 +10,23 @@ The canonical ultra-strict config. Copy-paste, then add your own paths.
 {
   "compilerOptions": {
     // ── Strict core ──────────────────────────────────────────
-    "strict": true,                            // enables all strict* flags below
+    "strict": true, // enables all strict* flags below
     // strict includes: strictNullChecks, strictFunctionTypes,
     // strictBindCallApply, strictPropertyInitialization,
     // noImplicitAny, noImplicitThis, alwaysStrict, useUnknownInCatchVariables
 
     // ── Additional strict flags (NOT included in "strict") ──
-    "noUncheckedIndexedAccess": true,           // obj[key] is T | undefined, not T
-    "exactOptionalPropertyTypes": true,         // { x?: string } !== { x: string | undefined }
-    "noFallthroughCasesInSwitch": true,         // switch fall-through is an error
+    "noUncheckedIndexedAccess": true, // obj[key] is T | undefined, not T
+    "exactOptionalPropertyTypes": true, // { x?: string } !== { x: string | undefined }
+    "noFallthroughCasesInSwitch": true, // switch fall-through is an error
     "noPropertyAccessFromIndexSignature": true, // forces bracket notation for index sigs
-    "forceConsistentCasingInFileNames": true,   // prevents case-sensitivity bugs on macOS/Win
+    "forceConsistentCasingInFileNames": true, // prevents case-sensitivity bugs on macOS/Win
 
     // ── Module system ────────────────────────────────────────
     "module": "ESNext",
     "moduleResolution": "bundler",
-    "verbatimModuleSyntax": true,               // forces `import type` for type-only imports
-    "isolatedModules": true,                    // safe for esbuild / swc / Bun transpilation
+    "verbatimModuleSyntax": true, // forces `import type` for type-only imports
+    "isolatedModules": true, // safe for esbuild / swc / Bun transpilation
     "esModuleInterop": true,
     "resolveJsonModule": true,
 
@@ -42,7 +42,7 @@ The canonical ultra-strict config. Copy-paste, then add your own paths.
     "rootDir": "src",
 
     // ── Performance ──────────────────────────────────────────
-    "skipLibCheck": true,                       // skip checking .d.ts files for speed
+    "skipLibCheck": true, // skip checking .d.ts files for speed
     "incremental": true
   },
   "include": ["src"],
@@ -52,17 +52,18 @@ The canonical ultra-strict config. Copy-paste, then add your own paths.
 
 ### What each extra flag catches
 
-| Flag | What it prevents |
-|---|---|
-| `noUncheckedIndexedAccess` | `arr[0]` is `T \| undefined`, not `T`. Forces you to check before using. |
-| `exactOptionalPropertyTypes` | `{ x?: string }` means "missing or string", NOT "string \| undefined". Assigns `undefined` explicitly? Type error. |
-| `noFallthroughCasesInSwitch` | Forgetting `break` / `return` in a switch case. |
-| `noPropertyAccessFromIndexSignature` | `obj.foo` on `Record<string, X>` is an error. Use `obj["foo"]`. |
-| `verbatimModuleSyntax` | Forces `import type { X }` for type-only imports. Prevents runtime import of types. |
+| Flag                                 | What it prevents                                                                                                   |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| `noUncheckedIndexedAccess`           | `arr[0]` is `T \| undefined`, not `T`. Forces you to check before using.                                           |
+| `exactOptionalPropertyTypes`         | `{ x?: string }` means "missing or string", NOT "string \| undefined". Assigns `undefined` explicitly? Type error. |
+| `noFallthroughCasesInSwitch`         | Forgetting `break` / `return` in a switch case.                                                                    |
+| `noPropertyAccessFromIndexSignature` | `obj.foo` on `Record<string, X>` is an error. Use `obj["foo"]`.                                                    |
+| `verbatimModuleSyntax`               | Forces `import type { X }` for type-only imports. Prevents runtime import of types.                                |
 
 ### Bun-specific additions
 
 For Bun projects, add to `compilerOptions`:
+
 ```jsonc
 {
   "types": ["bun-types"],
@@ -125,13 +126,13 @@ For Bun projects, add to `compilerOptions`:
 
 ### Key Biome rules
 
-| Rule | What |
-|---|---|
-| `noExplicitAny` | `any` in annotations is an error |
-| `noNonNullAssertion` | `x!` is an error |
-| `noDefaultExport` | Forces named exports |
-| `useImportType` | Forces `import type` for type-only imports |
-| `noParameterAssign` | No mutation of function parameters |
+| Rule                 | What                                       |
+| -------------------- | ------------------------------------------ |
+| `noExplicitAny`      | `any` in annotations is an error           |
+| `noNonNullAssertion` | `x!` is an error                           |
+| `noDefaultExport`    | Forces named exports                       |
+| `useImportType`      | Forces `import type` for type-only imports |
+| `noParameterAssign`  | No mutation of function parameters         |
 
 ---
 
@@ -149,4 +150,5 @@ bun test
 
 - TypeScript: [tsconfig reference](https://www.typescriptlang.org/tsconfig)
 - Biome: [configuration](https://biomejs.dev/reference/configuration/)
-- Total TypeScript: [tsconfig cheat sheet](https://www.totaltypescript.com/tsconfig-cheat-sheet)
+- Total TypeScript:
+  [tsconfig cheat sheet](https://www.totaltypescript.com/tsconfig-cheat-sheet)

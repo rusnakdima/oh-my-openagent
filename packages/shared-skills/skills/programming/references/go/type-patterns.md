@@ -1,19 +1,25 @@
 # Type Patterns
 
-How to use Go's *limited* type system to catch bugs at compile time. Go gives you fewer tools than Python/TS/Rust — this document covers the four patterns that buy back most of the safety.
+How to use Go's _limited_ type system to catch bugs at compile time. Go gives
+you fewer tools than Python/TS/Rust — this document covers the four patterns
+that buy back most of the safety.
 
 The four patterns:
 
-1. **Named types** for branding primitives (the Go answer to `NewType` / branded TS).
+1. **Named types** for branding primitives (the Go answer to `NewType` / branded
+   TS).
 2. **Smart constructors with unexported fields** for parse-don't-validate.
-3. **Sealed interfaces** for sum types, with `type switch` + `exhaustive` linter.
+3. **Sealed interfaces** for sum types, with `type switch` + `exhaustive`
+   linter.
 4. **Generics with constraints** for bounded polymorphism (1.18+).
 
 ---
 
 ## 1. Named types — distinct primitives
 
-Same underlying type, different meaning. The Go type checker prevents *implicit* mixing — but explicit conversion is always possible. Treat this as a contract enforced at boundaries.
+Same underlying type, different meaning. The Go type checker prevents _implicit_
+mixing — but explicit conversion is always possible. Treat this as a contract
+enforced at boundaries.
 
 ```go
 package domain
@@ -33,9 +39,13 @@ GetUser("u-123")          // ❌ untyped string literal — Go DOES catch this
 GetUser(UserID("u-123"))  // ✅ explicit conversion — accept it
 ```
 
-**Use when**: IDs, opaque tokens, foreign keys, units that share a base primitive.
+**Use when**: IDs, opaque tokens, foreign keys, units that share a base
+primitive.
 
-**Reality check**: Go does NOT prevent `UserID(orderIDAsString)`. The defense is **smart constructors** for everything beyond an internal identifier. Use named types for cheap brand-only protection; combine with constructors for protection that actually holds.
+**Reality check**: Go does NOT prevent `UserID(orderIDAsString)`. The defense is
+**smart constructors** for everything beyond an internal identifier. Use named
+types for cheap brand-only protection; combine with constructors for protection
+that actually holds.
 
 ### Time-of-day units
 
@@ -54,7 +64,8 @@ No implicit `Milliseconds + Seconds`. The compiler refuses. Convert explicitly.
 
 ## 2. Smart constructors with unexported fields — the Go answer to Pydantic/Zod
 
-The single most important pattern in this document. **Go has no Pydantic. It has this.**
+The single most important pattern in this document. **Go has no Pydantic. It has
+this.**
 
 ```go
 package domain
@@ -108,28 +119,37 @@ func (e *Email) UnmarshalJSON(data []byte) error {
 
 **Why this works**:
 
-- `Email{raw: "anything"}` from outside the `domain` package is a compile error — `raw` is unexported.
+- `Email{raw: "anything"}` from outside the `domain` package is a compile error
+  — `raw` is unexported.
 - The only way to obtain a non-zero `Email` is `NewEmail(...)`, which validates.
-- `UnmarshalJSON` routes wire input through the same constructor — boundary parsing is automatic.
-- Once a function signature has `email Email`, the caller has *proven* it is valid. No internal `if email == ""` checks.
+- `UnmarshalJSON` routes wire input through the same constructor — boundary
+  parsing is automatic.
+- Once a function signature has `email Email`, the caller has _proven_ it is
+  valid. No internal `if email == ""` checks.
 
-**Use for every domain value that has invariants**: emails, URLs, phone numbers, currency amounts, percentages, semver versions, IDs with format constraints, time ranges, anything you currently validate in three places.
+**Use for every domain value that has invariants**: emails, URLs, phone numbers,
+currency amounts, percentages, semver versions, IDs with format constraints,
+time ranges, anything you currently validate in three places.
 
 ### The "zero value problem"
 
-Go's zero value (`Email{}`) is reachable. The mitigation is documentation + a `IsValid()` method when needed:
+Go's zero value (`Email{}`) is reachable. The mitigation is documentation + a
+`IsValid()` method when needed:
 
 ```go
 func (e Email) IsZero() bool { return e.raw == "" }
 ```
 
-Or accept it: receivers that take `Email` should *never* receive a zero-value `Email` in correct code. Tests verify it.
+Or accept it: receivers that take `Email` should _never_ receive a zero-value
+`Email` in correct code. Tests verify it.
 
 ---
 
 ## 3. Sealed interfaces — sum types in Go
 
-Go has no sum types. The closest thing: an interface with an **unexported method** that only types in the same package can satisfy, dispatched via `type switch`, with the `exhaustive` linter ensuring completeness.
+Go has no sum types. The closest thing: an interface with an **unexported
+method** that only types in the same package can satisfy, dispatched via
+`type switch`, with the `exhaustive` linter ensuring completeness.
 
 ```go
 package event
@@ -183,7 +203,9 @@ func Render(e event.Event) string {
 }
 ```
 
-The `panic` in `default` is the Go equivalent of TS's `assertNever` or Python's `assert_never`. It is only reachable if a new variant is added without updating the switch.
+The `panic` in `default` is the Go equivalent of TS's `assertNever` or Python's
+`assert_never`. It is only reachable if a new variant is added without updating
+the switch.
 
 ### The `exhaustive` linter — your compiler
 
@@ -199,19 +221,26 @@ linters-settings:
     default-signifies-exhaustive: false
 ```
 
-Now adding `event.Suspended` without updating `Render` is a **lint error**. This is the closest thing Go has to Rust's match exhaustiveness check. **Treat it as compulsory.**
+Now adding `event.Suspended` without updating `Render` is a **lint error**. This
+is the closest thing Go has to Rust's match exhaustiveness check. **Treat it as
+compulsory.**
 
 ### Sealed interface gotchas
 
-- The method MUST be unexported (`sealed()`, not `Sealed()`). Otherwise other packages can implement it.
-- `type switch` with `*Created` vs `Created` matters — pick value receivers and value cases, or pointer receivers and pointer cases. **Mixing them causes silent miss.**
-- `interface{}` is not a sealed type. Anything implementing zero methods satisfies it. Sealed interfaces have at least the `sealed()` method.
+- The method MUST be unexported (`sealed()`, not `Sealed()`). Otherwise other
+  packages can implement it.
+- `type switch` with `*Created` vs `Created` matters — pick value receivers and
+  value cases, or pointer receivers and pointer cases. **Mixing them causes
+  silent miss.**
+- `interface{}` is not a sealed type. Anything implementing zero methods
+  satisfies it. Sealed interfaces have at least the `sealed()` method.
 
 ---
 
 ## 4. Generics with constraints — bounded polymorphism
 
-Go 1.18+. Use for genuinely generic algorithms; **do not** use for "I want this to accept anything".
+Go 1.18+. Use for genuinely generic algorithms; **do not** use for "I want this
+to accept anything".
 
 ```go
 import "cmp"
@@ -236,12 +265,17 @@ func Join[T Stringer](items []T, sep string) string {
 }
 ```
 
-The `cmp.Ordered` (Go 1.21+), `cmp.Compare`, and `slices`/`maps` packages cover the common cases without you writing constraints.
+The `cmp.Ordered` (Go 1.21+), `cmp.Compare`, and `slices`/`maps` packages cover
+the common cases without you writing constraints.
 
 ### When NOT to use generics
 
-- "I want to accept multiple types, so I'll make it generic." Use an **interface** instead. Generics are for parametric polymorphism (same code, different types). Interfaces are for behavioral polymorphism (different code behind a contract).
-- "I want to return `any`." Use a sealed interface and a `type switch`. `any` returns are anti-patterns past public APIs.
+- "I want to accept multiple types, so I'll make it generic." Use an
+  **interface** instead. Generics are for parametric polymorphism (same code,
+  different types). Interfaces are for behavioral polymorphism (different code
+  behind a contract).
+- "I want to return `any`." Use a sealed interface and a `type switch`. `any`
+  returns are anti-patterns past public APIs.
 
 ---
 
@@ -263,7 +297,8 @@ if errors.As(err, &pgErr) {
 }
 ```
 
-**The `errcheck` and `errorlint` linters reject bare type assertions on `error` values.** Use `errors.As`. See `error-handling.md`.
+**The `errcheck` and `errorlint` linters reject bare type assertions on `error`
+values.** Use `errors.As`. See `error-handling.md`.
 
 ---
 
@@ -272,9 +307,12 @@ if errors.As(err, &pgErr) {
 You will see endless debates. The rule that holds up:
 
 - **If a type has a mutex, never copy it.** Use `*T` everywhere.
-- **If a type is large (> 64 bytes) and read-only, pass by value or pointer is a measured choice.** Default to pointer for "large" things.
-- **Receivers must be consistent.** All methods on `T` either take `T` or `*T`. Don't mix. The `staticcheck` linter catches mixed-receiver bugs.
-- **`nil` pointer = absence. Zero value = "not set yet".** Choose ONE convention per type. Document it.
+- **If a type is large (> 64 bytes) and read-only, pass by value or pointer is a
+  measured choice.** Default to pointer for "large" things.
+- **Receivers must be consistent.** All methods on `T` either take `T` or `*T`.
+  Don't mix. The `staticcheck` linter catches mixed-receiver bugs.
+- **`nil` pointer = absence. Zero value = "not set yet".** Choose ONE convention
+  per type. Document it.
 
 ---
 
@@ -282,17 +320,21 @@ You will see endless debates. The rule that holds up:
 
 Almost never in domain code. Acceptable cases:
 
-- JSON parsing of genuinely heterogeneous payloads (and even then, prefer `json.RawMessage` + targeted parsing).
+- JSON parsing of genuinely heterogeneous payloads (and even then, prefer
+  `json.RawMessage` + targeted parsing).
 - `fmt.Sprintf` arguments (variadic `any` is unavoidable here).
 - Generic container internals before the user-facing API.
 
-The skill rejects `any` in handler signatures, service signatures, store signatures. If you find yourself writing `func Handle(payload any) error`, you have a sealed-interface waiting to happen.
+The skill rejects `any` in handler signatures, service signatures, store
+signatures. If you find yourself writing `func Handle(payload any) error`, you
+have a sealed-interface waiting to happen.
 
 ---
 
 ## Sources
 
-- "Parse, don't validate" — Alexis King: https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/
+- "Parse, don't validate" — Alexis King:
+  https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/
 - exhaustive linter: https://github.com/nishanths/exhaustive
 - Generics constraints: https://go.dev/blog/intro-generics
 - cmp.Ordered: https://pkg.go.dev/cmp

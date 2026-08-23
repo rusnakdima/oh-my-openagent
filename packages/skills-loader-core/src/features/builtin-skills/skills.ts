@@ -1,25 +1,25 @@
-import type { BuiltinSkill } from "./types"
-import type { BrowserAutomationProvider } from "../../types"
+import type { BuiltinSkill } from "./types";
+import type { BrowserAutomationProvider } from "../../types";
 
 import {
   agentBrowserSkill,
   createPlaywrightSkill,
-  playwrightSkill,
-  playwrightCliSkill,
-  openchromeAsideSkill,
-  gitMasterSkill,
-  devBrowserSkill,
   debuggingSkill,
+  devBrowserSkill,
+  gitMasterSkill,
+  openchromeAsideSkill,
+  openspecSkill,
+  playwrightCliSkill,
+  playwrightSkill,
   securityResearchSkill,
   teamModeSkill,
-  openspecSkill,
-} from "./skills/index"
+} from "./skills/index";
 
 export interface CreateBuiltinSkillsOptions {
-  browserProvider?: BrowserAutomationProvider
-  disabledSkills?: Set<string>
-  teamModeEnabled?: boolean
-  openspecEnabled?: boolean
+  browserProvider?: BrowserAutomationProvider;
+  disabledSkills?: Set<string>;
+  teamModeEnabled?: boolean;
+  openspecEnabled?: boolean;
   /**
    * Extra CLI arguments appended to the default `@playwright/mcp@latest`
    * invocation when `browserProvider` resolves to the `playwright` MCP variant.
@@ -27,69 +27,76 @@ export interface CreateBuiltinSkillsOptions {
    * Only threaded through to `createPlaywrightSkill`; other browser providers
    * ignore this option.
    */
-  playwrightMcpArgs?: readonly string[]
+  playwrightMcpArgs?: readonly string[];
 }
 
-export function createBuiltinSkills(options: CreateBuiltinSkillsOptions = {}): BuiltinSkill[] {
+export function createBuiltinSkills(
+  options: CreateBuiltinSkillsOptions = {},
+): BuiltinSkill[] {
   const {
     browserProvider = "playwright",
     disabledSkills,
     teamModeEnabled = false,
     openspecEnabled = false,
     playwrightMcpArgs,
-  } = options
+  } = options;
 
-  let browserSkill: BuiltinSkill
-	if (browserProvider === "agent-browser") {
-		browserSkill = agentBrowserSkill
-	} else if (browserProvider === "dev-browser") {
-		browserSkill = devBrowserSkill
-	} else if (browserProvider === "playwright-cli") {
-		browserSkill = playwrightCliSkill
-	} else if (browserProvider === "openchrome-aside") {
-		browserSkill = openchromeAsideSkill
-	} else {
-		browserSkill = playwrightMcpArgs?.length
-			? createPlaywrightSkill({ mcp_args: playwrightMcpArgs })
-			: playwrightSkill
-	}
+  let browserSkill: BuiltinSkill;
+  if (browserProvider === "agent-browser") {
+    browserSkill = agentBrowserSkill;
+  } else if (browserProvider === "dev-browser") {
+    browserSkill = devBrowserSkill;
+  } else if (browserProvider === "playwright-cli") {
+    browserSkill = playwrightCliSkill;
+  } else if (browserProvider === "openchrome-aside") {
+    browserSkill = openchromeAsideSkill;
+  } else {
+    browserSkill = playwrightMcpArgs?.length
+      ? createPlaywrightSkill({ mcp_args: playwrightMcpArgs })
+      : playwrightSkill;
+  }
 
-	const skills = [
-		browserSkill,
-		gitMasterSkill,
-		debuggingSkill,
-	]
+  const skills = [
+    browserSkill,
+    gitMasterSkill,
+    debuggingSkill,
+  ];
 
   if (teamModeEnabled) {
     if (!disabledSkills?.has("team-mode")) {
-      skills.push(teamModeSkill)
+      skills.push(teamModeSkill);
     }
     // security-research requires Team Mode infrastructure
     if (!disabledSkills?.has("security-research")) {
-      skills.push(securityResearchSkill)
+      skills.push(securityResearchSkill);
     }
   }
 
   if (openspecEnabled && !disabledSkills?.has("openspec")) {
-    skills.push(openspecSkill)
+    skills.push(openspecSkill);
   }
 
   if (!disabledSkills) {
-    return skills
+    return skills;
   }
 
-  return skills.filter((skill) => !disabledSkills.has(skill.name))
+  return skills.filter((skill) => !disabledSkills.has(skill.name));
 }
 
-export interface ResolveActiveBuiltinSkillsOptions extends CreateBuiltinSkillsOptions {
-  systemMcpNames: Set<string>
+export interface ResolveActiveBuiltinSkillsOptions
+  extends CreateBuiltinSkillsOptions {
+  systemMcpNames: Set<string>;
 }
 
-export function resolveActiveBuiltinSkills(options: ResolveActiveBuiltinSkillsOptions): BuiltinSkill[] {
-  const { systemMcpNames, ...createOptions } = options
+export function resolveActiveBuiltinSkills(
+  options: ResolveActiveBuiltinSkillsOptions,
+): BuiltinSkill[] {
+  const { systemMcpNames, ...createOptions } = options;
 
   return createBuiltinSkills(createOptions).filter((skill) => {
-    if (!skill.mcpConfig) return true
-    return !Object.keys(skill.mcpConfig).some((mcpName) => systemMcpNames.has(mcpName))
-  })
+    if (!skill.mcpConfig) return true;
+    return !Object.keys(skill.mcpConfig).some((mcpName) =>
+      systemMcpNames.has(mcpName)
+    );
+  });
 }

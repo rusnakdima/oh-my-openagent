@@ -1,31 +1,31 @@
 /// <reference types="bun-types" />
-import { afterEach, beforeEach, mock, setDefaultTimeout } from "bun:test"
-import { mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { _resetForTesting as resetClaudeSessionState } from "./packages/omo-opencode/src/features/claude-code-session-state/state"
-import { _resetTaskToastManagerForTesting as resetTaskToastManager } from "./packages/omo-opencode/src/features/task-toast-manager/manager"
-import { _resetForTesting as resetModelFallbackState } from "./packages/omo-opencode/src/hooks/model-fallback/hook"
-import { RULES_INJECTOR_STORAGE } from "./packages/omo-opencode/src/hooks/rules-injector/constants"
-import { _resetMemCacheForTesting as resetConnectedProvidersCache } from "./packages/omo-opencode/src/shared/connected-providers-cache"
-import { getOmoOpenCodeCacheDir } from "./packages/omo-opencode/src/shared/data-path"
-import { releaseAllPromptAsyncReservationsForTesting } from "./packages/omo-opencode/src/shared/prompt-async-gate"
-import { resetLiveServerRouteForTesting } from "./packages/omo-opencode/src/shared/live-server-route"
-import { installModuleMockLifecycle } from "./packages/omo-opencode/src/testing/module-mock-lifecycle"
-import { ensureVendoredLspDaemonBuilt } from "./script/ensure-vendored-lsp-daemon"
+import { afterEach, beforeEach, mock, setDefaultTimeout } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { _resetForTesting as resetClaudeSessionState } from "./packages/omo-opencode/src/features/claude-code-session-state/state";
+import { _resetTaskToastManagerForTesting as resetTaskToastManager } from "./packages/omo-opencode/src/features/task-toast-manager/manager";
+import { _resetForTesting as resetModelFallbackState } from "./packages/omo-opencode/src/hooks/model-fallback/hook";
+import { RULES_INJECTOR_STORAGE } from "./packages/omo-opencode/src/hooks/rules-injector/constants";
+import { _resetMemCacheForTesting as resetConnectedProvidersCache } from "./packages/omo-opencode/src/shared/connected-providers-cache";
+import { getOmoOpenCodeCacheDir } from "./packages/omo-opencode/src/shared/data-path";
+import { releaseAllPromptAsyncReservationsForTesting } from "./packages/omo-opencode/src/shared/prompt-async-gate";
+import { resetLiveServerRouteForTesting } from "./packages/omo-opencode/src/shared/live-server-route";
+import { installModuleMockLifecycle } from "./packages/omo-opencode/src/testing/module-mock-lifecycle";
+import { ensureVendoredLspDaemonBuilt } from "./script/ensure-vendored-lsp-daemon";
 
 // Installer/doctor integration tests need the vendored lsp-daemon dist that CI builds
 // out-of-band before `bun test`; mirror that here so fresh clones/worktrees pass too.
 await ensureVendoredLspDaemonBuilt({
   packageDir: join(import.meta.dir, "packages", "lsp-daemon"),
-})
+});
 
 // setDefaultTimeout is per-file when a TEST file calls it, but the preload runs before every file and
 // its value becomes the default each file starts from. CI runners need multiples of the local time for
 // the same git/npm/installer subprocesses, so raise the floor here once rather than rediscovering the
 // class one flaking suite at a time. A file that needs more still sets its own budget, and a file that
 // wants the strict default can lower it locally.
-setDefaultTimeout(process.platform === "win32" ? 30_000 : 20_000)
+setDefaultTimeout(process.platform === "win32" ? 30_000 : 20_000);
 
 // Skill/agent/command discovery reads the developer's real HOME (~/.agents/skills,
 // ~/.claude, ~/.config/opencode). A machine with real user skills installed then makes
@@ -42,87 +42,87 @@ setDefaultTimeout(process.platform === "win32" ? 30_000 : 20_000)
 // A per-test re-application would clobber HOME for suites that set their own HOME in a
 // beforeAll (e.g. openclaw reply-listener daemon tests) and only reset state — not HOME —
 // in their beforeEach, so it must NOT run every test.
-const HERMETIC_HOME = mkdtempSync(join(tmpdir(), "omo-test-home-"))
-process.env.HOME = HERMETIC_HOME
-process.env.USERPROFILE = HERMETIC_HOME
-delete process.env.OPENCODE_SERVER_PASSWORD
+const HERMETIC_HOME = mkdtempSync(join(tmpdir(), "omo-test-home-"));
+process.env.HOME = HERMETIC_HOME;
+process.env.USERPROFILE = HERMETIC_HOME;
+delete process.env.OPENCODE_SERVER_PASSWORD;
 
-let isGlobalMockCleanup = false
+let isGlobalMockCleanup = false;
 const { restoreModuleMocks } = installModuleMockLifecycle(mock, {
   shouldPreserveActiveMocksOnRestore: () => isGlobalMockCleanup,
   registerGlobalRestore: true,
-})
-let environmentSnapshot: NodeJS.ProcessEnv = { ...process.env }
-let workingDirectorySnapshot = process.cwd()
-const fetchSnapshot = globalThis.fetch
-const dateNowSnapshot = Date.now
-const setTimeoutSnapshot = globalThis.setTimeout
-const clearTimeoutSnapshot = globalThis.clearTimeout
-const setIntervalSnapshot = globalThis.setInterval
-const clearIntervalSnapshot = globalThis.clearInterval
+});
+let environmentSnapshot: NodeJS.ProcessEnv = { ...process.env };
+let workingDirectorySnapshot = process.cwd();
+const fetchSnapshot = globalThis.fetch;
+const dateNowSnapshot = Date.now;
+const setTimeoutSnapshot = globalThis.setTimeout;
+const clearTimeoutSnapshot = globalThis.clearTimeout;
+const setIntervalSnapshot = globalThis.setInterval;
+const clearIntervalSnapshot = globalThis.clearInterval;
 
 function cleanupOmoCacheDir(cacheDir: string): void {
-  rmSync(cacheDir, { recursive: true, force: true })
+  rmSync(cacheDir, { recursive: true, force: true });
 }
 
 function cleanupRulesInjectorStorage(): void {
-  rmSync(RULES_INJECTOR_STORAGE, { recursive: true, force: true })
+  rmSync(RULES_INJECTOR_STORAGE, { recursive: true, force: true });
 }
 
 beforeEach(() => {
-  environmentSnapshot = { ...process.env }
-  workingDirectorySnapshot = process.cwd()
-  process.env.OMO_DISABLE_POSTHOG = "true"
-  cleanupOmoCacheDir(getOmoOpenCodeCacheDir())
-  cleanupRulesInjectorStorage()
-  resetClaudeSessionState()
-  resetTaskToastManager()
-  resetModelFallbackState()
-  resetConnectedProvidersCache()
-  releaseAllPromptAsyncReservationsForTesting()
-  resetLiveServerRouteForTesting()
-})
+  environmentSnapshot = { ...process.env };
+  workingDirectorySnapshot = process.cwd();
+  process.env.OMO_DISABLE_POSTHOG = "true";
+  cleanupOmoCacheDir(getOmoOpenCodeCacheDir());
+  cleanupRulesInjectorStorage();
+  resetClaudeSessionState();
+  resetTaskToastManager();
+  resetModelFallbackState();
+  resetConnectedProvidersCache();
+  releaseAllPromptAsyncReservationsForTesting();
+  resetLiveServerRouteForTesting();
+});
 
 afterEach(() => {
-  const currentCacheDir = getOmoOpenCodeCacheDir()
+  const currentCacheDir = getOmoOpenCodeCacheDir();
 
   for (const key of Object.keys(process.env)) {
     if (!(key in environmentSnapshot)) {
-      delete process.env[key]
+      delete process.env[key];
     }
   }
 
   for (const [key, value] of Object.entries(environmentSnapshot)) {
     if (value === undefined) {
-      delete process.env[key]
-      continue
+      delete process.env[key];
+      continue;
     }
 
-    process.env[key] = value
+    process.env[key] = value;
   }
 
   if (process.cwd() !== workingDirectorySnapshot) {
-    process.chdir(workingDirectorySnapshot)
+    process.chdir(workingDirectorySnapshot);
   }
-  globalThis.fetch = fetchSnapshot
-  Date.now = dateNowSnapshot
-  globalThis.setTimeout = setTimeoutSnapshot
-  globalThis.clearTimeout = clearTimeoutSnapshot
-  globalThis.setInterval = setIntervalSnapshot
-  globalThis.clearInterval = clearIntervalSnapshot
+  globalThis.fetch = fetchSnapshot;
+  Date.now = dateNowSnapshot;
+  globalThis.setTimeout = setTimeoutSnapshot;
+  globalThis.clearTimeout = clearTimeoutSnapshot;
+  globalThis.setInterval = setIntervalSnapshot;
+  globalThis.clearInterval = clearIntervalSnapshot;
 
-  cleanupOmoCacheDir(currentCacheDir)
-  cleanupOmoCacheDir(getOmoOpenCodeCacheDir())
-  cleanupRulesInjectorStorage()
-  resetTaskToastManager()
-  resetConnectedProvidersCache()
-  releaseAllPromptAsyncReservationsForTesting()
-  resetLiveServerRouteForTesting()
-  isGlobalMockCleanup = true
+  cleanupOmoCacheDir(currentCacheDir);
+  cleanupOmoCacheDir(getOmoOpenCodeCacheDir());
+  cleanupRulesInjectorStorage();
+  resetTaskToastManager();
+  resetConnectedProvidersCache();
+  releaseAllPromptAsyncReservationsForTesting();
+  resetLiveServerRouteForTesting();
+  isGlobalMockCleanup = true;
   try {
-    mock.restore()
-    restoreModuleMocks()
+    mock.restore();
+    restoreModuleMocks();
   } finally {
-    isGlobalMockCleanup = false
+    isGlobalMockCleanup = false;
   }
-})
+});

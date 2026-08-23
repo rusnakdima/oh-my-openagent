@@ -1,7 +1,7 @@
-import type { TaskRecord } from "../state"
-import { TERMINAL_STATUSES, type LifecycleContext } from "./context"
-import { destroyResidentTask } from "./destroy"
-import type { CleanupResult } from "./types"
+import type { TaskRecord } from "../state";
+import { type LifecycleContext, TERMINAL_STATUSES } from "./context";
+import { destroyResidentTask } from "./destroy";
+import type { CleanupResult } from "./types";
 
 /**
  * Delete terminal records + artifacts older than task.ttl_ms. Non-terminal records are always kept
@@ -22,65 +22,79 @@ import type { CleanupResult } from "./types"
  * completes phase 2 for tombstones left behind by a crashed sweep: a tombstoned record is already
  * committed to deletion and is never resurrected, so completion is idempotent and lock-free.
  */
-export async function cleanupExpiredRecords(context: LifecycleContext): Promise<CleanupResult> {
-  const deleted: string[] = []
-  const retained: string[] = []
+export async function cleanupExpiredRecords(
+  context: LifecycleContext,
+): Promise<CleanupResult> {
+  const deleted: string[] = [];
+  const retained: string[] = [];
 
   // Crash recovery before anything else: finish the interrupted expunges of a previous sweep.
   for (const taskId of context.store.listExpunging()) {
-    context.store.completeExpunge(taskId)
-    deleted.push(taskId)
+    context.store.completeExpunge(taskId);
+    deleted.push(taskId);
   }
 
-  const cutoff = context.now() - context.config.ttl_ms
+  const cutoff = context.now() - context.config.ttl_ms;
   for (const record of context.store.list().records) {
     if (shouldRetain(context, record, cutoff)) {
-      retained.push(record.task_id)
-      continue
+      retained.push(record.task_id);
+      continue;
     }
     // Phase 1: atomic re-validate + tombstone. A revival claim that landed after the scan is seen
     // by the locked re-read and the record is retained instead of deleted underneath its new owner.
-    const outcome = context.store.tombstoneIfExpired(record.task_id, (fresh) => shouldRetain(context, fresh, cutoff))
+    const outcome = context.store.tombstoneIfExpired(
+      record.task_id,
+      (fresh) => shouldRetain(context, fresh, cutoff),
+    );
     if (outcome.kind !== "tombstoned") {
-      retained.push(record.task_id)
-      continue
+      retained.push(record.task_id);
+      continue;
     }
     // The record is now committed to deletion. A live orphan rpc pid must not outlive its record:
     // destroy it through the single-writer port BEFORE phase 2 artifact deletion (no-orphan law).
-    const orphanPid = outcome.record.execution_mode === "process" ? outcome.record.pid : undefined
+    const orphanPid = outcome.record.execution_mode === "process"
+      ? outcome.record.pid
+      : undefined;
     if (orphanPid !== undefined && context.signaller.isAlive(orphanPid)) {
-      await destroyResidentTask(context, record.task_id, "ttl", orphanPid)
+      await destroyResidentTask(context, record.task_id, "ttl", orphanPid);
     }
     // Phase 2: children dir, spill, log, then drop the tombstone.
-    context.store.completeExpunge(record.task_id)
-    deleted.push(record.task_id)
+    context.store.completeExpunge(record.task_id);
+    deleted.push(record.task_id);
   }
-  return { deleted, retained }
+  return { deleted, retained };
 }
 
-function shouldRetain(context: LifecycleContext, record: TaskRecord, cutoff: number): boolean {
-  if (context.registry.get(record.task_id) !== undefined) return true
-  if (hasLiveHostClaim(context, record)) return true
-  if (!TERMINAL_STATUSES.has(record.status)) return true
-  if (Date.parse(record.updated_at) > cutoff) return true
-  if (hasUndeliveredTerminalNotification(record)) return true
+function shouldRetain(
+  context: LifecycleContext,
+  record: TaskRecord,
+  cutoff: number,
+): boolean {
+  if (context.registry.get(record.task_id) !== undefined) return true;
+  if (hasLiveHostClaim(context, record)) return true;
+  if (!TERMINAL_STATUSES.has(record.status)) return true;
+  if (Date.parse(record.updated_at) > cutoff) return true;
+  if (hasUndeliveredTerminalNotification(record)) return true;
   if (record.status === "lost" && record.execution_mode === "process") {
     // The lost-record pid-dead proof rule: breadcrumbs are kept until the process is proven dead.
-    return record.pid === undefined || context.signaller.isAlive(record.pid)
+    return record.pid === undefined || context.signaller.isAlive(record.pid);
   }
-  return false
+  return false;
 }
 
 // A resident record whose claiming host process is alive is that host's revivable handle. This
 // covers a FOREIGN live owner AND this process's own fresh claim (revival claims under the
 // admission lock, respawns outside it - during that window no live handle exists in the registry
 // yet, but the claim is no less real). Deleting either would orphan a live owner.
-function hasLiveHostClaim(context: LifecycleContext, record: TaskRecord): boolean {
+function hasLiveHostClaim(
+  context: LifecycleContext,
+  record: TaskRecord,
+): boolean {
   return (
     record.residency_state === "resident" &&
     record.host_pid !== undefined &&
     context.signaller.isAlive(record.host_pid)
-  )
+  );
 }
 
 // TTL must never delete a terminal record (or its completion spill) whose notification is still
@@ -89,8 +103,8 @@ function hasLiveHostClaim(context: LifecycleContext, record: TaskRecord): boolea
 // whose only marker is a notification_failed_epoch with a lagging notified epoch (a record sitting
 // between a failed retry and the next one).
 function hasUndeliveredTerminalNotification(record: TaskRecord): boolean {
-  const notification = record.notification
-  if (notification.notified_epoch >= notification.run_epoch) return false
-  if (record.notify_on_terminal) return true
-  return notification.notification_failed_epoch !== undefined
+  const notification = record.notification;
+  if (notification.notified_epoch >= notification.run_epoch) return false;
+  if (record.notify_on_terminal) return true;
+  return notification.notification_failed_epoch !== undefined;
 }

@@ -1,4 +1,7 @@
-import { findRuleFilesRecursive as findRuleFileEntriesRecursive, safeRealpathSync } from "@oh-my-opencode/rules-engine";
+import {
+  findRuleFilesRecursive as findRuleFileEntriesRecursive,
+  safeRealpathSync,
+} from "@oh-my-opencode/rules-engine";
 import type { DirectoryScanEntry } from "@oh-my-opencode/rules-engine";
 
 export { safeRealpathSync };

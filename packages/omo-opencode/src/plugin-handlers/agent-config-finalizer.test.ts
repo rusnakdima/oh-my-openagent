@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import {
+  _resetForTesting as resetSessionStateForTesting,
   isAgentRegistered,
   registerAgentName,
-  _resetForTesting as resetSessionStateForTesting,
 } from "../features/claude-code-session-state";
 import type { OhMyOpenCodeConfig } from "../config";
 import { finalizeAgentConfig } from "./agent-config-finalizer";

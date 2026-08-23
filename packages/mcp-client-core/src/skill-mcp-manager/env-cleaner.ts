@@ -33,27 +33,27 @@ export const EXCLUDED_ENV_PATTERNS: RegExp[] = [
   /_CREDENTIAL$/i,
   /_CREDENTIALS$/i,
   /_API_KEY$/i,
-]
+];
 
 function isExcludedEnvKey(key: string): boolean {
-  return EXCLUDED_ENV_PATTERNS.some((pattern) => pattern.test(key))
+  return EXCLUDED_ENV_PATTERNS.some((pattern) => pattern.test(key));
 }
 
 export function createCleanMcpEnvironment(
-  customEnv: Record<string, string> = {}
+  customEnv: Record<string, string> = {},
 ): Record<string, string> {
-  const cleanEnv: Record<string, string> = {}
+  const cleanEnv: Record<string, string> = {};
 
   // Apply the blacklist only to inherited ambient environment variables.
   // Skill-configured env entries are explicitly declared and must be passed
   // through as-is so stdio MCP servers can receive required credentials.
   for (const [key, value] of Object.entries(process.env)) {
-    if (value === undefined) continue
-    if (isExcludedEnvKey(key)) continue
-    cleanEnv[key] = value
+    if (value === undefined) continue;
+    if (isExcludedEnvKey(key)) continue;
+    cleanEnv[key] = value;
   }
 
-  Object.assign(cleanEnv, customEnv)
+  Object.assign(cleanEnv, customEnv);
 
-  return cleanEnv
+  return cleanEnv;
 }

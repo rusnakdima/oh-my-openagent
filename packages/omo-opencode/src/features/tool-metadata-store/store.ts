@@ -17,23 +17,26 @@
  */
 
 export interface PendingToolMetadata {
-  title?: string
-  metadata?: Record<string, unknown>
+  title?: string;
+  metadata?: Record<string, unknown>;
 }
 
-const pendingStore = new Map<string, PendingToolMetadata & { storedAt: number }>()
+const pendingStore = new Map<
+  string,
+  PendingToolMetadata & { storedAt: number }
+>();
 
-const STALE_TIMEOUT_MS = 15 * 60 * 1000
+const STALE_TIMEOUT_MS = 15 * 60 * 1000;
 
 function makeKey(sessionID: string, callID: string): string {
-  return `${sessionID}:${callID}`
+  return `${sessionID}:${callID}`;
 }
 
 function cleanupStaleEntries(): void {
-  const now = Date.now()
+  const now = Date.now();
   for (const [key, entry] of pendingStore) {
     if (now - entry.storedAt > STALE_TIMEOUT_MS) {
-      pendingStore.delete(key)
+      pendingStore.delete(key);
     }
   }
 }
@@ -45,10 +48,13 @@ function cleanupStaleEntries(): void {
 export function storeToolMetadata(
   sessionID: string,
   callID: string,
-  data: PendingToolMetadata
+  data: PendingToolMetadata,
 ): void {
-  cleanupStaleEntries()
-  pendingStore.set(makeKey(sessionID, callID), { ...data, storedAt: Date.now() })
+  cleanupStaleEntries();
+  pendingStore.set(makeKey(sessionID, callID), {
+    ...data,
+    storedAt: Date.now(),
+  });
 }
 
 /**
@@ -62,54 +68,57 @@ export function storeToolMetadata(
  */
 export function consumeToolMetadata(
   sessionID: string,
-  callID: string
+  callID: string,
 ): PendingToolMetadata | undefined {
-  const stored = takeEntry(makeKey(sessionID, callID)) ?? takeUnambiguousCallIDEntry(callID)
+  const stored = takeEntry(makeKey(sessionID, callID)) ??
+    takeUnambiguousCallIDEntry(callID);
   if (!stored) {
-    return undefined
+    return undefined;
   }
-  const { storedAt: _, ...data } = stored
-  return data
+  const { storedAt: _, ...data } = stored;
+  return data;
 }
 
-function takeEntry(key: string): (PendingToolMetadata & { storedAt: number }) | undefined {
-  const stored = pendingStore.get(key)
+function takeEntry(
+  key: string,
+): (PendingToolMetadata & { storedAt: number }) | undefined {
+  const stored = pendingStore.get(key);
   if (stored) {
-    pendingStore.delete(key)
+    pendingStore.delete(key);
   }
-  return stored
+  return stored;
 }
 
 function callIDOfKey(key: string): string {
-  return key.slice(key.indexOf(":") + 1)
+  return key.slice(key.indexOf(":") + 1);
 }
 
 function takeUnambiguousCallIDEntry(
-  callID: string
+  callID: string,
 ): (PendingToolMetadata & { storedAt: number }) | undefined {
-  let matchedKey: string | undefined
+  let matchedKey: string | undefined;
   for (const key of pendingStore.keys()) {
     if (callIDOfKey(key) !== callID) {
-      continue
+      continue;
     }
     if (matchedKey !== undefined) {
-      return undefined
+      return undefined;
     }
-    matchedKey = key
+    matchedKey = key;
   }
-  return matchedKey === undefined ? undefined : takeEntry(matchedKey)
+  return matchedKey === undefined ? undefined : takeEntry(matchedKey);
 }
 
 /**
  * Get current store size (for testing/debugging).
  */
 export function getPendingStoreSize(): number {
-  return pendingStore.size
+  return pendingStore.size;
 }
 
 /**
  * Clear all pending metadata (for testing).
  */
 export function clearPendingStore(): void {
-  pendingStore.clear()
+  pendingStore.clear();
 }

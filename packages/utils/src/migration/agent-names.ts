@@ -45,7 +45,7 @@ export const AGENT_NAME_MAP: Record<string, string> = {
   librarian: "librarian",
   explore: "explore",
   "multimodal-looker": "multimodal-looker",
-}
+};
 
 export const BUILTIN_AGENT_NAMES = new Set([
   "sisyphus", // was "Sisyphus"
@@ -58,21 +58,22 @@ export const BUILTIN_AGENT_NAMES = new Set([
   "prometheus", // was "Prometheus - Plan Builder"
   "atlas", // was "Atlas"
   "build",
-])
+]);
 
 export function migrateAgentNames(
-  agents: Record<string, unknown>
+  agents: Record<string, unknown>,
 ): { migrated: Record<string, unknown>; changed: boolean } {
-  const migrated: Record<string, unknown> = {}
-  let changed = false
+  const migrated: Record<string, unknown> = {};
+  let changed = false;
 
   for (const [key, value] of Object.entries(agents)) {
-    const newKey = AGENT_NAME_MAP[key.toLowerCase()] ?? AGENT_NAME_MAP[key] ?? key
+    const newKey = AGENT_NAME_MAP[key.toLowerCase()] ?? AGENT_NAME_MAP[key] ??
+      key;
     if (newKey !== key) {
-      changed = true
+      changed = true;
     }
-    migrated[newKey] = value
+    migrated[newKey] = value;
   }
 
-  return { migrated, changed }
+  return { migrated, changed };
 }

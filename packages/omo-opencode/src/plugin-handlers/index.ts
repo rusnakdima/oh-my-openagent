@@ -1,7 +1,7 @@
 export {
+  type ConfigHandlerDeps,
   createConfigHandler,
   triggerAgentConfigSnapshotInvalidate,
-  type ConfigHandlerDeps,
 } from "./config-handler";
 export * from "./provider-config-handler";
 export * from "./agent-config-handler";

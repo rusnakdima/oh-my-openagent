@@ -8,11 +8,24 @@ const pluginRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const sharedSkillsRoot = join(pluginRoot, "components", "lcx", "skills");
 
 test("#given lcx skills #when frontmatter is inspected #then each exposes the loader-parsed skill name", async () => {
-	for (const skillName of ["lcx-report-bug", "lcx-contribute-bug-fix", "lcx-doctor"]) {
-		// when
-		const skill = await readFile(join(sharedSkillsRoot, skillName, "SKILL.md"), "utf8");
+  for (
+    const skillName of [
+      "lcx-report-bug",
+      "lcx-contribute-bug-fix",
+      "lcx-doctor",
+    ]
+  ) {
+    // when
+    const skill = await readFile(
+      join(sharedSkillsRoot, skillName, "SKILL.md"),
+      "utf8",
+    );
 
-		// then
-		assert.match(skill, new RegExp(`^name: ${skillName}$`, "m"), `${skillName}: frontmatter must expose ${skillName}`);
-	}
+    // then
+    assert.match(
+      skill,
+      new RegExp(`^name: ${skillName}$`, "m"),
+      `${skillName}: frontmatter must expose ${skillName}`,
+    );
+  }
 });

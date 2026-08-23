@@ -1,9 +1,17 @@
 # Tier 2 — Chrome stealth (CloakBrowser + agent-browser)
 
-Real interaction (clicks, forms, screenshots, video, persistent login) for pages that defeat Tier 1/1.5. Two runtime tools, both installed on demand — neither is vendored in this skill:
+Real interaction (clicks, forms, screenshots, video, persistent login) for pages
+that defeat Tier 1/1.5. Two runtime tools, both installed on demand — neither is
+vendored in this skill:
 
-- **CloakBrowser** (`pip`) — stealth Chromium with source-level C++ fingerprint patches. The Python wrapper source is MIT; the downloaded Chromium binary is covered by CloakBrowser's separate binary license and is not redistributed by this package. Passes Cloudflare Turnstile, FingerprintJS, BrowserScan, and 30+ detectors. Pin **0.5.7**.
-- **agent-browser** (`npm`, Apache-2.0) — native CDP automation CLI that drives CloakBrowser. AX-tree snapshots, `@eN` refs, click/fill/type/scroll, screenshots, video, cookie/state/session management. Pin **0.34.0**.
+- **CloakBrowser** (`pip`) — stealth Chromium with source-level C++ fingerprint
+  patches. The Python wrapper source is MIT; the downloaded Chromium binary is
+  covered by CloakBrowser's separate binary license and is not redistributed by
+  this package. Passes Cloudflare Turnstile, FingerprintJS, BrowserScan, and 30+
+  detectors. Pin **0.5.7**.
+- **agent-browser** (`npm`, Apache-2.0) — native CDP automation CLI that drives
+  CloakBrowser. AX-tree snapshots, `@eN` refs, click/fill/type/scroll,
+  screenshots, video, cookie/state/session management. Pin **0.34.0**.
 
 ```
 CloakBrowser (stealth Chromium) <- CDP port 9242 -> agent-browser CLI
@@ -15,7 +23,8 @@ CloakBrowser (stealth Chromium) <- CDP port 9242 -> agent-browser CLI
 
 ## Install (one-time)
 
-CloakBrowser runs in a dedicated Python venv. Cross-platform: macOS, Linux, and Windows all supported by both tools (use the venv path convention for your OS).
+CloakBrowser runs in a dedicated Python venv. Cross-platform: macOS, Linux, and
+Windows all supported by both tools (use the venv path convention for your OS).
 
 ```bash
 # CloakBrowser (MIT wrapper source; separate binary license, pin 0.5.7):
@@ -61,7 +70,8 @@ agent-browser --cdp 9242 screenshot out.png
 agent-browser --cdp 9242 close
 ```
 
-agent-browser ships its own always-version-matched usage guide — load it instead of guessing flags:
+agent-browser ships its own always-version-matched usage guide — load it instead
+of guessing flags:
 
 ```bash
 agent-browser skills get core            # core workflows, patterns, troubleshooting
@@ -76,19 +86,28 @@ agent-browser skills list                # everything available on the installed
 agent-browser --cdp 9242 eval 'navigator.webdriver'   # must print false
 ```
 
-Verified 2026-07 with CloakBrowser 0.5.7 + agent-browser 0.34.0: `navigator.webdriver` reads the boolean false with no init-script, bot.sannysoft.com all-green, browserscan.net "Normal" (15/15), nowsecure.nl Turnstile bypassed.
+Verified 2026-07 with CloakBrowser 0.5.7 + agent-browser 0.34.0:
+`navigator.webdriver` reads the boolean false with no init-script,
+bot.sannysoft.com all-green, browserscan.net "Normal" (15/15), nowsecure.nl
+Turnstile bypassed.
 
-> **agent-browser 0.33.x behavior note:** the daemon now defaults to a 1-hour idle timeout (saves restore state, closes the browser, exits after 1 h of no commands). Set `AGENT_BROWSER_IDLE_TIMEOUT_MS=0` to restore the old always-persist behavior. External WebSocket stream consumers see latest-wins frame delivery; `record` (CDP) and the dashboard are unaffected.
+> **agent-browser 0.33.x behavior note:** the daemon now defaults to a 1-hour
+> idle timeout (saves restore state, closes the browser, exits after 1 h of no
+> commands). Set `AGENT_BROWSER_IDLE_TIMEOUT_MS=0` to restore the old
+> always-persist behavior. External WebSocket stream consumers see latest-wins
+> frame delivery; `record` (CDP) and the dashboard are unaffected.
 
 ## Cookie login (cross-platform)
 
-`scripts/extract_cookies.py` reads cookies from a local browser profile and optionally injects them into the running CDP session. Profile-path resolution and value decryption are per-OS:
+`scripts/extract_cookies.py` reads cookies from a local browser profile and
+optionally injects them into the running CDP session. Profile-path resolution
+and value decryption are per-OS:
 
-| OS | Profile location | Cookie value decryption |
-|----|------------------|--------------------------|
-| macOS | `~/Library/Application Support/<app>/` | Keychain (AES-128-CBC, PBKDF2 salt `saltysalt`) |
-| Linux | `~/.config/<app>/` (Chromium), `~/.mozilla/firefox/` (Firefox) | libsecret/SecretService, then PBKDF2 + AES-128-CBC |
-| Windows | `%LOCALAPPDATA%\<app>\User Data\` | DPAPI (`CryptUnprotectData`) + AES-256-GCM (`os_crypt` key) |
+| OS      | Profile location                                               | Cookie value decryption                                     |
+| ------- | -------------------------------------------------------------- | ----------------------------------------------------------- |
+| macOS   | `~/Library/Application Support/<app>/`                         | Keychain (AES-128-CBC, PBKDF2 salt `saltysalt`)             |
+| Linux   | `~/.config/<app>/` (Chromium), `~/.mozilla/firefox/` (Firefox) | libsecret/SecretService, then PBKDF2 + AES-128-CBC          |
+| Windows | `%LOCALAPPDATA%\<app>\User Data\`                              | DPAPI (`CryptUnprotectData`) + AES-256-GCM (`os_crypt` key) |
 
 ```bash
 # Extract to a file:
@@ -98,13 +117,22 @@ python3 ../scripts/extract_cookies.py --browser chrome --domain youtube.com --ou
 python3 ../scripts/extract_cookies.py --browser chrome --domain youtube.com --inject --cdp 9242
 ```
 
-Cookie export files are written with owner-only `0600` permissions. Do not place live auth cookies in shared temp directories or commit them to a repo. Cookie injection sends values to CDP over stdin rather than argv, so live cookie values do not appear in process listings. Cookies apply on next navigation — reload after injecting. Google services use fingerprint-bound tokens (SIDTS) that may not transfer across browser profiles. Firefox-family profiles store cookies unencrypted; Chromium-family profiles trigger a one-time OS-keyring prompt on macOS/Linux.
+Cookie export files are written with owner-only `0600` permissions. Do not place
+live auth cookies in shared temp directories or commit them to a repo. Cookie
+injection sends values to CDP over stdin rather than argv, so live cookie values
+do not appear in process listings. Cookies apply on next navigation — reload
+after injecting. Google services use fingerprint-bound tokens (SIDTS) that may
+not transfer across browser profiles. Firefox-family profiles store cookies
+unencrypted; Chromium-family profiles trigger a one-time OS-keyring prompt on
+macOS/Linux.
 
 ## Anti-patterns
 
 - Do NOT launch CloakBrowser for plain text extraction — use Tier 1.
-- Do NOT pass an `--init-script` for the webdriver flag — CloakBrowser already patches it at source; the only required override is `--user-agent`.
-- Do NOT run agent-browser before creating the first tab via `curl -X PUT .../json/new` — CloakBrowser launches tabless.
+- Do NOT pass an `--init-script` for the webdriver flag — CloakBrowser already
+  patches it at source; the only required override is `--user-agent`.
+- Do NOT run agent-browser before creating the first tab via
+  `curl -X PUT .../json/new` — CloakBrowser launches tabless.
 - Do NOT use vanilla Chrome when stealth is needed — always CloakBrowser.
 - Do NOT forget to `close` the session when done.
 - Do NOT inject cookies without reloading the page.

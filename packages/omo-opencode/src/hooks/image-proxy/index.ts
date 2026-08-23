@@ -1,1 +1,1 @@
-export { createImageProxyHook } from "./hook"
+export { createImageProxyHook } from "./hook";

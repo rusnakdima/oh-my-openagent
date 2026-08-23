@@ -1,23 +1,35 @@
-import type { AutoRetryHelpers } from "./auto-retry"
-import type { AutoRetryDispatchOutcome, HookDeps, FallbackState } from "./types"
-import { HOOK_NAME } from "./constants"
-import { log } from "../../shared/logger"
-import { prepareFallback } from "./fallback-state"
-import { restoreFallbackState, snapshotFallbackState } from "./fallback-state-snapshot"
+import type { AutoRetryHelpers } from "./auto-retry";
+import type {
+  AutoRetryDispatchOutcome,
+  FallbackState,
+  HookDeps,
+} from "./types";
+import { HOOK_NAME } from "./constants";
+import { log } from "../../shared/logger";
+import { prepareFallback } from "./fallback-state";
+import {
+  restoreFallbackState,
+  snapshotFallbackState,
+} from "./fallback-state-snapshot";
 
 type DispatchFallbackRetryOptions = {
-  sessionID: string
-  state: FallbackState
-  fallbackModels: string[]
-  resolvedAgent?: string
-  source: string
-}
+  sessionID: string;
+  state: FallbackState;
+  fallbackModels: string[];
+  resolvedAgent?: string;
+  source: string;
+};
 
-function resolveDispatchMessage(result: AutoRetryDispatchOutcome, newModel: string): string {
-  const modelName = newModel.split("/").pop() || newModel
-  if (result.status === "queued") return `Fallback queued for ${modelName}`
-  if (result.status === "possibly-accepted") return `Fallback dispatch may have been accepted for ${modelName}`
-  return `Switched to ${modelName} for next request`
+function resolveDispatchMessage(
+  result: AutoRetryDispatchOutcome,
+  newModel: string,
+): string {
+  const modelName = newModel.split("/").pop() || newModel;
+  if (result.status === "queued") return `Fallback queued for ${modelName}`;
+  if (result.status === "possibly-accepted") {
+    return `Fallback dispatch may have been accepted for ${modelName}`;
+  }
+  return `Switched to ${modelName} for next request`;
 }
 
 export async function dispatchFallbackRetry(
@@ -25,13 +37,13 @@ export async function dispatchFallbackRetry(
   helpers: AutoRetryHelpers,
   options: DispatchFallbackRetryOptions,
 ): Promise<void> {
-  const snapshot = snapshotFallbackState(options.state)
+  const snapshot = snapshotFallbackState(options.state);
   const result = prepareFallback(
     options.sessionID,
     options.state,
     options.fallbackModels,
     deps.config,
-  )
+  );
 
   if (result.success && result.newModel) {
     const rawDispatchOutcome = await helpers.autoRetryWithFallback(
@@ -39,38 +51,45 @@ export async function dispatchFallbackRetry(
       result.newModel,
       options.resolvedAgent,
       options.source,
-    )
+    );
     const dispatchOutcome = rawDispatchOutcome ?? {
       accepted: true,
       status: "dispatched",
-    }
+    };
     if (rawDispatchOutcome === undefined) {
-      log(`[${HOOK_NAME}] Fallback dispatch returned no outcome; treating as accepted for compatibility`, {
-        sessionID: options.sessionID,
-        source: options.source,
-      })
+      log(
+        `[${HOOK_NAME}] Fallback dispatch returned no outcome; treating as accepted for compatibility`,
+        {
+          sessionID: options.sessionID,
+          source: options.source,
+        },
+      );
     }
     if (!dispatchOutcome.accepted) {
-      restoreFallbackState(options.state, snapshot)
+      restoreFallbackState(options.state, snapshot);
       log(`[${HOOK_NAME}] Fallback dispatch was not accepted`, {
         sessionID: options.sessionID,
         source: options.source,
         status: dispatchOutcome.status,
         reason: dispatchOutcome.reason,
-      })
+      });
       if (deps.config.notify_on_fallback) {
         await deps.ctx.client.tui
           .showToast({
             body: {
               title: "Model Fallback",
-              message: `Fallback could not be applied: ${dispatchOutcome.reason ?? "dispatch not accepted"}`,
+              message: `Fallback could not be applied: ${
+                dispatchOutcome.reason ?? "dispatch not accepted"
+              }`,
               variant: "error",
               duration: 8000,
             },
           })
-          .catch((err) => log(`[${HOOK_NAME}] Toast failed:`, { error: String(err) }))
+          .catch((err) =>
+            log(`[${HOOK_NAME}] Toast failed:`, { error: String(err) })
+          );
       }
-      return
+      return;
     }
     if (deps.config.notify_on_fallback) {
       await deps.ctx.client.tui
@@ -82,26 +101,28 @@ export async function dispatchFallbackRetry(
             duration: 10000,
           },
         })
-        .catch(() => {})
+        .catch(() => {});
     }
-    return
+    return;
   }
 
   log(`[${HOOK_NAME}] Fallback preparation failed`, {
     sessionID: options.sessionID,
     source: options.source,
     error: result.error,
-  })
+  });
   if (deps.config.notify_on_fallback) {
     await deps.ctx.client.tui
       .showToast({
         body: {
           title: "Model Fallback Failed",
-          message: `No fallback model available: ${result.error ?? "all models exhausted or in cooldown"}`,
+          message: `No fallback model available: ${
+            result.error ?? "all models exhausted or in cooldown"
+          }`,
           variant: "error",
           duration: 10000,
         },
       })
-      .catch(() => {})
+      .catch(() => {});
   }
 }

@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const SisyphusTasksConfigSchema = z.object({
   /** Absolute or relative storage path override. When set, bypasses global config dir. */
@@ -7,11 +7,11 @@ export const SisyphusTasksConfigSchema = z.object({
   task_list_id: z.string().optional(),
   /** Enable Claude Code path compatibility mode */
   claude_code_compat: z.boolean().default(false),
-})
+});
 
 export const SisyphusConfigSchema = z.object({
   tasks: SisyphusTasksConfigSchema.optional(),
-})
+});
 
-export type SisyphusTasksConfig = z.infer<typeof SisyphusTasksConfigSchema>
-export type SisyphusConfig = z.infer<typeof SisyphusConfigSchema>
+export type SisyphusTasksConfig = z.infer<typeof SisyphusTasksConfigSchema>;
+export type SisyphusConfig = z.infer<typeof SisyphusConfigSchema>;

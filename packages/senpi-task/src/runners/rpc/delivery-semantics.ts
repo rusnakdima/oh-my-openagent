@@ -8,7 +8,7 @@
  * Every delivery therefore declares "steer", and a host that still refuses the
  * queued form is retried as "followUp" instead of failing the child.
  */
-export type RpcStreamingBehavior = "steer" | "followUp"
+export type RpcStreamingBehavior = "steer" | "followUp";
 
 /**
  * Recognizes a rejection that means "this message needs queueing semantics" or
@@ -17,20 +17,20 @@ export type RpcStreamingBehavior = "steer" | "followUp"
  * rethrown so callers still observe genuine prompt failures.
  */
 export function isBusyChildRejection(error: unknown): boolean {
-  const detail = rejectionDetail(error)
-  if (detail === undefined) return false
-  const normalized = detail.toLowerCase()
+  const detail = rejectionDetail(error);
+  if (detail === undefined) return false;
+  const normalized = detail.toLowerCase();
   return (
     normalized.includes("already processing") ||
     normalized.includes("streamingbehavior") ||
     normalized.includes("one-at-a-time")
-  )
+  );
 }
 
 function rejectionDetail(error: unknown): string | undefined {
-  if (error === null || typeof error !== "object") return undefined
-  const detail = (error as { readonly detail?: unknown }).detail
-  if (typeof detail === "string") return detail
-  const message = (error as { readonly message?: unknown }).message
-  return typeof message === "string" ? message : undefined
+  if (error === null || typeof error !== "object") return undefined;
+  const detail = (error as { readonly detail?: unknown }).detail;
+  if (typeof detail === "string") return detail;
+  const message = (error as { readonly message?: unknown }).message;
+  return typeof message === "string" ? message : undefined;
 }

@@ -1,4 +1,4 @@
-import type { SuspendSummary, TaskRecord } from "@oh-my-opencode/senpi-task"
+import type { SuspendSummary, TaskRecord } from "@oh-my-opencode/senpi-task";
 
 export const fakeSummary: SuspendSummary = {
   suspended_in_process: 0,
@@ -6,10 +6,13 @@ export const fakeSummary: SuspendSummary = {
   suspended_pending: 0,
   disposed: 0,
   failures: [],
-}
+};
 
 export function taskRecord(
-  overrides: Partial<TaskRecord> & { task_id: string; status: TaskRecord["status"] },
+  overrides: Partial<TaskRecord> & {
+    task_id: string;
+    status: TaskRecord["status"];
+  },
 ): TaskRecord {
   return {
     name: "worker",
@@ -28,7 +31,7 @@ export function taskRecord(
     notification: { run_epoch: 0, notified_epoch: -1 },
     notify_on_terminal: true,
     ...overrides,
-  }
+  };
 }
 
 export function taskSnapshot(record: TaskRecord) {
@@ -47,5 +50,5 @@ export function taskSnapshot(record: TaskRecord) {
     created_at: record.created_at,
     updated_at: record.updated_at,
     ...(record.run_stats === undefined ? {} : { run_stats: record.run_stats }),
-  }
+  };
 }

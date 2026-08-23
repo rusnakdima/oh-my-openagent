@@ -1,16 +1,23 @@
-import { handedBackSyncSessions } from "../../features/claude-code-session-state"
-import { getTaskToastManager } from "../../features/task-toast-manager"
-import type { ModelFallbackInfo } from "../../features/task-toast-manager/types"
-import type { FallbackEntry } from "../../shared/model-requirements"
-import { log } from "../../shared/logger"
-import { formatDetailedError } from "./error-formatting"
-import type { ExecutorContext, ParentContext } from "./executor-types"
-import { reserveSyncSubagentSpawn } from "./sync-spawn-reservation"
-import { type SyncTaskDeps, syncTaskDeps } from "./sync-task-deps"
-import { publishSyncTaskMetadata } from "./sync-task-metadata"
-import { runSyncTaskLoop } from "./sync-task-runner"
-import { cleanupSyncSessionSideEffects, registerSyncSessionSideEffects } from "./sync-session-lifecycle"
-import type { DelegatedModelConfig, DelegateTaskArgs, ToolContextWithMetadata } from "./types"
+import { handedBackSyncSessions } from "../../features/claude-code-session-state";
+import { getTaskToastManager } from "../../features/task-toast-manager";
+import type { ModelFallbackInfo } from "../../features/task-toast-manager/types";
+import type { FallbackEntry } from "../../shared/model-requirements";
+import { log } from "../../shared/logger";
+import { formatDetailedError } from "./error-formatting";
+import type { ExecutorContext, ParentContext } from "./executor-types";
+import { reserveSyncSubagentSpawn } from "./sync-spawn-reservation";
+import { type SyncTaskDeps, syncTaskDeps } from "./sync-task-deps";
+import { publishSyncTaskMetadata } from "./sync-task-metadata";
+import { runSyncTaskLoop } from "./sync-task-runner";
+import {
+  cleanupSyncSessionSideEffects,
+  registerSyncSessionSideEffects,
+} from "./sync-session-lifecycle";
+import type {
+  DelegatedModelConfig,
+  DelegateTaskArgs,
+  ToolContextWithMetadata,
+} from "./types";
 
 export async function executeSyncTask(
   args: DelegateTaskArgs,
@@ -22,20 +29,20 @@ export async function executeSyncTask(
   systemContent: string | undefined,
   modelInfo?: ModelFallbackInfo,
   fallbackChain?: FallbackEntry[],
-  deps: SyncTaskDeps = syncTaskDeps
+  deps: SyncTaskDeps = syncTaskDeps,
 ): Promise<string> {
-  const { client, directory, syncPollTimeoutMs } = executorCtx
-  const toastManager = getTaskToastManager()
-  let taskId: string | undefined
-  let syncSessionID: string | undefined
+  const { client, directory, syncPollTimeoutMs } = executorCtx;
+  const toastManager = getTaskToastManager();
+  let taskId: string | undefined;
+  let syncSessionID: string | undefined;
   let spawnReservation:
     | Awaited<ReturnType<ExecutorContext["manager"]["reserveSubagentSpawn"]>>
-    | undefined
+    | undefined;
 
   try {
-    const spawn = await reserveSyncSubagentSpawn(executorCtx, parentContext)
-    spawnReservation = spawn.reservation
-    const { spawnContext } = spawn
+    const spawn = await reserveSyncSubagentSpawn(executorCtx, parentContext);
+    spawnReservation = spawn.reservation;
+    const { spawnContext } = spawn;
 
     const createSessionResult = await deps.createSyncSession(client, {
       parentSessionID: parentContext.sessionID,
@@ -43,19 +50,19 @@ export async function executeSyncTask(
       description: args.description,
       defaultDirectory: directory,
       categoryModel,
-    })
+    });
 
     if (!createSessionResult.ok) {
-      spawnReservation?.rollback()
-      return createSessionResult.error
+      spawnReservation?.rollback();
+      return createSessionResult.error;
     }
 
-    const sessionID = createSessionResult.sessionID
-    spawnReservation?.commit()
-    syncSessionID = sessionID
+    const sessionID = createSessionResult.sessionID;
+    spawnReservation?.commit();
+    syncSessionID = sessionID;
 
     const registerSyncSession = async (newSessionID: string): Promise<void> => {
-      syncSessionID = newSessionID
+      syncSessionID = newSessionID;
       await registerSyncSessionSideEffects({
         args,
         executorCtx,
@@ -65,8 +72,8 @@ export async function executeSyncTask(
         categoryModel,
         fallbackChain,
         systemContent,
-      })
-    }
+      });
+    };
 
     const publishSyncMetadata = async (
       currentSessionID: string,
@@ -81,13 +88,13 @@ export async function executeSyncTask(
         parentContext,
         agentToUse,
         spawnDepth,
-      })
-    }
+      });
+    };
 
-    await registerSyncSession(sessionID)
+    await registerSyncSession(sessionID);
 
-    taskId = `sync_${sessionID.slice(0, 8)}`
-    const startTime = new Date()
+    taskId = `sync_${sessionID.slice(0, 8)}`;
+    const startTime = new Date();
 
     if (toastManager) {
       toastManager.addTask({
@@ -99,17 +106,21 @@ export async function executeSyncTask(
         category: args.category,
         skills: args.load_skills,
         modelInfo,
-      })
+      });
     }
-    await publishSyncMetadata(sessionID, categoryModel, spawnContext.childDepth)
+    await publishSyncMetadata(
+      sessionID,
+      categoryModel,
+      spawnContext.childDepth,
+    );
 
     const setSyncSessionID = (currentSessionID: string): void => {
-      syncSessionID = currentSessionID
-    }
+      syncSessionID = currentSessionID;
+    };
 
     const cleanupRetrySession = (currentSessionID: string): void => {
-      cleanupSyncSessionSideEffects(currentSessionID, executorCtx)
-    }
+      cleanupSyncSessionSideEffects(currentSessionID, executorCtx);
+    };
 
     try {
       return await runSyncTaskLoop({
@@ -136,26 +147,26 @@ export async function executeSyncTask(
         publishSyncMetadata,
         cleanupRetrySession,
         setSyncSessionID,
-      })
+      });
     } finally {
       if (toastManager && taskId !== undefined) {
-        toastManager.removeTask(taskId)
+        toastManager.removeTask(taskId);
       }
     }
   } catch (error) {
-    spawnReservation?.rollback()
-    const errorToFormat = error instanceof Error ? error : String(error)
+    spawnReservation?.rollback();
+    const errorToFormat = error instanceof Error ? error : String(error);
     return formatDetailedError(errorToFormat, {
       operation: "Execute task",
       args,
       sessionID: syncSessionID,
       agent: agentToUse,
       category: args.category,
-    })
+    });
   } finally {
     if (syncSessionID) {
-      cleanupSyncSessionSideEffects(syncSessionID, executorCtx)
-      handedBackSyncSessions.add(syncSessionID)
+      cleanupSyncSessionSideEffects(syncSessionID, executorCtx);
+      handedBackSyncSessions.add(syncSessionID);
 
       // Prevent todo-continuation-enforcer from re-awakening a completed sync subagent.
       // When a sync subagent finishes, its session may still exist and have incomplete
@@ -166,9 +177,11 @@ export async function executeSyncTask(
       // session.idle), so handedBackSyncSessions is the signal the enforcer keys on;
       // the abort still cancels the child's opencode-side background jobs.
       if (typeof client.session.abort === "function") {
-        void client.session.abort({ path: { id: syncSessionID } }).catch((error: unknown) => {
-          log(`[task] Failed to abort completed sync session:`, error)
-        })
+        void client.session.abort({ path: { id: syncSessionID } }).catch(
+          (error: unknown) => {
+            log(`[task] Failed to abort completed sync session:`, error);
+          },
+        );
       }
     }
   }

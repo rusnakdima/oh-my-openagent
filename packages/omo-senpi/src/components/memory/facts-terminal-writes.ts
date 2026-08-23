@@ -18,37 +18,50 @@ import type {
   FactsFailureReason,
   FactsFailureTarget,
   FactsQueueEntry,
-} from "@oh-my-opencode/memory-core"
+} from "@oh-my-opencode/memory-core";
 
-import { ledgerTargets, type FactsFailurePort } from "./facts-failure-recording"
-import { cleanupTerminalFactsRun, type RemoveRunArtifact } from "./facts-run-cleanup"
-import { writeFactsFinal } from "./facts-run-storage"
-import type { FactsRunLedger } from "./facts-runner-types"
-import { writeRunJsonAtomic } from "./worker/run-artifacts"
-import { join } from "node:path"
+import {
+  type FactsFailurePort,
+  ledgerTargets,
+} from "./facts-failure-recording";
+import {
+  cleanupTerminalFactsRun,
+  type RemoveRunArtifact,
+} from "./facts-run-cleanup";
+import { writeFactsFinal } from "./facts-run-storage";
+import type { FactsRunLedger } from "./facts-runner-types";
+import { writeRunJsonAtomic } from "./worker/run-artifacts";
+import { join } from "node:path";
 
-export type FactsTerminalOutcome = "committed" | "no_facts" | "failed" | "parent_dirty"
+export type FactsTerminalOutcome =
+  | "committed"
+  | "no_facts"
+  | "failed"
+  | "parent_dirty";
 
 export interface FactsTerminalWritesOptions {
-  readonly failures: FactsFailurePort
-  readonly now: () => Date
-  readonly markConsumed: (entries: readonly FactsQueueEntry[]) => Promise<void>
+  readonly failures: FactsFailurePort;
+  readonly now: () => Date;
+  readonly markConsumed: (entries: readonly FactsQueueEntry[]) => Promise<void>;
   /** Sentinel write seam; tests crash inside the ordering window through it. */
-  readonly write?: (path: string, value: unknown) => Promise<void>
+  readonly write?: (path: string, value: unknown) => Promise<void>;
   /** Post-sentinel deletion seam for the run's disposable artifacts. */
-  readonly remove?: RemoveRunArtifact
-  readonly warn?: (message: string, fields: Readonly<Record<string, unknown>>) => void
+  readonly remove?: RemoveRunArtifact;
+  readonly warn?: (
+    message: string,
+    fields: Readonly<Record<string, unknown>>,
+  ) => void;
 }
 
 export interface FactsFailureWrite {
-  readonly runDir: string
-  readonly runId: string
+  readonly runDir: string;
+  readonly runId: string;
   /** Per-launch ledger id; the failure identity, because run names can be reused after pruning. */
-  readonly batchId: string
-  readonly targets: readonly FactsFailureTarget[]
-  readonly reason: FactsFailureReason
-  readonly detail: string
-  readonly outcome?: "failed" | "parent_dirty"
+  readonly batchId: string;
+  readonly targets: readonly FactsFailureTarget[];
+  readonly reason: FactsFailureReason;
+  readonly detail: string;
+  readonly outcome?: "failed" | "parent_dirty";
 }
 
 export class FactsTerminalWrites {
@@ -56,20 +69,34 @@ export class FactsTerminalWrites {
 
   /** Record first, sentinel second. A store failure aborts the sentinel deliberately. */
   async fail(write: FactsFailureWrite): Promise<void> {
-    await this.record(write.targets, write.batchId, write.reason, write.detail)
-    await this.final(write.runDir, write.runId, write.outcome ?? "failed", write.detail)
+    await this.record(write.targets, write.batchId, write.reason, write.detail);
+    await this.final(
+      write.runDir,
+      write.runId,
+      write.outcome ?? "failed",
+      write.detail,
+    );
   }
 
   /** Reconciliation could not prove the run dead; the endpoints still took a failure. */
-  async abandon(runDir: string, ledger: FactsRunLedger, reason: "unknown_liveness"): Promise<void> {
-    await this.record(ledgerTargets(ledger.queued), ledger.batchId, reason, "facts run liveness is unknown")
+  async abandon(
+    runDir: string,
+    ledger: FactsRunLedger,
+    reason: "unknown_liveness",
+  ): Promise<void> {
+    await this.record(
+      ledgerTargets(ledger.queued),
+      ledger.batchId,
+      reason,
+      "facts run liveness is unknown",
+    );
     await this.sentinel(join(runDir, "abandoned.json"), {
       version: 1,
       runId: ledger.runId,
       abandonedAt: this.options.now().toISOString(),
       reason,
-    })
-    await this.cleanup(runDir)
+    });
+    await this.cleanup(runDir);
   }
 
   /** Failures raised before a run dir exists key idempotency on a fresh preflight id. */
@@ -79,7 +106,7 @@ export class FactsTerminalWrites {
     reason: FactsFailureReason,
     detail: string,
   ): Promise<void> {
-    await this.record(targets, failureId, reason, detail)
+    await this.record(targets, failureId, reason, detail);
   }
 
   /** Terminal success: consume the batch, THEN drop its now-meaningless failure history. */
@@ -87,12 +114,15 @@ export class FactsTerminalWrites {
     runDir: string,
     runId: string,
     outcome: "committed" | "no_facts",
-    batch: { readonly entries: readonly FactsQueueEntry[]; readonly targets: readonly FactsFailureTarget[] },
+    batch: {
+      readonly entries: readonly FactsQueueEntry[];
+      readonly targets: readonly FactsFailureTarget[];
+    },
     sha?: string,
   ): Promise<void> {
-    await this.options.markConsumed(batch.entries)
-    await this.clear(batch.targets)
-    await this.final(runDir, runId, outcome, undefined, sha)
+    await this.options.markConsumed(batch.entries);
+    await this.clear(batch.targets);
+    await this.final(runDir, runId, outcome, undefined, sha);
   }
 
   private async record(
@@ -101,20 +131,25 @@ export class FactsTerminalWrites {
     reason: FactsFailureReason,
     detail: string,
   ): Promise<void> {
-    if (targets.length === 0) return
-    await this.options.failures.recordFailure({ targets, failureId, reason, detail })
+    if (targets.length === 0) return;
+    await this.options.failures.recordFailure({
+      targets,
+      failureId,
+      reason,
+      detail,
+    });
   }
 
   private async clear(targets: readonly FactsFailureTarget[]): Promise<void> {
-    if (targets.length === 0) return
+    if (targets.length === 0) return;
     try {
-      await this.options.failures.clearOnSuccess(targets)
+      await this.options.failures.clearOnSuccess(targets);
     } catch (error) {
       // A stale record only delays the next launch; it never corrupts memory. Refusing an
       // already-committed outcome over it would be strictly worse.
       this.options.warn?.("facts failure records survived a successful run", {
         error: error instanceof Error ? error.message : String(error),
-      })
+      });
     }
   }
 
@@ -132,22 +167,28 @@ export class FactsTerminalWrites {
       now: this.options.now,
       detail,
       sha,
-      ...(this.options.write === undefined ? {} : { write: this.options.write }),
-      ...(this.options.remove === undefined ? {} : { remove: this.options.remove }),
+      ...(this.options.write === undefined
+        ? {}
+        : { write: this.options.write }),
+      ...(this.options.remove === undefined
+        ? {}
+        : { remove: this.options.remove }),
       ...(this.options.warn === undefined ? {} : { warn: this.options.warn }),
-    })
+    });
   }
 
   private sentinel(path: string, value: unknown): Promise<void> {
-    return (this.options.write ?? writeRunJsonAtomic)(path, value)
+    return (this.options.write ?? writeRunJsonAtomic)(path, value);
   }
 
   /** Sentinel-second deletion: only reached once the run is durably terminal. */
   private cleanup(runDir: string): Promise<void> {
     return cleanupTerminalFactsRun({
       runDir,
-      ...(this.options.remove === undefined ? {} : { remove: this.options.remove }),
+      ...(this.options.remove === undefined
+        ? {}
+        : { remove: this.options.remove }),
       ...(this.options.warn === undefined ? {} : { warn: this.options.warn }),
-    })
+    });
   }
 }

@@ -1,7 +1,7 @@
 /// <reference types="bun-types" />
-import { mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 // Preloaded ahead of test-setup.ts on purpose.
 //
@@ -14,6 +14,6 @@ import { join } from "node:path"
 // This also makes `bun test --parallel` safe: each worker is a separate process, so a
 // per-process directory means workers no longer share one cache/storage tree and stop
 // deleting each other's fixtures in beforeEach/afterEach.
-const xdgRoot = mkdtempSync(join(tmpdir(), "omo-test-xdg-"))
-process.env.XDG_DATA_HOME = join(xdgRoot, "data")
-process.env.XDG_CACHE_HOME = join(xdgRoot, "cache")
+const xdgRoot = mkdtempSync(join(tmpdir(), "omo-test-xdg-"));
+process.env.XDG_DATA_HOME = join(xdgRoot, "data");
+process.env.XDG_CACHE_HOME = join(xdgRoot, "cache");

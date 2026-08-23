@@ -1,21 +1,21 @@
-const activeBtwTurnSessions = new Set<string>()
+const activeBtwTurnSessions = new Set<string>();
 
 export function markBtwTurnActive(sessionID: string): void {
   if (sessionID.length === 0) {
-    return
+    return;
   }
 
-  activeBtwTurnSessions.add(sessionID)
+  activeBtwTurnSessions.add(sessionID);
 }
 
 export function clearBtwTurnActive(sessionID: string): void {
-  activeBtwTurnSessions.delete(sessionID)
+  activeBtwTurnSessions.delete(sessionID);
 }
 
 export function isBtwTurnActive(sessionID: string): boolean {
-  return activeBtwTurnSessions.has(sessionID)
+  return activeBtwTurnSessions.has(sessionID);
 }
 
 export function _resetBtwTurnStateForTesting(): void {
-  activeBtwTurnSessions.clear()
+  activeBtwTurnSessions.clear();
 }

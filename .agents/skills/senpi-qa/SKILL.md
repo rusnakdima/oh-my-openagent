@@ -15,8 +15,8 @@ count as live QA here: `bun run test:senpi` is the package gate, the drivers in
 - **Evidence lives at exactly one path.** Every artifact goes under
   `.omo/evidence/omo-senpi-adapter/<slug>/`. Pick it with
   `scripts/resolve-evidence-dir.mjs` and nothing else — a hand-typed path is how
-  runs end up somewhere like `local-ignore/qa-evidence/`, which no reviewer reads
-  and the PR cannot cite.
+  runs end up somewhere like `local-ignore/qa-evidence/`, which no reviewer
+  reads and the PR cannot cite.
 - **The real agent dir stays untouched.** The live drivers build their own
   isolated `SENPI_CODING_AGENT_DIR` and deliberately IGNORE a caller-provided
   one, so `~/.senpi/agent` is never used as the sandbox. Report the driver's
@@ -44,16 +44,16 @@ and a message naming the offending slug.
 
 ## Router: pick your case
 
-| You changed… | Run | Proves |
-|---|---|---|
-| Any adapter code, as the fast precondition | `node packages/omo-senpi/scripts/qa/drive.mjs --self-test` | the driver + isolation harness itself works |
-| Adapter wiring reaching a live session | `node packages/omo-senpi/scripts/qa/drive.mjs` | a real senpi run with the plugin loaded, isolated agent dir, and no attributed real-home changes |
-| Task lifecycle (single + batch) | `SENPI_BIN="$(command -v senpi)" node packages/omo-senpi/scripts/qa/task-e2e.mjs` | live task start/stream/terminal states |
-| Team delivery, shutdown, reclaim, restart recovery | `SENPI_BIN="$(command -v senpi)" node packages/omo-senpi/scripts/qa/team-e2e.mjs` | injection delivery and exactly-once recovery |
-| Task RPC driver scripts | `node packages/omo-senpi/scripts/qa/task-rpc-e2e.mjs --self-test` | the RPC surface contract |
-| Skill delivery into a task | `SENPI_BIN="$(command -v senpi)" node packages/omo-senpi/scripts/qa/task-load-skills-e2e.mjs` | skills reach the child |
-| Continuation behavior | `node packages/omo-senpi/scripts/qa/probe-continuation.mjs` | turns continue as expected |
-| DAG state machine / runners | `bun test packages/senpi-task` | unit + chaos invariants (NOT live proof) |
+| You changed…                                       | Run                                                                                           | Proves                                                                                           |
+| -------------------------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Any adapter code, as the fast precondition         | `node packages/omo-senpi/scripts/qa/drive.mjs --self-test`                                    | the driver + isolation harness itself works                                                      |
+| Adapter wiring reaching a live session             | `node packages/omo-senpi/scripts/qa/drive.mjs`                                                | a real senpi run with the plugin loaded, isolated agent dir, and no attributed real-home changes |
+| Task lifecycle (single + batch)                    | `SENPI_BIN="$(command -v senpi)" node packages/omo-senpi/scripts/qa/task-e2e.mjs`             | live task start/stream/terminal states                                                           |
+| Team delivery, shutdown, reclaim, restart recovery | `SENPI_BIN="$(command -v senpi)" node packages/omo-senpi/scripts/qa/team-e2e.mjs`             | injection delivery and exactly-once recovery                                                     |
+| Task RPC driver scripts                            | `node packages/omo-senpi/scripts/qa/task-rpc-e2e.mjs --self-test`                             | the RPC surface contract                                                                         |
+| Skill delivery into a task                         | `SENPI_BIN="$(command -v senpi)" node packages/omo-senpi/scripts/qa/task-load-skills-e2e.mjs` | skills reach the child                                                                           |
+| Continuation behavior                              | `node packages/omo-senpi/scripts/qa/probe-continuation.mjs`                                   | turns continue as expected                                                                       |
+| DAG state machine / runners                        | `bun test packages/senpi-task`                                                                | unit + chaos invariants (NOT live proof)                                                         |
 
 Point a driver's output at the resolved directory, e.g.:
 
@@ -73,8 +73,8 @@ bun run test:senpi
 
 Every run leaves `$ev/README.md` a reviewer can read without rerunning anything.
 The required sections are the repo-wide evidence rules in the root
-[`AGENTS.md`](../../../AGENTS.md) (what was tested / observed / why it is enough /
-what was omitted). For Senpi, record the driver's changed-path/isolation fields
-and sandbox agent-dir path. Some drivers report sandbox paths without removing
-them; the caller must delete every task-owned sandbox and verify child PIDs are
-terminal before writing the cleanup receipt.
+[`AGENTS.md`](../../../AGENTS.md) (what was tested / observed / why it is enough
+/ what was omitted). For Senpi, record the driver's changed-path/isolation
+fields and sandbox agent-dir path. Some drivers report sandbox paths without
+removing them; the caller must delete every task-owned sandbox and verify child
+PIDs are terminal before writing the cleanup receipt.

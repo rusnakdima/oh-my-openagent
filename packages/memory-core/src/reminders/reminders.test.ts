@@ -1,11 +1,11 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
   createRemindersState,
   generateReminders,
-  reminderKindFor,
-  type RepoStatusSnapshot,
-  type RemindersState,
   type Reminder,
+  reminderKindFor,
+  type RemindersState,
+  type RepoStatusSnapshot,
 } from "./reminders";
 
 describe("reminders", () => {

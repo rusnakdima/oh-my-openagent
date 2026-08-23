@@ -1,27 +1,29 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { resolveCategory } from "./index"
+import { resolveCategory } from "./index";
 
 type FakeModel = {
-  readonly provider: string
-  readonly id: string
-}
+  readonly provider: string;
+  readonly id: string;
+};
 
 type FakeRegistry = {
-  readonly getAvailable: () => readonly FakeModel[]
-  readonly find: (provider: string, modelId: string) => FakeModel | undefined
-}
+  readonly getAvailable: () => readonly FakeModel[];
+  readonly find: (provider: string, modelId: string) => FakeModel | undefined;
+};
 
 function model(provider: string, id: string): FakeModel {
-  return { provider, id }
+  return { provider, id };
 }
 
 function registry(models: readonly FakeModel[]): FakeRegistry {
   return {
     getAvailable: () => models,
     find: (provider, modelId) =>
-      models.find((candidate) => candidate.provider === provider && candidate.id === modelId),
-  }
+      models.find((candidate) =>
+        candidate.provider === provider && candidate.id === modelId
+      ),
+  };
 }
 
 function throwingProviderAccessorModel(message: string): object {
@@ -29,21 +31,23 @@ function throwingProviderAccessorModel(message: string): object {
     provider: {
       enumerable: true,
       get() {
-        throw new Error(message)
+        throw new Error(message);
       },
     },
     id: {
       enumerable: true,
       value: "kimi-for-coding-highspeed",
     },
-  })
+  });
 }
 
-function expectResolved(result: ReturnType<typeof resolveCategory<FakeModel>>): Extract<typeof result, { readonly kind: "resolved" }> {
+function expectResolved(
+  result: ReturnType<typeof resolveCategory<FakeModel>>,
+): Extract<typeof result, { readonly kind: "resolved" }> {
   if (result.kind !== "resolved") {
-    throw new Error(`Expected resolved category, got ${result.kind}`)
+    throw new Error(`Expected resolved category, got ${result.kind}`);
   }
-  return result
+  return result;
 }
 
 describe("resolveCategory boundary parsing", () => {
@@ -53,158 +57,210 @@ describe("resolveCategory boundary parsing", () => {
       provider: "kimi-coding",
       id: "kimi-for-coding-highspeed",
       headers: { "User-Agent": "test" },
-    }
+    };
 
     // when
-    const result = resolveCategory("quick", {}, registry([headerModel]))
+    const result = resolveCategory("quick", {}, registry([headerModel]));
 
     // then
-    const resolved = expectResolved(result)
-    expect(resolved.spec.provider).toBe("kimi-coding")
-    expect(resolved.spec.modelId).toBe("kimi-for-coding-highspeed")
-    expect(resolved.spec.model).toBe(headerModel)
-  })
+    const resolved = expectResolved(result);
+    expect(resolved.spec.provider).toBe("kimi-coding");
+    expect(resolved.spec.modelId).toBe("kimi-for-coding-highspeed");
+    expect(resolved.spec.model).toBe(headerModel);
+  });
 
   test("#given a malformed registry entry #when resolved #then category resolution returns sanitized model_unavailable instead of throwing", () => {
     // given
     const malformedRegistry = {
       getAvailable: () => [null],
       find: () => undefined,
-    }
+    };
 
     // when
-    const result = resolveCategory("quick", {}, malformedRegistry)
+    const result = resolveCategory("quick", {}, malformedRegistry);
 
     // then
-    expect(result.kind).toBe("model_unavailable")
-    if (result.kind !== "model_unavailable") throw new Error("Expected unavailable result")
-    expect(result.category).toBe("quick")
-    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-    expect(result.availableModels).toEqual([])
-  })
+    expect(result.kind).toBe("model_unavailable");
+    if (result.kind !== "model_unavailable") {
+      throw new Error("Expected unavailable result");
+    }
+    expect(result.category).toBe("quick");
+    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed");
+    expect(result.availableModels).toEqual([]);
+  });
 
   test("#given getAvailable returns a throwing-accessor model #when resolved #then category resolution returns sanitized model_unavailable", () => {
     // given
-    const throwingModel = throwingProviderAccessorModel("hidden available accessor marker")
-    const resolver = () => resolveCategory("quick", {}, {
-      getAvailable: () => [throwingModel],
-      find: () => undefined,
-    })
+    const throwingModel = throwingProviderAccessorModel(
+      "hidden available accessor marker",
+    );
+    const resolver = () =>
+      resolveCategory("quick", {}, {
+        getAvailable: () => [throwingModel],
+        find: () => undefined,
+      });
 
     // when
-    expect(resolver).not.toThrow()
-    const result = resolver()
+    expect(resolver).not.toThrow();
+    const result = resolver();
 
     // then
-    expect(result.kind).toBe("model_unavailable")
-    if (result.kind !== "model_unavailable") throw new Error(`Expected unavailable result, got ${result.kind}`)
-    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-    expect(result.availableModels).toEqual([])
-    expect(JSON.stringify(result)).not.toContain("hidden available accessor marker")
-  })
+    expect(result.kind).toBe("model_unavailable");
+    if (result.kind !== "model_unavailable") {
+      throw new Error(`Expected unavailable result, got ${result.kind}`);
+    }
+    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed");
+    expect(result.availableModels).toEqual([]);
+    expect(JSON.stringify(result)).not.toContain(
+      "hidden available accessor marker",
+    );
+  });
 
   test("#given malformed truthy find results #when resolved #then category resolution returns sanitized model_unavailable", () => {
     // given
     const malformedFindResults = [
       {},
       { provider: { secret: "hidden" }, id: ["kimi-for-coding-highspeed"] },
-      { provider: "kimi-coding", id: "kimi-for-coding-highspeed", password: "hidden" },
-      { provider: "kimi-coding", id: "kimi-for-coding-highspeed", accessToken: "hidden" },
-      { provider: "kimi-coding", id: "kimi-for-coding-highspeed", privateToken: "hidden" },
-    ]
-    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed")
+      {
+        provider: "kimi-coding",
+        id: "kimi-for-coding-highspeed",
+        password: "hidden",
+      },
+      {
+        provider: "kimi-coding",
+        id: "kimi-for-coding-highspeed",
+        accessToken: "hidden",
+      },
+      {
+        provider: "kimi-coding",
+        id: "kimi-for-coding-highspeed",
+        privateToken: "hidden",
+      },
+    ];
+    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed");
 
     // when
-    const results = malformedFindResults.map((findResult) => resolveCategory("quick", {}, {
-      getAvailable: () => [availableModel],
-      find: () => findResult,
-    }))
+    const results = malformedFindResults.map((findResult) =>
+      resolveCategory("quick", {}, {
+        getAvailable: () => [availableModel],
+        find: () => findResult,
+      })
+    );
 
     // then
     for (const result of results) {
-      expect(result.kind).toBe("model_unavailable")
-      if (result.kind !== "model_unavailable") throw new Error(`Expected unavailable result, got ${result.kind}`)
-      expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-      expect(result.availableModels).toEqual(["kimi-coding/kimi-for-coding-highspeed"])
-      expect(JSON.stringify(result)).not.toContain("hidden")
+      expect(result.kind).toBe("model_unavailable");
+      if (result.kind !== "model_unavailable") {
+        throw new Error(`Expected unavailable result, got ${result.kind}`);
+      }
+      expect(result.attemptedModel).toBe(
+        "kimi-coding/kimi-for-coding-highspeed",
+      );
+      expect(result.availableModels).toEqual([
+        "kimi-coding/kimi-for-coding-highspeed",
+      ]);
+      expect(JSON.stringify(result)).not.toContain("hidden");
     }
-  })
+  });
 
   test("#given find returns a throwing-accessor model #when resolved #then category resolution returns sanitized model_unavailable", () => {
     // given
-    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed")
-    const throwingModel = throwingProviderAccessorModel("hidden find accessor marker")
-    const resolver = () => resolveCategory("quick", {}, {
-      getAvailable: () => [availableModel],
-      find: () => throwingModel,
-    })
+    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed");
+    const throwingModel = throwingProviderAccessorModel(
+      "hidden find accessor marker",
+    );
+    const resolver = () =>
+      resolveCategory("quick", {}, {
+        getAvailable: () => [availableModel],
+        find: () => throwingModel,
+      });
 
     // when
-    expect(resolver).not.toThrow()
-    const result = resolver()
+    expect(resolver).not.toThrow();
+    const result = resolver();
 
     // then
-    expect(result.kind).toBe("model_unavailable")
-    if (result.kind !== "model_unavailable") throw new Error(`Expected unavailable result, got ${result.kind}`)
-    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-    expect(result.availableModels).toEqual(["kimi-coding/kimi-for-coding-highspeed"])
-    expect(JSON.stringify(result)).not.toContain("hidden find accessor marker")
-  })
+    expect(result.kind).toBe("model_unavailable");
+    if (result.kind !== "model_unavailable") {
+      throw new Error(`Expected unavailable result, got ${result.kind}`);
+    }
+    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed");
+    expect(result.availableModels).toEqual([
+      "kimi-coding/kimi-for-coding-highspeed",
+    ]);
+    expect(JSON.stringify(result)).not.toContain("hidden find accessor marker");
+  });
 
   test("#given find returns an empty or mismatched identity #when resolved #then category resolution rejects the registry result", () => {
     // given
-    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed")
+    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed");
     const malformedFindResults = [
       { provider: "", id: "" },
       { provider: "evil", id: "other" },
       { provider: "kimi-coding", id: "" },
-    ] satisfies readonly FakeModel[]
+    ] satisfies readonly FakeModel[];
 
     // when
-    const results = malformedFindResults.map((findResult) => resolveCategory("quick", {}, {
-      getAvailable: () => [availableModel],
-      find: () => findResult,
-    }))
+    const results = malformedFindResults.map((findResult) =>
+      resolveCategory("quick", {}, {
+        getAvailable: () => [availableModel],
+        find: () => findResult,
+      })
+    );
 
     // then
     for (const result of results) {
       if (result.kind === "resolved") {
-        expect(result.modelSelection.selectedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-        expect(result.spec.provider).not.toBe("evil")
-        expect(result.spec.modelId).not.toBe("")
-        throw new Error(`Expected unavailable result, got resolved ${result.spec.provider}/${result.spec.modelId}`)
+        expect(result.modelSelection.selectedModel).toBe(
+          "kimi-coding/kimi-for-coding-highspeed",
+        );
+        expect(result.spec.provider).not.toBe("evil");
+        expect(result.spec.modelId).not.toBe("");
+        throw new Error(
+          `Expected unavailable result, got resolved ${result.spec.provider}/${result.spec.modelId}`,
+        );
       }
-      expect(result.kind).toBe("model_unavailable")
-      if (result.kind !== "model_unavailable") throw new Error(`Expected unavailable result, got ${result.kind}`)
-      expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-      expect(result.availableModels).toEqual(["kimi-coding/kimi-for-coding-highspeed"])
-      expect(JSON.stringify(result)).not.toContain("evil")
-      expect(JSON.stringify(result)).not.toContain("other")
+      expect(result.kind).toBe("model_unavailable");
+      if (result.kind !== "model_unavailable") {
+        throw new Error(`Expected unavailable result, got ${result.kind}`);
+      }
+      expect(result.attemptedModel).toBe(
+        "kimi-coding/kimi-for-coding-highspeed",
+      );
+      expect(result.availableModels).toEqual([
+        "kimi-coding/kimi-for-coding-highspeed",
+      ]);
+      expect(JSON.stringify(result)).not.toContain("evil");
+      expect(JSON.stringify(result)).not.toContain("other");
     }
-  })
+  });
 
   test("#given inherited model identity fields #when resolved #then category resolution rejects them without leaking prototype data", () => {
     // given
-    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed")
+    const availableModel = model("kimi-coding", "kimi-for-coding-highspeed");
     const inheritedIdentityModel: object = Object.create({
       provider: "kimi-coding",
       id: "kimi-for-coding-highspeed",
       privateToken: "hidden",
-    })
+    });
 
     // when
     const result = resolveCategory("quick", {}, {
       getAvailable: () => [availableModel],
       find: () => inheritedIdentityModel,
-    })
+    });
 
     // then
-    expect(result.kind).toBe("model_unavailable")
-    if (result.kind !== "model_unavailable") throw new Error(`Expected unavailable result, got ${result.kind}`)
-    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-    expect(result.availableModels).toEqual(["kimi-coding/kimi-for-coding-highspeed"])
-    expect(JSON.stringify(result)).not.toContain("hidden")
-  })
+    expect(result.kind).toBe("model_unavailable");
+    if (result.kind !== "model_unavailable") {
+      throw new Error(`Expected unavailable result, got ${result.kind}`);
+    }
+    expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed");
+    expect(result.availableModels).toEqual([
+      "kimi-coding/kimi-for-coding-highspeed",
+    ]);
+    expect(JSON.stringify(result)).not.toContain("hidden");
+  });
 
   test("#given non-array registry availability #when resolved #then category resolution returns sanitized model_unavailable instead of throwing", () => {
     // given
@@ -212,37 +268,51 @@ describe("resolveCategory boundary parsing", () => {
       null,
       { 0: model("kimi-coding", "kimi-for-coding-highspeed"), length: 1 },
       "kimi-coding/kimi-for-coding-highspeed",
-    ]
+    ];
 
     // when
-    const results = malformedAvailableResults.map((availableResult) => resolveCategory("quick", {}, {
-      getAvailable: () => availableResult,
-      find: () => model("kimi-coding", "kimi-for-coding-highspeed"),
-    }))
+    const results = malformedAvailableResults.map((availableResult) =>
+      resolveCategory("quick", {}, {
+        getAvailable: () => availableResult,
+        find: () => model("kimi-coding", "kimi-for-coding-highspeed"),
+      })
+    );
 
     // then
     for (const result of results) {
-      expect(result.kind).toBe("model_unavailable")
-      if (result.kind !== "model_unavailable") throw new Error(`Expected unavailable result, got ${result.kind}`)
-      expect(result.attemptedModel).toBe("kimi-coding/kimi-for-coding-highspeed")
-      expect(result.availableModels).toEqual([])
+      expect(result.kind).toBe("model_unavailable");
+      if (result.kind !== "model_unavailable") {
+        throw new Error(`Expected unavailable result, got ${result.kind}`);
+      }
+      expect(result.attemptedModel).toBe(
+        "kimi-coding/kimi-for-coding-highspeed",
+      );
+      expect(result.availableModels).toEqual([]);
     }
-  })
+  });
 
   test("#given prototype-shaped category names #when resolved #then they return not_found instead of inherited object values", () => {
     // given
-    const models = registry([model("kimi-coding", "kimi-for-coding-highspeed")])
+    const models = registry([
+      model("kimi-coding", "kimi-for-coding-highspeed"),
+    ]);
 
     // when
-    const results = ["__proto__", "toString", "hasOwnProperty"].map((category) =>
-      resolveCategory(category, {}, models)
-    )
+    const results = ["__proto__", "toString", "hasOwnProperty"].map((
+      category,
+    ) => resolveCategory(category, {}, models));
 
     // then
-    expect(results.map((result) => result.kind)).toEqual(["not_found", "not_found", "not_found"])
+    expect(results.map((result) => result.kind)).toEqual([
+      "not_found",
+      "not_found",
+      "not_found",
+    ]);
     for (const result of results) {
-      if (result.kind !== "not_found") throw new Error(`Expected not_found result, got ${result.kind}`)
-      expect(result.availableCategories).toContain("quick")
+      if (result.kind !== "not_found") {
+        throw new Error(`Expected not_found result, got ${result.kind}`);
+      }
+      expect(result.availableCategories).toContain("quick");
     }
-  })
-})
+  });
+});

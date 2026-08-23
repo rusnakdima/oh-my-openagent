@@ -1,29 +1,37 @@
-import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test"
-import type { MigrationResult } from "./auto-migrate-runner"
-import { createLegacyPluginToastHook } from "./hook"
+import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
+import type { MigrationResult } from "./auto-migrate-runner";
+import { createLegacyPluginToastHook } from "./hook";
 
 const mockCheckForLegacyPluginEntry = mock(() => ({
   hasLegacyEntry: false,
   hasCanonicalEntry: false,
   legacyEntries: [] as string[],
-}))
+}));
 
 const mockAutoMigrate = mock((): MigrationResult => ({
   migrated: false,
   from: null,
   to: null,
   configPath: null,
-}))
+}));
 
 const mockShowToast = mock(
-  (_arg: { body: { title: string; message: string; variant: string; duration: number } }) =>
-    Promise.resolve(),
-)
-const mockLog = mock(() => {})
+  (
+    _arg: {
+      body: {
+        title: string;
+        message: string;
+        variant: string;
+        duration: number;
+      };
+    },
+  ) => Promise.resolve(),
+);
+const mockLog = mock(() => {});
 
 afterAll(() => {
-  mock.restore()
-})
+  mock.restore();
+});
 
 function createMockCtx() {
   return {
@@ -31,7 +39,7 @@ function createMockCtx() {
       tui: { showToast: mockShowToast },
     },
     directory: "/tmp/test",
-  } as never
+  } as never;
 }
 
 function createEvent(type: string, parentID?: string) {
@@ -40,24 +48,29 @@ function createEvent(type: string, parentID?: string) {
       type,
       properties: parentID ? { info: { parentID } } : { info: {} },
     },
-  }
+  };
 }
 
 describe("createLegacyPluginToastHook", () => {
   beforeEach(() => {
-    mockCheckForLegacyPluginEntry.mockReset()
-    mockAutoMigrate.mockReset()
-    mockShowToast.mockReset()
-    mockLog.mockReset()
+    mockCheckForLegacyPluginEntry.mockReset();
+    mockAutoMigrate.mockReset();
+    mockShowToast.mockReset();
+    mockLog.mockReset();
 
     mockCheckForLegacyPluginEntry.mockReturnValue({
       hasLegacyEntry: false,
       hasCanonicalEntry: true,
       legacyEntries: [],
-    })
-    mockAutoMigrate.mockReturnValue({ migrated: false, from: null, to: null, configPath: null })
-    mockShowToast.mockResolvedValue(undefined)
-  })
+    });
+    mockAutoMigrate.mockReturnValue({
+      migrated: false,
+      from: null,
+      to: null,
+      configPath: null,
+    });
+    mockShowToast.mockResolvedValue(undefined);
+  });
 
   describe("#given no legacy entry exists", () => {
     it("#then does not show a toast", async () => {
@@ -66,15 +79,15 @@ describe("createLegacyPluginToastHook", () => {
         checkForLegacyPluginEntry: mockCheckForLegacyPluginEntry,
         log: mockLog,
         autoMigrateLegacyPluginEntry: mockAutoMigrate,
-      })
+      });
 
       // when
-      await hook.event(createEvent("session.created"))
+      await hook.event(createEvent("session.created"));
 
       // then
-      expect(mockShowToast).not.toHaveBeenCalled()
-    })
-  })
+      expect(mockShowToast).not.toHaveBeenCalled();
+    });
+  });
 
   describe("#given legacy entry exists and migration succeeds", () => {
     it("#then shows success toast", async () => {
@@ -83,28 +96,30 @@ describe("createLegacyPluginToastHook", () => {
         hasLegacyEntry: true,
         hasCanonicalEntry: false,
         legacyEntries: ["oh-my-opencode"],
-      })
+      });
       mockAutoMigrate.mockReturnValue({
         migrated: true,
         from: "oh-my-opencode",
         to: "oh-my-openagent",
         configPath: "/tmp/opencode.json",
-      })
+      });
       const hook = createLegacyPluginToastHook(createMockCtx(), {
         checkForLegacyPluginEntry: mockCheckForLegacyPluginEntry,
         log: mockLog,
         autoMigrateLegacyPluginEntry: mockAutoMigrate,
-      })
+      });
 
       // when
-      await hook.event(createEvent("session.created"))
+      await hook.event(createEvent("session.created"));
 
       // then
-      expect(mockShowToast).toHaveBeenCalledTimes(1)
-      const toastArg = mockShowToast.mock.calls[0][0] as { body: { variant: string } }
-      expect(toastArg.body.variant).toBe("success")
-    })
-  })
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+      const toastArg = mockShowToast.mock.calls[0][0] as {
+        body: { variant: string };
+      };
+      expect(toastArg.body.variant).toBe("success");
+    });
+  });
 
   describe("#given legacy entry exists but migration fails", () => {
     it("#then shows warning toast", async () => {
@@ -113,28 +128,30 @@ describe("createLegacyPluginToastHook", () => {
         hasLegacyEntry: true,
         hasCanonicalEntry: false,
         legacyEntries: ["oh-my-opencode"],
-      })
+      });
       mockAutoMigrate.mockReturnValue({
         migrated: false,
         from: null,
         to: null,
         configPath: "/tmp/opencode.json",
-      })
+      });
       const hook = createLegacyPluginToastHook(createMockCtx(), {
         checkForLegacyPluginEntry: mockCheckForLegacyPluginEntry,
         log: mockLog,
         autoMigrateLegacyPluginEntry: mockAutoMigrate,
-      })
+      });
 
       // when
-      await hook.event(createEvent("session.created"))
+      await hook.event(createEvent("session.created"));
 
       // then
-      expect(mockShowToast).toHaveBeenCalledTimes(1)
-      const toastArg2 = mockShowToast.mock.calls[0][0] as { body: { variant: string } }
-      expect(toastArg2.body.variant).toBe("warning")
-    })
-  })
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+      const toastArg2 = mockShowToast.mock.calls[0][0] as {
+        body: { variant: string };
+      };
+      expect(toastArg2.body.variant).toBe("warning");
+    });
+  });
 
   describe("#given session.created fires twice", () => {
     it("#then only fires once (once-guard)", async () => {
@@ -143,27 +160,27 @@ describe("createLegacyPluginToastHook", () => {
         hasLegacyEntry: true,
         hasCanonicalEntry: false,
         legacyEntries: ["oh-my-opencode"],
-      })
+      });
       mockAutoMigrate.mockReturnValue({
         migrated: true,
         from: "oh-my-opencode",
         to: "oh-my-openagent",
         configPath: "/tmp/opencode.json",
-      })
+      });
       const hook = createLegacyPluginToastHook(createMockCtx(), {
         checkForLegacyPluginEntry: mockCheckForLegacyPluginEntry,
         log: mockLog,
         autoMigrateLegacyPluginEntry: mockAutoMigrate,
-      })
+      });
 
       // when
-      await hook.event(createEvent("session.created"))
-      await hook.event(createEvent("session.created"))
+      await hook.event(createEvent("session.created"));
+      await hook.event(createEvent("session.created"));
 
       // then
-      expect(mockShowToast).toHaveBeenCalledTimes(1)
-    })
-  })
+      expect(mockShowToast).toHaveBeenCalledTimes(1);
+    });
+  });
 
   describe("#given a non-session.created event fires", () => {
     it("#then does nothing", async () => {
@@ -172,20 +189,20 @@ describe("createLegacyPluginToastHook", () => {
         hasLegacyEntry: true,
         hasCanonicalEntry: false,
         legacyEntries: ["oh-my-opencode"],
-      })
+      });
       const hook = createLegacyPluginToastHook(createMockCtx(), {
         checkForLegacyPluginEntry: mockCheckForLegacyPluginEntry,
         log: mockLog,
         autoMigrateLegacyPluginEntry: mockAutoMigrate,
-      })
+      });
 
       // when
-      await hook.event(createEvent("session.deleted"))
+      await hook.event(createEvent("session.deleted"));
 
       // then
-      expect(mockCheckForLegacyPluginEntry).not.toHaveBeenCalled()
-    })
-  })
+      expect(mockCheckForLegacyPluginEntry).not.toHaveBeenCalled();
+    });
+  });
 
   describe("#given session.created from a subagent (has parentID)", () => {
     it("#then skips the check", async () => {
@@ -194,18 +211,18 @@ describe("createLegacyPluginToastHook", () => {
         hasLegacyEntry: true,
         hasCanonicalEntry: false,
         legacyEntries: ["oh-my-opencode"],
-      })
+      });
       const hook = createLegacyPluginToastHook(createMockCtx(), {
         checkForLegacyPluginEntry: mockCheckForLegacyPluginEntry,
         log: mockLog,
         autoMigrateLegacyPluginEntry: mockAutoMigrate,
-      })
+      });
 
       // when
-      await hook.event(createEvent("session.created", "parent-session-id"))
+      await hook.event(createEvent("session.created", "parent-session-id"));
 
       // then
-      expect(mockCheckForLegacyPluginEntry).not.toHaveBeenCalled()
-    })
-  })
-})
+      expect(mockCheckForLegacyPluginEntry).not.toHaveBeenCalled();
+    });
+  });
+});

@@ -1,8 +1,11 @@
-import { createTaskId } from "./id"
-import type { TaskRecord, TaskRecordInput } from "./types"
+import { createTaskId } from "./id";
+import type { TaskRecord, TaskRecordInput } from "./types";
 
-export function createTaskRecord(input: TaskRecordInput, nowMs?: number): TaskRecord {
-  const timestamp = new Date().toISOString()
+export function createTaskRecord(
+  input: TaskRecordInput,
+  nowMs?: number,
+): TaskRecord {
+  const timestamp = new Date().toISOString();
   const {
     agent_type,
     category,
@@ -26,7 +29,7 @@ export function createTaskRecord(input: TaskRecordInput, nowMs?: number): TaskRe
     task_seq,
     config_generation,
     background_mode,
-  } = input
+  } = input;
   return {
     task_id: nowMs === undefined ? createTaskId() : createTaskId(nowMs),
     status: "pending",
@@ -55,9 +58,11 @@ export function createTaskRecord(input: TaskRecordInput, nowMs?: number): TaskRe
     ...(tool_allow === undefined ? {} : { tool_allow }),
     ...(tool_deny === undefined ? {} : { tool_deny }),
     ...(owner === undefined ? {} : { owner }),
-    ...(pending_steering === undefined || pending_steering.length === 0 ? {} : { pending_steering }),
+    ...(pending_steering === undefined || pending_steering.length === 0
+      ? {}
+      : { pending_steering }),
     ...(task_seq === undefined ? {} : { task_seq }),
     ...(config_generation === undefined ? {} : { config_generation }),
     ...(background_mode === undefined ? {} : { background_mode }),
-  }
+  };
 }

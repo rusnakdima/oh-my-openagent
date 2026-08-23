@@ -1,26 +1,33 @@
-import { mkdir, mkdtemp, readdir, readFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import path from "node:path"
+import { mkdir, mkdtemp, readdir, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 
-import { TeamModeConfigSchema } from "../../../config/schema/team-mode"
-import type { TeamModeConfig } from "../../../config/schema/team-mode"
-import { sendMessage } from "../team-mailbox/send"
-import { getInboxDir, getRuntimeStateDir, resolveBaseDir } from "../team-registry/paths"
-import { saveRuntimeState, transitionRuntimeState } from "../team-state-store/store"
-import { MessageSchema, type RuntimeState, type TeamSpec } from "../types"
+import { TeamModeConfigSchema } from "../../../config/schema/team-mode";
+import type { TeamModeConfig } from "../../../config/schema/team-mode";
+import { sendMessage } from "../team-mailbox/send";
+import {
+  getInboxDir,
+  getRuntimeStateDir,
+  resolveBaseDir,
+} from "../team-registry/paths";
+import {
+  saveRuntimeState,
+  transitionRuntimeState,
+} from "../team-state-store/store";
+import { MessageSchema, type RuntimeState, type TeamSpec } from "../types";
 
-let fixtureCounter = 0
+let fixtureCounter = 0;
 
 function createUuid(sequence: number): string {
-  return `123e4567-e89b-42d3-a456-${sequence.toString(16).padStart(12, "0")}`
+  return `123e4567-e89b-42d3-a456-${sequence.toString(16).padStart(12, "0")}`;
 }
 
 export function createConfig(baseDir: string): TeamModeConfig {
-  return TeamModeConfigSchema.parse({ base_dir: baseDir })
+  return TeamModeConfigSchema.parse({ base_dir: baseDir });
 }
 
 export function createSpec(worktreeRoot: string): TeamSpec {
-  fixtureCounter += 1
+  fixtureCounter += 1;
 
   return {
     version: 1,
@@ -28,7 +35,13 @@ export function createSpec(worktreeRoot: string): TeamSpec {
     createdAt: Date.now(),
     leadAgentId: "lead",
     members: [
-      { kind: "subagent_type", name: "lead", subagent_type: "sisyphus", backendType: "in-process", isActive: true },
+      {
+        kind: "subagent_type",
+        name: "lead",
+        subagent_type: "sisyphus",
+        backendType: "in-process",
+        isActive: true,
+      },
       {
         kind: "category",
         name: "member-a",
@@ -48,20 +61,24 @@ export function createSpec(worktreeRoot: string): TeamSpec {
         worktreePath: path.join(worktreeRoot, "member-b"),
       },
     ],
-  }
+  };
 }
 
-export async function createFixture(options?: { status?: RuntimeState["status"] }): Promise<{
-  baseDir: string
-  config: TeamModeConfig
-  teamRunId: string
-  worktreePaths: string[]
+export async function createFixture(
+  options?: { status?: RuntimeState["status"] },
+): Promise<{
+  baseDir: string;
+  config: TeamModeConfig;
+  teamRunId: string;
+  worktreePaths: string[];
 }> {
-  fixtureCounter += 1
-  const baseDir = await mkdtemp(path.join(tmpdir(), `team-runtime-shutdown-${fixtureCounter}-`))
-  const config = createConfig(baseDir)
-  const worktreeRoot = path.join(baseDir, "fixture-worktrees")
-  const teamRunId = createUuid(fixtureCounter)
+  fixtureCounter += 1;
+  const baseDir = await mkdtemp(
+    path.join(tmpdir(), `team-runtime-shutdown-${fixtureCounter}-`),
+  );
+  const config = createConfig(baseDir);
+  const worktreeRoot = path.join(baseDir, "fixture-worktrees");
+  const teamRunId = createUuid(fixtureCounter);
   const runtimeState: RuntimeState = {
     version: 1,
     teamRunId,
@@ -71,7 +88,12 @@ export async function createFixture(options?: { status?: RuntimeState["status"] 
     status: options?.status ?? "active",
     leadSessionId: "lead-session",
     members: [
-      { name: "lead", agentType: "leader", status: "pending", pendingInjectedMessageIds: [] },
+      {
+        name: "lead",
+        agentType: "leader",
+        status: "pending",
+        pendingInjectedMessageIds: [],
+      },
       {
         name: "member-a",
         agentType: "general-purpose",
@@ -95,16 +117,21 @@ export async function createFixture(options?: { status?: RuntimeState["status"] 
       maxWallClockMinutes: config.max_wall_clock_minutes,
       maxMemberTurns: config.max_member_turns,
     },
-  }
-  await mkdir(getRuntimeStateDir(resolveBaseDir(config), teamRunId), { recursive: true })
-  await saveRuntimeState(runtimeState, config)
+  };
+  await mkdir(getRuntimeStateDir(resolveBaseDir(config), teamRunId), {
+    recursive: true,
+  });
+  await saveRuntimeState(runtimeState, config);
 
   return {
     baseDir,
     config,
     teamRunId: runtimeState.teamRunId,
-    worktreePaths: [path.join(worktreeRoot, "member-a"), path.join(worktreeRoot, "member-b")],
-  }
+    worktreePaths: [
+      path.join(worktreeRoot, "member-a"),
+      path.join(worktreeRoot, "member-b"),
+    ],
+  };
 }
 
 export async function updateMemberStatuses(
@@ -118,20 +145,28 @@ export async function updateMemberStatuses(
       ...member,
       status: statuses[member.name] ?? member.status,
     })),
-  }), config)
+  }), config);
 }
 
-export async function readInboxMessages(teamRunId: string, memberName: string, config: TeamModeConfig) {
-  const inboxDir = getInboxDir(resolveBaseDir(config), teamRunId, memberName)
-  const fileNames = (await readdir(inboxDir)).filter((entry) => entry.endsWith(".json")).sort()
+export async function readInboxMessages(
+  teamRunId: string,
+  memberName: string,
+  config: TeamModeConfig,
+) {
+  const inboxDir = getInboxDir(resolveBaseDir(config), teamRunId, memberName);
+  const fileNames = (await readdir(inboxDir)).filter((entry) =>
+    entry.endsWith(".json")
+  ).sort();
   return Promise.all(fileNames.map(async (fileName) => {
-    const content = await readFile(path.join(inboxDir, fileName), "utf8")
-    return MessageSchema.parse(JSON.parse(content))
-  }))
+    const content = await readFile(path.join(inboxDir, fileName), "utf8");
+    return MessageSchema.parse(JSON.parse(content));
+  }));
 }
 
-export function createTestMessage(overrides?: Partial<Parameters<typeof sendMessage>[0]>) {
-  fixtureCounter += 1
+export function createTestMessage(
+  overrides?: Partial<Parameters<typeof sendMessage>[0]>,
+) {
+  fixtureCounter += 1;
 
   return MessageSchema.parse({
     version: 1,
@@ -142,5 +177,5 @@ export function createTestMessage(overrides?: Partial<Parameters<typeof sendMess
     body: "hello",
     timestamp: Date.now(),
     ...overrides,
-  })
+  });
 }

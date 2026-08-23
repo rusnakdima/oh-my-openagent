@@ -1,4 +1,4 @@
-import type { CommandDefinition } from "../claude-code-command-loader"
+import type { CommandDefinition } from "../claude-code-command-loader";
 
 export type BuiltinCommandName =
   | "goal"
@@ -17,10 +17,10 @@ export type BuiltinCommandName =
   | "voice"
   | "btw"
   | "setmodel"
-  | "list-agents"
+  | "list-agents";
 
 export interface BuiltinCommandConfig {
-  disabled_commands?: BuiltinCommandName[]
+  disabled_commands?: BuiltinCommandName[];
 }
 
-export type BuiltinCommands = Record<string, CommandDefinition>
+export type BuiltinCommands = Record<string, CommandDefinition>;

@@ -1,7 +1,8 @@
 # 미디어 추출 — yt-dlp
 
-> yt-dlp는 YouTube 전용 도구가 아니라 **1,858개 사이트**를 지원하는 범용 미디어 추출 도구.
-> 영상, 오디오, 팟캐스트, 라이브 스트리밍 — 미디어 URL이면 yt-dlp를 먼저 시도한다.
+> yt-dlp는 YouTube 전용 도구가 아니라 **1,858개 사이트**를 지원하는 범용 미디어
+> 추출 도구. 영상, 오디오, 팟캐스트, 라이브 스트리밍 — 미디어 URL이면 yt-dlp를
+> 먼저 시도한다.
 
 ## 설치 확인
 
@@ -69,51 +70,51 @@ yt-dlp --write-comments --skip-download --write-info-json \
 
 ### 영상
 
-| 사이트 | 메타데이터 | 자막 | 검색 | 비고 |
-|--------|----------|------|------|------|
-| YouTube | O | O (자동생성 포함) | `ytsearch` | 최고 지원 |
-| Vimeo | O | O (사이트 제공 시) | X | 학술/다큐 콘텐츠 풍부 |
-| Twitch | O (VOD/클립) | X | X | 기술 스트리밍 |
-| TikTok | O | X | X | 공개 계정만 |
-| Dailymotion | O | O | `dailymotionsearch` | |
-| Rumble | O | X | X | |
-| PeerTube | O | X | X | 탈중앙화 |
+| 사이트      | 메타데이터   | 자막               | 검색                | 비고                  |
+| ----------- | ------------ | ------------------ | ------------------- | --------------------- |
+| YouTube     | O            | O (자동생성 포함)  | `ytsearch`          | 최고 지원             |
+| Vimeo       | O            | O (사이트 제공 시) | X                   | 학술/다큐 콘텐츠 풍부 |
+| Twitch      | O (VOD/클립) | X                  | X                   | 기술 스트리밍         |
+| TikTok      | O            | X                  | X                   | 공개 계정만           |
+| Dailymotion | O            | O                  | `dailymotionsearch` |                       |
+| Rumble      | O            | X                  | X                   |                       |
+| PeerTube    | O            | X                  | X                   | 탈중앙화              |
 
 ### 오디오/팟캐스트
 
-| 사이트 | 메타데이터 | 검색 | 비고 |
-|--------|----------|------|------|
-| SoundCloud | O | `scsearch` | 검색까지 가능 — 최고 |
-| Apple Podcasts | O | X | RSS 기반 |
-| TuneIn | O | X | |
-| acast | O | X | 채널 단위 지원 |
-| Spreaker | O | X | |
-| Audius | O | X | 블록체인 기반 |
+| 사이트         | 메타데이터 | 검색       | 비고                 |
+| -------------- | ---------- | ---------- | -------------------- |
+| SoundCloud     | O          | `scsearch` | 검색까지 가능 — 최고 |
+| Apple Podcasts | O          | X          | RSS 기반             |
+| TuneIn         | O          | X          |                      |
+| acast          | O          | X          | 채널 단위 지원       |
+| Spreaker       | O          | X          |                      |
+| Audius         | O          | X          | 블록체인 기반        |
 
 ### 한국 플랫폼
 
-| 사이트 | Extractor | 비고 |
-|--------|-----------|------|
-| Naver TV | `Naver`, `Naver:live` | |
-| Kakao | `Kakao` | |
-| SBS | `SBS`, `sbs.co.kr` | |
-| JTBC | `JTBC`, `JTBC:program` | |
-| Chzzk | `chzzk:video`, `chzzk:live` | 네이버 스트리밍 |
-| Soop (구 AfreecaTV) | `soop`, `soop:live` | |
-| Daum | `daum.net`, `daum.net:clip` | |
-| Weverse | `Weverse`, `WeverseLive` | K-팝 팬덤 |
+| 사이트              | Extractor                   | 비고            |
+| ------------------- | --------------------------- | --------------- |
+| Naver TV            | `Naver`, `Naver:live`       |                 |
+| Kakao               | `Kakao`                     |                 |
+| SBS                 | `SBS`, `sbs.co.kr`          |                 |
+| JTBC                | `JTBC`, `JTBC:program`      |                 |
+| Chzzk               | `chzzk:video`, `chzzk:live` | 네이버 스트리밍 |
+| Soop (구 AfreecaTV) | `soop`, `soop:live`         |                 |
+| Daum                | `daum.net`, `daum.net:clip` |                 |
+| Weverse             | `Weverse`, `WeverseLive`    | K-팝 팬덤       |
 
 ### 뉴스 VOD
 
-| 사이트 | 비고 |
-|--------|------|
-| BBC | 공개 VOD |
-| ABC (호주) | iview |
-| CBS News | |
-| NBC News | 차단 많음 |
+| 사이트     | 비고      |
+| ---------- | --------- |
+| BBC        | 공개 VOD  |
+| ABC (호주) | iview     |
+| CBS News   |           |
+| NBC News   | 차단 많음 |
 
-> 뉴스 사이트는 직접 URL보다 **YouTube 공식 채널 경유**가 더 안정적.
-> 예: `ytsearch:BBC News {키워드}`
+> 뉴스 사이트는 직접 URL보다 **YouTube 공식 채널 경유**가 더 안정적. 예:
+> `ytsearch:BBC News {키워드}`
 
 ## 주의사항
 

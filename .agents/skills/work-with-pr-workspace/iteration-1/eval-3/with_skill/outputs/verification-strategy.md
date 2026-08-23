@@ -7,16 +7,21 @@ gh pr checks --watch
 ```
 
 **Expected CI jobs** (from `ci.yml`):
+
 1. **Tests (split)**: mock-heavy isolated + batch `bun test`
 2. **Typecheck**: `bun run typecheck` (tsc --noEmit)
 3. **Build**: `bun run build`
 4. **Schema auto-commit**: If schema changes detected
 
-**Likely failure points**: None. This is a pure refactor with re-exports. No runtime behavior changes.
+**Likely failure points**: None. This is a pure refactor with re-exports. No
+runtime behavior changes.
 
 **If CI fails**:
-- Typecheck error: Missing re-export or import cycle. Fix in the new modules, amend commit.
-- Test error: `tools.test.ts` imports all symbols from `"./constants"`. Re-export barrel must be complete.
+
+- Typecheck error: Missing re-export or import cycle. Fix in the new modules,
+  amend commit.
+- Test error: `tools.test.ts` imports all symbols from `"./constants"`.
+  Re-export barrel must be complete.
 
 ## Gate B: review-work (5-Agent Review)
 
@@ -27,10 +32,14 @@ Invoke after CI passes:
 ```
 
 **5 parallel agents**:
-1. **Oracle (goal/constraint)**: Verify backward compat claim. Check all 13 import paths resolve.
-2. **Oracle (code quality)**: Verify single-responsibility per file, LOC limits, no catch-all violations.
+
+1. **Oracle (goal/constraint)**: Verify backward compat claim. Check all 13
+   import paths resolve.
+2. **Oracle (code quality)**: Verify single-responsibility per file, LOC limits,
+   no catch-all violations.
 3. **Oracle (security)**: No security implications in this refactor.
-4. **QA (hands-on execution)**: Run `bun test src/tools/delegate-task/` and verify all pass.
+4. **QA (hands-on execution)**: Run `bun test src/tools/delegate-task/` and
+   verify all pass.
 5. **Context miner**: Check no related open issues/PRs conflict.
 
 **Expected verdict**: Pass. Pure structural refactor with no behavioral changes.
@@ -39,7 +48,8 @@ Invoke after CI passes:
 
 Wait for `cubic-dev-ai[bot]` to post "No issues found" on the PR.
 
-**If Cubic flags issues**: Likely false positives on "large number of new files". Address in PR comments if needed.
+**If Cubic flags issues**: Likely false positives on "large number of new
+files". Address in PR comments if needed.
 
 ## Pre-Gate Local Validation (Before Push)
 
@@ -54,6 +64,7 @@ bun -e "import * as c from './src/tools/delegate-task/constants'; console.log(Ob
 ```
 
 Expected exports from constants.ts (13 total):
+
 - `ARTISTRY_CATEGORY_PROMPT_APPEND`
 - `CATEGORY_DESCRIPTIONS`
 - `CATEGORY_PROMPT_APPENDS`

@@ -1,24 +1,31 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test"
-import type { ExecutorContext } from "../executor-types"
-import type { DelegateTaskArgs } from "../types"
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import type { ExecutorContext } from "../executor-types";
+import type { DelegateTaskArgs } from "../types";
 
-type SubagentResolverModule = typeof import("../subagent-resolver")
+type SubagentResolverModule = typeof import("../subagent-resolver");
 
-const logMock = mock((..._args: unknown[]) => {})
-const readConnectedProvidersCacheMock = mock(() => null as string[] | null)
+const logMock = mock((..._args: unknown[]) => {});
+const readConnectedProvidersCacheMock = mock(() => null as string[] | null);
 const readProviderModelsCacheMock = mock(
-  () => null as {
-    models: Record<string, string[]>
-    connected: string[]
-    updatedAt: string
-  } | null,
-)
+  () =>
+    null as {
+      models: Record<string, string[]>;
+      connected: string[];
+      updatedAt: string;
+    } | null,
+);
 
-async function importFreshSubagentResolverModule(): Promise<SubagentResolverModule> {
-  return await import(`../subagent-resolver?test=${Date.now()}-${Math.random()}`)
+async function importFreshSubagentResolverModule(): Promise<
+  SubagentResolverModule
+> {
+  return await import(
+    `../subagent-resolver?test=${Date.now()}-${Math.random()}`
+  );
 }
 
-function createBaseArgs(overrides?: Partial<DelegateTaskArgs>): DelegateTaskArgs {
+function createBaseArgs(
+  overrides?: Partial<DelegateTaskArgs>,
+): DelegateTaskArgs {
   return {
     description: "Run review",
     prompt: "Review the current changes",
@@ -26,7 +33,7 @@ function createBaseArgs(overrides?: Partial<DelegateTaskArgs>): DelegateTaskArgs
     load_skills: [],
     subagent_type: "oracle",
     ...overrides,
-  }
+  };
 }
 
 function createExecutorContext(
@@ -37,42 +44,44 @@ function createExecutorContext(
     app: {
       agents: agentsFn,
     },
-  } as ExecutorContext["client"]
+  } as ExecutorContext["client"];
 
   return {
     client,
     manager: {} as ExecutorContext["manager"],
     directory: "/tmp/test",
     ...overrides,
-  }
+  };
 }
 
 describe("resolveSubagentExecution agent overrides", () => {
-  let resolveSubagentExecution: SubagentResolverModule["resolveSubagentExecution"]
+  let resolveSubagentExecution:
+    SubagentResolverModule["resolveSubagentExecution"];
 
   beforeEach(async () => {
-    mock.restore()
-    logMock.mockClear()
-    readConnectedProvidersCacheMock.mockReset()
-    readProviderModelsCacheMock.mockReset()
-    readConnectedProvidersCacheMock.mockReturnValue(null)
-    readProviderModelsCacheMock.mockReturnValue(null)
+    mock.restore();
+    logMock.mockClear();
+    readConnectedProvidersCacheMock.mockReset();
+    readProviderModelsCacheMock.mockReset();
+    readConnectedProvidersCacheMock.mockReturnValue(null);
+    readProviderModelsCacheMock.mockReturnValue(null);
     mock.module("../../../shared/logger", () => ({
       log: logMock,
-    }))
+    }));
     mock.module("../../../shared/connected-providers-cache", () => ({
       readConnectedProvidersCache: readConnectedProvidersCacheMock,
       readProviderModelsCache: readProviderModelsCacheMock,
-      hasConnectedProvidersCache: () => readConnectedProvidersCacheMock() !== null,
+      hasConnectedProvidersCache: () =>
+        readConnectedProvidersCacheMock() !== null,
       hasProviderModelsCache: () => readProviderModelsCacheMock() !== null,
       _resetMemCacheForTesting: () => {},
-    }))
-    ;({ resolveSubagentExecution } = await importFreshSubagentResolverModule())
-  })
+    }));
+    ({ resolveSubagentExecution } = await importFreshSubagentResolverModule());
+  });
 
   afterEach(() => {
-    mock.restore()
-  })
+    mock.restore();
+  });
 
   test.skip("does not inherit hardcoded fallback chain when agent override uses custom provider model", async () => {
     // given
@@ -80,13 +89,17 @@ describe("resolveSubagentExecution agent overrides", () => {
       models: { openai: ["gemini-3.5-flash-thinking"] },
       connected: ["openai"],
       updatedAt: "2026-03-03T00:00:00.000Z",
-    })
-    readConnectedProvidersCacheMock.mockReturnValue(["openai"])
-    const args = createBaseArgs({ subagent_type: "oracle" })
+    });
+    readConnectedProvidersCacheMock.mockReturnValue(["openai"]);
+    const args = createBaseArgs({ subagent_type: "oracle" });
     const executorCtx = createExecutorContext(
-      async () => ([
-        { name: "oracle", mode: "subagent", model: "anthropic/claude-opus-4-7" },
-      ]),
+      async () => [
+        {
+          name: "oracle",
+          mode: "subagent",
+          model: "anthropic/claude-opus-4-7",
+        },
+      ],
       {
         agentOverrides: {
           oracle: {
@@ -94,17 +107,22 @@ describe("resolveSubagentExecution agent overrides", () => {
           },
         } as ExecutorContext["agentOverrides"],
       },
-    )
+    );
 
     // when
-    const result = await resolveSubagentExecution(args, executorCtx, "sisyphus", "deep")
+    const result = await resolveSubagentExecution(
+      args,
+      executorCtx,
+      "sisyphus",
+      "deep",
+    );
 
     // then
-    expect(result.error).toBeUndefined()
+    expect(result.error).toBeUndefined();
     expect(result.categoryModel).toEqual({
       providerID: "openai",
       modelID: "gemini-3.5-flash-thinking",
-    })
-    expect(result.fallbackChain).toBeUndefined()
-  })
-})
+    });
+    expect(result.fallbackChain).toBeUndefined();
+  });
+});

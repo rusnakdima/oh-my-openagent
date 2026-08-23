@@ -2,9 +2,9 @@
 
 import { describe, expect, test } from "bun:test";
 import {
-  getHephaestusPromptSource,
-  getHephaestusPrompt,
   createHephaestusAgent,
+  getHephaestusPrompt,
+  getHephaestusPromptSource,
   isHephaestusSupportedModel,
   UnsupportedHephaestusModelError,
 } from "./index";
@@ -20,7 +20,9 @@ describe("isHephaestusSupportedModel with a hosted vendor prefix", () => {
     ];
 
     // when
-    const supported = bedrockModels.map((model) => isHephaestusSupportedModel(model));
+    const supported = bedrockModels.map((model) =>
+      isHephaestusSupportedModel(model)
+    );
 
     // then
     expect(supported).toEqual([true, true, true, true]);
@@ -52,7 +54,9 @@ describe("isHephaestusSupportedModel with a hosted vendor prefix", () => {
     ];
 
     // when
-    const actual = unchanged.map(([model]) => isHephaestusSupportedModel(model));
+    const actual = unchanged.map(([model]) =>
+      isHephaestusSupportedModel(model)
+    );
 
     // then
     expect(actual).toEqual(unchanged.map(([, expected]) => expected));
@@ -60,7 +64,10 @@ describe("isHephaestusSupportedModel with a hosted vendor prefix", () => {
 
   test("#given a Bedrock id outside the gpt-5 family #when support is checked #then it stays unsupported", () => {
     // given
-    const models = ["amazon-bedrock/openai.gpt-4o", "amazon-bedrock/anthropic.claude-3.5-sonnet"];
+    const models = [
+      "amazon-bedrock/openai.gpt-4o",
+      "amazon-bedrock/anthropic.claude-3.5-sonnet",
+    ];
 
     // when
     const supported = models.map((model) => isHephaestusSupportedModel(model));
@@ -81,7 +88,9 @@ describe("getHephaestusPromptSource", () => {
     ];
 
     // when
-    const sources = bedrockModels.map((model) => getHephaestusPromptSource(model));
+    const sources = bedrockModels.map((model) =>
+      getHephaestusPromptSource(model)
+    );
 
     // then
     expect(sources).toEqual(["gpt-5-4", "gpt-5-4", "gpt-5-6", "gpt"]);

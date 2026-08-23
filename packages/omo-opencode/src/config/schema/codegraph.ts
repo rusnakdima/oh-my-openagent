@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const CodegraphConfigSchema = z.object({
   auto_init: z.boolean().default(true),
@@ -9,6 +9,6 @@ export const CodegraphConfigSchema = z.object({
   install_dir: z.string().optional(),
   telemetry: z.boolean().optional(),
   watch_debounce_ms: z.number().nonnegative().optional(),
-})
+});
 
-export type CodegraphConfig = z.infer<typeof CodegraphConfigSchema>
+export type CodegraphConfig = z.infer<typeof CodegraphConfigSchema>;

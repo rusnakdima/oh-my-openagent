@@ -1,8 +1,12 @@
 # HTTP Backend Stack — gin + slog + validator + pgx
 
-The canonical production HTTP service skeleton. Distilled from the [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) codebase — a real proxy serving OpenAI / Gemini / Claude / Codex APIs in production, with SSE streaming, WebSocket upgrades, request logging, and hot-reload config.
+The canonical production HTTP service skeleton. Distilled from the
+[CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) codebase — a real
+proxy serving OpenAI / Gemini / Claude / Codex APIs in production, with SSE
+streaming, WebSocket upgrades, request logging, and hot-reload config.
 
-If you are tempted to pick echo or chi instead, see `libraries.md` — gin wins on ecosystem, not technical merit, and the win is large enough to matter.
+If you are tempted to pick echo or chi instead, see `libraries.md` — gin wins on
+ecosystem, not technical merit, and the win is large enough to matter.
 
 ---
 
@@ -238,10 +242,13 @@ func (s *Server) Run(ctx context.Context) error {
 
 Notes:
 
-- `gin.New()` not `gin.Default()` — `Default()` adds `Logger()` (text format, not slog) and `Recovery()` (no logger injection). We replace both.
+- `gin.New()` not `gin.Default()` — `Default()` adds `Logger()` (text format,
+  not slog) and `Recovery()` (no logger injection). We replace both.
 - `gin.SetMode(gin.ReleaseMode)` silences debug output. Production assumed.
-- `http.Server` with explicit timeouts. The default `nil` timeouts are a DoS waiting to happen.
-- Graceful shutdown: SIGINT/SIGTERM cancels the ctx → `Shutdown(shutdownCtx)` gives in-flight requests up to `ShutdownTimeout` to finish.
+- `http.Server` with explicit timeouts. The default `nil` timeouts are a DoS
+  waiting to happen.
+- Graceful shutdown: SIGINT/SIGTERM cancels the ctx → `Shutdown(shutdownCtx)`
+  gives in-flight requests up to `ShutdownTimeout` to finish.
 
 ---
 
@@ -253,10 +260,12 @@ RequestID    →   Recovery    →   Logger    →   CORS    →   Auth    →  
 ```
 
 1. **RequestID** is first so every subsequent middleware sees it.
-2. **Recovery** wraps everything after it. Order: a panic in CORS still gets caught.
+2. **Recovery** wraps everything after it. Order: a panic in CORS still gets
+   caught.
 3. **Logger** sees the request_id and the recovered panic.
 4. **CORS** before Auth — OPTIONS preflight must return without auth.
-5. **Auth** is the last cross-cutting middleware. Per-route auth (admin-only) is mounted on a sub-router with extra middleware.
+5. **Auth** is the last cross-cutting middleware. Per-route auth (admin-only) is
+   mounted on a sub-router with extra middleware.
 
 ```go
 // Public routes — no auth
@@ -362,7 +371,8 @@ func RequestLogger(logger *slog.Logger) gin.HandlerFunc {
 }
 ```
 
-The `sloglint` linter enforces typed attrs (`slog.String(...)`) over `slog.Any("path", ...)`. Keep the form.
+The `sloglint` linter enforces typed attrs (`slog.String(...)`) over
+`slog.Any("path", ...)`. Keep the form.
 
 ### `middleware/cors.go`
 
@@ -456,13 +466,15 @@ func writeBindingError(c *gin.Context, err error) {
 }
 ```
 
-See `data-modeling.md` for the validator tag reference; see `error-handling.md` for the `httperr.Write` funnel.
+See `data-modeling.md` for the validator tag reference; see `error-handling.md`
+for the `httperr.Write` funnel.
 
 ---
 
 ## SSE streaming — the production pattern
 
-CLIProxyAPI streams OpenAI-compatible SSE for hundreds of concurrent clients. The pattern:
+CLIProxyAPI streams OpenAI-compatible SSE for hundreds of concurrent clients.
+The pattern:
 
 ```go
 func (h *Handler) StreamChat(c *gin.Context) {
@@ -509,10 +521,15 @@ func (h *Handler) StreamChat(c *gin.Context) {
 
 Key facts:
 
-- **Headers MUST be set before the first `Write`.** Otherwise gin auto-sets `Content-Type: text/plain`.
-- **`c.Writer.(http.Flusher)` is the streaming primitive.** Without `flusher.Flush()`, the response is buffered and arrives as one blob at the end.
-- **Always respond to `<-ctx.Done()`.** A disconnected client must stop upstream work — otherwise you generate tokens for nothing.
-- **The trailing `\n\n` per event is wire-mandatory** for SSE parsing. Missing it = the client never sees the event.
+- **Headers MUST be set before the first `Write`.** Otherwise gin auto-sets
+  `Content-Type: text/plain`.
+- **`c.Writer.(http.Flusher)` is the streaming primitive.** Without
+  `flusher.Flush()`, the response is buffered and arrives as one blob at the
+  end.
+- **Always respond to `<-ctx.Done()`.** A disconnected client must stop upstream
+  work — otherwise you generate tokens for nothing.
+- **The trailing `\n\n` per event is wire-mandatory** for SSE parsing. Missing
+  it = the client never sees the event.
 
 ---
 
@@ -546,7 +563,8 @@ func (h *Handler) WebSocketEcho(c *gin.Context) {
 }
 ```
 
-For long-lived connections, use `conn.SetReadDeadline` + `SetPongHandler` for keepalive. CLIProxyAPI's `wsrelay` package is a reference implementation.
+For long-lived connections, use `conn.SetReadDeadline` + `SetPongHandler` for
+keepalive. CLIProxyAPI's `wsrelay` package is a reference implementation.
 
 ---
 
@@ -628,7 +646,8 @@ func TestCreateUser_returns_201_for_valid_input(t *testing.T) {
 }
 ```
 
-See `testing.md` for full patterns (testcontainers integration, table-driven, goleak).
+See `testing.md` for full patterns (testcontainers integration, table-driven,
+goleak).
 
 ---
 
@@ -638,4 +657,5 @@ See `testing.md` for full patterns (testcontainers integration, table-driven, go
 - CLIProxyAPI (reference impl): https://github.com/router-for-me/CLIProxyAPI
 - pgx pool: https://pkg.go.dev/github.com/jackc/pgx/v5/pgxpool
 - SSE spec: https://html.spec.whatwg.org/multipage/server-sent-events.html
-- Go's `http.Server` graceful shutdown: https://pkg.go.dev/net/http#Server.Shutdown
+- Go's `http.Server` graceful shutdown:
+  https://pkg.go.dev/net/http#Server.Shutdown

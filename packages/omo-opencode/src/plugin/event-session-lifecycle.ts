@@ -12,14 +12,23 @@ import {
   restoreBackgroundOutputConsumption,
 } from "../shared/background-output-consumption";
 import { resetMessageCursor } from "../shared";
-import { clearSessionModel, setSessionModel } from "../shared/session-model-state";
+import {
+  clearSessionModel,
+  setSessionModel,
+} from "../shared/session-model-state";
 import { clearSessionPromptParams } from "../shared/session-prompt-params-state";
 import { deleteSessionTools } from "../shared/session-tools-store";
 import { dispatchOpenClawEvent } from "../openclaw/runtime-dispatch";
-import { resolveMessageEventSessionID, resolveSessionEventID } from "../shared/event-session-id";
+import {
+  resolveMessageEventSessionID,
+  resolveSessionEventID,
+} from "../shared/event-session-id";
 import type { OhMyOpenCodeConfig } from "../config";
 import type { Managers } from "../create-managers";
-import type { FirstMessageVariantGate, PluginEventContext } from "./event-types";
+import type {
+  FirstMessageVariantGate,
+  PluginEventContext,
+} from "./event-types";
 import {
   forgetBtwSideSession,
   getBtwSideMetadata,
@@ -63,7 +72,9 @@ export async function dispatchOpenClawSessionEvent(args: {
     context: {
       sessionId: args.sessionID,
       projectPath: args.pluginContext.directory,
-      tmuxPaneId: args.managers.tmuxSessionManager.getTrackedPaneId?.(args.sessionID) ?? process.env.TMUX_PANE,
+      tmuxPaneId:
+        args.managers.tmuxSessionManager.getTrackedPaneId?.(args.sessionID) ??
+          process.env.TMUX_PANE,
     },
   });
 }
@@ -93,7 +104,8 @@ export async function handleSessionCreatedEvent(args: {
   ) {
     return;
   }
-  const isSubagentSession = !!sessionInfo?.parentID || !!sessionID && subagentSessions.has(sessionID);
+  const isSubagentSession = !!sessionInfo?.parentID ||
+    !!sessionID && subagentSessions.has(sessionID);
 
   if (!isSubagentSession) setMainSession(sessionID);
   args.firstMessageVariantGate.markSessionCreated(sessionInfo);
@@ -102,13 +114,19 @@ export async function handleSessionCreatedEvent(args: {
     await args.managers.tmuxSessionManager.onSessionCreated(
       args.event as {
         type: string;
-        properties?: { info?: { id?: string; parentID?: string; title?: string } };
+        properties?: {
+          info?: { id?: string; parentID?: string; title?: string };
+        };
       },
     );
   }
 
   if (sessionID && !isSubagentSession) {
-    await dispatchOpenClawSessionEvent({ ...args, rawEvent: args.event.type, sessionID });
+    await dispatchOpenClawSessionEvent({
+      ...args,
+      rawEvent: args.event.type,
+      sessionID,
+    });
   }
 }
 
@@ -126,9 +144,12 @@ export async function handleSessionDeletedEvent(args: {
     metadata?: Record<string, unknown>;
   } | undefined;
   const isBtwSideSession = sessionID
-    ? forgetBtwSideSession(sessionID) || getBtwSideMetadata(sessionInfo) !== undefined
+    ? forgetBtwSideSession(sessionID) ||
+      getBtwSideMetadata(sessionInfo) !== undefined
     : false;
-  if (!isBtwSideSession && sessionID === getMainSessionID()) setMainSession(undefined);
+  if (!isBtwSideSession && sessionID === getMainSessionID()) {
+    setMainSession(undefined);
+  }
   if (!sessionID) return;
 
   await args.managers.monitorManager?.stopSessionMonitors(sessionID);
@@ -143,7 +164,11 @@ export async function handleSessionDeletedEvent(args: {
   clearSessionPromptParams(sessionID);
   syncSubagentSessions.delete(sessionID);
   if (!isBtwSideSession) {
-    await dispatchOpenClawSessionEvent({ ...args, rawEvent: "session.deleted", sessionID });
+    await dispatchOpenClawSessionEvent({
+      ...args,
+      rawEvent: "session.deleted",
+      sessionID,
+    });
   }
   if (wasSyncSubagentSession) subagentSessions.delete(sessionID);
   deleteSessionTools(sessionID);
@@ -153,7 +178,9 @@ export async function handleSessionDeletedEvent(args: {
   }
 }
 
-export function handleMessageRemovedEvent(props?: Record<string, unknown>): void {
+export function handleMessageRemovedEvent(
+  props?: Record<string, unknown>,
+): void {
   const messageID = props?.messageID as string | undefined;
   const sessionID = resolveMessageEventSessionID(props);
   restoreBackgroundOutputConsumption(sessionID, messageID);
@@ -161,7 +188,10 @@ export function handleMessageRemovedEvent(props?: Record<string, unknown>): void
 
 export function handleMessageUpdatedSessionState(args: {
   props?: Record<string, unknown>;
-  noteSessionModel: (sessionID: string, model: { providerID: string; modelID: string }) => void;
+  noteSessionModel: (
+    sessionID: string,
+    model: { providerID: string; modelID: string },
+  ) => void;
 }): {
   info: Record<string, unknown> | undefined;
   sessionID: string | undefined;

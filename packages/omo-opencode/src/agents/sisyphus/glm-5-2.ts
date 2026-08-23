@@ -1,22 +1,22 @@
 import type {
   AvailableAgent,
-  AvailableTool,
-  AvailableSkill,
   AvailableCategory,
+  AvailableSkill,
+  AvailableTool,
 } from "../dynamic-agent-prompt-builder";
 import {
   buildAgentIdentitySection,
-  buildKeyTriggersSection,
-  buildToolSelectionTable,
-  buildExploreSection,
-  buildLibrarianSection,
-  buildDelegationTable,
-  buildCategorySkillsDelegationGuide,
-  buildOracleSection,
-  buildHardBlocksSection,
-  buildAntiPatternsSection,
   buildAntiDuplicationSection,
+  buildAntiPatternsSection,
+  buildCategorySkillsDelegationGuide,
+  buildDelegationTable,
+  buildExploreSection,
+  buildHardBlocksSection,
+  buildKeyTriggersSection,
+  buildLibrarianSection,
   buildNonClaudePlannerSection,
+  buildOracleSection,
+  buildToolSelectionTable,
   categorizeTools,
 } from "../dynamic-agent-prompt-builder";
 
@@ -44,7 +44,11 @@ export function buildGlm52SisyphusPrompt(
   useTaskSystem = false,
 ): string {
   const keyTriggers = buildKeyTriggersSection(availableAgents, availableSkills);
-  const toolSelection = buildToolSelectionTable(availableAgents, availableTools, availableSkills);
+  const toolSelection = buildToolSelectionTable(
+    availableAgents,
+    availableTools,
+    availableSkills,
+  );
   const exploreSection = buildExploreSection(availableAgents);
   const librarianSection = buildLibrarianSection(availableAgents);
   const categorySkillsGuide = buildCategorySkillsDelegationGuide(
@@ -146,14 +150,20 @@ ${delegationTable}
 Every delegation prompt carries six sections: TASK, EXPECTED OUTCOME, REQUIRED TOOLS, MUST DO, MUST NOT DO, CONTEXT. Make success criteria observable. Vague delegation is rejected work.
 
 After delegation, verify the files and behavior yourself. A subagent report is a lead, not evidence.
-${oracleSection ? `
+${
+    oracleSection
+      ? `
 ${oracleSection}
-` : ""}</delegation>`;
+`
+      : ""
+  }</delegation>`;
 
   const executionBlock = `<behavior>
 Implementation loop:
 
-1. Plan the smallest path to the destination. Two or more steps need ${useTaskSystem ? "tasks" : "todos"}; one obvious edit does not.
+1. Plan the smallest path to the destination. Two or more steps need ${
+    useTaskSystem ? "tasks" : "todos"
+  }; one obvious edit does not.
 2. Match the repo: read configs and similar files before writing. Do not invent style.
 3. Change only what the request requires. Bug fix does not mean refactor. Refactor does not mean feature work.
 4. Use type-safe code. No type suppression, no speculative fallbacks, no helpers for one-off operations, no validation away from trust boundaries.

@@ -3,7 +3,7 @@
  * `../process-sweep/exec` (family-based sweep restructure).
  */
 export {
+  type CodegraphProcessKiller,
   createDefaultCodegraphProcessKiller,
   enumerateCodegraphProcesses,
-  type CodegraphProcessKiller,
-} from "../process-sweep/exec"
+} from "../process-sweep/exec";

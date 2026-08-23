@@ -1,6 +1,6 @@
-import { describe, expect, expectTypeOf, test } from "bun:test"
+import { describe, expect, expectTypeOf, test } from "bun:test";
 
-import type { TaskTargetErrorCode } from "../tools/task/validation"
+import type { TaskTargetErrorCode } from "../tools/task/validation";
 import {
   DAG_ACTIVITY_CHANNEL,
   DAG_EVENT_LANES,
@@ -11,16 +11,16 @@ import {
   DAG_RUN_EVENT_TYPES,
   DAG_RUN_STATUSES,
   DAG_SETTINGS_DEFAULTS,
-} from "./types"
+} from "./types";
 import type {
   DagActivityEvent,
   DagNodeTargetInput,
   DagNodeTransitionReason,
+  DagRoute,
   DagRunEvent,
   DagRunEventEnvelope,
   DagRunEventPayload,
-  DagRoute,
-} from "./types"
+} from "./types";
 
 const EXPECTED_JOURNALED_EVENT_TYPES = [
   "dag.run.created",
@@ -40,19 +40,23 @@ const EXPECTED_JOURNALED_EVENT_TYPES = [
   "dag.definition.amended",
   "dag.diagnostic.added",
   "dag.stream.overflow",
-] as const
+] as const;
 
 describe("dag domain types", () => {
   test("#given the journaled payload union #when its type tags are enumerated #then it has exactly 14 members and excludes live activity", () => {
     // given / when
-    const tags = [...DAG_RUN_EVENT_TYPES]
+    const tags = [...DAG_RUN_EVENT_TYPES];
 
     // then
-    expect(tags).toHaveLength(17)
-    expect([...tags].sort()).toEqual([...EXPECTED_JOURNALED_EVENT_TYPES].sort())
-    expect(tags).not.toContain("dag.node.activity")
-    expectTypeOf<DagRunEventPayload["type"]>().toEqualTypeOf<(typeof DAG_RUN_EVENT_TYPES)[number]>()
-  })
+    expect(tags).toHaveLength(17);
+    expect([...tags].sort()).toEqual(
+      [...EXPECTED_JOURNALED_EVENT_TYPES].sort(),
+    );
+    expect(tags).not.toContain("dag.node.activity");
+    expectTypeOf<DagRunEventPayload["type"]>().toEqualTypeOf<
+      (typeof DAG_RUN_EVENT_TYPES)[number]
+    >();
+  });
 
   test("#given a journaled dag event #when constructed #then type and seq are sibling top-level properties on the flat envelope-payload intersection", () => {
     // given
@@ -64,21 +68,23 @@ describe("dag domain types", () => {
       lane: "boundary",
       type: "dag.run.started",
       generation: 1,
-    }
+    };
 
     // when
-    const keys = Object.keys(event)
+    const keys = Object.keys(event);
 
     // then
-    expect(keys).toContain("type")
-    expect(keys).toContain("seq")
-    expect(event.type).toBe("dag.run.started")
-    expect(event.seq).toBe(7)
-    expect(event.schemaVersion).toBe(1)
-    expect([...DAG_EVENT_LANES].sort()).toEqual(["activity", "boundary"])
-    expectTypeOf<DagRunEvent>().toEqualTypeOf<DagRunEventEnvelope & DagRunEventPayload>()
-    expectTypeOf<DagRunEventEnvelope>().not.toHaveProperty("payload")
-  })
+    expect(keys).toContain("type");
+    expect(keys).toContain("seq");
+    expect(event.type).toBe("dag.run.started");
+    expect(event.seq).toBe(7);
+    expect(event.schemaVersion).toBe(1);
+    expect([...DAG_EVENT_LANES].sort()).toEqual(["activity", "boundary"]);
+    expectTypeOf<DagRunEvent>().toEqualTypeOf<
+      DagRunEventEnvelope & DagRunEventPayload
+    >();
+    expectTypeOf<DagRunEventEnvelope>().not.toHaveProperty("payload");
+  });
 
   test("#given live activity telemetry #when inspected #then it is a separate unsequenced event on its own channel", () => {
     // given
@@ -93,58 +99,72 @@ describe("dag domain types", () => {
       lastAssistantLine: "working",
       turns: 3,
       toolCalls: 5,
-    }
+    };
 
     // when / then
-    expect(DAG_ACTIVITY_CHANNEL).toBe("omo.dag.activity")
-    expect("seq" in activity).toBe(false)
-    expectTypeOf<DagActivityEvent>().not.toHaveProperty("seq")
-    expectTypeOf<DagActivityEvent>().not.toHaveProperty("payload")
-  })
+    expect(DAG_ACTIVITY_CHANNEL).toBe("omo.dag.activity");
+    expect("seq" in activity).toBe(false);
+    expectTypeOf<DagActivityEvent>().not.toHaveProperty("seq");
+    expectTypeOf<DagActivityEvent>().not.toHaveProperty("payload");
+  });
 
   test("#given a dag route #when kinds are enumerated #then category XOR agent holds and a pure model route is impossible", () => {
     // given
-    const categoryRoute: DagRoute = { kind: "category", category: "quick" }
-    const agentRoute: DagRoute = { kind: "agent", agent: "momus", model: "openai/gpt-5" }
+    const categoryRoute: DagRoute = { kind: "category", category: "quick" };
+    const agentRoute: DagRoute = {
+      kind: "agent",
+      agent: "momus",
+      model: "openai/gpt-5",
+    };
 
     // when / then
-    expect(categoryRoute.kind).toBe("category")
-    expect(agentRoute.model).toBe("openai/gpt-5")
-    expect(DAG_ROUTE_KINDS).not.toContain("model")
-    expectTypeOf<DagRoute["kind"]>().toEqualTypeOf<"category" | "agent">()
-    expectTypeOf<Extract<DagRoute, { kind: "model" }>>().toBeNever()
-    expectTypeOf<Extract<DagRoute, { kind: "category" }>>().not.toHaveProperty("model")
-    expectTypeOf<Extract<DagRoute, { kind: "agent" }>["model"]>().toEqualTypeOf<string | undefined>()
-  })
+    expect(categoryRoute.kind).toBe("category");
+    expect(agentRoute.model).toBe("openai/gpt-5");
+    expect(DAG_ROUTE_KINDS).not.toContain("model");
+    expectTypeOf<DagRoute["kind"]>().toEqualTypeOf<"category" | "agent">();
+    expectTypeOf<Extract<DagRoute, { kind: "model" }>>().toBeNever();
+    expectTypeOf<Extract<DagRoute, { kind: "category" }>>().not.toHaveProperty(
+      "model",
+    );
+    expectTypeOf<Extract<DagRoute, { kind: "agent" }>["model"]>().toEqualTypeOf<
+      string | undefined
+    >();
+  });
 
   test("#given node-level user input #when field names are checked #then they mirror the task tool category XOR subagent_type contract", () => {
     // given
-    const byCategory: DagNodeTargetInput = { category: "quick", prompt: "do it" }
+    const byCategory: DagNodeTargetInput = {
+      category: "quick",
+      prompt: "do it",
+    };
     const bySubagent: DagNodeTargetInput = {
       subagent_type: "momus",
       model: "openai/gpt-5",
       prompt: "do it",
-    }
+    };
 
     // when / then
-    expect(byCategory.category).toBe("quick")
-    expect(bySubagent.subagent_type).toBe("momus")
-    expectTypeOf<Extract<DagNodeTargetInput, { category: string }>["subagent_type"]>().toEqualTypeOf<
+    expect(byCategory.category).toBe("quick");
+    expect(bySubagent.subagent_type).toBe("momus");
+    expectTypeOf<
+      Extract<DagNodeTargetInput, { category: string }>["subagent_type"]
+    >().toEqualTypeOf<
       undefined
-    >()
-    expectTypeOf<Extract<DagNodeTargetInput, { category: string }>["model"]>().toEqualTypeOf<
-      undefined
-    >()
+    >();
+    expectTypeOf<Extract<DagNodeTargetInput, { category: string }>["model"]>()
+      .toEqualTypeOf<
+        undefined
+      >();
     expectTypeOf<
       Extract<DagNodeTargetInput, { subagent_type: string }>["category"]
-    >().toEqualTypeOf<undefined>()
+    >().toEqualTypeOf<undefined>();
     expectTypeOf<
       Extract<DagNodeTargetInput, { subagent_type: string }>["model"]
-    >().toEqualTypeOf<string | undefined>()
+    >().toEqualTypeOf<string | undefined>();
     expectTypeOf<
       import("./types").DagNodeTargetErrorCode
-    >().toEqualTypeOf<TaskTargetErrorCode>()
-  })
+    >().toEqualTypeOf<TaskTargetErrorCode>();
+  });
 
   test("#given the settings block #when defaults resolve #then every documented default holds", () => {
     // given / when / then
@@ -157,8 +177,8 @@ describe("dag domain types", () => {
       history_max_limit: 1000,
       retention_days: 7,
       max_prompt_bytes: 262144,
-    })
-  })
+    });
+  });
 
   test("#given the state vocabularies #when enumerated #then run statuses node states error codes and transition reasons match the contract", () => {
     // given / when / then
@@ -169,7 +189,7 @@ describe("dag domain types", () => {
       "completed",
       "failed",
       "cancelled",
-    ])
+    ]);
     expect([...DAG_NODE_STATES]).toEqual([
       "pending",
       "blocked",
@@ -179,7 +199,7 @@ describe("dag domain types", () => {
       "failed",
       "cancelled",
       "skipped",
-    ])
+    ]);
     expect([...DAG_NODE_ERROR_CODES]).toEqual([
       "plan_unresolved",
       "depth_denied",
@@ -191,7 +211,7 @@ describe("dag domain types", () => {
       "task_cancelled",
       "resume_task_missing",
       "journal_corrupt",
-    ])
+    ]);
     expect(DAG_NODE_TRANSITION_REASONS).toEqual([
       { kind: "unblocked" },
       { kind: "scheduled" },
@@ -206,8 +226,11 @@ describe("dag domain types", () => {
       { kind: "retried" },
       { kind: "amend_invalidated" },
       { kind: "revived" },
-    ])
-    const queued: DagNodeTransitionReason = { kind: "task_queued", queuePosition: 3 }
-    expect(queued).toEqual({ kind: "task_queued", queuePosition: 3 })
-  })
-})
+    ]);
+    const queued: DagNodeTransitionReason = {
+      kind: "task_queued",
+      queuePosition: 3,
+    };
+    expect(queued).toEqual({ kind: "task_queued", queuePosition: 3 });
+  });
+});

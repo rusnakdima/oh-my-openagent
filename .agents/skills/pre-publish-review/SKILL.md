@@ -5,23 +5,24 @@ description: "Nuclear-grade 16-agent pre-publish release gate. Analyzes unpublis
 
 # Pre-Publish Review — 16-Agent Release Gate
 
-Three-agent-layer review before publishing to npm. Every layer covers a different angle, and every result is mapped onto the release layers below.
+Three-agent-layer review before publishing to npm. Every layer covers a
+different angle, and every result is mapped onto the release layers below.
 
-| Layer | Agents | Type | What They Check |
-|-------|--------|------|-----------------|
-| Per-Change Deep Dive | up to 10 | ultrabrain | Each logical change group individually — correctness, edge cases, pattern adherence |
-| Holistic Review | 5 | review-work | Goal compliance, QA execution, code quality, security, context mining across full changeset |
-| Release Synthesis | 1 | oracle | Overall release readiness, version bump, breaking changes, deployment risk |
+| Layer                | Agents   | Type        | What They Check                                                                             |
+| -------------------- | -------- | ----------- | ------------------------------------------------------------------------------------------- |
+| Per-Change Deep Dive | up to 10 | ultrabrain  | Each logical change group individually — correctness, edge cases, pattern adherence         |
+| Holistic Review      | 5        | review-work | Goal compliance, QA execution, code quality, security, context mining across full changeset |
+| Release Synthesis    | 1        | oracle      | Overall release readiness, version bump, breaking changes, deployment risk                  |
 
 ## Release Layer Taxonomy
 
 Every phase classifies evidence and risk across:
 
-| Release Layer | Scope | Required version decision |
-|---|---|---|
-| `omo pure components` | Core packages, MCP packages, shared skills, reusable scripts, platform binary inputs | Patch/minor/major impact for shared logic consumed by adapters. |
-| `omo opencode` | Root `oh-my-opencode` / `oh-my-openagent`, `src/`, OpenCode plugin hooks/tools/CLI/config/docs, `.opencode/`, `.agents/` | Semver bump for the OpenCode/OpenAgent npm release. |
-| `omo codex` | `packages/omo-codex`, `lazycodex-ai`, Codex plugin metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace payload | Codex adapter bump, LazyCodex npm publish risk, and marketplace/GitHub release need. |
+| Release Layer         | Scope                                                                                                                                 | Required version decision                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `omo pure components` | Core packages, MCP packages, shared skills, reusable scripts, platform binary inputs                                                  | Patch/minor/major impact for shared logic consumed by adapters.                      |
+| `omo opencode`        | Root `oh-my-opencode` / `oh-my-openagent`, `src/`, OpenCode plugin hooks/tools/CLI/config/docs, `.opencode/`, `.agents/`              | Semver bump for the OpenCode/OpenAgent npm release.                                  |
+| `omo codex`           | `packages/omo-codex`, `lazycodex-ai`, Codex plugin metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace payload | Codex adapter bump, LazyCodex npm publish risk, and marketplace/GitHub release need. |
 
 ---
 
@@ -30,6 +31,7 @@ Every phase classifies evidence and risk across:
 **CRITICAL: DO NOT just copy commit messages!**
 
 For each commit, you MUST:
+
 1. Read the actual diff to understand WHAT CHANGED
 2. Describe the REAL change in plain language
 3. Explain WHY it matters (if not obvious)
@@ -38,32 +40,42 @@ IMMEDIATELY output the analysis. NO questions. NO preamble.
 
 Analyze every change against these exact layers:
 
-| Layer | Includes | Version question |
-|---|---|---|
-| `omo pure components` | `packages/*-core`, MCP packages, `packages/shared-skills`, reusable scripts | Do shared components need a patch/minor/major release note even if adapters only consume them internally? |
-| `omo opencode` | Root `oh-my-opencode` / `oh-my-openagent`, `src/`, `.opencode/`, `.agents/`, CLI, config, hooks, tools, docs | What semver bump should the OpenCode/OpenAgent npm packages use? |
-| `omo codex` | `packages/omo-codex`, `lazycodex-ai`, Codex plugin metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace payload | Does LazyCodex need the same bump, a Codex-only note, or a marketplace release? |
+| Layer                 | Includes                                                                                                                              | Version question                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `omo pure components` | `packages/*-core`, MCP packages, `packages/shared-skills`, reusable scripts                                                           | Do shared components need a patch/minor/major release note even if adapters only consume them internally? |
+| `omo opencode`        | Root `oh-my-opencode` / `oh-my-openagent`, `src/`, `.opencode/`, `.agents/`, CLI, config, hooks, tools, docs                          | What semver bump should the OpenCode/OpenAgent npm packages use?                                          |
+| `omo codex`           | `packages/omo-codex`, `lazycodex-ai`, Codex plugin metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace payload | Does LazyCodex need the same bump, a Codex-only note, or a marketplace release?                           |
 
-Exclude commits and paths matching `senpi`, `omo-senpi`, `senpi-task`, `pi-goal`, or `pi-webfetch` from user-facing notes and version recommendations. Record them only in a separate internal-adapter exclusion ledger.
+Exclude commits and paths matching `senpi`, `omo-senpi`, `senpi-task`,
+`pi-goal`, or `pi-webfetch` from user-facing notes and version recommendations.
+Record them only in a separate internal-adapter exclusion ledger.
 
 Steps:
-1. Detect latest published versions for `oh-my-opencode`, `oh-my-openagent`, and `lazycodex-ai`.
+
+1. Detect latest published versions for `oh-my-opencode`, `oh-my-openagent`, and
+   `lazycodex-ai`.
 2. Run `git diff v{published-version}..HEAD` to see actual changes.
-3. Classify every file into one or more release layers before grouping by feat/fix/refactor/docs.
+3. Classify every file into one or more release layers before grouping by
+   feat/fix/refactor/docs.
 4. Describe the REAL changes and why each layer cares.
 5. Note breaking changes by affected layer.
 6. Recommend a layer-specific version bump and one overall workflow bump.
 
 Output Format:
+
 - feat: "Added X that does Y" (not just "add X feature")
 - fix: "Fixed bug where X happened, now Y" (not just "fix X bug")
 - refactor: "Changed X from A to B, now supports C" (not just "rename X")
 
 Include:
-- `Layered Impact Matrix`: rows for `omo pure components`, `omo opencode`, `omo codex`
-- `Layer-specific Version Recommendation`: patch/minor/major per layer plus one overall release bump
 
-**Save the full output** — it feeds directly into Phase 1 grouping and all agent prompts.
+- `Layered Impact Matrix`: rows for `omo pure components`, `omo opencode`,
+  `omo codex`
+- `Layer-specific Version Recommendation`: patch/minor/major per layer plus one
+  overall release bump
+
+**Save the full output** — it feeds directly into Phase 1 grouping and all agent
+prompts.
 
 Then capture raw data needed by agent prompts:
 
@@ -80,33 +92,41 @@ CHANGED_FILES=$(git diff --name-only "v${PUBLISHED}"..HEAD 2>/dev/null || echo "
 FILE_COUNT=$(echo "$CHANGED_FILES" | wc -l | tr -d ' ')
 ```
 
-If `PUBLISHED` is "not published", this is a first release — use the full git history instead.
----
+## If `PUBLISHED` is "not published", this is a first release — use the full git history instead.
 
 ## Phase 1: Parse Changes into Groups
 
-Use the Phase 0 analysis as the starting point — it already groups by scope and type.
+Use the Phase 0 analysis as the starting point — it already groups by scope and
+type.
 
 **Grouping strategy:**
-1. Start from the Phase 0 analysis which already categorizes by feat/fix/refactor/docs with scope
-2. Further split by **module/area** — changes touching the same module or feature area belong together
-3. Target **up to 10 groups**. If fewer than 10 commits, each commit is its own group. If more than 10 logical areas, merge the smallest groups.
+
+1. Start from the Phase 0 analysis which already categorizes by
+   feat/fix/refactor/docs with scope
+2. Further split by **module/area** — changes touching the same module or
+   feature area belong together
+3. Target **up to 10 groups**. If fewer than 10 commits, each commit is its own
+   group. If more than 10 logical areas, merge the smallest groups.
 4. For each group, extract:
-   - **Group name**: Short descriptive label (e.g., "agent-model-resolution", "hook-system-refactor")
+   - **Group name**: Short descriptive label (e.g., "agent-model-resolution",
+     "hook-system-refactor")
    - **Release layer(s)**: `omo pure components`, `omo opencode`, `omo codex`
    - **Commits**: List of commit hashes and messages
    - **Files**: Changed files in this group
-   - **Diff**: The relevant portion of the full diff (`git diff v${PUBLISHED}..HEAD -- {group files}`)
+   - **Diff**: The relevant portion of the full diff
+     (`git diff v${PUBLISHED}..HEAD -- {group files}`)
 
 ---
 
 ## Phase 2: Spawn All Agents
 
-Launch ALL agents in a single turn. Every agent uses `run_in_background=true`. No sequential launches.
+Launch ALL agents in a single turn. Every agent uses `run_in_background=true`.
+No sequential launches.
 
 ### Layer 1: Ultrabrain Per-Change Analysis (up to 10)
 
-For each change group, spawn one ultrabrain agent. Each gets only its portion of the diff — not the full changeset.
+For each change group, spawn one ultrabrain agent. Each gets only its portion of
+the diff — not the full changeset.
 
 ```
 task(
@@ -183,7 +203,10 @@ OUTPUT FORMAT:
 
 ### Layer 2: Holistic Review via /review-work (5 agents)
 
-Spawn a sub-agent that loads the `/review-work` skill. The review-work skill internally launches 5 parallel agents: Oracle (goal verification), unspecified-high (QA execution), Oracle (code quality), Oracle (security), unspecified-high (context mining). All 5 must pass for the review to pass.
+Spawn a sub-agent that loads the `/review-work` skill. The review-work skill
+internally launches 5 parallel agents: Oracle (goal verification),
+unspecified-high (QA execution), Oracle (code quality), Oracle (security),
+unspecified-high (context mining). All 5 must pass for the review to pass.
 
 ```
 task(
@@ -214,7 +237,8 @@ Follow the /review-work skill flow exactly — launch all 5 review agents and co
 
 ### Layer 3: Oracle Release Synthesis (1 agent)
 
-The oracle gets the full picture — all commits, full diff stat, and changed file list. It provides the final release readiness assessment.
+The oracle gets the full picture — all commits, full diff stat, and changed file
+list. It provides the final release readiness assessment.
 
 ```
 task(
@@ -319,15 +343,16 @@ OUTPUT FORMAT:
 
 ## Phase 3: Collect Results
 
-As agents complete (system notifications), collect via `background_output(task_id="...")`.
+As agents complete (system notifications), collect via
+`background_output(task_id="...")`.
 
 Track completion in a table:
 
-| # | Agent | Type | Status | Verdict |
-|---|-------|------|--------|---------|
-| 1-10 | Ultrabrain: {group_name} | ultrabrain | pending | — |
-| 11 | Review-Work Coordinator | unspecified-high | pending | — |
-| 12 | Release Synthesis Oracle | oracle | pending | — |
+| #    | Agent                    | Type             | Status  | Verdict |
+| ---- | ------------------------ | ---------------- | ------- | ------- |
+| 1-10 | Ultrabrain: {group_name} | ultrabrain       | pending | —       |
+| 11   | Review-Work Coordinator  | unspecified-high | pending | —       |
+| 12   | Release Synthesis Oracle | oracle           | pending | —       |
 
 Do NOT deliver the final report until ALL agents have completed.
 
@@ -338,21 +363,25 @@ Do NOT deliver the final report until ALL agents have completed.
 <verdict_logic>
 
 **BLOCK** if:
+
 - Oracle verdict is BLOCK
 - Any ultrabrain found CRITICAL blocking issues
 - Review-work failed on any MAIN agent
 
 **RISKY** if:
+
 - Oracle verdict is RISKY
 - Multiple ultrabrains returned CAUTION or FAIL
 - Review-work passed but with significant findings
 
 **CAUTION** if:
+
 - Oracle verdict is CAUTION
 - A few ultrabrains flagged minor issues
 - Review-work passed cleanly
 
 **SAFE** if:
+
 - Oracle verdict is SAFE
 - All ultrabrains passed
 - Review-work passed
@@ -365,48 +394,53 @@ Compile the final report:
 # Pre-Publish Review — oh-my-opencode
 
 ## Release: v{PUBLISHED} -> v{LOCAL}
-**Commits:** {COMMIT_COUNT} | **Files Changed:** {FILE_COUNT} | **Agents:** {AGENT_COUNT}
+
+**Commits:** {COMMIT_COUNT} | **Files Changed:** {FILE_COUNT} | **Agents:**
+{AGENT_COUNT}
 
 ---
 
 ## Overall Verdict: SAFE / CAUTION / RISKY / BLOCK
 
 ## Recommended Version Bump: PATCH / MINOR / MAJOR
+
 {Justification from Oracle}
 
 ## Layer-specific Version Recommendation
 
-| Layer | Recommendation | Reason |
-|---|---|---|
-| omo pure components | PATCH/MINOR/MAJOR | ... |
-| omo opencode | PATCH/MINOR/MAJOR | ... |
-| omo codex | PATCH/MINOR/MAJOR | ... |
+| Layer               | Recommendation    | Reason |
+| ------------------- | ----------------- | ------ |
+| omo pure components | PATCH/MINOR/MAJOR | ...    |
+| omo opencode        | PATCH/MINOR/MAJOR | ...    |
+| omo codex           | PATCH/MINOR/MAJOR | ...    |
 
 ---
 
 ## Per-Change Analysis (Ultrabrains)
 
-| # | Change Group | Verdict | Risk | Breaking? | Blocking Issues |
-|---|-------------|---------|------|-----------|-----------------|
-| 1 | {name} | PASS/FAIL | SAFE/CAUTION/RISKY | YES/NO | {count or "none"} |
-| ... | ... | ... | ... | ... | ... |
+| #   | Change Group | Verdict   | Risk               | Breaking? | Blocking Issues   |
+| --- | ------------ | --------- | ------------------ | --------- | ----------------- |
+| 1   | {name}       | PASS/FAIL | SAFE/CAUTION/RISKY | YES/NO    | {count or "none"} |
+| ... | ...          | ...       | ...                | ...       | ...               |
 
 ### Blocking Issues from Per-Change Analysis
+
 {Aggregated from all ultrabrains — deduplicated}
 
 ---
 
 ## Holistic Review (Review-Work)
 
-| # | Review Area | Verdict | Confidence |
-|---|------------|---------|------------|
+| # | Review Area                    | Verdict   | Confidence   |
+| - | ------------------------------ | --------- | ------------ |
 | 1 | Goal & Constraint Verification | PASS/FAIL | HIGH/MED/LOW |
-| 2 | QA Execution | PASS/FAIL | HIGH/MED/LOW |
-| 3 | Code Quality | PASS/FAIL | HIGH/MED/LOW |
-| 4 | Security | PASS/FAIL | Severity |
-| 5 | Context Mining | PASS/FAIL | HIGH/MED/LOW |
+| 2 | QA Execution                   | PASS/FAIL | HIGH/MED/LOW |
+| 3 | Code Quality                   | PASS/FAIL | HIGH/MED/LOW |
+| 4 | Security                       | PASS/FAIL | Severity     |
+| 5 | Context Mining                 | PASS/FAIL | HIGH/MED/LOW |
 
 ### Blocking Issues from Holistic Review
+
 {Aggregated from review-work}
 
 ---
@@ -414,39 +448,45 @@ Compile the final report:
 ## Release Synthesis (Oracle)
 
 ### Breaking Changes
+
 {From Oracle — exhaustive list or "None"}
 
 ### Changelog Draft
+
 {From Oracle — ready to use}
 
 ### Deployment Risk
+
 {From Oracle — specific concerns}
 
 ### Post-Publish Monitoring
+
 {From Oracle — what to watch}
 
 ---
 
 ## All Blocking Issues (Prioritized)
+
 {Deduplicated, merged from all three layers, ordered by severity}
 
 ## Recommendations
-{If BLOCK/RISKY: exactly what to fix, in priority order}
-{If CAUTION: suggestions worth considering before publish}
-{If SAFE: non-blocking improvements for future}
+
+{If BLOCK/RISKY: exactly what to fix, in priority order} {If CAUTION:
+suggestions worth considering before publish} {If SAFE: non-blocking
+improvements for future}
 ```
 
 ---
 
 ## Anti-Patterns
 
-| Violation | Severity |
-|-----------|----------|
-| Publishing without waiting for all agents | **CRITICAL** |
-| Spawning ultrabrains sequentially instead of in parallel | CRITICAL |
-| Using `run_in_background=false` for any agent | CRITICAL |
-| Skipping the Oracle synthesis | HIGH |
-| Not reading file contents for Oracle (it cannot read files) | HIGH |
-| Grouping all changes into 1-2 ultrabrains instead of distributing | HIGH |
-| Delivering verdict before all agents complete | HIGH |
-| Not including diff in ultrabrain prompts | MAJOR |
+| Violation                                                         | Severity     |
+| ----------------------------------------------------------------- | ------------ |
+| Publishing without waiting for all agents                         | **CRITICAL** |
+| Spawning ultrabrains sequentially instead of in parallel          | CRITICAL     |
+| Using `run_in_background=false` for any agent                     | CRITICAL     |
+| Skipping the Oracle synthesis                                     | HIGH         |
+| Not reading file contents for Oracle (it cannot read files)       | HIGH         |
+| Grouping all changes into 1-2 ultrabrains instead of distributing | HIGH         |
+| Delivering verdict before all agents complete                     | HIGH         |
+| Not including diff in ultrabrain prompts                          | MAJOR        |

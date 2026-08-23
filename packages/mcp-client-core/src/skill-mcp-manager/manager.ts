@@ -1,45 +1,62 @@
-import type { Prompt, Resource, Tool } from "@modelcontextprotocol/sdk/types.js"
-import type { ClaudeCodeMcpServer } from "@oh-my-opencode/claude-code-compat-core/claude-code-mcp-loader/types"
-import { McpOAuthProvider } from "../mcp-oauth/provider"
-import { disconnectAll, disconnectSession, forceReconnect } from "./cleanup"
-import { getOrCreateClient, getOrCreateClientWithRetryImpl } from "./connection"
-import { handlePostRequestAuthError, handleStepUpIfNeeded } from "./oauth-handler"
+import type {
+  Prompt,
+  Resource,
+  Tool,
+} from "@modelcontextprotocol/sdk/types.js";
+import type { ClaudeCodeMcpServer } from "@oh-my-opencode/claude-code-compat-core/claude-code-mcp-loader/types";
+import { McpOAuthProvider } from "../mcp-oauth/provider";
+import { disconnectAll, disconnectSession, forceReconnect } from "./cleanup";
+import {
+  getOrCreateClient,
+  getOrCreateClientWithRetryImpl,
+} from "./connection";
+import {
+  handlePostRequestAuthError,
+  handleStepUpIfNeeded,
+} from "./oauth-handler";
 import type {
   McpClient,
   OAuthProviderFactory,
   SkillMcpClientInfo,
   SkillMcpManagerState,
   SkillMcpServerContext,
-} from "./types"
+} from "./types";
 
 export interface SkillMcpClientOptions {
-  cdpUrl?: string
+  cdpUrl?: string;
 }
 
-export function buildSkillMcpClientKey(info: SkillMcpClientInfo, options?: SkillMcpClientOptions): string {
-  const baseKey = `${info.sessionID}:${info.skillName}:${info.serverName}`
+export function buildSkillMcpClientKey(
+  info: SkillMcpClientInfo,
+  options?: SkillMcpClientOptions,
+): string {
+  const baseKey = `${info.sessionID}:${info.skillName}:${info.serverName}`;
   if (!options?.cdpUrl) {
-    return baseKey
+    return baseKey;
   }
 
-  return `${baseKey}::cdp=${options.cdpUrl}`
+  return `${baseKey}::cdp=${options.cdpUrl}`;
 }
 
 function withInjectedCdpEndpoint(
   config: ClaudeCodeMcpServer,
-  options?: SkillMcpClientOptions
+  options?: SkillMcpClientOptions,
 ): ClaudeCodeMcpServer {
   if (!options?.cdpUrl) {
-    return config
+    return config;
   }
 
-  const configWithCdpEndpoint = structuredClone(config)
-  configWithCdpEndpoint.args = [...(configWithCdpEndpoint.args ?? []), "--cdp-endpoint", options.cdpUrl]
-  return configWithCdpEndpoint
+  const configWithCdpEndpoint = structuredClone(config);
+  configWithCdpEndpoint.args = [
+    ...(configWithCdpEndpoint.args ?? []),
+    "--cdp-endpoint",
+    options.cdpUrl,
+  ];
+  return configWithCdpEndpoint;
 }
 
 export class SkillMcpManager {
-  private readonly state: SkillMcpManagerState
+  private readonly state: SkillMcpManagerState;
 
   constructor(options: { createOAuthProvider?: OAuthProviderFactory } = {}) {
     this.state = {
@@ -54,53 +71,81 @@ export class SkillMcpManager {
       shutdownGeneration: 0,
       inFlightConnections: new Map(),
       disposed: false,
-      createOAuthProvider: options.createOAuthProvider ?? ((providerOptions) => new McpOAuthProvider(providerOptions)),
-    }
+      createOAuthProvider: options.createOAuthProvider ??
+        ((providerOptions) => new McpOAuthProvider(providerOptions)),
+    };
   }
 
-  private getClientKey(info: SkillMcpClientInfo, options?: SkillMcpClientOptions): string {
-    return buildSkillMcpClientKey(info, options)
+  private getClientKey(
+    info: SkillMcpClientInfo,
+    options?: SkillMcpClientOptions,
+  ): string {
+    return buildSkillMcpClientKey(info, options);
   }
 
   async getOrCreateClient(
     info: SkillMcpClientInfo,
     config: ClaudeCodeMcpServer,
-    options?: SkillMcpClientOptions
+    options?: SkillMcpClientOptions,
   ): Promise<McpClient> {
-    const clientKey = this.getClientKey(info, options)
-    const resolvedConfig = withInjectedCdpEndpoint(config, options)
+    const clientKey = this.getClientKey(info, options);
+    const resolvedConfig = withInjectedCdpEndpoint(config, options);
     return await getOrCreateClient({
       state: this.state,
       clientKey,
       info,
       config: resolvedConfig,
-    })
+    });
   }
 
   async disconnectSession(sessionID: string): Promise<void> {
-    await disconnectSession(this.state, sessionID)
+    await disconnectSession(this.state, sessionID);
   }
 
   async disconnectAll(): Promise<void> {
-    await disconnectAll(this.state)
+    await disconnectAll(this.state);
   }
 
-  async listTools(info: SkillMcpClientInfo, context: SkillMcpServerContext, options?: SkillMcpClientOptions): Promise<Tool[]> {
-    const client = await this.getOrCreateClientWithRetry(info, context.config, options)
-    const result = await client.listTools()
-    return result.tools
+  async listTools(
+    info: SkillMcpClientInfo,
+    context: SkillMcpServerContext,
+    options?: SkillMcpClientOptions,
+  ): Promise<Tool[]> {
+    const client = await this.getOrCreateClientWithRetry(
+      info,
+      context.config,
+      options,
+    );
+    const result = await client.listTools();
+    return result.tools;
   }
 
-  async listResources(info: SkillMcpClientInfo, context: SkillMcpServerContext, options?: SkillMcpClientOptions): Promise<Resource[]> {
-    const client = await this.getOrCreateClientWithRetry(info, context.config, options)
-    const result = await client.listResources()
-    return result.resources
+  async listResources(
+    info: SkillMcpClientInfo,
+    context: SkillMcpServerContext,
+    options?: SkillMcpClientOptions,
+  ): Promise<Resource[]> {
+    const client = await this.getOrCreateClientWithRetry(
+      info,
+      context.config,
+      options,
+    );
+    const result = await client.listResources();
+    return result.resources;
   }
 
-  async listPrompts(info: SkillMcpClientInfo, context: SkillMcpServerContext, options?: SkillMcpClientOptions): Promise<Prompt[]> {
-    const client = await this.getOrCreateClientWithRetry(info, context.config, options)
-    const result = await client.listPrompts()
-    return result.prompts
+  async listPrompts(
+    info: SkillMcpClientInfo,
+    context: SkillMcpServerContext,
+    options?: SkillMcpClientOptions,
+  ): Promise<Prompt[]> {
+    const client = await this.getOrCreateClientWithRetry(
+      info,
+      context.config,
+      options,
+    );
+    const result = await client.listPrompts();
+    return result.prompts;
   }
 
   async callTool(
@@ -108,19 +153,34 @@ export class SkillMcpManager {
     context: SkillMcpServerContext,
     name: string,
     args: Record<string, unknown>,
-    options?: SkillMcpClientOptions
+    options?: SkillMcpClientOptions,
   ): Promise<unknown> {
-    return await this.withOperationRetry(info, context.config, options, async (client) => {
-      const result = await client.callTool({ name, arguments: args })
-      return result.content
-    })
+    return await this.withOperationRetry(
+      info,
+      context.config,
+      options,
+      async (client) => {
+        const result = await client.callTool({ name, arguments: args });
+        return result.content;
+      },
+    );
   }
 
-  async readResource(info: SkillMcpClientInfo, context: SkillMcpServerContext, uri: string, options?: SkillMcpClientOptions): Promise<unknown> {
-    return await this.withOperationRetry(info, context.config, options, async (client) => {
-      const result = await client.readResource({ uri })
-      return result.contents
-    })
+  async readResource(
+    info: SkillMcpClientInfo,
+    context: SkillMcpServerContext,
+    uri: string,
+    options?: SkillMcpClientOptions,
+  ): Promise<unknown> {
+    return await this.withOperationRetry(
+      info,
+      context.config,
+      options,
+      async (client) => {
+        const result = await client.readResource({ uri });
+        return result.contents;
+      },
+    );
   }
 
   async getPrompt(
@@ -128,41 +188,50 @@ export class SkillMcpManager {
     context: SkillMcpServerContext,
     name: string,
     args: Record<string, string>,
-    options?: SkillMcpClientOptions
+    options?: SkillMcpClientOptions,
   ): Promise<unknown> {
-    return await this.withOperationRetry(info, context.config, options, async (client) => {
-      const result = await client.getPrompt({ name, arguments: args })
-      return result.messages
-    })
+    return await this.withOperationRetry(
+      info,
+      context.config,
+      options,
+      async (client) => {
+        const result = await client.getPrompt({ name, arguments: args });
+        return result.messages;
+      },
+    );
   }
 
   private async withOperationRetry<T>(
     info: SkillMcpClientInfo,
     config: ClaudeCodeMcpServer,
     options: SkillMcpClientOptions | undefined,
-    operation: (client: McpClient) => Promise<T>
+    operation: (client: McpClient) => Promise<T>,
   ): Promise<T> {
-    const maxRetries = 3
-    let lastError: Error | null = null
-    const refreshAttempted = new Set<string>()
+    const maxRetries = 3;
+    let lastError: Error | null = null;
+    const refreshAttempted = new Set<string>();
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const client = await this.getOrCreateClientWithRetry(info, config, options)
-        return await operation(client)
+        const client = await this.getOrCreateClientWithRetry(
+          info,
+          config,
+          options,
+        );
+        return await operation(client);
       } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error))
-        const errorMessage = lastError.message.toLowerCase()
+        lastError = error instanceof Error ? error : new Error(String(error));
+        const errorMessage = lastError.message.toLowerCase();
 
         const stepUpHandled = await handleStepUpIfNeeded({
           error: lastError,
           config,
           authProviders: this.state.authProviders,
           createOAuthProvider: this.state.createOAuthProvider,
-        })
+        });
         if (stepUpHandled) {
-          await forceReconnect(this.state, this.getClientKey(info, options))
-          continue
+          await forceReconnect(this.state, this.getClientKey(info, options));
+          continue;
         }
 
         const postRequestRefreshHandled = await handlePostRequestAuthError({
@@ -171,46 +240,48 @@ export class SkillMcpManager {
           authProviders: this.state.authProviders,
           createOAuthProvider: this.state.createOAuthProvider,
           refreshAttempted,
-        })
+        });
         if (postRequestRefreshHandled) {
-          continue
+          continue;
         }
 
         if (!errorMessage.includes("not connected")) {
-          throw lastError
+          throw lastError;
         }
 
         if (attempt === maxRetries) {
-          throw new Error(`Failed after ${maxRetries} reconnection attempts: ${lastError.message}`)
+          throw new Error(
+            `Failed after ${maxRetries} reconnection attempts: ${lastError.message}`,
+          );
         }
 
-        await forceReconnect(this.state, this.getClientKey(info, options))
+        await forceReconnect(this.state, this.getClientKey(info, options));
       }
     }
 
-    throw lastError ?? new Error("Operation failed with unknown error")
+    throw lastError ?? new Error("Operation failed with unknown error");
   }
 
   private async getOrCreateClientWithRetry(
     info: SkillMcpClientInfo,
     config: ClaudeCodeMcpServer,
-    options?: SkillMcpClientOptions
+    options?: SkillMcpClientOptions,
   ): Promise<McpClient> {
-    const clientKey = this.getClientKey(info, options)
-    const resolvedConfig = withInjectedCdpEndpoint(config, options)
+    const clientKey = this.getClientKey(info, options);
+    const resolvedConfig = withInjectedCdpEndpoint(config, options);
     return await getOrCreateClientWithRetryImpl({
       state: this.state,
       clientKey,
       info,
       config: resolvedConfig,
-    })
+    });
   }
 
   getConnectedServers(): string[] {
-    return Array.from(this.state.clients.keys())
+    return Array.from(this.state.clients.keys());
   }
 
   isConnected(info: SkillMcpClientInfo): boolean {
-    return this.state.clients.has(this.getClientKey(info))
+    return this.state.clients.has(this.getClientKey(info));
   }
 }

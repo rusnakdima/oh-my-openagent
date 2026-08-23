@@ -4,7 +4,11 @@
 
 ## OVERVIEW
 
-This module discovers, parses, merges, and resolves SKILL.md files from 4 scopes with priority deduplication. Harness-neutral loader, builtin skill, runtime skill, and skill matching primitives are extracted to [`packages/skills-loader-core/`](../../../../../packages/skills-loader-core); this directory is the OpenCode adapter shim.
+This module discovers, parses, merges, and resolves SKILL.md files from 4 scopes
+with priority deduplication. Harness-neutral loader, builtin skill, runtime
+skill, and skill matching primitives are extracted to
+[`packages/skills-loader-core/`](../../../../../packages/skills-loader-core);
+this directory is the OpenCode adapter shim.
 
 ## 4-SCOPE PRIORITY (highest → lowest)
 
@@ -19,17 +23,17 @@ Same-named skill at higher scope overrides lower.
 
 ## KEY FILES
 
-| File | Purpose |
-|------|---------|
-| `loader.ts` | Main `loadSkills()` — orchestrates discovery → parse → merge |
-| `merger.ts` | Priority-based deduplication across scopes |
-| `skill-content.ts` | YAML frontmatter parsing from SKILL.md |
-| `skill-discovery.ts` | Find SKILL.md files in directory trees |
-| `skill-directory-loader.ts` | Load all skills from a single directory |
-| `config-source-discovery.ts` | Discover scope directories from config |
-| `skill-template-resolver.ts` | Variable substitution in skill templates |
-| `skill-mcp-config.ts` | Extract MCP configs from skill YAML |
-| `types.ts` | `LoadedSkill`, `SkillScope`, `SkillDiscoveryResult` |
+| File                         | Purpose                                                      |
+| ---------------------------- | ------------------------------------------------------------ |
+| `loader.ts`                  | Main `loadSkills()` — orchestrates discovery → parse → merge |
+| `merger.ts`                  | Priority-based deduplication across scopes                   |
+| `skill-content.ts`           | YAML frontmatter parsing from SKILL.md                       |
+| `skill-discovery.ts`         | Find SKILL.md files in directory trees                       |
+| `skill-directory-loader.ts`  | Load all skills from a single directory                      |
+| `config-source-discovery.ts` | Discover scope directories from config                       |
+| `skill-template-resolver.ts` | Variable substitution in skill templates                     |
+| `skill-mcp-config.ts`        | Extract MCP configs from skill YAML                          |
+| `types.ts`                   | `LoadedSkill`, `SkillScope`, `SkillDiscoveryResult`          |
 
 ## SKILL FORMAT (SKILL.md)
 
@@ -50,8 +54,10 @@ Skill content (instructions for the agent)...
 
 ## MERGER SUBDIRECTORY
 
-Handles complex merge logic when skills from multiple scopes have overlapping names or MCP configs.
+Handles complex merge logic when skills from multiple scopes have overlapping
+names or MCP configs.
 
 ## TEMPLATE RESOLUTION
 
-Variables like `{{directory}}`, `{{agent}}` in skill content get resolved at load time based on current context.
+Variables like `{{directory}}`, `{{agent}}` in skill content get resolved at
+load time based on current context.

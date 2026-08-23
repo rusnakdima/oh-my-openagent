@@ -1,29 +1,32 @@
 /// <reference types="bun-types" />
 
-import { afterAll, describe, expect, test } from "bun:test"
-import { existsSync } from "node:fs"
-import { readdir, readFile, stat } from "node:fs/promises"
-import path from "node:path"
-import * as ts from "typescript/unstable/ast"
-import { TypeScriptSourceParser } from "./typescript-native-source-parser"
+import { afterAll, describe, expect, test } from "bun:test";
+import { existsSync } from "node:fs";
+import { readdir, readFile, stat } from "node:fs/promises";
+import path from "node:path";
+import * as ts from "typescript/unstable/ast";
+import { TypeScriptSourceParser } from "./typescript-native-source-parser";
 
 function __repoRootFrom(start: string): string {
-  let dir = start
+  let dir = start;
   for (;;) {
-    if (existsSync(path.join(dir, "bun.lock")) || existsSync(path.join(dir, ".git"))) return dir
-    const parent = path.dirname(dir)
-    if (parent === dir) throw new Error("repo root sentinel not found")
-    dir = parent
+    if (
+      existsSync(path.join(dir, "bun.lock")) ||
+      existsSync(path.join(dir, ".git"))
+    ) return dir;
+    const parent = path.dirname(dir);
+    if (parent === dir) throw new Error("repo root sentinel not found");
+    dir = parent;
   }
 }
 
-const SOURCE_ROOT = path.resolve(import.meta.dir, "..")
-const WORKSPACE_ROOT = __repoRootFrom(import.meta.dir)
-const parser = new TypeScriptSourceParser(WORKSPACE_ROOT)
+const SOURCE_ROOT = path.resolve(import.meta.dir, "..");
+const WORKSPACE_ROOT = __repoRootFrom(import.meta.dir);
+const parser = new TypeScriptSourceParser(WORKSPACE_ROOT);
 afterAll(async () => {
-  await parser.close()
-})
-const MOCK_MODULE_TOKEN = "mock.module"
+  await parser.close();
+});
+const MOCK_MODULE_TOKEN = "mock.module";
 const MOCK_MODULE_LIFECYCLE_ALLOWLIST = new Map<string, string>([
   // TODO(MOCK-MODULE-AUDIT): add cleanup for auto-update checker hook module mocks.
   [
@@ -32,215 +35,277 @@ const MOCK_MODULE_LIFECYCLE_ALLOWLIST = new Map<string, string>([
   ],
   // TODO(MOCK-MODULE-AUDIT): add cleanup for tmux layout-runner module mocks.
   [
-    path.join(SOURCE_ROOT, "shared", "tmux", "tmux-utils", "layout-runner.test.ts"),
+    path.join(
+      SOURCE_ROOT,
+      "shared",
+      "tmux",
+      "tmux-utils",
+      "layout-runner.test.ts",
+    ),
     "justification: legacy mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
   // TODO(MOCK-MODULE-AUDIT): add cleanup for tmux pane-close-runner module mocks.
   [
-    path.join(SOURCE_ROOT, "shared", "tmux", "tmux-utils", "pane-close-runner.test.ts"),
+    path.join(
+      SOURCE_ROOT,
+      "shared",
+      "tmux",
+      "tmux-utils",
+      "pane-close-runner.test.ts",
+    ),
     "justification: legacy mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
   // TODO(MOCK-MODULE-AUDIT): add cleanup for tmux pane-close module mocks.
   [
-    path.join(SOURCE_ROOT, "shared", "tmux", "tmux-utils", "pane-close.test.ts"),
+    path.join(
+      SOURCE_ROOT,
+      "shared",
+      "tmux",
+      "tmux-utils",
+      "pane-close.test.ts",
+    ),
     "justification: legacy mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
   // TODO(MOCK-MODULE-AUDIT): add cleanup for tmux pane-dimensions module mocks.
   [
-    path.join(SOURCE_ROOT, "shared", "tmux", "tmux-utils", "pane-dimensions.test.ts"),
+    path.join(
+      SOURCE_ROOT,
+      "shared",
+      "tmux",
+      "tmux-utils",
+      "pane-dimensions.test.ts",
+    ),
     "justification: legacy mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
   // TODO(MOCK-MODULE-AUDIT): add cleanup for tmux session-kill-runner module mocks.
   [
-    path.join(SOURCE_ROOT, "shared", "tmux", "tmux-utils", "session-kill-runner.test.ts"),
+    path.join(
+      SOURCE_ROOT,
+      "shared",
+      "tmux",
+      "tmux-utils",
+      "session-kill-runner.test.ts",
+    ),
     "justification: legacy mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
   // TODO(MOCK-MODULE-AUDIT): add cleanup for tmux session-kill module mocks.
   [
-    path.join(SOURCE_ROOT, "shared", "tmux", "tmux-utils", "session-kill.test.ts"),
+    path.join(
+      SOURCE_ROOT,
+      "shared",
+      "tmux",
+      "tmux-utils",
+      "session-kill.test.ts",
+    ),
     "justification: legacy mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
   // TODO(MOCK-MODULE-AUDIT): add cleanup for tmux stale-session sweep module mocks.
   [
-    path.join(SOURCE_ROOT, "shared", "tmux", "tmux-utils", "stale-session-sweep-runtime.test.ts"),
+    path.join(
+      SOURCE_ROOT,
+      "shared",
+      "tmux",
+      "tmux-utils",
+      "stale-session-sweep-runtime.test.ts",
+    ),
     "justification: legacy mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
   [
-    path.join(WORKSPACE_ROOT, "packages", "openclaw-core", "src", "__tests__", "reply-listener-process.test.ts"),
+    path.join(
+      WORKSPACE_ROOT,
+      "packages",
+      "openclaw-core",
+      "src",
+      "__tests__",
+      "reply-listener-process.test.ts",
+    ),
     "justification: legacy openclaw-core mock.module call predates audit; TODO(MOCK-MODULE-AUDIT): add cleanup",
   ],
-])
+]);
 
 async function listTestFiles(directory: string): Promise<string[]> {
-  const entries = await readdir(directory, { withFileTypes: true })
+  const entries = await readdir(directory, { withFileTypes: true });
   const nestedFiles = await Promise.all(entries.map(async (entry) => {
-    const entryPath = path.join(directory, entry.name)
+    const entryPath = path.join(directory, entry.name);
     if (entry.isDirectory()) {
-      return listTestFiles(entryPath)
+      return listTestFiles(entryPath);
     }
-    if (entry.isFile() && entry.name.endsWith(".test.ts") && !entry.name.endsWith(".d.ts")) {
-      return [entryPath]
+    if (
+      entry.isFile() && entry.name.endsWith(".test.ts") &&
+      !entry.name.endsWith(".d.ts")
+    ) {
+      return [entryPath];
     }
-    return []
-  }))
+    return [];
+  }));
 
-  return nestedFiles.flat()
+  return nestedFiles.flat();
 }
 
 async function listPackageTestFiles(): Promise<string[]> {
-  const packagesDir = path.join(WORKSPACE_ROOT, "packages")
-  let packageNames: string[] = []
+  const packagesDir = path.join(WORKSPACE_ROOT, "packages");
+  let packageNames: string[] = [];
   try {
-    packageNames = await readdir(packagesDir)
+    packageNames = await readdir(packagesDir);
   } catch {
-    return []
+    return [];
   }
 
   const nestedFiles = await Promise.all(packageNames.map(async (name) => {
     if (name === "omo-opencode") {
-      return []
+      return [];
     }
-    const packageSrc = path.join(packagesDir, name, "src")
+    const packageSrc = path.join(packagesDir, name, "src");
     try {
-      const s = await stat(packageSrc)
+      const s = await stat(packageSrc);
       if (!s.isDirectory()) {
-        return []
+        return [];
       }
     } catch {
-      return []
+      return [];
     }
-    return listTestFiles(packageSrc)
-  }))
+    return listTestFiles(packageSrc);
+  }));
 
-  return nestedFiles.flat()
+  return nestedFiles.flat();
 }
 
 function relativeSourcePath(filePath: string): string {
-  return path.relative(SOURCE_ROOT, filePath)
+  return path.relative(SOURCE_ROOT, filePath);
 }
 
 function isMockModuleCall(node: ts.CallExpression): boolean {
-  const expression = node.expression
-  return ts.isPropertyAccessExpression(expression)
-    && ts.isIdentifier(expression.expression)
-    && expression.expression.text === "mock"
-    && expression.name.text === "module"
+  const expression = node.expression;
+  return ts.isPropertyAccessExpression(expression) &&
+    ts.isIdentifier(expression.expression) &&
+    expression.expression.text === "mock" &&
+    expression.name.text === "module";
 }
 
-function isStringLiteralLike(node: ts.Node): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral {
-  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)
+function isStringLiteralLike(
+  node: ts.Node,
+): node is ts.StringLiteral | ts.NoSubstitutionTemplateLiteral {
+  return ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node);
 }
 
 function getMockModulePath(node: ts.CallExpression): string | null {
   if (!isMockModuleCall(node)) {
-    return null
+    return null;
   }
 
-  const modulePath = node.arguments[0]
+  const modulePath = node.arguments[0];
   if (!modulePath || !isStringLiteralLike(modulePath)) {
-    return null
+    return null;
   }
 
-  return modulePath.text
+  return modulePath.text;
 }
 
 function collectMockModulePaths(sourceFile: ts.SourceFile): string[] {
-  const modulePaths: string[] = []
+  const modulePaths: string[] = [];
 
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node)) {
-      const modulePath = getMockModulePath(node)
+      const modulePath = getMockModulePath(node);
       if (modulePath) {
-        modulePaths.push(modulePath)
+        modulePaths.push(modulePath);
       }
     }
 
-    node.forEachChild(visit)
-  }
+    node.forEachChild(visit);
+  };
 
-  visit(sourceFile)
-  return modulePaths
+  visit(sourceFile);
+  return modulePaths;
 }
 
 function hasMockModuleCall(sourceFile: ts.SourceFile): boolean {
-  return collectMockModulePaths(sourceFile).length > 0
+  return collectMockModulePaths(sourceFile).length > 0;
 }
 
 function hasDuplicateModuleReset(sourceFile: ts.SourceFile): boolean {
-  const seenModulePaths = new Set<string>()
+  const seenModulePaths = new Set<string>();
   for (const modulePath of collectMockModulePaths(sourceFile)) {
     if (seenModulePaths.has(modulePath)) {
-      return true
+      return true;
     }
-    seenModulePaths.add(modulePath)
+    seenModulePaths.add(modulePath);
   }
 
-  return false
+  return false;
 }
 
 function isCleanupCall(node: ts.CallExpression): boolean {
   if (ts.isIdentifier(node.expression)) {
-    return node.expression.text === "afterEach" || node.expression.text === "afterAll"
+    return node.expression.text === "afterEach" ||
+      node.expression.text === "afterAll";
   }
 
-  const expression = node.expression
-  return ts.isPropertyAccessExpression(expression)
-    && ts.isIdentifier(expression.expression)
-    && expression.expression.text === "mock"
-    && expression.name.text === "restore"
+  const expression = node.expression;
+  return ts.isPropertyAccessExpression(expression) &&
+    ts.isIdentifier(expression.expression) &&
+    expression.expression.text === "mock" &&
+    expression.name.text === "restore";
 }
 
 function hasCleanupPattern(sourceFile: ts.SourceFile): boolean {
   if (hasDuplicateModuleReset(sourceFile)) {
-    return true
+    return true;
   }
 
-  let foundCleanup = false
+  let foundCleanup = false;
 
   const visit = (node: ts.Node): void => {
     if (foundCleanup) {
-      return
+      return;
     }
 
     if (ts.isCallExpression(node) && isCleanupCall(node)) {
-      foundCleanup = true
-      return
+      foundCleanup = true;
+      return;
     }
 
-    node.forEachChild(visit)
-  }
+    node.forEachChild(visit);
+  };
 
-  visit(sourceFile)
-  return foundCleanup
+  visit(sourceFile);
+  return foundCleanup;
 }
 
 describe("mock.module lifecycle hygiene", () => {
-  test("#given test files using mock.module #when audited #then each must pair with cleanup", async () => {
-    // given
-    const files = [...await listTestFiles(SOURCE_ROOT), ...await listPackageTestFiles()]
-    const parsedSourceFiles = await parser.parse(files)
-    const offenders: string[] = []
+  test(
+    "#given test files using mock.module #when audited #then each must pair with cleanup",
+    async () => {
+      // given
+      const files = [
+        ...await listTestFiles(SOURCE_ROOT),
+        ...await listPackageTestFiles(),
+      ];
+      const parsedSourceFiles = await parser.parse(files);
+      const offenders: string[] = [];
 
-    // when
-    for (const filePath of files) {
-      if (MOCK_MODULE_LIFECYCLE_ALLOWLIST.has(filePath)) {
-        continue
+      // when
+      for (const filePath of files) {
+        if (MOCK_MODULE_LIFECYCLE_ALLOWLIST.has(filePath)) {
+          continue;
+        }
+
+        const contents = await readFile(filePath, "utf8");
+        if (!contents.includes(MOCK_MODULE_TOKEN)) {
+          continue;
+        }
+        const sourceFile = parsedSourceFiles.get(filePath);
+        if (!sourceFile) {
+          throw new Error(`TypeScript did not parse ${filePath}`);
+        }
+        if (hasMockModuleCall(sourceFile) && !hasCleanupPattern(sourceFile)) {
+          offenders.push(relativeSourcePath(filePath));
+        }
       }
 
-      const contents = await readFile(filePath, "utf8")
-      if (!contents.includes(MOCK_MODULE_TOKEN)) {
-        continue
-      }
-      const sourceFile = parsedSourceFiles.get(filePath)
-      if (!sourceFile) {
-        throw new Error(`TypeScript did not parse ${filePath}`)
-      }
-      if (hasMockModuleCall(sourceFile) && !hasCleanupPattern(sourceFile)) {
-        offenders.push(relativeSourcePath(filePath))
-      }
-    }
-
-    // then
-    expect(offenders.sort()).toEqual([])
-  }, 20_000)
-})
+      // then
+      expect(offenders.sort()).toEqual([]);
+    },
+    20_000,
+  );
+});

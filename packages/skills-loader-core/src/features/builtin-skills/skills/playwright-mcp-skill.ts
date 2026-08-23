@@ -1,4 +1,4 @@
-import type { BuiltinSkill } from "../types"
+import type { BuiltinSkill } from "../types";
 
 /**
  * Extra CLI arguments appended to the default `@playwright/mcp@latest` invocation.
@@ -13,10 +13,10 @@ import type { BuiltinSkill } from "../types"
  * See https://github.com/microsoft/playwright-mcp for supported flags.
  */
 export interface PlaywrightSkillOptions {
-  readonly mcp_args?: readonly string[]
+  readonly mcp_args?: readonly string[];
 }
 
-const BASE_MCP_ARGS = ["@playwright/mcp@latest"] as const
+const BASE_MCP_ARGS = ["@playwright/mcp@latest"] as const;
 
 /**
  * Factory returning the `playwright` built-in skill. When `options.mcp_args` is
@@ -24,8 +24,10 @@ const BASE_MCP_ARGS = ["@playwright/mcp@latest"] as const
  * default invocation stays byte-identical to the legacy const-export when
  * called with no options.
  */
-export function createPlaywrightSkill(options: PlaywrightSkillOptions = {}): BuiltinSkill {
-  const extraArgs = options.mcp_args ?? []
+export function createPlaywrightSkill(
+  options: PlaywrightSkillOptions = {},
+): BuiltinSkill {
+  const extraArgs = options.mcp_args ?? [];
   return {
     name: "playwright",
     description:
@@ -39,7 +41,7 @@ This skill provides browser automation capabilities via the Playwright MCP serve
         args: [...BASE_MCP_ARGS, ...extraArgs],
       },
     },
-  }
+  };
 }
 
 /**
@@ -47,4 +49,4 @@ This skill provides browser automation capabilities via the Playwright MCP serve
  * `createPlaywrightSkill()` so environment-specific MCP args can flow through
  * from user config without re-declaring the skill.
  */
-export const playwrightSkill: BuiltinSkill = createPlaywrightSkill()
+export const playwrightSkill: BuiltinSkill = createPlaywrightSkill();

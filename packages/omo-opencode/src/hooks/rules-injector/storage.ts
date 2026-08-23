@@ -2,8 +2,8 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  writeFileSync,
   unlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { RULES_INJECTOR_STORAGE } from "./constants";
@@ -18,8 +18,9 @@ export function loadInjectedRules(sessionID: string): {
   realPaths: Set<string>;
 } {
   const filePath = getStoragePath(sessionID);
-  if (!existsSync(filePath))
+  if (!existsSync(filePath)) {
     return { contentHashes: new Set(), realPaths: new Set() };
+  }
 
   try {
     const content = readFileSync(filePath, "utf-8");
@@ -38,7 +39,7 @@ export function loadInjectedRules(sessionID: string): {
 
 export function saveInjectedRules(
   sessionID: string,
-  data: { contentHashes: Set<string>; realPaths: Set<string> }
+  data: { contentHashes: Set<string>; realPaths: Set<string> },
 ): void {
   const storageData: InjectedRulesData = {
     sessionID,
@@ -49,13 +50,21 @@ export function saveInjectedRules(
 
   mkdirSync(RULES_INJECTOR_STORAGE, { recursive: true });
   try {
-    writeFileSync(getStoragePath(sessionID), JSON.stringify(storageData, null, 2));
+    writeFileSync(
+      getStoragePath(sessionID),
+      JSON.stringify(storageData, null, 2),
+    );
   } catch (error) {
-    if (!(error instanceof Error) || !("code" in error) || error.code !== "ENOENT") {
+    if (
+      !(error instanceof Error) || !("code" in error) || error.code !== "ENOENT"
+    ) {
       throw error;
     }
     mkdirSync(RULES_INJECTOR_STORAGE, { recursive: true });
-    writeFileSync(getStoragePath(sessionID), JSON.stringify(storageData, null, 2));
+    writeFileSync(
+      getStoragePath(sessionID),
+      JSON.stringify(storageData, null, 2),
+    );
   }
 }
 

@@ -106,7 +106,12 @@ export function parseMemoryFile(content: string): ParsedMemoryFile {
  * Throws FrontmatterError if description is empty after trimming.
  */
 export function renderMemoryFile(
-  frontmatter: { description: string; read_only?: string; kind?: string; aliases?: readonly string[] },
+  frontmatter: {
+    description: string;
+    read_only?: string;
+    kind?: string;
+    aliases?: readonly string[];
+  },
   body: string,
 ): string {
   const description = frontmatter.description.trim();

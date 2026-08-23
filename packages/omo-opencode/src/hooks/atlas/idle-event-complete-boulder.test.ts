@@ -1,36 +1,40 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test"
-import { randomUUID } from "node:crypto"
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { clearBoulderState, readBoulderState, writeBoulderState } from "../../features/boulder-state"
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import {
+  clearBoulderState,
+  readBoulderState,
+  writeBoulderState,
+} from "../../features/boulder-state";
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
 
-const { createAtlasHook } = await import("./index")
+const { createAtlasHook } = await import("./index");
 
 describe("atlas hook idle-event complete boulder", () => {
-  let testDirectory = ""
+  let testDirectory = "";
 
   beforeEach(() => {
-    testDirectory = join(tmpdir(), `atlas-idle-complete-${randomUUID()}`)
+    testDirectory = join(tmpdir(), `atlas-idle-complete-${randomUUID()}`);
     if (!existsSync(testDirectory)) {
-      mkdirSync(testDirectory, { recursive: true })
+      mkdirSync(testDirectory, { recursive: true });
     }
-    clearBoulderState(testDirectory)
-  })
+    clearBoulderState(testDirectory);
+  });
 
   afterEach(() => {
-    clearBoulderState(testDirectory)
+    clearBoulderState(testDirectory);
     if (existsSync(testDirectory)) {
-      rmSync(testDirectory, { recursive: true, force: true })
+      rmSync(testDirectory, { recursive: true, force: true });
     }
-  })
+  });
 
   it("marks work completed with ended_at and elapsed_ms when progress is complete", async () => {
     // given
-    const sessionID = "ses_complete"
-    const planPath = join(testDirectory, "complete-plan.md")
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [x] 1. Done\n", "utf-8")
+    const sessionID = "ses_complete";
+    const planPath = join(testDirectory, "complete-plan.md");
+    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [x] 1. Done\n", "utf-8");
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-complete",
@@ -48,19 +52,21 @@ describe("atlas hook idle-event complete boulder", () => {
           status: "active",
         },
       },
-    })
+    });
 
-    const hook = createAtlasHook(unsafeTestValue<Parameters<typeof createAtlasHook>[0]>({
-      directory: testDirectory,
-      client: {
-        session: {
-          get: async () => ({ data: { id: sessionID } }),
-          messages: async () => ({ data: [] }),
-          prompt: async () => ({ data: {} }),
-          promptAsync: async () => ({ data: {} }),
+    const hook = createAtlasHook(
+      unsafeTestValue<Parameters<typeof createAtlasHook>[0]>({
+        directory: testDirectory,
+        client: {
+          session: {
+            get: async () => ({ data: { id: sessionID } }),
+            messages: async () => ({ data: [] }),
+            prompt: async () => ({ data: {} }),
+            promptAsync: async () => ({ data: {} }),
+          },
         },
-      },
-    }))
+      }),
+    );
 
     // when
     await hook.handler({
@@ -68,12 +74,12 @@ describe("atlas hook idle-event complete boulder", () => {
         type: "session.idle",
         properties: { sessionID },
       },
-    })
+    });
 
     // then
-    const work = readBoulderState(testDirectory)?.works?.["work-complete"]
-    expect(work?.status).toBe("completed")
-    expect(work?.ended_at).toBeString()
-    expect((work?.elapsed_ms ?? 0) > 0).toBe(true)
-  })
-})
+    const work = readBoulderState(testDirectory)?.works?.["work-complete"];
+    expect(work?.status).toBe("completed");
+    expect(work?.ended_at).toBeString();
+    expect((work?.elapsed_ms ?? 0) > 0).toBe(true);
+  });
+});

@@ -2,9 +2,9 @@ export {
   clearPluginConfigFileDetectionCache,
   detectConfigFile,
   detectPluginConfigFile,
+  type DetectPluginConfigFileOptions,
+  type JsoncParseResult,
   parseJsonc,
   parseJsoncSafe,
   readJsoncFile,
-  type DetectPluginConfigFileOptions,
-  type JsoncParseResult,
-} from "@oh-my-opencode/utils"
+} from "@oh-my-opencode/utils";

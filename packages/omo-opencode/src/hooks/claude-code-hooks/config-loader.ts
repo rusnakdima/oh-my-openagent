@@ -1,91 +1,93 @@
-import { existsSync } from "fs"
-import { join } from "path"
-import type { ClaudeHookEvent } from "./types"
-import { log } from "../../shared/logger"
-import { getOpenCodeConfigDirs } from "../../shared"
-import { bunFile } from "../../shared/bun-file-shim"
+import { existsSync } from "fs";
+import { join } from "path";
+import type { ClaudeHookEvent } from "./types";
+import { log } from "../../shared/logger";
+import { getOpenCodeConfigDirs } from "../../shared";
+import { bunFile } from "../../shared/bun-file-shim";
 
-const CONFIG_CACHE_TTL_MS = 30_000
+const CONFIG_CACHE_TTL_MS = 30_000;
 
 export interface DisabledHooksConfig {
-  Stop?: string[]
-  PreToolUse?: string[]
-  PostToolUse?: string[]
-  PostToolUseFailure?: string[]
-  PermissionRequest?: string[]
-  UserPromptSubmit?: string[]
-  Notification?: string[]
-  SubagentStart?: string[]
-  SubagentStop?: string[]
-  SessionStart?: string[]
-  SessionEnd?: string[]
-  PreCompact?: string[]
+  Stop?: string[];
+  PreToolUse?: string[];
+  PostToolUse?: string[];
+  PostToolUseFailure?: string[];
+  PermissionRequest?: string[];
+  UserPromptSubmit?: string[];
+  Notification?: string[];
+  SubagentStart?: string[];
+  SubagentStop?: string[];
+  SessionStart?: string[];
+  SessionEnd?: string[];
+  PreCompact?: string[];
 }
 
 export interface PluginExtendedConfig {
-  disabledHooks?: DisabledHooksConfig
+  disabledHooks?: DisabledHooksConfig;
 }
 
 interface PluginExtendedConfigCacheEntry {
-  value: PluginExtendedConfig
-  cachedAt: number
+  value: PluginExtendedConfig;
+  cachedAt: number;
 }
 
-const configCache = new Map<string, PluginExtendedConfigCacheEntry>()
+const configCache = new Map<string, PluginExtendedConfigCacheEntry>();
 
 function getUserConfigPaths(): string[] {
   return getOpenCodeConfigDirs({ binary: "opencode" }).map((dir) =>
-    join(dir, "opencode-cc-plugin.json"),
-  )
+    join(dir, "opencode-cc-plugin.json")
+  );
 }
 
 function getProjectConfigPath(): string {
-  return join(process.cwd(), ".opencode", "opencode-cc-plugin.json")
+  return join(process.cwd(), ".opencode", "opencode-cc-plugin.json");
 }
 
 function getCacheKey(): string {
-  return `${process.cwd()}::${getUserConfigPaths().join("|")}`
+  return `${process.cwd()}::${getUserConfigPaths().join("|")}`;
 }
 
 function getCachedConfig(cacheKey: string): PluginExtendedConfig | undefined {
-  const cachedEntry = configCache.get(cacheKey)
+  const cachedEntry = configCache.get(cacheKey);
   if (!cachedEntry) {
-    return undefined
+    return undefined;
   }
 
   if (Date.now() - cachedEntry.cachedAt >= CONFIG_CACHE_TTL_MS) {
-    configCache.delete(cacheKey)
-    return undefined
+    configCache.delete(cacheKey);
+    return undefined;
   }
 
-  return cachedEntry.value
+  return cachedEntry.value;
 }
 
 export function clearPluginExtendedConfigCache(): void {
-  configCache.clear()
+  configCache.clear();
 }
 
-async function loadConfigFromPath(path: string): Promise<PluginExtendedConfig | null> {
+async function loadConfigFromPath(
+  path: string,
+): Promise<PluginExtendedConfig | null> {
   if (!existsSync(path)) {
-    return null
+    return null;
   }
 
   try {
-    const content = await bunFile(path).text()
-    return JSON.parse(content) as PluginExtendedConfig
+    const content = await bunFile(path).text();
+    return JSON.parse(content) as PluginExtendedConfig;
   } catch (error) {
-    const loggedError = error instanceof Error ? error : String(error)
-    log("Failed to load config", { path, error: loggedError })
-    return null
+    const loggedError = error instanceof Error ? error : String(error);
+    log("Failed to load config", { path, error: loggedError });
+    return null;
   }
 }
 
 function mergeDisabledHooks(
   base: DisabledHooksConfig | undefined,
-  override: DisabledHooksConfig | undefined
+  override: DisabledHooksConfig | undefined,
 ): DisabledHooksConfig {
-  if (!override) return base ?? {}
-  if (!base) return override
+  if (!override) return base ?? {};
+  if (!base) return override;
 
   return {
     PreToolUse: override.PreToolUse ?? base.PreToolUse,
@@ -100,83 +102,96 @@ function mergeDisabledHooks(
     SessionStart: override.SessionStart ?? base.SessionStart,
     SessionEnd: override.SessionEnd ?? base.SessionEnd,
     PreCompact: override.PreCompact ?? base.PreCompact,
-  }
+  };
 }
 
-export async function loadPluginExtendedConfig(): Promise<PluginExtendedConfig> {
-  const cacheKey = getCacheKey()
-  const cachedConfig = getCachedConfig(cacheKey)
+export async function loadPluginExtendedConfig(): Promise<
+  PluginExtendedConfig
+> {
+  const cacheKey = getCacheKey();
+  const cachedConfig = getCachedConfig(cacheKey);
   if (cachedConfig) {
-    return cachedConfig
+    return cachedConfig;
   }
 
   // User configs: iterate reversed so custom (last in array) overrides default (first)
-  const userPaths = [...getUserConfigPaths()].reverse()
-  let mergedDisabledHooks: DisabledHooksConfig = {}
+  const userPaths = [...getUserConfigPaths()].reverse();
+  let mergedDisabledHooks: DisabledHooksConfig = {};
 
   for (const userPath of userPaths) {
-    const userConfig = await loadConfigFromPath(userPath)
+    const userConfig = await loadConfigFromPath(userPath);
     if (userConfig?.disabledHooks) {
-      mergedDisabledHooks = mergeDisabledHooks(mergedDisabledHooks, userConfig.disabledHooks)
+      mergedDisabledHooks = mergeDisabledHooks(
+        mergedDisabledHooks,
+        userConfig.disabledHooks,
+      );
     }
   }
 
   // Project config overrides all user configs
-  const projectConfig = await loadConfigFromPath(getProjectConfigPath())
+  const projectConfig = await loadConfigFromPath(getProjectConfigPath());
   if (projectConfig?.disabledHooks) {
-    mergedDisabledHooks = mergeDisabledHooks(mergedDisabledHooks, projectConfig.disabledHooks)
+    mergedDisabledHooks = mergeDisabledHooks(
+      mergedDisabledHooks,
+      projectConfig.disabledHooks,
+    );
   }
 
   const merged: PluginExtendedConfig = {
     disabledHooks: mergedDisabledHooks,
-  }
+  };
 
   if (Object.keys(mergedDisabledHooks).length > 0 || projectConfig) {
     log("Plugin extended config loaded", {
       userConfigPaths: getUserConfigPaths(),
       projectConfigExists: projectConfig !== null,
       mergedDisabledHooks,
-    })
+    });
   }
 
   configCache.set(cacheKey, {
     value: merged,
     cachedAt: Date.now(),
-  })
+  });
 
-  return merged
+  return merged;
 }
 
-const regexCache = new Map<string, RegExp>()
+const regexCache = new Map<string, RegExp>();
 
 function getRegex(pattern: string): RegExp {
-  let regex = regexCache.get(pattern)
+  let regex = regexCache.get(pattern);
   if (!regex) {
     try {
-      regex = new RegExp(pattern)
-      regexCache.set(pattern, regex)
+      regex = new RegExp(pattern);
+      regexCache.set(pattern, regex);
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error)
-      log("Invalid disabled hook regex, using literal match", { pattern, error: errorMessage })
-      regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-      regexCache.set(pattern, regex)
+      const errorMessage = error instanceof Error
+        ? error.message
+        : String(error);
+      log("Invalid disabled hook regex, using literal match", {
+        pattern,
+        error: errorMessage,
+      });
+      regex = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+      regexCache.set(pattern, regex);
     }
   }
-  return regex
+  return regex;
 }
 
 export function isHookCommandDisabled(
   eventType: ClaudeHookEvent,
   command: string,
-  config: PluginExtendedConfig | null
+  config: PluginExtendedConfig | null,
 ): boolean {
-  if (!config?.disabledHooks) return false
+  if (!config?.disabledHooks) return false;
 
-  const patterns = config.disabledHooks[eventType]
-  if (!patterns || patterns.length === 0) return false
+  const patterns = config.disabledHooks[eventType];
+  if (!patterns || patterns.length === 0) return false;
 
   return patterns.some((pattern) => {
-    const regex = getRegex(pattern)
-    return regex.test(command)
-  })
+    const regex = getRegex(pattern);
+    return regex.test(command);
+  });
 }

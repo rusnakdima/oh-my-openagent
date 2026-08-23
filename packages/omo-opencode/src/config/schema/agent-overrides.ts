@@ -1,7 +1,10 @@
-import { OmoReasoningSchema } from "@oh-my-opencode/omo-config-core"
-import { z } from "zod"
-import { FallbackModelObjectSchema, FallbackModelsSchema } from "./fallback-models"
-import { AgentPermissionSchema } from "./internal/permission"
+import { OmoReasoningSchema } from "@oh-my-opencode/omo-config-core";
+import { z } from "zod";
+import {
+  FallbackModelObjectSchema,
+  FallbackModelsSchema,
+} from "./fallback-models";
+import { AgentPermissionSchema } from "./internal/permission";
 
 export const AgentOverrideConfigSchema = z.object({
   /**
@@ -51,7 +54,15 @@ export const AgentOverrideConfigSchema = z.object({
     })
     .optional(),
   /** @deprecated Use `reasoning` instead. */
-  reasoningEffort: z.enum(["none", "minimal", "low", "medium", "high", "xhigh", "max"]).optional(),
+  reasoningEffort: z.enum([
+    "none",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+  ]).optional(),
   /** Text verbosity level. */
   textVerbosity: z.enum(["low", "medium", "high"]).optional(),
   /** Provider-specific options. Passed directly to OpenCode SDK. */
@@ -73,7 +84,7 @@ export const AgentOverrideConfigSchema = z.object({
       variant: z.string().optional(),
     })
     .optional(),
-})
+});
 
 export const AgentOverridesSchema = z.object({
   build: AgentOverrideConfigSchema.optional(),
@@ -92,7 +103,7 @@ export const AgentOverridesSchema = z.object({
   explore: AgentOverrideConfigSchema.optional(),
   "multimodal-looker": AgentOverrideConfigSchema.optional(),
   atlas: AgentOverrideConfigSchema.optional(),
-}).catchall(AgentOverrideConfigSchema.optional())
+}).catchall(AgentOverrideConfigSchema.optional());
 
-export type AgentOverrideConfig = z.infer<typeof AgentOverrideConfigSchema>
-export type AgentOverrides = z.infer<typeof AgentOverridesSchema>
+export type AgentOverrideConfig = z.infer<typeof AgentOverrideConfigSchema>;
+export type AgentOverrides = z.infer<typeof AgentOverridesSchema>;

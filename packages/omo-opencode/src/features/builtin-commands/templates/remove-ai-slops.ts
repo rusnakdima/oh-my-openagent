@@ -111,7 +111,7 @@ If any issues are found during critical review:
 - NEVER remove code that serves a functional purpose
 - ALWAYS verify changes compile/parse correctly
 - ALWAYS preserve test coverage
-- If uncertain about a change, err on the side of keeping the original code`
+- If uncertain about a change, err on the side of keeping the original code`;
 
 export const REMOVE_AI_SLOPS_TEAM_MODE_ADDENDUM = `
 ---
@@ -213,4 +213,4 @@ The \`~/.omo/teams/slop-squad/config.json\` declaration file stays on disk; it i
 - Do not inline the full slop-criteria into every task description; rely on the Phase 2 broadcast.
 - Do not call \`team_create\` again mid-session. One team per resolution.
 - Do not put \`oracle\` / \`librarian\` into the team spec — they are team-ineligible; call them via \`task()\` outside the team when needed.
-`
+`;

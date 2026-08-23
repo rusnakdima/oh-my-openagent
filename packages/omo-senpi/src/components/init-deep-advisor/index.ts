@@ -1,1 +1,1 @@
-export { createInitDeepAdvisorComponent, processStartTime } from "./component"
+export { createInitDeepAdvisorComponent, processStartTime } from "./component";

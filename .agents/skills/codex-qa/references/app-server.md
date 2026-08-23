@@ -1,9 +1,9 @@
 # Codex app-server — the first-party QA channel
 
-The app-server is how a host (IDE, our QA harness) drives Codex programmatically.
-We speak its protocol directly so we can read the **structured notification
-stream** — including `hook/started` / `hook/completed`, which is the
-authoritative proof that an omo plugin hook fired in a live turn.
+The app-server is how a host (IDE, our QA harness) drives Codex
+programmatically. We speak its protocol directly so we can read the **structured
+notification stream** — including `hook/started` / `hook/completed`, which is
+the authoritative proof that an omo plugin hook fired in a live turn.
 
 Verified against `codex-cli 0.139.0`. Source citations are `path:line` under
 `../codex/codex-rs/`.
@@ -35,9 +35,10 @@ codex app-server generate-json-schema --out "$(mktemp -d)"   # ClientRequest.jso
 
 Read stdout line-by-line and collect:
 
-- `hook/started` / `hook/completed` — `params.run.eventName` (e.g. `sessionStart`,
-  `userPromptSubmit`, `stop`), `params.run.status` (`running` → `completed`),
-  `params.run.source` (`plugin`). **This is the plugin-fired proof.**
+- `hook/started` / `hook/completed` — `params.run.eventName` (e.g.
+  `sessionStart`, `userPromptSubmit`, `stop`), `params.run.status` (`running` →
+  `completed`), `params.run.source` (`plugin`). **This is the plugin-fired
+  proof.**
 - `item/completed` where `item.type == "agentMessage"` — `item.text` is the
   assistant message.
 - `turn/completed` — stop when `turn.status == "completed"` (or `"failed"` with

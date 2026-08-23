@@ -1,8 +1,8 @@
-import { reclaimStaleReservations } from "@oh-my-opencode/team-core/team-mailbox"
+import { reclaimStaleReservations } from "@oh-my-opencode/team-core/team-mailbox";
 
-import type { TeamCoreConfig } from "../runtime-config"
+import type { TeamCoreConfig } from "../runtime-config";
 
-export type ReclaimResult = Readonly<Record<string, readonly string[]>>
+export type ReclaimResult = Readonly<Record<string, readonly string[]>>;
 
 /**
  * Reclaims delivery reservations left dangling by a crash mid-delivery, one member inbox at a time,
@@ -17,9 +17,14 @@ export async function reclaimStaleTeamReservations(
   config: TeamCoreConfig,
   staleTtlMs: number,
 ): Promise<ReclaimResult> {
-  const result: Record<string, readonly string[]> = {}
+  const result: Record<string, readonly string[]> = {};
   for (const memberName of memberNames) {
-    result[memberName] = await reclaimStaleReservations(teamRunId, memberName, config, staleTtlMs)
+    result[memberName] = await reclaimStaleReservations(
+      teamRunId,
+      memberName,
+      config,
+      staleTtlMs,
+    );
   }
-  return result
+  return result;
 }

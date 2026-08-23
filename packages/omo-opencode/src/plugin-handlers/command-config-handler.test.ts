@@ -5,7 +5,7 @@ import * as builtinCommands from "../features/builtin-commands";
 import * as commandLoader from "../features/claude-code-command-loader";
 import * as mcpLoader from "../features/claude-code-mcp-loader";
 import * as skillLoader from "../features/opencode-skill-loader";
-import { OhMyOpenCodeConfigSchema, type OhMyOpenCodeConfig } from "../config";
+import { type OhMyOpenCodeConfig, OhMyOpenCodeConfigSchema } from "../config";
 import type { LoadedSkill } from "../features/opencode-skill-loader/types";
 import type { PluginComponents } from "./plugin-components-loader";
 import { applyCommandConfig } from "./command-config-handler";
@@ -36,7 +36,9 @@ function createPluginConfig(): OhMyOpenCodeConfig {
   };
 }
 
-function createParsedPluginConfig(overrides: Record<string, unknown>): OhMyOpenCodeConfig {
+function createParsedPluginConfig(
+  overrides: Record<string, unknown>,
+): OhMyOpenCodeConfig {
   return OhMyOpenCodeConfigSchema.parse({
     ...createPluginConfig(),
     ...overrides,
@@ -59,19 +61,41 @@ describe("applyCommandConfig", () => {
   let getSystemMcpServerNamesSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    getSystemMcpServerNamesSpy = spyOn(mcpLoader, "getSystemMcpServerNames").mockReturnValue(new Set());
-    loadBuiltinCommandsSpy = spyOn(builtinCommands, "loadBuiltinCommands").mockReturnValue({});
-    loadUserCommandsSpy = spyOn(commandLoader, "loadUserCommands").mockResolvedValue({});
-    loadProjectCommandsSpy = spyOn(commandLoader, "loadProjectCommands").mockResolvedValue({});
-    loadOpencodeGlobalCommandsSpy = spyOn(commandLoader, "loadOpencodeGlobalCommands").mockResolvedValue({});
-    loadOpencodeProjectCommandsSpy = spyOn(commandLoader, "loadOpencodeProjectCommands").mockResolvedValue({});
-    discoverConfigSourceSkillsSpy = spyOn(skillLoader, "discoverConfigSourceSkills").mockResolvedValue([]);
-    loadUserSkillsSpy = spyOn(skillLoader, "loadUserSkills").mockResolvedValue({});
-    loadProjectSkillsSpy = spyOn(skillLoader, "loadProjectSkills").mockResolvedValue({});
-    loadOpencodeGlobalSkillsSpy = spyOn(skillLoader, "loadOpencodeGlobalSkills").mockResolvedValue({});
-    loadOpencodeProjectSkillsSpy = spyOn(skillLoader, "loadOpencodeProjectSkills").mockResolvedValue({});
-    loadProjectAgentsSkillsSpy = spyOn(skillLoader, "loadProjectAgentsSkills").mockResolvedValue({});
-    loadGlobalAgentsSkillsSpy = spyOn(skillLoader, "loadGlobalAgentsSkills").mockResolvedValue({});
+    getSystemMcpServerNamesSpy = spyOn(mcpLoader, "getSystemMcpServerNames")
+      .mockReturnValue(new Set());
+    loadBuiltinCommandsSpy = spyOn(builtinCommands, "loadBuiltinCommands")
+      .mockReturnValue({});
+    loadUserCommandsSpy = spyOn(commandLoader, "loadUserCommands")
+      .mockResolvedValue({});
+    loadProjectCommandsSpy = spyOn(commandLoader, "loadProjectCommands")
+      .mockResolvedValue({});
+    loadOpencodeGlobalCommandsSpy = spyOn(
+      commandLoader,
+      "loadOpencodeGlobalCommands",
+    ).mockResolvedValue({});
+    loadOpencodeProjectCommandsSpy = spyOn(
+      commandLoader,
+      "loadOpencodeProjectCommands",
+    ).mockResolvedValue({});
+    discoverConfigSourceSkillsSpy = spyOn(
+      skillLoader,
+      "discoverConfigSourceSkills",
+    ).mockResolvedValue([]);
+    loadUserSkillsSpy = spyOn(skillLoader, "loadUserSkills").mockResolvedValue(
+      {},
+    );
+    loadProjectSkillsSpy = spyOn(skillLoader, "loadProjectSkills")
+      .mockResolvedValue({});
+    loadOpencodeGlobalSkillsSpy = spyOn(skillLoader, "loadOpencodeGlobalSkills")
+      .mockResolvedValue({});
+    loadOpencodeProjectSkillsSpy = spyOn(
+      skillLoader,
+      "loadOpencodeProjectSkills",
+    ).mockResolvedValue({});
+    loadProjectAgentsSkillsSpy = spyOn(skillLoader, "loadProjectAgentsSkills")
+      .mockResolvedValue({});
+    loadGlobalAgentsSkillsSpy = spyOn(skillLoader, "loadGlobalAgentsSkills")
+      .mockResolvedValue({});
   });
 
   afterEach(() => {
@@ -115,9 +139,16 @@ describe("applyCommandConfig", () => {
     });
 
     // then
-    const commandConfig = config.command as Record<string, { description?: string }>;
-    expect(commandConfig["agents-project-skill"]?.description).toContain("Agents project skill");
-    expect(commandConfig["agents-global-skill"]?.description).toContain("Agents global skill");
+    const commandConfig = config.command as Record<
+      string,
+      { description?: string }
+    >;
+    expect(commandConfig["agents-project-skill"]?.description).toContain(
+      "Agents project skill",
+    );
+    expect(commandConfig["agents-global-skill"]?.description).toContain(
+      "Agents global skill",
+    );
   });
 
   test("normalizes Atlas command agents to the runtime list name used by opencode command routing", async () => {
@@ -142,7 +173,9 @@ describe("applyCommandConfig", () => {
 
     // then
     const commandConfig = config.command as Record<string, { agent?: string }>;
-    expect(commandConfig["start-work"]?.agent).toBe(getAgentListDisplayName("atlas"));
+    expect(commandConfig["start-work"]?.agent).toBe(
+      getAgentListDisplayName("atlas"),
+    );
   });
 
   test("normalizes legacy display-name command agents to the runtime list name", async () => {
@@ -167,7 +200,9 @@ describe("applyCommandConfig", () => {
 
     // then
     const commandConfig = config.command as Record<string, { agent?: string }>;
-    expect(commandConfig["start-work"]?.agent).toBe(getAgentListDisplayName("atlas"));
+    expect(commandConfig["start-work"]?.agent).toBe(
+      getAgentListDisplayName("atlas"),
+    );
   });
 
   test("registers builtin skills like init-deep and security-review as opencode commands", async () => {
@@ -183,11 +218,20 @@ describe("applyCommandConfig", () => {
     });
 
     // then
-    const commandConfig = config.command as Record<string, { description?: string; template?: string }>;
-    expect(commandConfig["init-deep"]?.description).toContain("Initialize hierarchical AGENTS.md");
-    expect(commandConfig["init-deep"]?.template).toContain("<skill-instruction>");
+    const commandConfig = config.command as Record<
+      string,
+      { description?: string; template?: string }
+    >;
+    expect(commandConfig["init-deep"]?.description).toContain(
+      "Initialize hierarchical AGENTS.md",
+    );
+    expect(commandConfig["init-deep"]?.template).toContain(
+      "<skill-instruction>",
+    );
     expect(commandConfig["init-deep"]?.template).toContain("$ARGUMENTS");
-    expect(commandConfig["security-review"]?.template).toContain("<skill-instruction>");
+    expect(commandConfig["security-review"]?.template).toContain(
+      "<skill-instruction>",
+    );
     expect(commandConfig["team-mode"]).toBeUndefined();
   });
 
@@ -196,7 +240,8 @@ describe("applyCommandConfig", () => {
     loadBuiltinCommandsSpy.mockReturnValue({
       "remove-ai-slops": {
         name: "remove-ai-slops",
-        description: "(builtin) Remove AI-generated code smells from branch changes and critically review the results",
+        description:
+          "(builtin) Remove AI-generated code smells from branch changes and critically review the results",
         template: "builtin command template",
       },
     });
@@ -211,8 +256,13 @@ describe("applyCommandConfig", () => {
     });
 
     // then
-    const commandConfig = config.command as Record<string, { template?: string }>;
-    expect(commandConfig["remove-ai-slops"]?.template).toBe("builtin command template");
+    const commandConfig = config.command as Record<
+      string,
+      { template?: string }
+    >;
+    expect(commandConfig["remove-ai-slops"]?.template).toBe(
+      "builtin command template",
+    );
   });
 
   test("excludes builtin skills disabled via disabled_skills from the command config", async () => {
@@ -232,9 +282,14 @@ describe("applyCommandConfig", () => {
     });
 
     // then
-    const commandConfig = config.command as Record<string, { template?: string }>;
+    const commandConfig = config.command as Record<
+      string,
+      { template?: string }
+    >;
     expect(commandConfig["init-deep"]).toBeUndefined();
-    expect(commandConfig["security-review"]?.template).toContain("<skill-instruction>");
+    expect(commandConfig["security-review"]?.template).toContain(
+      "<skill-instruction>",
+    );
   });
 
   test("excludes builtin skills whose MCP servers already exist in the system MCP config", async () => {
@@ -251,9 +306,14 @@ describe("applyCommandConfig", () => {
     });
 
     // then
-    const commandConfig = config.command as Record<string, { template?: string }>;
+    const commandConfig = config.command as Record<
+      string,
+      { template?: string }
+    >;
     expect(commandConfig["playwright"]).toBeUndefined();
-    expect(commandConfig["init-deep"]?.template).toContain("<skill-instruction>");
+    expect(commandConfig["init-deep"]?.template).toContain(
+      "<skill-instruction>",
+    );
   });
 
   test("#given disabled_commands contains remove-ai-slops #when applying command config #then the skill-backed command does not resurrect", async () => {
@@ -283,7 +343,10 @@ describe("applyCommandConfig", () => {
       ctx: { directory: "/tmp" },
       pluginComponents: createPluginComponents(),
     });
-    const controlCommandConfig = controlConfig.command as Record<string, unknown>;
+    const controlCommandConfig = controlConfig.command as Record<
+      string,
+      unknown
+    >;
     expect(controlCommandConfig["remove-ai-slops"]).toBeDefined();
   });
 
@@ -314,15 +377,20 @@ describe("applyCommandConfig", () => {
       ctx: { directory: "/tmp" },
       pluginComponents: createPluginComponents(),
     });
-    const controlCommandConfig = controlConfig.command as Record<string, unknown>;
+    const controlCommandConfig = controlConfig.command as Record<
+      string,
+      unknown
+    >;
     expect(controlCommandConfig["debugging"]).toBeDefined();
   });
 
-  for (const [label, skills] of [
-    ["skills.disable", { disable: ["debugging"] }],
-    ["skills.<name>: false", { debugging: false }],
-    ["skills.<name>.disable: true", { debugging: { disable: true } }],
-  ] as const) {
+  for (
+    const [label, skills] of [
+      ["skills.disable", { disable: ["debugging"] }],
+      ["skills.<name>: false", { debugging: false }],
+      ["skills.<name>.disable: true", { debugging: { disable: true } }],
+    ] as const
+  ) {
     test(`#given ${label} disables debugging #then no /debugging command registers`, async () => {
       // given
       const pluginConfig = createParsedPluginConfig({
@@ -350,12 +418,14 @@ describe("applyCommandConfig", () => {
       name: "Project-Poison",
       definition: {
         name: "Project-Poison",
-        description: "HOSTILE DESCRIPTION TEXT should never reach command config",
+        description:
+          "HOSTILE DESCRIPTION TEXT should never reach command config",
         template: "poisoned template",
       },
       scope: "config",
     };
-    discoverConfigSourceSkillsSpy.mockResolvedValueOnce([poisonedSkill]).mockResolvedValueOnce([]);
+    discoverConfigSourceSkillsSpy.mockResolvedValueOnce([poisonedSkill])
+      .mockResolvedValueOnce([]);
     const pluginConfig = createParsedPluginConfig({
       skills: { disable: ["project-poison"] },
     });
@@ -372,7 +442,9 @@ describe("applyCommandConfig", () => {
     // then
     const commandConfig = config.command as Record<string, unknown>;
     expect(commandConfig["Project-Poison"]).toBeUndefined();
-    expect(JSON.stringify(commandConfig)).not.toContain("HOSTILE DESCRIPTION TEXT");
+    expect(JSON.stringify(commandConfig)).not.toContain(
+      "HOSTILE DESCRIPTION TEXT",
+    );
   });
 
   test("includes host config skills declared in config.skills.paths by other plugins", async () => {
@@ -404,7 +476,12 @@ describe("applyCommandConfig", () => {
     });
 
     // then
-    const commandConfig = config.command as Record<string, { description?: string }>;
-    expect(commandConfig["host-config-skill"]?.description).toContain("Host config skill");
+    const commandConfig = config.command as Record<
+      string,
+      { description?: string }
+    >;
+    expect(commandConfig["host-config-skill"]?.description).toContain(
+      "Host config skill",
+    );
   });
 });

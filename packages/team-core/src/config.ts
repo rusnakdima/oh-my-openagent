@@ -1,4 +1,4 @@
-import * as z from "zod"
+import * as z from "zod";
 
 export const TeamModeConfigSchema = z.object({
   enabled: z.boolean().default(false),
@@ -12,6 +12,6 @@ export const TeamModeConfigSchema = z.object({
   message_payload_max_bytes: z.number().int().min(1024).default(32768),
   recipient_unread_max_bytes: z.number().int().min(1024).default(262144),
   mailbox_poll_interval_ms: z.number().int().min(500).default(3000),
-})
+});
 
-export type TeamModeConfig = z.infer<typeof TeamModeConfigSchema>
+export type TeamModeConfig = z.infer<typeof TeamModeConfigSchema>;

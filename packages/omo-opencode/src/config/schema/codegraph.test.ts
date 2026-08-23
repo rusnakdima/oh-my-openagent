@@ -1,8 +1,8 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { OhMyOpenCodeConfigSchema } from "./oh-my-opencode-config"
+import { OhMyOpenCodeConfigSchema } from "./oh-my-opencode-config";
 
 describe("OhMyOpenCodeConfigSchema codegraph", () => {
   describe("#given the codegraph section is present without overrides", () => {
@@ -10,10 +10,10 @@ describe("OhMyOpenCodeConfigSchema codegraph", () => {
       // given
       const input = {
         codegraph: {},
-      }
+      };
 
       // when
-      const result = OhMyOpenCodeConfigSchema.parse(input)
+      const result = OhMyOpenCodeConfigSchema.parse(input);
 
       // then
       expect(result.codegraph).toEqual({
@@ -21,9 +21,9 @@ describe("OhMyOpenCodeConfigSchema codegraph", () => {
         auto_provision: true,
         daemon: true,
         enabled: true,
-      })
-    })
-  })
+      });
+    });
+  });
 
   describe("#given codegraph is explicitly opted out", () => {
     test("#when parsed #then enabled remains false and other defaults are applied", () => {
@@ -32,10 +32,10 @@ describe("OhMyOpenCodeConfigSchema codegraph", () => {
         codegraph: {
           enabled: false,
         },
-      }
+      };
 
       // when
-      const result = OhMyOpenCodeConfigSchema.parse(input)
+      const result = OhMyOpenCodeConfigSchema.parse(input);
 
       // then
       expect(result.codegraph).toEqual({
@@ -43,9 +43,9 @@ describe("OhMyOpenCodeConfigSchema codegraph", () => {
         auto_provision: true,
         daemon: true,
         enabled: false,
-      })
-    })
-  })
+      });
+    });
+  });
 
   describe("#given all shared codegraph keys are configured", () => {
     test("#when parsed #then the shared shape is preserved", () => {
@@ -58,19 +58,19 @@ describe("OhMyOpenCodeConfigSchema codegraph", () => {
           telemetry: false,
           watch_debounce_ms: 250,
         },
-      }
+      };
 
       // when
-      const result = OhMyOpenCodeConfigSchema.parse(input)
+      const result = OhMyOpenCodeConfigSchema.parse(input);
 
       // then
       expect(result.codegraph).toEqual({
         ...input.codegraph,
         auto_init: true,
         daemon: true,
-      })
-    })
-  })
+      });
+    });
+  });
 
   describe("#given malformed codegraph values", () => {
     test("#when parsed #then bad types are rejected", () => {
@@ -79,13 +79,13 @@ describe("OhMyOpenCodeConfigSchema codegraph", () => {
         codegraph: {
           enabled: "yes",
         },
-      }
+      };
 
       // when
-      const result = OhMyOpenCodeConfigSchema.safeParse(input)
+      const result = OhMyOpenCodeConfigSchema.safeParse(input);
 
       // then
-      expect(result.success).toBe(false)
-    })
-  })
-})
+      expect(result.success).toBe(false);
+    });
+  });
+});

@@ -1,81 +1,87 @@
-import { existsSync } from "node:fs"
-import { join } from "node:path"
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 
-import { getOpenCodeCacheDir } from "../../shared/data-path"
-import { log } from "../../shared/logger"
-import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide"
+import { getOpenCodeCacheDir } from "../../shared/data-path";
+import { log } from "../../shared/logger";
+import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide";
 
-const BUN_INSTALL_TIMEOUT_SECONDS = 60
-const BUN_INSTALL_TIMEOUT_MS = BUN_INSTALL_TIMEOUT_SECONDS * 1000
+const BUN_INSTALL_TIMEOUT_SECONDS = 60;
+const BUN_INSTALL_TIMEOUT_MS = BUN_INSTALL_TIMEOUT_SECONDS * 1000;
 
-type BunInstallOutputMode = "inherit" | "pipe"
+type BunInstallOutputMode = "inherit" | "pipe";
 
 interface RunBunInstallOptions {
-  outputMode?: BunInstallOutputMode
+  outputMode?: BunInstallOutputMode;
   /** Workspace directory to install to. Defaults to cache dir if not provided. */
-  workspaceDir?: string
+  workspaceDir?: string;
 }
 
 interface BunInstallOutput {
-  stdout: string
-  stderr: string
+  stdout: string;
+  stderr: string;
 }
 
-declare function setTimeout(callback: () => void, delay?: number): number
-declare function clearTimeout(timeout: number): void
+declare function setTimeout(callback: () => void, delay?: number): number;
+declare function clearTimeout(timeout: number): void;
 
-type ProcessOutputStream = ReturnType<typeof spawnWithWindowsHide>["stdout"]
+type ProcessOutputStream = ReturnType<typeof spawnWithWindowsHide>["stdout"];
 
 export interface BunInstallResult {
-  success: boolean
-  timedOut?: boolean
-  error?: string
+  success: boolean;
+  timedOut?: boolean;
+  error?: string;
 }
 
 export async function runBunInstall(): Promise<boolean> {
-  const result = await runBunInstallWithDetails()
-  return result.success
+  const result = await runBunInstallWithDetails();
+  return result.success;
 }
 
 function getDefaultWorkspaceDir(): string {
-  return join(getOpenCodeCacheDir(), "packages")
+  return join(getOpenCodeCacheDir(), "packages");
 }
 
 function readProcessOutput(stream: ProcessOutputStream): Promise<string> {
   if (!stream) {
-    return Promise.resolve("")
+    return Promise.resolve("");
   }
 
-  return new Response(stream).text()
+  return new Response(stream).text();
 }
 
-function logCapturedOutputOnFailure(outputMode: BunInstallOutputMode, output: BunInstallOutput): void {
+function logCapturedOutputOnFailure(
+  outputMode: BunInstallOutputMode,
+  output: BunInstallOutput,
+): void {
   if (outputMode !== "pipe") {
-    return
+    return;
   }
 
-  const stdout = output.stdout.trim()
-  const stderr = output.stderr.trim()
+  const stdout = output.stdout.trim();
+  const stderr = output.stderr.trim();
   if (!stdout && !stderr) {
-    return
+    return;
   }
 
   log("[bun-install] Captured output from failed bun install", {
     stdout,
     stderr,
-  })
+  });
 }
 
-export async function runBunInstallWithDetails(options?: RunBunInstallOptions): Promise<BunInstallResult> {
-  const outputMode = options?.outputMode ?? "pipe"
-  const cacheDir = options?.workspaceDir ?? getDefaultWorkspaceDir()
-  const packageJsonPath = `${cacheDir}/package.json`
+export async function runBunInstallWithDetails(
+  options?: RunBunInstallOptions,
+): Promise<BunInstallResult> {
+  const outputMode = options?.outputMode ?? "pipe";
+  const cacheDir = options?.workspaceDir ?? getDefaultWorkspaceDir();
+  const packageJsonPath = `${cacheDir}/package.json`;
 
   if (!existsSync(packageJsonPath)) {
     return {
       success: false,
-      error: `Workspace not initialized: ${packageJsonPath} not found. OpenCode should create this on first run.`,
-    }
+      error:
+        `Workspace not initialized: ${packageJsonPath} not found. OpenCode should create this on first run.`,
+    };
   }
 
   try {
@@ -84,63 +90,71 @@ export async function runBunInstallWithDetails(options?: RunBunInstallOptions): 
       env: process.env,
       stdout: outputMode,
       stderr: outputMode,
-    })
+    });
 
-    const outputPromise = Promise.all([readProcessOutput(proc.stdout), readProcessOutput(proc.stderr)]).then(
-      ([stdout, stderr]) => ({ stdout, stderr })
-    )
+    const outputPromise = Promise.all([
+      readProcessOutput(proc.stdout),
+      readProcessOutput(proc.stderr),
+    ]).then(
+      ([stdout, stderr]) => ({ stdout, stderr }),
+    );
 
-    let timeoutId: ReturnType<typeof setTimeout> | undefined
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     const timeoutPromise = new Promise<"timeout">((resolve) => {
-      timeoutId = setTimeout(() => resolve("timeout"), BUN_INSTALL_TIMEOUT_MS)
-    })
-    const exitPromise = proc.exited.then(() => "completed" as const)
-    const result = await Promise.race([exitPromise, timeoutPromise])
+      timeoutId = setTimeout(() => resolve("timeout"), BUN_INSTALL_TIMEOUT_MS);
+    });
+    const exitPromise = proc.exited.then(() => "completed" as const);
+    const result = await Promise.race([exitPromise, timeoutPromise]);
     if (timeoutId) {
-      clearTimeout(timeoutId)
+      clearTimeout(timeoutId);
     }
 
     if (result === "timeout") {
       try {
-        proc.kill()
+        proc.kill();
       } catch (err) {
-        log("[cli/install] Failed to kill timed out bun install process:", err)
+        log("[cli/install] Failed to kill timed out bun install process:", err);
       }
 
       if (outputMode === "pipe") {
         void outputPromise
           .then((output) => {
-            logCapturedOutputOnFailure(outputMode, output)
+            logCapturedOutputOnFailure(outputMode, output);
           })
           .catch((err) => {
-            log("[bun-install] Failed to read captured output after timeout:", err)
-          })
+            log(
+              "[bun-install] Failed to read captured output after timeout:",
+              err,
+            );
+          });
       }
 
       return {
         success: false,
         timedOut: true,
-        error: `bun install timed out after ${BUN_INSTALL_TIMEOUT_SECONDS} seconds. Try running manually: cd "${cacheDir}" && bun i`,
-      }
+        error:
+          `bun install timed out after ${BUN_INSTALL_TIMEOUT_SECONDS} seconds. Try running manually: cd "${cacheDir}" && bun i`,
+      };
     }
 
-    const output = await outputPromise
+    const output = await outputPromise;
 
     if (proc.exitCode !== 0) {
-      logCapturedOutputOnFailure(outputMode, output)
+      logCapturedOutputOnFailure(outputMode, output);
 
       return {
         success: false,
         error: `bun install failed with exit code ${proc.exitCode}`,
-      }
+      };
     }
 
-    return { success: true }
+    return { success: true };
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
+    const message = err instanceof Error ? err.message : String(err);
     return {
       success: false,
-      error: `bun install failed: ${message}. Is bun installed? Try: curl -fsSL https://bun.sh/install | bash`,
-    }
+      error:
+        `bun install failed: ${message}. Is bun installed? Try: curl -fsSL https://bun.sh/install | bash`,
+    };
   }
 }

@@ -1,2 +1,2 @@
-export * from "./types"
-export { MonitorManager, createMonitorManager } from "./manager"
+export * from "./types";
+export { createMonitorManager, MonitorManager } from "./manager";

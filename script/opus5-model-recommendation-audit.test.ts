@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
 const RECOMMENDATION_FILES = [
   "README.md",
@@ -21,21 +21,23 @@ const RECOMMENDATION_FILES = [
   "packages/web/messages/ja.json",
   "packages/web/messages/ko.json",
   "packages/web/messages/zh.json",
-] as const
+] as const;
 
-const LEGACY_OPUS_RECOMMENDATION = /\b(?:claude[- ]?)?opus[ _-]?4[._-]?(?:6|8)\b/i
+const LEGACY_OPUS_RECOMMENDATION =
+  /\b(?:claude[- ]?)?opus[ _-]?4[._-]?(?:6|8)\b/i;
 
 describe("Opus 5 model recommendation migration", () => {
   test("does not publish legacy Opus 4.6 or 4.8 recommendations", async () => {
     const staleReferences = (
       await Promise.all(
         RECOMMENDATION_FILES.map(async (file) => {
-          const text = await Bun.file(new URL(`../${file}`, import.meta.url)).text()
-          return LEGACY_OPUS_RECOMMENDATION.test(text) ? file : null
+          const text = await Bun.file(new URL(`../${file}`, import.meta.url))
+            .text();
+          return LEGACY_OPUS_RECOMMENDATION.test(text) ? file : null;
         }),
       )
-    ).filter((file) => file !== null)
+    ).filter((file) => file !== null);
 
-    expect(staleReferences).toEqual([])
-  })
-})
+    expect(staleReferences).toEqual([]);
+  });
+});

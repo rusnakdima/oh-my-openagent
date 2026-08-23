@@ -1,18 +1,18 @@
-import { describe, expect, it, mock } from "bun:test"
+import { describe, expect, it, mock } from "bun:test";
 
-import { BTW_SIDE_METADATA_KEY } from "./metadata"
+import { BTW_SIDE_METADATA_KEY } from "./metadata";
 import {
+  type BtwCatalogSession,
   classifyBtwSessionCatalog,
   loadBtwSessionCatalog,
-  type BtwCatalogSession,
-} from "./tui-session-catalog"
+} from "./tui-session-catalog";
 
 function session(input: {
-  id: string
-  title?: string
-  created: number
-  updated?: number
-  parentSessionID?: string
+  id: string;
+  title?: string;
+  created: number;
+  updated?: number;
+  parentSessionID?: string;
 }): BtwCatalogSession {
   return {
     id: input.id,
@@ -23,16 +23,16 @@ function session(input: {
     },
     ...(input.parentSessionID
       ? {
-          metadata: {
-            [BTW_SIDE_METADATA_KEY]: {
-              version: 1,
-              parent_session_id: input.parentSessionID,
-              boundary_message_id: "msg_boundary",
-            },
+        metadata: {
+          [BTW_SIDE_METADATA_KEY]: {
+            version: 1,
+            parent_session_id: input.parentSessionID,
+            boundary_message_id: "msg_boundary",
           },
-        }
+        },
+      }
       : {}),
-  }
+  };
 }
 
 describe("loadBtwSessionCatalog", () => {
@@ -50,10 +50,10 @@ describe("loadBtwSessionCatalog", () => {
         created: 3,
         parentSessionID: "ses_parent",
       }),
-    ]
+    ];
     const listSessions = mock(async ({ limit }: { limit: number }) => ({
       data: sessions.slice(0, limit),
-    }))
+    }));
 
     // when
     const result = await loadBtwSessionCatalog({
@@ -62,19 +62,19 @@ describe("loadBtwSessionCatalog", () => {
       listSessions,
       initialLimit: 2,
       maximumLimit: 8,
-    })
+    });
 
     // then
     expect(listSessions.mock.calls.map(([input]) => input.limit)).toEqual([
       2,
       4,
-    ])
+    ]);
     expect(result.catalog?.sides.map((side) => side.id)).toEqual([
       "ses_side_1",
       "ses_side_2",
-    ])
-    expect(result.truncated).toBe(false)
-  })
+    ]);
+    expect(result.truncated).toBe(false);
+  });
 
   it("#given a full maximum response #when the catalog loads #then it reports possible truncation", async () => {
     // given
@@ -83,8 +83,7 @@ describe("loadBtwSessionCatalog", () => {
         id: index === 0 ? "ses_parent" : `ses_side_${index}`,
         created: index,
         ...(index > 0 ? { parentSessionID: "ses_parent" } : {}),
-      }),
-    )
+      }));
 
     // when
     const result = await loadBtwSessionCatalog({
@@ -95,12 +94,12 @@ describe("loadBtwSessionCatalog", () => {
       }),
       initialLimit: 2,
       maximumLimit: 4,
-    })
+    });
 
     // then
-    expect(result.truncated).toBe(true)
-  })
-})
+    expect(result.truncated).toBe(true);
+  });
+});
 
 describe("classifyBtwSessionCatalog", () => {
   it("#given mixed metadata rows #when a parent catalog is classified #then only valid matching sides remain oldest first", () => {
@@ -137,18 +136,18 @@ describe("classifyBtwSessionCatalog", () => {
           },
         },
       },
-    ]
+    ];
 
     // when
-    const result = classifyBtwSessionCatalog(sessions, "ses_parent")
+    const result = classifyBtwSessionCatalog(sessions, "ses_parent");
 
     // then
-    expect(result?.main.id).toBe("ses_parent")
+    expect(result?.main.id).toBe("ses_parent");
     expect(result?.sides.map((side) => side.id)).toEqual([
       "ses_side_older",
       "ses_side_newer",
-    ])
-  })
+    ]);
+  });
 
   it("#given a retained side route #when its catalog is classified #then it resolves the original parent scope", () => {
     // given
@@ -164,18 +163,18 @@ describe("classifyBtwSessionCatalog", () => {
         created: 3,
         parentSessionID: "ses_parent",
       }),
-    ]
+    ];
 
     // when
-    const result = classifyBtwSessionCatalog(sessions, "ses_side_2")
+    const result = classifyBtwSessionCatalog(sessions, "ses_side_2");
 
     // then
-    expect(result?.main.id).toBe("ses_parent")
+    expect(result?.main.id).toBe("ses_parent");
     expect(result?.sides.map((side) => side.id)).toEqual([
       "ses_side_1",
       "ses_side_2",
-    ])
-  })
+    ]);
+  });
 
   it("#given a stale side whose parent row is missing #when classified #then no unsafe navigation catalog is returned", () => {
     // given
@@ -185,12 +184,12 @@ describe("classifyBtwSessionCatalog", () => {
         created: 2,
         parentSessionID: "ses_missing",
       }),
-    ]
+    ];
 
     // when
-    const result = classifyBtwSessionCatalog(sessions, "ses_orphan")
+    const result = classifyBtwSessionCatalog(sessions, "ses_orphan");
 
     // then
-    expect(result).toBeUndefined()
-  })
-})
+    expect(result).toBeUndefined();
+  });
+});

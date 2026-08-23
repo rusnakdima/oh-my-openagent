@@ -4,10 +4,10 @@ import {
   getAgentListDisplayName,
 } from "../shared/agent-display-names";
 import {
-  loadUserCommands,
-  loadProjectCommands,
   loadOpencodeGlobalCommands,
   loadOpencodeProjectCommands,
+  loadProjectCommands,
+  loadUserCommands,
 } from "../features/claude-code-command-loader";
 import { loadBuiltinCommands } from "../features/builtin-commands";
 import { resolveActiveBuiltinSkills } from "../features/builtin-skills";
@@ -18,11 +18,11 @@ import {
   isDisabledSkillAlias,
   isDisabledSkillName,
   loadGlobalAgentsSkills,
-  loadProjectAgentsSkills,
-  loadUserSkills,
-  loadProjectSkills,
   loadOpencodeGlobalSkills,
   loadOpencodeProjectSkills,
+  loadProjectAgentsSkills,
+  loadProjectSkills,
+  loadUserSkills,
   skillsToCommandDefinitionRecord,
 } from "../features/opencode-skill-loader";
 import {
@@ -42,13 +42,17 @@ export async function applyCommandConfig(params: {
   pluginComponents: PluginComponents;
 }): Promise<void> {
   const disabledSkills = collectDisabledSkillAliases(params.pluginConfig);
-  const builtinCommands = loadBuiltinCommands(params.pluginConfig.disabled_commands, {
-    useRegisteredAgents: true,
-    teamModeEnabled: params.pluginConfig.team_mode?.enabled ?? false,
-  });
+  const builtinCommands = loadBuiltinCommands(
+    params.pluginConfig.disabled_commands,
+    {
+      useRegisteredAgents: true,
+      teamModeEnabled: params.pluginConfig.team_mode?.enabled ?? false,
+    },
+  );
   const builtinSkillCommands = builtinSkillsToCommandDefinitionRecord(
     resolveActiveBuiltinSkills({
-      browserProvider: params.pluginConfig.browser_automation_engine?.provider ?? "playwright",
+      browserProvider:
+        params.pluginConfig.browser_automation_engine?.provider ?? "playwright",
       disabledSkills,
       teamModeEnabled: params.pluginConfig.team_mode?.enabled ?? false,
       systemMcpNames: getSystemMcpServerNames(),
@@ -57,13 +61,18 @@ export async function applyCommandConfig(params: {
   for (const disabledCommand of params.pluginConfig.disabled_commands ?? []) {
     delete builtinSkillCommands[disabledCommand];
   }
-  const systemCommands = (params.config.command as Record<string, unknown>) ?? {};
+  const systemCommands = (params.config.command as Record<string, unknown>) ??
+    {};
 
-  const includeClaudeCommands = params.pluginConfig.claude_code?.commands ?? true;
+  const includeClaudeCommands = params.pluginConfig.claude_code?.commands ??
+    true;
   const includeClaudeSkills = params.pluginConfig.claude_code?.skills ?? true;
 
   const externalSkillPlugin = detectExternalSkillPlugin(params.ctx.directory);
-  if (includeClaudeSkills && externalSkillPlugin.detected && externalSkillPlugin.pluginName) {
+  if (
+    includeClaudeSkills && externalSkillPlugin.detected &&
+    externalSkillPlugin.pluginName
+  ) {
     log(getSkillPluginConflictWarning(externalSkillPlugin.pluginName));
   }
 
@@ -91,13 +100,19 @@ export async function applyCommandConfig(params: {
       configDir: params.ctx.directory,
     }),
     includeClaudeCommands ? loadUserCommands() : Promise.resolve({}),
-    includeClaudeCommands ? loadProjectCommands(params.ctx.directory) : Promise.resolve({}),
+    includeClaudeCommands
+      ? loadProjectCommands(params.ctx.directory)
+      : Promise.resolve({}),
     loadOpencodeGlobalCommands(),
     loadOpencodeProjectCommands(params.ctx.directory),
     includeClaudeSkills ? loadUserSkills() : Promise.resolve({}),
     includeClaudeSkills ? loadGlobalAgentsSkills() : Promise.resolve({}),
-    includeClaudeSkills ? loadProjectSkills(params.ctx.directory) : Promise.resolve({}),
-    includeClaudeSkills ? loadProjectAgentsSkills(params.ctx.directory) : Promise.resolve({}),
+    includeClaudeSkills
+      ? loadProjectSkills(params.ctx.directory)
+      : Promise.resolve({}),
+    includeClaudeSkills
+      ? loadProjectAgentsSkills(params.ctx.directory)
+      : Promise.resolve({}),
     loadOpencodeGlobalSkills(),
     loadOpencodeProjectSkills(params.ctx.directory),
   ]);
@@ -105,8 +120,12 @@ export async function applyCommandConfig(params: {
   params.config.command = {
     ...builtinSkillCommands,
     ...builtinCommands,
-    ...skillsToCommandDefinitionRecord(filterDisabledLoadedSkills(configSourceSkills, disabledSkills)),
-    ...skillsToCommandDefinitionRecord(filterDisabledLoadedSkills(hostConfigSkills, disabledSkills)),
+    ...skillsToCommandDefinitionRecord(
+      filterDisabledLoadedSkills(configSourceSkills, disabledSkills),
+    ),
+    ...skillsToCommandDefinitionRecord(
+      filterDisabledLoadedSkills(hostConfigSkills, disabledSkills),
+    ),
     ...userCommands,
     ...filterDisabledSkillCommandRecord(userSkills, disabledSkills),
     ...filterDisabledSkillCommandRecord(globalAgentsSkills, disabledSkills),
@@ -119,7 +138,10 @@ export async function applyCommandConfig(params: {
     ...opencodeProjectCommands,
     ...filterDisabledSkillCommandRecord(opencodeProjectSkills, disabledSkills),
     ...params.pluginComponents.commands,
-    ...filterDisabledSkillCommandRecord(params.pluginComponents.skills, disabledSkills),
+    ...filterDisabledSkillCommandRecord(
+      params.pluginComponents.skills,
+      disabledSkills,
+    ),
   };
 
   remapCommandAgentFields(
@@ -157,7 +179,10 @@ function remapCommandAgentFields(
 ): void {
   for (const cmd of Object.values(commands)) {
     if (cmd?.agent && typeof cmd.agent === "string") {
-      cmd.agent = getAgentListDisplayName(getAgentConfigKey(cmd.agent), overrides);
+      cmd.agent = getAgentListDisplayName(
+        getAgentConfigKey(cmd.agent),
+        overrides,
+      );
     }
   }
 }

@@ -1,15 +1,19 @@
-export { DAG_VERIFICATION_DIRECTIVE } from "./dag-verification-directive"
-export { buildCompletionDetails, buildCompletionMessage, completionMessageLines } from "./notification"
-export type { BuildDetailsOptions } from "./notification"
-export { routeCompletion, shouldNotifyStatus } from "./routing"
-export { createCompletionNotifier } from "./notifier"
+export { DAG_VERIFICATION_DIRECTIVE } from "./dag-verification-directive";
+export {
+  buildCompletionDetails,
+  buildCompletionMessage,
+  completionMessageLines,
+} from "./notification";
+export type { BuildDetailsOptions } from "./notification";
+export { routeCompletion, shouldNotifyStatus } from "./routing";
+export { createCompletionNotifier } from "./notifier";
 export type {
   CompletionDetails,
   CompletionNotifier,
   CompletionNotifierDeps,
   CompletionNotifierStore,
-  CompletionRetrySchedule,
   CompletionRequest,
+  CompletionRetrySchedule,
   DeliveredDecision,
   FlushInput,
   FlushResult,
@@ -22,4 +26,4 @@ export type {
   RoutingDecision,
   SkipReason,
   TransitionReason,
-} from "./types"
+} from "./types";

@@ -8,12 +8,17 @@ export const arxiv = {
   url: "https://mcp.arxiv.org",
   enabled: true,
   oauth: false as const,
-}
+};
 ```
 
-> **Note:** The URL `https://mcp.arxiv.org` is a placeholder. The actual endpoint needs to be verified. If no hosted arXiv MCP exists, alternatives include community-hosted servers or a self-hosted wrapper around the arXiv REST API (`export.arxiv.org/api/query`). This would be the single blocker requiring resolution before merging.
+> **Note:** The URL `https://mcp.arxiv.org` is a placeholder. The actual
+> endpoint needs to be verified. If no hosted arXiv MCP exists, alternatives
+> include community-hosted servers or a self-hosted wrapper around the arXiv
+> REST API (`export.arxiv.org/api/query`). This would be the single blocker
+> requiring resolution before merging.
 
-Pattern followed: `grep-app.ts` (static export, no auth, no config factory needed since arXiv API is public).
+Pattern followed: `grep-app.ts` (static export, no auth, no config factory
+needed since arXiv API is public).
 
 ---
 
@@ -241,12 +246,12 @@ Changes needed in existing tests (count 3 → 4) plus one new test:
 
 ## Summary of Touched Files
 
-| File | Lines Changed | Type |
-|------|--------------|------|
-| `src/mcp/arxiv.ts` | +6 (new) | Create |
-| `src/mcp/types.ts` | 1 line modified | Modify |
-| `src/mcp/index.ts` | +5 (import + block) | Modify |
+| File                    | Lines Changed                      | Type   |
+| ----------------------- | ---------------------------------- | ------ |
+| `src/mcp/arxiv.ts`      | +6 (new)                           | Create |
+| `src/mcp/types.ts`      | 1 line modified                    | Modify |
+| `src/mcp/index.ts`      | +5 (import + block)                | Modify |
 | `src/mcp/index.test.ts` | ~20 lines (count fixes + new test) | Modify |
-| `src/mcp/AGENTS.md` | ~6 lines | Modify |
+| `src/mcp/AGENTS.md`     | ~6 lines                           | Modify |
 
 Total: ~37 lines added/modified across 5 files. Minimal, surgical change.

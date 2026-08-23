@@ -1,11 +1,11 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { TmuxPollingManager } from "./polling-manager"
-import type { TrackedSession } from "./types"
+import { TmuxPollingManager } from "./polling-manager";
+import type { TrackedSession } from "./types";
 
 describe("TmuxPollingManager event session ids", () => {
   test("#given legacy message.part.updated properties #when handling activity #then part session id increments activity version", () => {
-    const sessions = new Map<string, TrackedSession>()
+    const sessions = new Map<string, TrackedSession>();
     sessions.set("ses-part-only", {
       sessionId: "ses-part-only",
       paneId: "%1",
@@ -15,15 +15,19 @@ describe("TmuxPollingManager event session ids", () => {
       closePending: false,
       closeRetryCount: 0,
       activityVersion: 0,
-    })
+    });
 
     const client = {
       session: {
         status: async () => ({ data: {} }),
         messages: async () => ({ data: [] }),
       },
-    }
-    const manager = new TmuxPollingManager(client as never, sessions, async () => {})
+    };
+    const manager = new TmuxPollingManager(
+      client as never,
+      sessions,
+      async () => {},
+    );
 
     manager.handleEvent({
       type: "message.part.updated",
@@ -36,8 +40,8 @@ describe("TmuxPollingManager event session ids", () => {
           text: "working",
         },
       },
-    })
+    });
 
-    expect(sessions.get("ses-part-only")?.activityVersion).toBe(1)
-  })
-})
+    expect(sessions.get("ses-part-only")?.activityVersion).toBe(1);
+  });
+});

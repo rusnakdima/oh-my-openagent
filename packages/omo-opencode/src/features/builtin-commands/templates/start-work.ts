@@ -135,4 +135,4 @@ When working in a worktree (\`worktree_path\` is set in boulder.json) and ALL pl
 5. If merge succeeds, clean up: \`git worktree remove <worktree-path>\`
 6. Remove the boulder.json state
 
-This is the DEFAULT behavior when \`--worktree\` was used alone. When \`--make-pr\` or \`--ship\` is active, skip the local merge and follow the PR Delivery Mode instructions in the session context instead: push the branch and open a PR (\`--make-pr\` hands off with the PR URL; \`--ship\` keeps working until the PR is merged), then clean up. Otherwise skip merge only if the user explicitly instructs otherwise (e.g., asks to create a PR instead).`
+This is the DEFAULT behavior when \`--worktree\` was used alone. When \`--make-pr\` or \`--ship\` is active, skip the local merge and follow the PR Delivery Mode instructions in the session context instead: push the branch and open a PR (\`--make-pr\` hands off with the PR URL; \`--ship\` keeps working until the PR is merged), then clean up. Otherwise skip merge only if the user explicitly instructs otherwise (e.g., asks to create a PR instead).`;

@@ -1,7 +1,7 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { memorySettings } from "./memory.test-support"
-import { resolveAgentReflectionSettings } from "./reflection-settings"
+import { memorySettings } from "./memory.test-support";
+import { resolveAgentReflectionSettings } from "./reflection-settings";
 
 describe("effective reflection settings", () => {
   test("#given conflicting base and agent fields #when resolved #then every override wins and nested trigger defaults survive", () => {
@@ -27,10 +27,10 @@ describe("effective reflection settings", () => {
           },
         },
       },
-    })
+    });
 
     // when
-    const resolved = resolveAgentReflectionSettings(settings, "agent-test")
+    const resolved = resolveAgentReflectionSettings(settings, "agent-test");
 
     // then
     expect(resolved).toEqual({
@@ -40,6 +40,6 @@ describe("effective reflection settings", () => {
       category: "deep",
       timeout_minutes: 30,
       sandbox: "off",
-    })
-  })
-})
+    });
+  });
+});

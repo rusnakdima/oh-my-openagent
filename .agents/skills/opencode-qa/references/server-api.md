@@ -24,15 +24,21 @@ Output:
 opencode server listening on http://127.0.0.1:4096
 ```
 
-Port 0 means the server will pick 4096, then fall back to a free port if that one is taken.
+Port 0 means the server will pick 4096, then fall back to a free port if that
+one is taken.
 
-A bundled isolated smoke test is available at `scripts/server-smoke.sh`. It spawns an isolated server, checks `/global/health`, checks that `/doc` returns at least 100 paths, and confirms that no-auth requests get 401, then tears the server down.
+A bundled isolated smoke test is available at `scripts/server-smoke.sh`. It
+spawns an isolated server, checks `/global/health`, checks that `/doc` returns
+at least 100 paths, and confirms that no-auth requests get 401, then tears the
+server down.
 
 ## Authentication
 
-Set the environment variable `OPENCODE_SERVER_PASSWORD` to require authentication. If it is unset, the server runs UNSECURED and prints a warning.
+Set the environment variable `OPENCODE_SERVER_PASSWORD` to require
+authentication. If it is unset, the server runs UNSECURED and prints a warning.
 
-The username defaults to `opencode`. Override it with `OPENCODE_SERVER_USERNAME`.
+The username defaults to `opencode`. Override it with
+`OPENCODE_SERVER_USERNAME`.
 
 Two ways to authenticate:
 
@@ -48,9 +54,11 @@ Most instance routes need the target project directory. Pass it as either:
 - Query parameter: `?directory=$PWD`
 - Header: `x-opencode-directory: $PWD`
 
-Aliases also work: `x-opencode-workspace` header or `?workspace=` query parameter.
+Aliases also work: `x-opencode-workspace` header or `?workspace=` query
+parameter.
 
-The server resolves an instance per request, so a single `serve` process can handle many projects.
+The server resolves an instance per request, so a single `serve` process can
+handle many projects.
 
 ## Introspect the API
 
@@ -60,7 +68,8 @@ The `/doc` endpoint returns the full OpenAPI spec. To list all documented paths:
 curl -s -u opencode:$PASS http://127.0.0.1:4096/doc | jq '.paths | keys'
 ```
 
-On v1.15.13 this returned 113 paths. This is the source of truth for exact request and response schemas.
+On v1.15.13 this returned 113 paths. This is the source of truth for exact
+request and response schemas.
 
 ## Tested smoke calls
 
@@ -79,7 +88,8 @@ curl -s -u opencode:$PASS "http://127.0.0.1:4096/session?directory=$PWD" | jq 'l
 
 ## Route catalog
 
-This mirrors the structure returned by `/doc`. Each entry is grouped as `method path - purpose`.
+This mirrors the structure returned by `/doc`. Each entry is grouped as
+`method path - purpose`.
 
 ### Global
 
@@ -193,8 +203,10 @@ curl -X POST -u opencode:$PASS -H 'Content-Type: application/json' \
   "http://127.0.0.1:4096/session/<ses_id>/prompt_async?directory=$PWD"
 ```
 
-This returns HTTP 204. Watching events is covered in `references/events-hooks.md`.
+This returns HTTP 204. Watching events is covered in
+`references/events-hooks.md`.
 
 ---
 
-Schemas are authoritative in `GET /doc`; for the event stream see `references/events-hooks.md`.
+Schemas are authoritative in `GET /doc`; for the event stream see
+`references/events-hooks.md`.

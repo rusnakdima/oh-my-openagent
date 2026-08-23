@@ -1,9 +1,9 @@
-import { describe, it, expect } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import {
-  parseMemoryFile,
-  renderMemoryFile,
   FrontmatterError,
   type ParsedMemoryFile,
+  parseMemoryFile,
+  renderMemoryFile,
 } from "./frontmatter";
 
 describe("frontmatter", () => {
@@ -188,17 +188,16 @@ describe("frontmatter", () => {
 
   describe("#given renderMemoryFile with empty description", () => {
     it("#then throws FrontmatterError", () => {
-      expect(() =>
-        renderMemoryFile({ description: "   " }, "body"),
-      ).toThrow(FrontmatterError);
+      expect(() => renderMemoryFile({ description: "   " }, "body")).toThrow(
+        FrontmatterError,
+      );
     });
   });
 
   describe("#given renderMemoryFile with whitespace-only description", () => {
     it("#then throws FrontmatterError", () => {
-      expect(() =>
-        renderMemoryFile({ description: "\n\t  \n" }, "body"),
-      ).toThrow(FrontmatterError);
+      expect(() => renderMemoryFile({ description: "\n\t  \n" }, "body"))
+        .toThrow(FrontmatterError);
     });
   });
 

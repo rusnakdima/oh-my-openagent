@@ -2,7 +2,9 @@ import type { Event } from "@opencode-ai/sdk";
 import type { PluginContext } from "./types";
 
 export type FirstMessageVariantGate = {
-  markSessionCreated: (sessionInfo: { id?: string; title?: string; parentID?: string } | undefined) => void;
+  markSessionCreated: (
+    sessionInfo: { id?: string; title?: string; parentID?: string } | undefined,
+  ) => void;
   clear: (sessionID: string) => void;
 };
 
@@ -51,6 +53,9 @@ export type PluginEventContext = PluginContext & {
 
 export type EventHookRunner = (
   hookName: string,
-  handler: ((input: EventInput) => unknown | Promise<unknown>) | null | undefined,
+  handler:
+    | ((input: EventInput) => unknown | Promise<unknown>)
+    | null
+    | undefined,
   input: EventInput,
 ) => Promise<void>;

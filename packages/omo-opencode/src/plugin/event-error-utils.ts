@@ -1,5 +1,5 @@
-import { isRecord } from "@oh-my-opencode/utils"
-export { isRecord }
+import { isRecord } from "@oh-my-opencode/utils";
+export { isRecord };
 
 export function normalizeFallbackModelID(modelID: string): string {
   return modelID
@@ -31,7 +31,10 @@ export function extractErrorMessage(error: unknown): string {
       if (typeof candidate === "string" && candidate.length > 0) {
         return candidate;
       }
-      if (isRecord(candidate) && typeof candidate.message === "string" && candidate.message.length > 0) {
+      if (
+        isRecord(candidate) && typeof candidate.message === "string" &&
+        candidate.message.length > 0
+      ) {
         return candidate.message;
       }
     }
@@ -50,10 +53,14 @@ export function extractErrorMessage(error: unknown): string {
   }
 }
 
-export function extractProviderModelFromErrorMessage(message: string): { providerID?: string; modelID?: string } {
+export function extractProviderModelFromErrorMessage(
+  message: string,
+): { providerID?: string; modelID?: string } {
   const lower = message.toLowerCase();
 
-  const providerModel = lower.match(/model\s+not\s+found:\s*([a-z0-9_-]+)\s*\/\s*([a-z0-9._-]+)/i);
+  const providerModel = lower.match(
+    /model\s+not\s+found:\s*([a-z0-9_-]+)\s*\/\s*([a-z0-9._-]+)/i,
+  );
   if (providerModel) {
     return {
       providerID: providerModel[1],
@@ -61,7 +68,9 @@ export function extractProviderModelFromErrorMessage(message: string): { provide
     };
   }
 
-  const modelOnly = lower.match(/unknown\s+provider\s+for\s+model\s+([a-z0-9._-]+)/i);
+  const modelOnly = lower.match(
+    /unknown\s+provider\s+for\s+model\s+([a-z0-9._-]+)/i,
+  );
   if (modelOnly) {
     return {
       modelID: modelOnly[1],

@@ -1,1 +1,1 @@
-export * from "./install-senpi"
+export * from "./install-senpi";

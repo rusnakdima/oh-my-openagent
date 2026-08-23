@@ -1,4 +1,4 @@
-import * as z from "zod"
+import * as z from "zod";
 
 // ---------------------------------------------------------------------------
 // Reflection
@@ -7,16 +7,19 @@ import * as z from "zod"
 export const OmoMemoryReflectionTriggerSchema = z.object({
   step_count: z.number().int().nonnegative().default(25),
   on_compaction: z.boolean().default(true),
-}).strict()
+}).strict();
 
 export const OmoMemoryReflectionSchema = z.object({
   enabled: z.boolean().default(true),
-  trigger: OmoMemoryReflectionTriggerSchema.default({ step_count: 25, on_compaction: true }),
+  trigger: OmoMemoryReflectionTriggerSchema.default({
+    step_count: 25,
+    on_compaction: true,
+  }),
   merge: z.enum(["auto", "integration"]).default("auto"),
   category: z.string().min(1).default("quick"),
   timeout_minutes: z.number().int().positive().default(15),
   sandbox: z.enum(["auto", "required", "off"]).default("auto"),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Sync + Search (unchanged)
@@ -25,11 +28,11 @@ export const OmoMemoryReflectionSchema = z.object({
 export const OmoMemorySyncSchema = z.object({
   remote: z.string().min(1).optional(),
   enabled: z.boolean().default(true),
-}).strict()
+}).strict();
 
 export const OmoMemorySearchSchema = z.object({
   enabled: z.boolean().default(true),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Nudge
@@ -38,7 +41,7 @@ export const OmoMemorySearchSchema = z.object({
 export const OmoMemoryNudgeSchema = z.object({
   enabled: z.boolean().default(true),
   every_user_turns: z.number().int().min(1).default(10),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Facts (category is deliberately NOT a knob: pinned "quick")
@@ -47,7 +50,7 @@ export const OmoMemoryNudgeSchema = z.object({
 export const OmoMemoryFactsSchema = z.object({
   enabled: z.boolean().default(true),
   debounce_settles: z.number().int().min(1).default(4),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Dream
@@ -60,7 +63,7 @@ export const OmoMemoryDreamSchema = z.object({
   shutdown_launch: z.boolean().default(true),
   auto_select_max: z.number().int().min(1).max(10).default(5),
   auto_select_max_chars: z.number().int().min(10000).default(150000),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // People
@@ -70,7 +73,7 @@ export const OmoMemoryPeopleSchema = z.object({
   enabled: z.boolean().default(true),
   max_entries: z.number().int().min(1).max(100).default(40),
   max_entry_chars: z.number().int().min(50).max(500).default(200),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Soul
@@ -78,7 +81,7 @@ export const OmoMemoryPeopleSchema = z.object({
 
 export const OmoMemorySoulSchema = z.object({
   edit_notice: z.boolean().default(true),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Write notice (memory / memory_apply_patch tool-result row)
@@ -86,7 +89,7 @@ export const OmoMemorySoulSchema = z.object({
 
 export const OmoMemoryWriteNoticeSchema = z.object({
   enabled: z.boolean().default(true),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Layer (deep-partial) variants
@@ -95,7 +98,7 @@ export const OmoMemoryWriteNoticeSchema = z.object({
 export const OmoMemoryReflectionTriggerLayerSchema = z.object({
   step_count: z.number().int().nonnegative().optional(),
   on_compaction: z.boolean().optional(),
-}).strict()
+}).strict();
 
 export const OmoMemoryReflectionLayerSchema = z.object({
   enabled: z.boolean().optional(),
@@ -104,26 +107,26 @@ export const OmoMemoryReflectionLayerSchema = z.object({
   category: z.string().min(1).optional(),
   timeout_minutes: z.number().int().positive().optional(),
   sandbox: z.enum(["auto", "required", "off"]).optional(),
-}).strict()
+}).strict();
 
 export const OmoMemorySyncLayerSchema = z.object({
   remote: z.string().min(1).optional(),
   enabled: z.boolean().optional(),
-}).strict()
+}).strict();
 
 export const OmoMemorySearchLayerSchema = z.object({
   enabled: z.boolean().optional(),
-}).strict()
+}).strict();
 
 export const OmoMemoryNudgeLayerSchema = z.object({
   enabled: z.boolean().optional(),
   every_user_turns: z.number().int().min(1).optional(),
-}).strict()
+}).strict();
 
 export const OmoMemoryFactsLayerSchema = z.object({
   enabled: z.boolean().optional(),
   debounce_settles: z.number().int().min(1).optional(),
-}).strict()
+}).strict();
 
 export const OmoMemoryDreamLayerSchema = z.object({
   enabled: z.boolean().optional(),
@@ -132,21 +135,21 @@ export const OmoMemoryDreamLayerSchema = z.object({
   shutdown_launch: z.boolean().optional(),
   auto_select_max: z.number().int().min(1).max(10).optional(),
   auto_select_max_chars: z.number().int().min(10000).optional(),
-}).strict()
+}).strict();
 
 export const OmoMemoryPeopleLayerSchema = z.object({
   enabled: z.boolean().optional(),
   max_entries: z.number().int().min(1).max(100).optional(),
   max_entry_chars: z.number().int().min(50).max(500).optional(),
-}).strict()
+}).strict();
 
 export const OmoMemorySoulLayerSchema = z.object({
   edit_notice: z.boolean().optional(),
-}).strict()
+}).strict();
 
 export const OmoMemoryWriteNoticeLayerSchema = z.object({
   enabled: z.boolean().optional(),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Per-agent overrides (layer-shaped)
@@ -165,7 +168,7 @@ export const OmoMemoryAgentOverridesSchema = z.object({
   sync: OmoMemorySyncLayerSchema.optional(),
   search: OmoMemorySearchLayerSchema.optional(),
   compile_warn_tokens: z.number().int().positive().optional(),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Root settings schema
@@ -195,14 +198,18 @@ export const OmoMemorySettingsSchema = z.object({
     auto_select_max: 5,
     auto_select_max_chars: 150000,
   }),
-  people: OmoMemoryPeopleSchema.default({ enabled: true, max_entries: 40, max_entry_chars: 200 }),
+  people: OmoMemoryPeopleSchema.default({
+    enabled: true,
+    max_entries: 40,
+    max_entry_chars: 200,
+  }),
   soul: OmoMemorySoulSchema.default({ edit_notice: true }),
   write_notice: OmoMemoryWriteNoticeSchema.default({ enabled: true }),
   sync: OmoMemorySyncSchema.default({ enabled: true }),
   search: OmoMemorySearchSchema.default({ enabled: true }),
   compile_warn_tokens: z.number().int().positive().default(30000),
   agents: z.record(z.string(), OmoMemoryAgentOverridesSchema).default({}),
-}).strict()
+}).strict();
 
 export const OmoMemorySettingsLayerSchema = z.object({
   enabled: z.boolean().optional(),
@@ -219,22 +226,28 @@ export const OmoMemorySettingsLayerSchema = z.object({
   search: OmoMemorySearchLayerSchema.optional(),
   compile_warn_tokens: z.number().int().positive().optional(),
   agents: z.record(z.string(), OmoMemoryAgentOverridesSchema).optional(),
-}).strict()
+}).strict();
 
 // ---------------------------------------------------------------------------
 // Inferred types
 // ---------------------------------------------------------------------------
 
-export type OmoMemoryReflectionTrigger = z.infer<typeof OmoMemoryReflectionTriggerSchema>
-export type OmoMemoryReflection = z.infer<typeof OmoMemoryReflectionSchema>
-export type OmoMemorySync = z.infer<typeof OmoMemorySyncSchema>
-export type OmoMemorySearch = z.infer<typeof OmoMemorySearchSchema>
-export type OmoMemoryNudge = z.infer<typeof OmoMemoryNudgeSchema>
-export type OmoMemoryFacts = z.infer<typeof OmoMemoryFactsSchema>
-export type OmoMemoryDream = z.infer<typeof OmoMemoryDreamSchema>
-export type OmoMemoryPeople = z.infer<typeof OmoMemoryPeopleSchema>
-export type OmoMemorySoul = z.infer<typeof OmoMemorySoulSchema>
-export type OmoMemoryWriteNotice = z.infer<typeof OmoMemoryWriteNoticeSchema>
-export type OmoMemoryAgentOverrides = z.infer<typeof OmoMemoryAgentOverridesSchema>
-export type OmoMemorySettings = z.infer<typeof OmoMemorySettingsSchema>
-export type OmoMemorySettingsLayer = z.infer<typeof OmoMemorySettingsLayerSchema>
+export type OmoMemoryReflectionTrigger = z.infer<
+  typeof OmoMemoryReflectionTriggerSchema
+>;
+export type OmoMemoryReflection = z.infer<typeof OmoMemoryReflectionSchema>;
+export type OmoMemorySync = z.infer<typeof OmoMemorySyncSchema>;
+export type OmoMemorySearch = z.infer<typeof OmoMemorySearchSchema>;
+export type OmoMemoryNudge = z.infer<typeof OmoMemoryNudgeSchema>;
+export type OmoMemoryFacts = z.infer<typeof OmoMemoryFactsSchema>;
+export type OmoMemoryDream = z.infer<typeof OmoMemoryDreamSchema>;
+export type OmoMemoryPeople = z.infer<typeof OmoMemoryPeopleSchema>;
+export type OmoMemorySoul = z.infer<typeof OmoMemorySoulSchema>;
+export type OmoMemoryWriteNotice = z.infer<typeof OmoMemoryWriteNoticeSchema>;
+export type OmoMemoryAgentOverrides = z.infer<
+  typeof OmoMemoryAgentOverridesSchema
+>;
+export type OmoMemorySettings = z.infer<typeof OmoMemorySettingsSchema>;
+export type OmoMemorySettingsLayer = z.infer<
+  typeof OmoMemorySettingsLayerSchema
+>;

@@ -1,11 +1,11 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import { HardDrive } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import { HardDrive } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export async function SisyphusSection(): Promise<JSX.Element> {
-  const t = await getTranslations("landing")
+  const t = await getTranslations("landing");
 
   return (
     <section
@@ -20,7 +20,10 @@ export async function SisyphusSection(): Promise<JSX.Element> {
             <Badge className="border-cyan-500/20 bg-cyan-500/10 px-4 py-1.5 text-cyan-400">
               {t("sisyphus.badge")}
             </Badge>
-            <Badge variant="outline" className="border-zinc-700 text-xs text-zinc-400">
+            <Badge
+              variant="outline"
+              className="border-zinc-700 text-xs text-zinc-400"
+            >
               {t("sisyphus.model")}
             </Badge>
           </div>
@@ -36,11 +39,16 @@ export async function SisyphusSection(): Promise<JSX.Element> {
           </p>
 
           <div className="mb-12 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {(["intent", "explore", "delegate", "verify"] as const).map((phase, i) => (
+            {(["intent", "explore", "delegate", "verify"] as const).map((
+              phase,
+              i,
+            ) => (
               <div key={phase}>
                 <Card className="h-full border-zinc-800 bg-zinc-900/30">
                   <CardHeader className="pb-2">
-                    <div className="mb-1 font-mono text-xs text-cyan-400">PHASE {i + 1}</div>
+                    <div className="mb-1 font-mono text-xs text-cyan-400">
+                      PHASE {i + 1}
+                    </div>
                     <CardTitle className="text-lg text-white">
                       {t(`sisyphus.phases.${phase}.title`)}
                     </CardTitle>
@@ -75,5 +83,5 @@ export async function SisyphusSection(): Promise<JSX.Element> {
         </div>
       </div>
     </section>
-  )
+  );
 }

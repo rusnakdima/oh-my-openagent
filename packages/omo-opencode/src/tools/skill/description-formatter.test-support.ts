@@ -1,40 +1,49 @@
-import type { CommandInfo } from "../slashcommand/types"
-import type { SkillInfo } from "./types"
+import type { CommandInfo } from "../slashcommand/types";
+import type { SkillInfo } from "./types";
 
 export function makeSkill(
   name: string,
   description = "desc",
   overrides: Partial<SkillInfo> = {},
 ): SkillInfo {
-  return { name, description, scope: "builtin", ...overrides }
+  return { name, description, scope: "builtin", ...overrides };
 }
 
-export function sharedSkill(name: string, description = "shared desc"): SkillInfo {
+export function sharedSkill(
+  name: string,
+  description = "shared desc",
+): SkillInfo {
   return makeSkill(`shared/${name}`, description, {
     scope: "shared",
     location: `/repo/packages/shared-skills/skills/${name}/SKILL.md`,
-  })
+  });
 }
 
-export function builtinSharedSkill(name: string, description = "builtin desc"): SkillInfo {
+export function builtinSharedSkill(
+  name: string,
+  description = "builtin desc",
+): SkillInfo {
   return makeSkill(name, description, {
     scope: "builtin",
     location: `/repo/packages/shared-skills/skills/${name}`,
-  })
+  });
 }
 
-export function localSkill(name: string, description = "local desc"): SkillInfo {
+export function localSkill(
+  name: string,
+  description = "local desc",
+): SkillInfo {
   return makeSkill(name, description, {
     scope: "project",
     location: `/repo/.agents/skills/${name}/SKILL.md`,
-  })
+  });
 }
 
 export function userSkill(name: string, description = "user desc"): SkillInfo {
   return makeSkill(name, description, {
     scope: "user",
     location: `/home/.agents/skills/${name}/SKILL.md`,
-  })
+  });
 }
 
 export function opencodeNativeSkill(
@@ -45,7 +54,7 @@ export function opencodeNativeSkill(
   return makeSkill(name, description, {
     scope: "config",
     location,
-  })
+  });
 }
 
 export function makeCommand(
@@ -59,5 +68,5 @@ export function makeCommand(
     content: "",
     scope: "builtin",
     ...overrides,
-  }
+  };
 }

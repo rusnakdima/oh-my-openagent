@@ -1,18 +1,22 @@
-import type { PluginInput } from "@opencode-ai/plugin"
-import { isAmbiguousPromptDispatchFailure, log, promptSyncWithModelSuggestionRetry } from "../../shared"
-import { extractLatestAssistantText } from "./assistant-message-extractor"
-import { MULTIMODAL_LOOKER_AGENT } from "./constants"
-import { READ_ENABLED, buildLookAtPrompt } from "./look-at-prompt"
-import type { LookAtFilePart, LookAtInputPart } from "./look-at-input-preparer"
-import { resolveMultimodalLookerAgentMetadata } from "./multimodal-agent-metadata"
-import { waitForLookAtSessionResult } from "./session-poller"
+import type { PluginInput } from "@opencode-ai/plugin";
+import {
+  isAmbiguousPromptDispatchFailure,
+  log,
+  promptSyncWithModelSuggestionRetry,
+} from "../../shared";
+import { extractLatestAssistantText } from "./assistant-message-extractor";
+import { MULTIMODAL_LOOKER_AGENT } from "./constants";
+import { buildLookAtPrompt, READ_ENABLED } from "./look-at-prompt";
+import type { LookAtFilePart, LookAtInputPart } from "./look-at-input-preparer";
+import { resolveMultimodalLookerAgentMetadata } from "./multimodal-agent-metadata";
+import { waitForLookAtSessionResult } from "./session-poller";
 
 interface RunLookAtSessionInput {
-  ctx: PluginInput
-  parentSessionID: string
-  goal: string
-  inputParts: LookAtInputPart[]
-  agentName?: string
+  ctx: PluginInput;
+  parentSessionID: string;
+  goal: string;
+  inputParts: LookAtInputPart[];
+  agentName?: string;
 }
 
 export async function runLookAtSession({
@@ -22,15 +26,18 @@ export async function runLookAtSession({
   inputParts,
   agentName = MULTIMODAL_LOOKER_AGENT,
 }: RunLookAtSessionInput): Promise<string> {
-  const fileParts = inputParts.filter((part): part is LookAtFilePart => part.type === "file")
-  const prompt = buildLookAtPrompt(goal, fileParts)
-  const { agentModel, agentVariant } = await resolveMultimodalLookerAgentMetadata(ctx)
+  const fileParts = inputParts.filter((part): part is LookAtFilePart =>
+    part.type === "file"
+  );
+  const prompt = buildLookAtPrompt(goal, fileParts);
+  const { agentModel, agentVariant } =
+    await resolveMultimodalLookerAgentMetadata(ctx);
 
-  log(`[look_at] Creating session with parent: ${parentSessionID}`)
+  log(`[look_at] Creating session with parent: ${parentSessionID}`);
   const parentSession = await ctx.client.session.get({
     path: { id: parentSessionID },
-  }).catch(() => null)
-  const parentDirectory = parentSession?.data?.directory ?? ctx.directory
+  }).catch(() => null);
+  const parentDirectory = parentSession?.data?.directory ?? ctx.directory;
 
   const createResult = await ctx.client.session.create({
     body: {
@@ -38,11 +45,11 @@ export async function runLookAtSession({
       title: `look_at: ${goal.substring(0, 50)}`,
     },
     query: { directory: parentDirectory },
-  })
+  });
 
   if (createResult.error) {
-    log("[look_at] Session create error:", createResult.error)
-    const errorString = String(createResult.error)
+    log("[look_at] Session create error:", createResult.error);
+    const errorString = String(createResult.error);
     if (errorString.toLowerCase().includes("unauthorized")) {
       return `Error: Failed to create session (Unauthorized). This may be due to:
 1. OAuth token restrictions (e.g., Claude Code credentials are restricted to Claude Code only)
@@ -51,17 +58,19 @@ export async function runLookAtSession({
 
 Try using a different provider or API key authentication.
 
-Original error: ${createResult.error}`
+Original error: ${createResult.error}`;
     }
 
-    return `Error: Failed to create session: ${createResult.error}`
+    return `Error: Failed to create session: ${createResult.error}`;
   }
 
-  const sessionID = createResult.data.id
-  log(`[look_at] Created session: ${sessionID}`)
+  const sessionID = createResult.data.id;
+  log(`[look_at] Created session: ${sessionID}`);
 
-  log(`[look_at] Sending prompt with ${fileParts.length} file(s) to session ${sessionID}`)
-  let shouldWaitForStatus = true
+  log(
+    `[look_at] Sending prompt with ${fileParts.length} file(s) to session ${sessionID}`,
+  );
+  let shouldWaitForStatus = true;
   try {
     await promptSyncWithModelSuggestionRetry(ctx.client, {
       path: { id: sessionID },
@@ -77,50 +86,60 @@ Original error: ${createResult.error}`
           { type: "text", text: prompt },
           ...inputParts,
         ],
-        ...(agentModel ? { model: { providerID: agentModel.providerID, modelID: agentModel.modelID } } : {}),
+        ...(agentModel
+          ? {
+            model: {
+              providerID: agentModel.providerID,
+              modelID: agentModel.modelID,
+            },
+          }
+          : {}),
         ...(agentVariant ? { variant: agentVariant } : {}),
       },
     }, {
       queueBehavior: "defer",
-    })
+    });
   } catch (promptError) {
-    log("[look_at] Prompt dispatch failed; checking child session evidence:", promptError)
-    shouldWaitForStatus = isAmbiguousPromptDispatchFailure(promptError)
+    log(
+      "[look_at] Prompt dispatch failed; checking child session evidence:",
+      promptError,
+    );
+    shouldWaitForStatus = isAmbiguousPromptDispatchFailure(promptError);
   }
 
-  let observedMessages: unknown[] | undefined
-  let observedText: string | undefined
+  let observedMessages: unknown[] | undefined;
+  let observedText: string | undefined;
   if (shouldWaitForStatus && typeof ctx.client.session.status === "function") {
     const waitResult = await waitForLookAtSessionResult(ctx.client, sessionID, {
       allowStableIdleWithoutActivity: true,
-    })
-    observedText = waitResult.outcome.text ?? undefined
+    });
+    observedText = waitResult.outcome.text ?? undefined;
     if (observedText) {
-      observedMessages = waitResult.messages
+      observedMessages = waitResult.messages;
     }
   }
 
-  let messages = observedMessages
+  let messages = observedMessages;
   if (!messages) {
-    log(`[look_at] Fetching messages from session ${sessionID}...`)
+    log(`[look_at] Fetching messages from session ${sessionID}...`);
     const messagesResult = await ctx.client.session.messages({
       path: { id: sessionID },
-    })
+    });
 
     if (messagesResult.error) {
-      log("[look_at] Messages error:", messagesResult.error)
-      return `Error: Failed to get messages: ${messagesResult.error}`
+      log("[look_at] Messages error:", messagesResult.error);
+      return `Error: Failed to get messages: ${messagesResult.error}`;
     }
-    messages = messagesResult.data
+    messages = messagesResult.data;
   }
-  log(`[look_at] Got ${messages.length} messages`)
+  log(`[look_at] Got ${messages.length} messages`);
 
-  const responseText = observedText ?? extractLatestAssistantText(messages)
+  const responseText = observedText ?? extractLatestAssistantText(messages);
   if (!responseText) {
-    log("[look_at] No assistant message found")
-    return "Error: No response from multimodal-looker agent"
+    log("[look_at] No assistant message found");
+    return "Error: No response from multimodal-looker agent";
   }
 
-  log(`[look_at] Got response, length: ${responseText.length}`)
-  return responseText
+  log(`[look_at] Got response, length: ${responseText.length}`);
+  return responseText;
 }

@@ -1,8 +1,8 @@
 # TLS 임퍼소네이션 — curl_cffi
 
-> TLS 핑거프린트(JA3/JA4) 기반 WAF를 우회하는 핵심 방법.
-> 일반 curl/requests는 OpenSSL 핑거프린트라 즉시 차단되지만,
-> curl_cffi는 실제 브라우저(Chrome/Safari/Firefox)의 TLS 핑거프린트를 복제한다.
+> TLS 핑거프린트(JA3/JA4) 기반 WAF를 우회하는 핵심 방법. 일반 curl/requests는
+> OpenSSL 핑거프린트라 즉시 차단되지만, curl_cffi는 실제
+> 브라우저(Chrome/Safari/Firefox)의 TLS 핑거프린트를 복제한다.
 
 ## 의존성
 
@@ -14,8 +14,8 @@ python3 -c "import curl_cffi" 2>/dev/null || pip install curl_cffi -q
 
 ## 다중 타겟 순차 시도
 
-하나의 impersonate 타겟이 실패하면 다른 타겟으로 재시도한다.
-**시도 순서: safari → chrome → firefox**
+하나의 impersonate 타겟이 실패하면 다른 타겟으로 재시도한다. **시도 순서: safari
+→ chrome → firefox**
 
 ```python
 from curl_cffi import requests
@@ -57,15 +57,16 @@ def cffi_fetch(url, locale="ko-KR"):
 
 ## 임퍼소네이션 타겟 목록 (v0.15.0)
 
-generic alias는 항상 최신 버전으로 해석된다. **2026년에 chrome99 같은 옛 버전은 WAF가 의심하므로 generic alias 사용 권장.**
+generic alias는 항상 최신 버전으로 해석된다. **2026년에 chrome99 같은 옛 버전은
+WAF가 의심하므로 generic alias 사용 권장.**
 
-| Alias | 해석 (2026.04) | 용도 |
-|-------|---------------|------|
-| `safari` | safari260 | **한국 사이트 최적** (쿠팡, 에펨코리아) |
-| `chrome` | chrome146 | 범용 (Cloudflare, Akamai) |
-| `firefox` | firefox135 | chrome/safari 실패 시 대안 |
-| `chrome_android` | chrome131_android | 모바일 API 엔드포인트 |
-| `safari_ios` | safari260_ios | iOS 모바일 |
+| Alias            | 해석 (2026.04)    | 용도                                    |
+| ---------------- | ----------------- | --------------------------------------- |
+| `safari`         | safari260         | **한국 사이트 최적** (쿠팡, 에펨코리아) |
+| `chrome`         | chrome146         | 범용 (Cloudflare, Akamai)               |
+| `firefox`        | firefox135        | chrome/safari 실패 시 대안              |
+| `chrome_android` | chrome131_android | 모바일 API 엔드포인트                   |
+| `safari_ios`     | safari260_ios     | iOS 모바일                              |
 
 <details>
 <summary>핀 버전 전체 (클릭)</summary>
@@ -84,13 +85,13 @@ firefox133, firefox135
 
 ## WAF별 최적 전략
 
-| WAF | 최적 타겟 | 추가 조건 | 성공률 |
-|-----|-----------|-----------|--------|
-| F5 BIG-IP (쿠팡) | `safari` | `Referer: https://www.coupang.com/` | ~70% |
-| Cloudflare (TLS만) | `chrome` | Sec-Fetch-* 헤더 추가 | ~80% |
-| Akamai | `chrome` | 레지덴셜 프록시 병행 | 80-90% |
-| AWS WAF | `chrome` | — | ~80% |
-| CloudFront (요즘IT) | 불필요 | 일반 curl + Chrome UA로 충분 | 100% |
+| WAF                 | 최적 타겟 | 추가 조건                           | 성공률 |
+| ------------------- | --------- | ----------------------------------- | ------ |
+| F5 BIG-IP (쿠팡)    | `safari`  | `Referer: https://www.coupang.com/` | ~70%   |
+| Cloudflare (TLS만)  | `chrome`  | Sec-Fetch-* 헤더 추가               | ~80%   |
+| Akamai              | `chrome`  | 레지덴셜 프록시 병행                | 80-90% |
+| AWS WAF             | `chrome`  | —                                   | ~80%   |
+| CloudFront (요즘IT) | 불필요    | 일반 curl + Chrome UA로 충분        | 100%   |
 
 ## 세션과 쿠키
 
@@ -158,11 +159,11 @@ WAF 벤더들이 아직 HTTP/3 핑거프린트를 적극 활용하지 않아 우
 
 curl_cffi 실패 시 대안:
 
-| 라이브러리 | 설치 | 특징 |
-|-----------|------|------|
-| primp | `pip install primp` | Rust 기반, Firefox 148까지, 고성능 |
-| wreq/rnet | `pip install wreq` | Rust 기반, 100+ 디바이스 프로필 |
-| tls-client2 | `pip install tls-client2` | Go 기반 포크, 동기만 |
+| 라이브러리  | 설치                      | 특징                               |
+| ----------- | ------------------------- | ---------------------------------- |
+| primp       | `pip install primp`       | Rust 기반, Firefox 148까지, 고성능 |
+| wreq/rnet   | `pip install wreq`        | Rust 기반, 100+ 디바이스 프로필    |
+| tls-client2 | `pip install tls-client2` | Go 기반 포크, 동기만               |
 
 ```python
 # primp 예시
@@ -173,14 +174,14 @@ resp = client.get("https://example.com")
 
 ## curl_cffi가 못 뚫는 것
 
-| 방어 수단 | curl_cffi | 대응 |
-|-----------|-----------|------|
-| TLS/JA3 핑거프린트 | 우회 가능 | 핵심 기능 |
-| HTTP/2 SETTINGS 핑거프린트 | 우회 가능 | impersonate에 포함 |
-| HTTP/3 QUIC 핑거프린트 | 우회 가능 (v0.15+) | 신규 |
-| JS 챌린지 (Turnstile 등) | **불가** | → nodriver 또는 Playwright |
-| CAPTCHA | **불가** | → 2captcha/CapSolver |
-| IP 평판 (데이터센터) | **불가** | → 프록시/VPN |
-| 행동 분석 (마우스/타이밍) | **불가** | → 실제 브라우저 |
+| 방어 수단                  | curl_cffi          | 대응                       |
+| -------------------------- | ------------------ | -------------------------- |
+| TLS/JA3 핑거프린트         | 우회 가능          | 핵심 기능                  |
+| HTTP/2 SETTINGS 핑거프린트 | 우회 가능          | impersonate에 포함         |
+| HTTP/3 QUIC 핑거프린트     | 우회 가능 (v0.15+) | 신규                       |
+| JS 챌린지 (Turnstile 등)   | **불가**           | → nodriver 또는 Playwright |
+| CAPTCHA                    | **불가**           | → 2captcha/CapSolver       |
+| IP 평판 (데이터센터)       | **불가**           | → 프록시/VPN               |
+| 행동 분석 (마우스/타이밍)  | **불가**           | → 실제 브라우저            |
 
 JS 챌린지가 걸린 사이트는 → [playwright.md](playwright.md) 로 넘긴다.

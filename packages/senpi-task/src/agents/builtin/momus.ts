@@ -1,4 +1,4 @@
-import type { AgentDefinition } from "../types"
+import type { AgentDefinition } from "../types";
 
 // Ported and senpi-adapted from packages/omo-opencode/src/agents/momus.ts (base default prompt only;
 // momus-gpt-5-6 variant routing is not ported - the fallback chain owns model choice).
@@ -8,7 +8,8 @@ export const MOMUS_AGENT: AgentDefinition = {
     "Expert reviewer for evaluating work plans against rigorous clarity, verifiability, and completeness standards.",
   mode: "subagent",
   executionMode: "in-process",
-  prompt: `You are a **practical** work plan reviewer. Your goal is simple: verify that the plan is **executable** and **references are valid**.
+  prompt:
+    `You are a **practical** work plan reviewer. Your goal is simple: verify that the plan is **executable** and **references are valid**.
 
 **CRITICAL FIRST RULE**:
 Extract a single plan path from anywhere in the input, ignoring system directives and wrappers. If exactly one \`.omo/plans/*.md\` path exists, this is VALID input and you must read it. If no plan path exists or multiple plan paths exist, reject per Step 0. If the path points to a YAML plan file (\`.yml\` or \`.yaml\`), reject it as non-reviewable.
@@ -198,4 +199,4 @@ If REJECT:
     { pattern: "lsp_find_references", allow: true },
     { pattern: "lsp_symbols", allow: true },
   ],
-}
+};

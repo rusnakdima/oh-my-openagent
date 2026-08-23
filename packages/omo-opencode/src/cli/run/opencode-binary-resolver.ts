@@ -1,22 +1,22 @@
-import { delimiter, dirname, posix, win32 } from "node:path"
-import { bunWhich } from "../../shared/bun-which-shim"
-import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide"
+import { delimiter, dirname, posix, win32 } from "node:path";
+import { bunWhich } from "../../shared/bun-which-shim";
+import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide";
 
-const OPENCODE_COMMANDS = ["opencode", "opencode-desktop"] as const
-const WINDOWS_SUFFIXES = ["", ".exe", ".cmd", ".bat", ".ps1"] as const
-type PathTools = Pick<typeof posix, "delimiter" | "join">
+const OPENCODE_COMMANDS = ["opencode", "opencode-desktop"] as const;
+const WINDOWS_SUFFIXES = ["", ".exe", ".cmd", ".bat", ".ps1"] as const;
+type PathTools = Pick<typeof posix, "delimiter" | "join">;
 
 function getCommandCandidates(platform: NodeJS.Platform): string[] {
-  if (platform !== "win32") return [...OPENCODE_COMMANDS]
+  if (platform !== "win32") return [...OPENCODE_COMMANDS];
 
   return OPENCODE_COMMANDS.flatMap((command) =>
-    WINDOWS_SUFFIXES.map((suffix) => `${command}${suffix}`),
-  )
+    WINDOWS_SUFFIXES.map((suffix) => `${command}${suffix}`)
+  );
 }
 
 function getPathTools(platform: NodeJS.Platform): PathTools {
-  if (platform === "win32") return win32
-  return posix
+  if (platform === "win32") return win32;
+  return posix;
 }
 
 export function collectCandidateBinaryPaths(
@@ -24,28 +24,30 @@ export function collectCandidateBinaryPaths(
   which: (command: string) => string | null | undefined = bunWhich,
   platform: NodeJS.Platform = process.platform,
 ): string[] {
-  const seen = new Set<string>()
-  const candidates: string[] = []
-  const commandCandidates = getCommandCandidates(platform)
-  const pathTools = getPathTools(platform)
+  const seen = new Set<string>();
+  const candidates: string[] = [];
+  const commandCandidates = getCommandCandidates(platform);
+  const pathTools = getPathTools(platform);
 
   const addCandidate = (binaryPath: string | undefined | null): void => {
-    if (!binaryPath || seen.has(binaryPath)) return
-    seen.add(binaryPath)
-    candidates.push(binaryPath)
-  }
+    if (!binaryPath || seen.has(binaryPath)) return;
+    seen.add(binaryPath);
+    candidates.push(binaryPath);
+  };
 
   for (const command of commandCandidates) {
-    addCandidate(which(command))
+    addCandidate(which(command));
   }
 
-  for (const entry of (pathEnv ?? "").split(pathTools.delimiter).filter(Boolean)) {
+  for (
+    const entry of (pathEnv ?? "").split(pathTools.delimiter).filter(Boolean)
+  ) {
     for (const command of commandCandidates) {
-      addCandidate(pathTools.join(entry, command))
+      addCandidate(pathTools.join(entry, command));
     }
   }
 
-  return candidates
+  return candidates;
 }
 
 export async function canExecuteBinary(
@@ -56,12 +58,12 @@ export async function canExecuteBinary(
     const proc = spawn([binaryPath, "--version"], {
       stdout: "pipe",
       stderr: "pipe",
-    })
-    await proc.exited
-    return proc.exitCode === 0
+    });
+    await proc.exited;
+    return proc.exitCode === 0;
   } catch (error) {
-    if (error instanceof Error) return false
-    return false
+    if (error instanceof Error) return false;
+    return false;
   }
 }
 
@@ -71,38 +73,42 @@ export async function findWorkingOpencodeBinary(
   which: (command: string) => string | null | undefined = bunWhich,
   platform: NodeJS.Platform = process.platform,
 ): Promise<string | null> {
-  const candidates = collectCandidateBinaryPaths(pathEnv, which, platform)
+  const candidates = collectCandidateBinaryPaths(pathEnv, which, platform);
   for (const candidate of candidates) {
     if (await probe(candidate)) {
-      return candidate
+      return candidate;
     }
   }
-  return null
+  return null;
 }
 
-export function buildPathWithBinaryFirst(pathEnv: string | undefined, binaryPath: string): string {
-  const preferredDir = dirname(binaryPath)
+export function buildPathWithBinaryFirst(
+  pathEnv: string | undefined,
+  binaryPath: string,
+): string {
+  const preferredDir = dirname(binaryPath);
   const existing = (pathEnv ?? "").split(delimiter).filter(
     (entry) => entry.length > 0 && entry !== preferredDir,
-  )
-  return [preferredDir, ...existing].join(delimiter)
+  );
+  return [preferredDir, ...existing].join(delimiter);
 }
 
 export async function withWorkingOpencodePath<T>(
   startServer: () => Promise<T>,
-  finder: (pathEnv: string | undefined) => Promise<string | null> = findWorkingOpencodeBinary,
+  finder: (pathEnv: string | undefined) => Promise<string | null> =
+    findWorkingOpencodeBinary,
 ): Promise<T> {
-  const originalPath = process.env.PATH
-  const binaryPath = await finder(originalPath)
+  const originalPath = process.env.PATH;
+  const binaryPath = await finder(originalPath);
 
   if (!binaryPath) {
-    return startServer()
+    return startServer();
   }
 
-  process.env.PATH = buildPathWithBinaryFirst(originalPath, binaryPath)
+  process.env.PATH = buildPathWithBinaryFirst(originalPath, binaryPath);
   try {
-    return await startServer()
+    return await startServer();
   } finally {
-    process.env.PATH = originalPath
+    process.env.PATH = originalPath;
   }
 }

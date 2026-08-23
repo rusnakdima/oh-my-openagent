@@ -1,43 +1,43 @@
-import type { FallbackEntry } from "./model-requirements"
+import type { FallbackEntry } from "./model-requirements";
 
 export interface DelegatedModelConfig {
-  providerID: string
-  modelID: string
-  variant?: string
-  reasoning?: string
-  reasoningEffort?: string
-  temperature?: number
-  top_p?: number
-  maxTokens?: number
-  thinking?: { type: "enabled" | "disabled"; budgetTokens?: number }
-  tools?: Record<string, boolean>
+  providerID: string;
+  modelID: string;
+  variant?: string;
+  reasoning?: string;
+  reasoningEffort?: string;
+  temperature?: number;
+  top_p?: number;
+  maxTokens?: number;
+  thinking?: { type: "enabled" | "disabled"; budgetTokens?: number };
+  tools?: Record<string, boolean>;
 }
 
 export type ModelResolutionRequest = {
   intent?: {
-    uiSelectedModel?: string
-    userModel?: string
-    categoryDefaultModel?: string
-  }
+    uiSelectedModel?: string;
+    userModel?: string;
+    categoryDefaultModel?: string;
+  };
   constraints: {
-    availableModels: Set<string>
-  }
+    availableModels: Set<string>;
+  };
   policy?: {
-    fallbackChain?: FallbackEntry[]
-    systemDefaultModel?: string
-  }
-}
+    fallbackChain?: FallbackEntry[];
+    systemDefaultModel?: string;
+  };
+};
 
 export type ModelResolutionProvenance =
   | "override"
   | "category-default"
   | "provider-fallback"
-  | "system-default"
+  | "system-default";
 
 export type ModelResolutionResult = {
-  model: string
-  provenance: ModelResolutionProvenance
-  variant?: string
-  attempted?: string[]
-  reason?: string
-}
+  model: string;
+  provenance: ModelResolutionProvenance;
+  variant?: string;
+  attempted?: string[];
+  reason?: string;
+};

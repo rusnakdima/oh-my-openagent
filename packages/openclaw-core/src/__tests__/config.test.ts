@@ -1,6 +1,10 @@
-import { describe, expect, test } from "bun:test"
-import { resolveGateway, validateGatewayUrl, normalizeReplyListenerConfig } from "../config"
-import type { OpenClawConfig } from "../types"
+import { describe, expect, test } from "bun:test";
+import {
+  normalizeReplyListenerConfig,
+  resolveGateway,
+  validateGatewayUrl,
+} from "../config";
+import type { OpenClawConfig } from "../types";
 
 describe("OpenClaw Config", () => {
   test("resolveGateway resolves HTTP gateway", () => {
@@ -19,32 +23,32 @@ describe("OpenClaw Config", () => {
           instruction: "Started session {{sessionId}}",
         },
       },
-    } satisfies OpenClawConfig
+    } satisfies OpenClawConfig;
 
-    const resolved = resolveGateway(config, "session-start")
-    expect(resolved).not.toBeNull()
-    expect(resolved?.gatewayName).toBe("discord")
-    expect(resolved?.gateway.url).toBe("https://discord.com/api/webhooks/123")
-    expect(resolved?.instruction).toBe("Started session {{sessionId}}")
-  })
+    const resolved = resolveGateway(config, "session-start");
+    expect(resolved).not.toBeNull();
+    expect(resolved?.gatewayName).toBe("discord");
+    expect(resolved?.gateway.url).toBe("https://discord.com/api/webhooks/123");
+    expect(resolved?.instruction).toBe("Started session {{sessionId}}");
+  });
 
   test("resolveGateway returns null for disabled config", () => {
     const config = {
       enabled: false,
       gateways: {},
       hooks: {},
-    } satisfies OpenClawConfig
-    expect(resolveGateway(config, "session-start")).toBeNull()
-  })
+    } satisfies OpenClawConfig;
+    expect(resolveGateway(config, "session-start")).toBeNull();
+  });
 
   test("resolveGateway returns null for unknown hook", () => {
     const config = {
       enabled: true,
       gateways: {},
       hooks: {},
-    } satisfies OpenClawConfig
-    expect(resolveGateway(config, "unknown")).toBeNull()
-  })
+    } satisfies OpenClawConfig;
+    expect(resolveGateway(config, "unknown")).toBeNull();
+  });
 
   test("resolveGateway returns null for disabled hook", () => {
     const config = {
@@ -53,22 +57,22 @@ describe("OpenClaw Config", () => {
       hooks: {
         event: { enabled: false, gateway: "g", instruction: "i" },
       },
-    } satisfies OpenClawConfig
-    expect(resolveGateway(config, "event")).toBeNull()
-  })
+    } satisfies OpenClawConfig;
+    expect(resolveGateway(config, "event")).toBeNull();
+  });
 
   test("validateGatewayUrl allows HTTPS", () => {
-    expect(validateGatewayUrl("https://example.com")).toBe(true)
-  })
+    expect(validateGatewayUrl("https://example.com")).toBe(true);
+  });
 
   test("validateGatewayUrl rejects HTTP remote", () => {
-    expect(validateGatewayUrl("http://example.com")).toBe(false)
-  })
+    expect(validateGatewayUrl("http://example.com")).toBe(false);
+  });
 
   test("validateGatewayUrl allows HTTP localhost", () => {
-    expect(validateGatewayUrl("http://localhost:3000")).toBe(true)
-    expect(validateGatewayUrl("http://127.0.0.1:3000")).toBe(true)
-  })
+    expect(validateGatewayUrl("http://localhost:3000")).toBe(true);
+    expect(validateGatewayUrl("http://127.0.0.1:3000")).toBe(true);
+  });
 
   test("normalizeReplyListenerConfig normalizes nested reply listener fields", () => {
     const config = normalizeReplyListenerConfig({
@@ -84,7 +88,7 @@ describe("OpenClaw Config", () => {
         maxMessageLength: 9000,
         includePrefix: false,
       },
-    })
+    });
 
     expect(config.replyListener).toEqual({
       discordBotToken: "discord-token",
@@ -94,8 +98,8 @@ describe("OpenClaw Config", () => {
       rateLimitPerMinute: 1,
       maxMessageLength: 4000,
       includePrefix: false,
-    })
-  })
+    });
+  });
 
   test("gateway timeout remains optional so env fallback can apply", () => {
     const parsed: OpenClawConfig = {
@@ -107,8 +111,8 @@ describe("OpenClaw Config", () => {
         },
       },
       hooks: {},
-    }
+    };
 
-    expect(parsed.gateways.command.timeout).toBeUndefined()
-  })
-})
+    expect(parsed.gateways.command.timeout).toBeUndefined();
+  });
+});

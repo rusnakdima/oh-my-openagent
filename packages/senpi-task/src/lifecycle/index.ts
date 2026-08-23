@@ -1,7 +1,10 @@
-export { createTaskLifecycle } from "./create"
-export { AgentLimitReached } from "./errors"
-export type { ResidentSummary } from "./errors"
-export { getLifecycleReattachPorts, registerLifecycleReattachPorts } from "./port"
+export { createTaskLifecycle } from "./create";
+export { AgentLimitReached } from "./errors";
+export type { ResidentSummary } from "./errors";
+export {
+  getLifecycleReattachPorts,
+  registerLifecycleReattachPorts,
+} from "./port";
 export type {
   DestroyCause,
   LifecycleDeps,
@@ -9,11 +12,11 @@ export type {
   ProcessSignaller,
   ReattachPort,
   ReattachResult,
-  ResidentHandle,
   ResidencyRegistry,
+  ResidentHandle,
   RespawnPort,
   RespawnResult,
-} from "./port"
+} from "./port";
 export type {
   AdmissionResult,
   CleanupResult,
@@ -24,4 +27,4 @@ export type {
   SuspendInput,
   SuspendSummary,
   TaskLifecycle,
-} from "./types"
+} from "./types";

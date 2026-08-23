@@ -4,7 +4,10 @@ import { OMO_SESSION_PREFIX } from "./constants";
 import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide";
 import { log } from "../../shared/logger";
 
-export function getOrCreateState(sessionID: string, sessionStates: Map<string, InteractiveBashSessionState>): InteractiveBashSessionState {
+export function getOrCreateState(
+  sessionID: string,
+  sessionStates: Map<string, InteractiveBashSessionState>,
+): InteractiveBashSessionState {
   const existing = sessionStates.get(sessionID);
   if (existing) {
     return existing;
@@ -20,7 +23,9 @@ export function getOrCreateState(sessionID: string, sessionStates: Map<string, I
   return state;
 }
 
-export function isOmoSession(sessionName: string | null): sessionName is string {
+export function isOmoSession(
+  sessionName: string | null,
+): sessionName is string {
   return sessionName !== null && sessionName.startsWith(OMO_SESSION_PREFIX);
 }
 
@@ -29,7 +34,12 @@ export async function killAllTrackedSessions(
 ): Promise<void> {
   for (const sessionName of state.tmuxSessions) {
     try {
-      const proc = spawnWithWindowsHide(["tmux", "kill-session", "-t", sessionName], {
+      const proc = spawnWithWindowsHide([
+        "tmux",
+        "kill-session",
+        "-t",
+        sessionName,
+      ], {
         stdout: "ignore",
         stderr: "ignore",
       });

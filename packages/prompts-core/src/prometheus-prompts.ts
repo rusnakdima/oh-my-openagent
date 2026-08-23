@@ -1,5 +1,5 @@
-import type { VariantTable } from "./types"
-import defaultPrompt from "../prompts/prometheus/default.md"
+import type { VariantTable } from "./types";
+import defaultPrompt from "../prompts/prometheus/default.md";
 
 export const prometheusPromptVariants = {
   default: {
@@ -7,4 +7,4 @@ export const prometheusPromptVariants = {
     content: defaultPrompt,
     filePath: "packages/prompts-core/prompts/prometheus/default.md",
   },
-} satisfies VariantTable
+} satisfies VariantTable;

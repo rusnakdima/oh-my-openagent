@@ -1,30 +1,33 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { resolvePluginPath, resolvePluginPaths } from "./plugin-path-resolver"
+import { resolvePluginPath, resolvePluginPaths } from "./plugin-path-resolver";
 
 describe("resolvePluginPath", () => {
   test("#given a plugin root placeholder #when resolving the path #then it replaces the placeholder", () => {
     // given
-    const path = "${CLAUDE_PLUGIN_ROOT}/dist/index.js"
+    const path = "${CLAUDE_PLUGIN_ROOT}/dist/index.js";
 
     // when
-    const result = resolvePluginPath(path, "/tmp/plugin-root")
+    const result = resolvePluginPath(path, "/tmp/plugin-root");
 
     // then
-    expect(result).toBe("/tmp/plugin-root/dist/index.js")
-  })
+    expect(result).toBe("/tmp/plugin-root/dist/index.js");
+  });
 
   test("#given a path referencing the placeholder multiple times #when resolving the path #then it replaces every occurrence", () => {
     // given
-    const path = 'bash "${CLAUDE_PLUGIN_ROOT}/hooks/launcher.sh" "${CLAUDE_PLUGIN_ROOT}/hooks/run.py" --quiet'
+    const path =
+      'bash "${CLAUDE_PLUGIN_ROOT}/hooks/launcher.sh" "${CLAUDE_PLUGIN_ROOT}/hooks/run.py" --quiet';
 
     // when
-    const result = resolvePluginPath(path, "/tmp/plugin-root")
+    const result = resolvePluginPath(path, "/tmp/plugin-root");
 
     // then
-    expect(result).toBe('bash "/tmp/plugin-root/hooks/launcher.sh" "/tmp/plugin-root/hooks/run.py" --quiet')
-  })
-})
+    expect(result).toBe(
+      'bash "/tmp/plugin-root/hooks/launcher.sh" "/tmp/plugin-root/hooks/run.py" --quiet',
+    );
+  });
+});
 
 describe("resolvePluginPaths", () => {
   test("#given a nested object #when resolving paths #then it rewrites every nested string path", () => {
@@ -35,10 +38,10 @@ describe("resolvePluginPaths", () => {
       nested: {
         config: "${CLAUDE_PLUGIN_ROOT}/config.json",
       },
-    }
+    };
 
     // when
-    const result = resolvePluginPaths(value, "/tmp/plugin-root")
+    const result = resolvePluginPaths(value, "/tmp/plugin-root");
 
     // then
     expect(result).toEqual({
@@ -47,20 +50,23 @@ describe("resolvePluginPaths", () => {
       nested: {
         config: "/tmp/plugin-root/config.json",
       },
-    })
-  })
+    });
+  });
 
   test("#given nullish input #when resolving paths #then it returns the same nullish value", () => {
     // given
-    const nullValue = null
-    const undefinedValue = undefined
+    const nullValue = null;
+    const undefinedValue = undefined;
 
     // when
-    const nullResult = resolvePluginPaths(nullValue, "/tmp/plugin-root")
-    const undefinedResult = resolvePluginPaths(undefinedValue, "/tmp/plugin-root")
+    const nullResult = resolvePluginPaths(nullValue, "/tmp/plugin-root");
+    const undefinedResult = resolvePluginPaths(
+      undefinedValue,
+      "/tmp/plugin-root",
+    );
 
     // then
-    expect(nullResult).toBeNull()
-    expect(undefinedResult).toBeUndefined()
-  })
-})
+    expect(nullResult).toBeNull();
+    expect(undefinedResult).toBeUndefined();
+  });
+});

@@ -1,6 +1,8 @@
 # opencode Test Harness (how opencode QAs itself)
 
-This is reference material for writing and running tests against the opencode source. The skill's own QA scripts (CLI, curl, sqlite) do not require this, but it is the authoritative pattern when you need a unit or integration test.
+This is reference material for writing and running tests against the opencode
+source. The skill's own QA scripts (CLI, curl, sqlite) do not require this, but
+it is the authoritative pattern when you need a unit or integration test.
 
 ## Table of Contents
 
@@ -21,7 +23,8 @@ The runner is `bun test` (Bun built-in, not vitest or jest).
 Tests cannot run from the repo root. Two guards enforce this:
 
 - `bunfig.toml` at repo root sets `root = "./do-not-run-tests-from-root"`
-- Root `package.json` has `"test": "echo 'do not run tests from root' && exit 1"`
+- Root `package.json` has
+  `"test": "echo 'do not run tests from root' && exit 1"`
 
 Run from a package directory instead:
 
@@ -51,7 +54,8 @@ Turbo dependency: `opencode#test` depends on `^build`.
 
 ## Test bootstrap (in-memory, isolated)
 
-The preload file is `packages/opencode/test/preload.ts`. It is wired via `packages/opencode/bunfig.toml`:
+The preload file is `packages/opencode/test/preload.ts`. It is wired via
+`packages/opencode/bunfig.toml`:
 
 ```toml
 [test]
@@ -60,7 +64,8 @@ preload = ["@opentui/solid/preload", "./test/preload.ts"]
 
 What it does:
 
-- Sets `XDG_DATA_HOME`, `XDG_CACHE_HOME`, `XDG_CONFIG_HOME`, and `XDG_STATE_HOME` to temp directories
+- Sets `XDG_DATA_HOME`, `XDG_CACHE_HOME`, `XDG_CONFIG_HOME`, and
+  `XDG_STATE_HOME` to temp directories
 - Sets `OPENCODE_TEST_HOME`
 - Sets `OPENCODE_DB=":memory:"` (SQLite in-memory)
 - Wipes all provider API keys from `process.env`
@@ -75,24 +80,29 @@ The `it` factory wraps `bun:test` with three variants:
 
 - `it.effect(name, body)` ... TestClock + TestConsole (isolated time)
 - `it.live(name, body)` ... real clock + TestConsole
-- `it.instance(name, body, opts)` ... real clock + scoped tmpdir + a real Instance context
+- `it.instance(name, body, opts)` ... real clock + scoped tmpdir + a real
+  Instance context
 
 `testEffect(layer)` builds an `it` bound to an Effect layer:
 
 ```typescript
-const it = testEffect(Layer.mergeAll(readLayer(), testInstanceStoreLayer))
+const it = testEffect(Layer.mergeAll(readLayer(), testInstanceStoreLayer));
 ```
 
 ## Instance and tmpdir fixtures (test/fixture/fixture.ts)
 
-- `tmpdirScoped(options?)` ... scoped temp directory. Optional `git: true`, optional `config` (writes `opencode.json`), optional `init`.
-- `provideInstance(directory)(effect)` ... runs an Effect inside a real instance for that directory.
-- `withTmpdirInstance({ git?, config?, init? })(effect)` ... one-liner: make tmpdir, optional git init + config, provide instance.
+- `tmpdirScoped(options?)` ... scoped temp directory. Optional `git: true`,
+  optional `config` (writes `opencode.json`), optional `init`.
+- `provideInstance(directory)(effect)` ... runs an Effect inside a real instance
+  for that directory.
+- `withTmpdirInstance({ git?, config?, init? })(effect)` ... one-liner: make
+  tmpdir, optional git init + config, provide instance.
 - `testInstanceStoreLayer` ... instance store with a no-op bootstrap.
 
 ## CLI subprocess harness (test/lib/cli-process.ts)
 
-`cliIt.live(name, body, timeoutMs?)` and `cliIt.concurrent(...)` spawn the real CLI (`bun run --conditions=browser src/index.ts`) in an isolated environment.
+`cliIt.live(name, body, timeoutMs?)` and `cliIt.concurrent(...)` spawn the real
+CLI (`bun run --conditions=browser src/index.ts`) in an isolated environment.
 
 Exposed helpers:
 
@@ -115,17 +125,21 @@ Isolation environment keys:
 Real example from `packages/opencode/test/cli/serve/serve-process.test.ts`:
 
 ```typescript
-cliIt.live("spawns serve and health responds", async ({ opencode, expectExit }) => {
-  const server = await opencode.serve()
-  expect(server.port).toBeGreaterThan(0)
-  const res = await fetch(`${server.url}/global/health`)
-  expect(res.status).toBe(200)
-})
+cliIt.live(
+  "spawns serve and health responds",
+  async ({ opencode, expectExit }) => {
+    const server = await opencode.serve();
+    expect(server.port).toBeGreaterThan(0);
+    const res = await fetch(`${server.url}/global/health`);
+    expect(res.status).toBe(200);
+  },
+);
 ```
 
 ## Fake LLM server (test/lib/llm-server.ts)
 
-`TestLLMServer` is an in-process OpenAI-compatible SSE server to mock model responses deterministically.
+`TestLLMServer` is an in-process OpenAI-compatible SSE server to mock model
+responses deterministically.
 
 Methods:
 
@@ -142,14 +156,13 @@ This is how tests avoid real provider calls.
 From `packages/opencode/test/tool/read.test.ts`:
 
 ```typescript
-const it = testEffect(Layer.mergeAll(readLayer(), testInstanceStoreLayer))
+const it = testEffect(Layer.mergeAll(readLayer(), testInstanceStoreLayer));
 
 it.instance("truncates large file over maxReadFileSize", () =>
   Effect.gen(function* () {
-    const test = yield* TestInstance
+    const test = yield* TestInstance;
     // ... exercise the read tool, assert truncation
-  })
-)
+  }));
 ```
 
 ### 2. Session/event test
@@ -158,11 +171,11 @@ From `packages/opencode/test/session/session.test.ts`:
 
 ```typescript
 test("session.created fires after session.create", async () => {
-  const deferred = Deferred.unsafeMake<void>(FiberId.none)
+  const deferred = Deferred.unsafeMake<void>(FiberId.none);
   // ... listen for session.created event
-  await session.create({})
+  await session.create({});
   // ... assert deferred resolves
-})
+});
 ```
 
 ### 3. Plain unit test
@@ -170,16 +183,18 @@ test("session.created fires after session.create", async () => {
 From `packages/opencode/test/cli/run/runtime.boot.test.ts`:
 
 ```typescript
-import { describe, expect, mock, spyOn, test } from "bun:test"
+import { describe, expect, mock, spyOn, test } from "bun:test";
 
 test("boots runtime without errors", () => {
   // ... standard assertions, no Effect
-})
+});
 ```
 
 ## App e2e (Playwright)
 
-The app lives in `packages/app` (SolidJS). Config is `packages/app/playwright.config.ts`. It starts the Vite dev server via `webServer`; the backend is expected at `localhost:4096`.
+The app lives in `packages/app` (SolidJS). Config is
+`packages/app/playwright.config.ts`. It starts the Vite dev server via
+`webServer`; the backend is expected at `localhost:4096`.
 
 Commands (run from `packages/app`):
 
@@ -212,7 +227,10 @@ This equals `bun test --preload ./happydom.ts ./src`.
 
 Per opencode AGENTS.md:
 
-- Avoid mocks where possible. Test the real implementation. Do not duplicate logic into tests.
-- Run `bun typecheck` from the package directory (uses tsgo). Never run bare `tsc`.
+- Avoid mocks where possible. Test the real implementation. Do not duplicate
+  logic into tests.
+- Run `bun typecheck` from the package directory (uses tsgo). Never run bare
+  `tsc`.
 
-For runtime or scriptable QA without writing tests, use the opencode-qa scripts (Cases A-D in SKILL.md).
+For runtime or scriptable QA without writing tests, use the opencode-qa scripts
+(Cases A-D in SKILL.md).

@@ -27,7 +27,9 @@ describe("resolvePlatformPackageBaseName", () => {
     const wrapperPackageName = "lazycodex";
 
     // #when
-    const resolvedPlatformBase = resolvePlatformPackageBaseName(wrapperPackageName);
+    const resolvedPlatformBase = resolvePlatformPackageBaseName(
+      wrapperPackageName,
+    );
 
     // #then
     expect(resolvedPlatformBase).toBe("oh-my-openagent");
@@ -38,7 +40,9 @@ describe("resolvePlatformPackageBaseName", () => {
     const wrapperPackageName = "@code-yeongyu/lazycodex";
 
     // #when
-    const resolvedPlatformBase = resolvePlatformPackageBaseName(wrapperPackageName);
+    const resolvedPlatformBase = resolvePlatformPackageBaseName(
+      wrapperPackageName,
+    );
 
     // #then
     expect(resolvedPlatformBase).toBe("oh-my-openagent");
@@ -49,7 +53,9 @@ describe("resolvePlatformPackageBaseName", () => {
     const wrapperPackageName = "lazycodex-ai";
 
     // #when
-    const resolvedPlatformBase = resolvePlatformPackageBaseName(wrapperPackageName);
+    const resolvedPlatformBase = resolvePlatformPackageBaseName(
+      wrapperPackageName,
+    );
 
     // #then
     expect(resolvedPlatformBase).toBe("oh-my-openagent");
@@ -60,7 +66,9 @@ describe("resolvePlatformPackageBaseName", () => {
     const wrapperPackageName = "@code-yeongyu/lazycodex-ai";
 
     // #when
-    const resolvedPlatformBase = resolvePlatformPackageBaseName(wrapperPackageName);
+    const resolvedPlatformBase = resolvePlatformPackageBaseName(
+      wrapperPackageName,
+    );
 
     // #then
     expect(resolvedPlatformBase).toBe("oh-my-openagent");
@@ -71,7 +79,9 @@ describe("resolvePlatformPackageBaseName", () => {
     const wrapperPackageName = "oh-my-opencode";
 
     // #when
-    const resolvedPlatformBase = resolvePlatformPackageBaseName(wrapperPackageName);
+    const resolvedPlatformBase = resolvePlatformPackageBaseName(
+      wrapperPackageName,
+    );
 
     // #then
     expect(resolvedPlatformBase).toBe("oh-my-opencode");
@@ -82,7 +92,9 @@ describe("resolvePlatformPackageBaseName", () => {
     const wrapperPackageName = "oh-my-openagent";
 
     // #when
-    const resolvedPlatformBase = resolvePlatformPackageBaseName(wrapperPackageName);
+    const resolvedPlatformBase = resolvePlatformPackageBaseName(
+      wrapperPackageName,
+    );
 
     // #then
     expect(resolvedPlatformBase).toBe("oh-my-openagent");
@@ -277,11 +289,14 @@ describe("getPlatformPackageCandidates", () => {
     ]);
   });
 
-
-
   test("supports renamed package family via packageBaseName override", () => {
     // #given Linux x64 with glibc and renamed package base
-    const input = { platform: "linux", arch: "x64", libcFamily: "glibc", packageBaseName: "oh-my-openagent" };
+    const input = {
+      platform: "linux",
+      arch: "x64",
+      libcFamily: "glibc",
+      packageBaseName: "oh-my-openagent",
+    };
 
     // #when getting package candidates
     const result = getPlatformPackageCandidates(input);
@@ -319,7 +334,11 @@ describe("getPlatformPackageCandidates", () => {
 
   test("supports renamed package family for Windows ARM64 via packageBaseName override", () => {
     // #given Windows arm64 with renamed package base
-    const input = { platform: "win32", arch: "arm64", packageBaseName: "oh-my-openagent" };
+    const input = {
+      platform: "win32",
+      arch: "arm64",
+      packageBaseName: "oh-my-openagent",
+    };
 
     // #when getting package candidates
     const result = getPlatformPackageCandidates(input);

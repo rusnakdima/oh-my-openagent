@@ -1,4 +1,4 @@
-import type { BuiltinSkill } from "../types"
+import type { BuiltinSkill } from "../types";
 
 /**
  * Tiered browser automation skill using a cascade strategy:
@@ -103,4 +103,4 @@ Then use Playwright tools (\`playwright_navigate\`, \`playwright_click\`, etc.) 
 - **Always try Aside LLM first** — even simple tasks benefit from reasoning
 - **Escalate appropriately** — don't use Playwright for a task Openchrome can handle in 1 line
 - **Graceful degradation** — if a tier fails, try the next tier automatically`,
-}
+};

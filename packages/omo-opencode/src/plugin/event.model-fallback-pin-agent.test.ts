@@ -1,69 +1,81 @@
-declare const require: (name: string) => any
-const { afterEach, describe, expect, spyOn, test } = require("bun:test")
+declare const require: (name: string) => any;
+const { afterEach, describe, expect, spyOn, test } = require("bun:test");
 
-import { createEventHandler } from "./event"
-import { _resetForTesting, setMainSession } from "../features/claude-code-session-state"
-import { createModelFallbackHook, clearPendingModelFallback } from "../hooks/model-fallback/hook"
-import * as connectedProvidersCache from "../shared/connected-providers-cache"
-import { unsafeTestValue } from "../../../../test-support/unsafe-test-value"
+import { createEventHandler } from "./event";
+import {
+  _resetForTesting,
+  setMainSession,
+} from "../features/claude-code-session-state";
+import {
+  clearPendingModelFallback,
+  createModelFallbackHook,
+} from "../hooks/model-fallback/hook";
+import * as connectedProvidersCache from "../shared/connected-providers-cache";
+import { unsafeTestValue } from "../../../../test-support/unsafe-test-value";
 
-let readConnectedProvidersCacheSpy: { mockRestore: () => void } | undefined
-let readProviderModelsCacheSpy: { mockRestore: () => void } | undefined
+let readConnectedProvidersCacheSpy: { mockRestore: () => void } | undefined;
+let readProviderModelsCacheSpy: { mockRestore: () => void } | undefined;
 
 function setupConnectedProviderCacheMocks(): void {
-  readConnectedProvidersCacheSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(null)
-  readProviderModelsCacheSpy = spyOn(connectedProvidersCache, "readProviderModelsCache").mockReturnValue(null)
+  readConnectedProvidersCacheSpy = spyOn(
+    connectedProvidersCache,
+    "readConnectedProvidersCache",
+  ).mockReturnValue(null);
+  readProviderModelsCacheSpy = spyOn(
+    connectedProvidersCache,
+    "readProviderModelsCache",
+  ).mockReturnValue(null);
 }
 
 type PromptBody = {
-  path: { id: string }
+  path: { id: string };
   body: {
     parts: Array<{
-      type: "text"
-      text: string
-      synthetic?: boolean
-      metadata?: Record<string, unknown>
-    }>
-    agent?: string
-    model?: { providerID: string; modelID: string }
-    variant?: string
-    noReply?: boolean
-  }
-  query: { directory: string }
-}
+      type: "text";
+      text: string;
+      synthetic?: boolean;
+      metadata?: Record<string, unknown>;
+    }>;
+    agent?: string;
+    model?: { providerID: string; modelID: string };
+    variant?: string;
+    noReply?: boolean;
+  };
+  query: { directory: string };
+};
 
 function expectSyntheticContinuation(body: PromptBody["body"]): void {
-  expect(body.noReply).toBeUndefined()
-  expect(body.parts[0]?.synthetic).toBe(true)
-  expect(body.parts[0]?.metadata?.compaction_continue).toBe(true)
+  expect(body.noReply).toBeUndefined();
+  expect(body.parts[0]?.synthetic).toBe(true);
+  expect(body.parts[0]?.metadata?.compaction_continue).toBe(true);
 }
 
 describe("createEventHandler - model-fallback auto-continuation pins agent/model/variant", () => {
   const createHandler = (args?: {
-    hooks?: unknown
-    pluginConfig?: unknown
-    withPromptAsync?: boolean
+    hooks?: unknown;
+    pluginConfig?: unknown;
+    withPromptAsync?: boolean;
   }) => {
-    setupConnectedProviderCacheMocks()
-    const promptAsyncBodies: PromptBody[] = []
-    const promptBodies: PromptBody[] = []
+    setupConnectedProviderCacheMocks();
+    const promptAsyncBodies: PromptBody[] = [];
+    const promptBodies: PromptBody[] = [];
 
     const sessionClient: {
-      abort: () => Promise<unknown>
-      prompt: (input: PromptBody) => Promise<unknown>
-      promptAsync?: (input: PromptBody) => Promise<unknown>
+      abort: () => Promise<unknown>;
+      prompt: (input: PromptBody) => Promise<unknown>;
+      promptAsync?: (input: PromptBody) => Promise<unknown>;
     } = {
       abort: async () => ({}),
       prompt: async (input: PromptBody) => {
-        promptBodies.push(input)
-        return {}
+        promptBodies.push(input);
+        return {};
       },
-    }
+    };
     if (args?.withPromptAsync ?? true) {
       sessionClient.promptAsync = async (input: PromptBody) => {
-        promptAsyncBodies.push(input)
-        return {}
-      }
+        promptAsyncBodies.push(input);
+        return {};
+      };
     }
 
     const handler = createEventHandler({
@@ -71,7 +83,7 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
         directory: "/tmp",
         client: { session: sessionClient },
       }),
-      pluginConfig: unsafeTestValue((args?.pluginConfig ?? {})),
+      pluginConfig: unsafeTestValue(args?.pluginConfig ?? {}),
       firstMessageVariantGate: {
         markSessionCreated: () => {},
         clear: () => {},
@@ -86,26 +98,28 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
         },
       }),
       hooks: unsafeTestValue(args?.hooks ?? {}),
-    })
+    });
 
-    return { handler, promptAsyncBodies, promptBodies }
-  }
+    return { handler, promptAsyncBodies, promptBodies };
+  };
 
   afterEach(() => {
-    readConnectedProvidersCacheSpy?.mockRestore()
-    readProviderModelsCacheSpy?.mockRestore()
-    readConnectedProvidersCacheSpy = undefined
-    readProviderModelsCacheSpy = undefined
-    _resetForTesting()
-  })
+    readConnectedProvidersCacheSpy?.mockRestore();
+    readProviderModelsCacheSpy?.mockRestore();
+    readConnectedProvidersCacheSpy = undefined;
+    readProviderModelsCacheSpy = undefined;
+    _resetForTesting();
+  });
 
   test("pins agent/model on promptAsync body when continuing after message.updated fallback", async () => {
     // given
-    const sessionID = "ses_pin_message_updated"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
-    const { handler, promptAsyncBodies } = createHandler({ hooks: { modelFallback } })
+    const sessionID = "ses_pin_message_updated";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
+    const { handler, promptAsyncBodies } = createHandler({
+      hooks: { modelFallback },
+    });
 
     // when
     await handler({
@@ -121,7 +135,7 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
               name: "APIError",
               data: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-7-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-7-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -132,27 +146,29 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
           },
         },
       },
-    })
+    });
 
     // then
-    expect(promptAsyncBodies.length).toBe(1)
-    const body = promptAsyncBodies[0]!.body
-    expect(body.agent).toBeDefined()
-    expect(body.agent).toContain("Sisyphus")
+    expect(promptAsyncBodies.length).toBe(1);
+    const body = promptAsyncBodies[0]!.body;
+    expect(body.agent).toBeDefined();
+    expect(body.agent).toContain("Sisyphus");
     expect(body.model).toEqual({
       providerID: "anthropic",
       modelID: "claude-opus-4-7",
-    })
-    expectSyntheticContinuation(body)
-  })
+    });
+    expectSyntheticContinuation(body);
+  });
 
   test("pins agent/model on promptAsync body when continuing after session.error fallback", async () => {
     // given
-    const sessionID = "ses_pin_session_error"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
-    const { handler, promptAsyncBodies } = createHandler({ hooks: { modelFallback } })
+    const sessionID = "ses_pin_session_error";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
+    const { handler, promptAsyncBodies } = createHandler({
+      hooks: { modelFallback },
+    });
 
     // when
     await handler({
@@ -167,36 +183,36 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
             data: {
               error: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-7-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-7-thinking"}}',
               },
             },
           },
         },
       },
-    })
+    });
 
     // then
-    expect(promptAsyncBodies.length).toBe(1)
-    const body = promptAsyncBodies[0]!.body
-    expect(body.agent).toBeDefined()
-    expect(body.agent?.toLowerCase()).toContain("sisyphus")
+    expect(promptAsyncBodies.length).toBe(1);
+    const body = promptAsyncBodies[0]!.body;
+    expect(body.agent).toBeDefined();
+    expect(body.agent?.toLowerCase()).toContain("sisyphus");
     expect(body.model).toEqual({
       providerID: "anthropic",
       modelID: "claude-opus-4-7",
-    })
-    expectSyntheticContinuation(body)
-  })
+    });
+    expectSyntheticContinuation(body);
+  });
 
   test("pins agent/model on fallback prompt() body when promptAsync is not available (session.status)", async () => {
     // given
-    const sessionID = "ses_pin_session_status_noasync"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
+    const sessionID = "ses_pin_session_status_noasync";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
     const { handler, promptBodies, promptAsyncBodies } = createHandler({
       hooks: { modelFallback },
       withPromptAsync: false,
-    })
+    });
 
     await handler({
       event: {
@@ -212,7 +228,7 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
           },
         },
       },
-    })
+    });
 
     // when
     await handler({
@@ -224,43 +240,43 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
             type: "retry",
             attempt: 1,
             message:
-              "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-7-thinking\"}}",
+              'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-7-thinking"}}',
             next: 1234,
           },
         },
       },
-    })
+    });
 
     // then
-    expect(promptAsyncBodies.length).toBe(0)
-    expect(promptBodies.length).toBe(1)
-    const body = promptBodies[0]!.body
-    expect(body.agent).toBeDefined()
-    expect(body.agent).toContain("Sisyphus")
+    expect(promptAsyncBodies.length).toBe(0);
+    expect(promptBodies.length).toBe(1);
+    const body = promptBodies[0]!.body;
+    expect(body.agent).toBeDefined();
+    expect(body.agent).toContain("Sisyphus");
     expect(body.model).toEqual({
       providerID: "anthropic",
       modelID: "claude-opus-4-7",
-    })
-    expectSyntheticContinuation(body)
-  })
+    });
+    expectSyntheticContinuation(body);
+  });
 
   test("pins variant from agent config when present", async () => {
     // given
-    const sessionID = "ses_pin_variant"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
+    const sessionID = "ses_pin_variant";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
     const pluginConfig = {
       agents: {
         sisyphus: {
           variant: "thinking",
         },
       },
-    }
+    };
     const { handler, promptAsyncBodies } = createHandler({
       hooks: { modelFallback },
       pluginConfig,
-    })
+    });
 
     // when
     await handler({
@@ -275,18 +291,18 @@ describe("createEventHandler - model-fallback auto-continuation pins agent/model
             data: {
               error: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-7-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-7-thinking"}}',
               },
             },
           },
         },
       },
-    })
+    });
 
     // then
-    expect(promptAsyncBodies.length).toBe(1)
-    const body = promptAsyncBodies[0]!.body
-    expect(body.variant).toBe("thinking")
-    expectSyntheticContinuation(body)
-  })
-})
+    expect(promptAsyncBodies.length).toBe(1);
+    const body = promptAsyncBodies[0]!.body;
+    expect(body.variant).toBe("thinking");
+    expectSyntheticContinuation(body);
+  });
+});

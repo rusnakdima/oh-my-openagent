@@ -59,91 +59,102 @@ process.stdin.on("data", (chunk) => {
 `;
 
 class TestConnection extends LspClientConnection {
-	request<T>(method: string, params: unknown): Promise<T> {
-		return this.sendRequest<T>(method, params);
-	}
+  request<T>(method: string, params: unknown): Promise<T> {
+    return this.sendRequest<T>(method, params);
+  }
 }
 
 function fakeServer(initializeDelayMs: number): ResolvedServer {
-	return {
-		id: "fake-slow-init",
-		command: [process.execPath, "-e", FAKE_LSP_SERVER_SCRIPT],
-		extensions: [".fake"],
-		priority: 0,
-		env: { FAKE_LSP_INITIALIZE_DELAY_MS: String(initializeDelayMs) },
-	};
+  return {
+    id: "fake-slow-init",
+    command: [process.execPath, "-e", FAKE_LSP_SERVER_SCRIPT],
+    extensions: [".fake"],
+    priority: 0,
+    env: { FAKE_LSP_INITIALIZE_DELAY_MS: String(initializeDelayMs) },
+  };
 }
 
 describe("LspClientConnection timeouts", () => {
-	let root = "";
-	const connections: TestConnection[] = [];
+  let root = "";
+  const connections: TestConnection[] = [];
 
-	beforeEach(() => {
-		root = mkdtempSync(join(tmpdir(), "lsp-initialize-timeout-"));
-	});
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), "lsp-initialize-timeout-"));
+  });
 
-	afterEach(async () => {
-		for (const connection of connections.splice(0)) {
-			await connection.stop();
-		}
-		rmSync(root, { recursive: true, force: true });
-	});
+  afterEach(async () => {
+    for (const connection of connections.splice(0)) {
+      await connection.stop();
+    }
+    rmSync(root, { recursive: true, force: true });
+  });
 
-	it("#given initialize response slower than the request timeout #when initialize runs #then it succeeds within the initialize timeout", {
-		timeout: 10_000,
-	}, async () => {
-		// given
-		const connection = new TestConnection(root, fakeServer(600), {
-			requestTimeoutMs: 150,
-			initializeTimeoutMs: 5_000,
-		});
-		connections.push(connection);
-		await connection.start();
+  it(
+    "#given initialize response slower than the request timeout #when initialize runs #then it succeeds within the initialize timeout",
+    {
+      timeout: 10_000,
+    },
+    async () => {
+      // given
+      const connection = new TestConnection(root, fakeServer(600), {
+        requestTimeoutMs: 150,
+        initializeTimeoutMs: 5_000,
+      });
+      connections.push(connection);
+      await connection.start();
 
-		// when / then
-		await expect(connection.initialize()).resolves.toBeUndefined();
-	});
+      // when / then
+      await expect(connection.initialize()).resolves.toBeUndefined();
+    },
+  );
 
-	it("#given an unanswered request after initialize #when the request runs #then it times out at the injected request timeout", {
-		timeout: 5_000,
-	}, async () => {
-		// given
-		const connection = new TestConnection(root, fakeServer(0), {
-			requestTimeoutMs: 150,
-			initializeTimeoutMs: 5_000,
-		});
-		connections.push(connection);
-		await connection.start();
-		await connection.initialize();
+  it(
+    "#given an unanswered request after initialize #when the request runs #then it times out at the injected request timeout",
+    {
+      timeout: 5_000,
+    },
+    async () => {
+      // given
+      const connection = new TestConnection(root, fakeServer(0), {
+        requestTimeoutMs: 150,
+        initializeTimeoutMs: 5_000,
+      });
+      connections.push(connection);
+      await connection.start();
+      await connection.initialize();
 
-		// when
-		const startedAt = Date.now();
-		const request = connection.request("textDocument/hover", {
-			textDocument: { uri: "file:///unanswered.fake" },
-			position: { line: 0, character: 0 },
-		});
+      // when
+      const startedAt = Date.now();
+      const request = connection.request("textDocument/hover", {
+        textDocument: { uri: "file:///unanswered.fake" },
+        position: { line: 0, character: 0 },
+      });
 
-		// then
-		await expect(request).rejects.toThrow(LspRequestTimeoutError);
-		expect(Date.now() - startedAt).toBeLessThan(2_000);
-	});
+      // then
+      await expect(request).rejects.toThrow(LspRequestTimeoutError);
+      expect(Date.now() - startedAt).toBeLessThan(2_000);
+    },
+  );
 
-	it("#given a server that requires initialized params #when initialize completes #then subsequent requests succeed", async () => {
-		// given
-		const connection = new TestConnection(root, fakeServer(0), {
-			requestTimeoutMs: 1_000,
-			initializeTimeoutMs: 5_000,
-		});
-		connections.push(connection);
-		await connection.start();
+  it("#given a server that requires initialized params #when initialize completes #then subsequent requests succeed", async () => {
+    // given
+    const connection = new TestConnection(root, fakeServer(0), {
+      requestTimeoutMs: 1_000,
+      initializeTimeoutMs: 5_000,
+    });
+    connections.push(connection);
+    await connection.start();
 
-		// when
-		await connection.initialize();
-		const result = connection.request<unknown[]>("textDocument/documentSymbol", {
-			textDocument: { uri: "file:///strict.fake" },
-		});
+    // when
+    await connection.initialize();
+    const result = connection.request<unknown[]>(
+      "textDocument/documentSymbol",
+      {
+        textDocument: { uri: "file:///strict.fake" },
+      },
+    );
 
-		// then
-		await expect(result).resolves.toEqual([]);
-	});
+    // then
+    await expect(result).resolves.toEqual([]);
+  });
 });

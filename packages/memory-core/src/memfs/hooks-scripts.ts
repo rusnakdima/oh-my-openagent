@@ -1,4 +1,4 @@
-import { getPostCommitHookScript } from "../sync/mirror"
+import { getPostCommitHookScript } from "../sync/mirror";
 
 /**
  * Git hook scripts installed into memory repositories, kept as data so the
@@ -140,7 +140,7 @@ if [ -n "$errors" ]; then
 fi
 
 exit 0
-`
+`;
 
 /**
  * Post-commit mirror push to an optional user-owned remote.
@@ -157,4 +157,4 @@ exit 0
  * assertions deterministic.
  */
 // Single source of truth: sync/mirror owns this script (task-16).
-export const POST_COMMIT_HOOK_SCRIPT: string = getPostCommitHookScript()
+export const POST_COMMIT_HOOK_SCRIPT: string = getPostCommitHookScript();

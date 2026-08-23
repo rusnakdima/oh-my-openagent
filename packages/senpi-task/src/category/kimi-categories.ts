@@ -1,4 +1,4 @@
-import type { BuiltinCategoryDefinition } from "./types"
+import type { BuiltinCategoryDefinition } from "./types";
 
 // Ported from packages/omo-opencode/src/tools/delegate-task/kimi-categories.ts.
 const WRITING_CATEGORY_PROMPT_APPEND = `<Category_Context>
@@ -25,7 +25,7 @@ ANTI-AI-SLOP RULES (NON-NEGOTIABLE):
 - NEVER start consecutive sentences with the same word.
 - No filler openings: skip "In today's world...", "As we all know...", "It goes without saying..."
 - Write like a human, not a corporate template.
-</Category_Context>`
+</Category_Context>`;
 
 export const KIMI_CATEGORIES = [
   {
@@ -34,4 +34,4 @@ export const KIMI_CATEGORIES = [
     description: "Documentation, prose, technical writing",
     promptAppend: WRITING_CATEGORY_PROMPT_APPEND,
   },
-] satisfies readonly BuiltinCategoryDefinition[]
+] satisfies readonly BuiltinCategoryDefinition[];

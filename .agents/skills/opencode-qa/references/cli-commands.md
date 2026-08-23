@@ -1,6 +1,9 @@
 # opencode CLI for QA (Case A: terminal works)
 
-The installed binary is `opencode` (v1.15.13). From the source repo you can also run `bun run --conditions=browser ./src/index.ts <cmd>` inside `packages/opencode`. The canonical non-interactive QA entry is `opencode run --format json`.
+The installed binary is `opencode` (v1.15.13). From the source repo you can also
+run `bun run --conditions=browser ./src/index.ts <cmd>` inside
+`packages/opencode`. The canonical non-interactive QA entry is
+`opencode run --format json`.
 
 ## Global flags
 
@@ -42,7 +45,8 @@ Positional message. Key flags:
 {"type":"...", "timestamp":<ms>, "sessionID":"ses_...", ...}
 ```
 
-`type` is one of: `text`, `tool_use`, `step_start`, `step_finish`, `reasoning`, `error`. The process exits when the session goes idle.
+`type` is one of: `text`, `tool_use`, `step_start`, `step_finish`, `reasoning`,
+`error`. The process exits when the session goes idle.
 
 Validation rules:
 
@@ -118,7 +122,9 @@ Deletes one session.
 
 ## `opencode export [sessionID]`
 
-Prints "Exporting session: ..." to STDERR and a clean JSON document `{info:{...}, messages:[...]}` to STDOUT. Always redirect STDERR before piping to jq.
+Prints "Exporting session: ..." to STDERR and a clean JSON document
+`{info:{...}, messages:[...]}` to STDOUT. Always redirect STDERR before piping
+to jq.
 
 Example:
 
@@ -169,7 +175,8 @@ opencode debug paths    # data/config/cache/state dirs
 opencode debug info     # version, OS, terminal, plugins
 ```
 
-Others: `config`, `lsp`, `ripgrep`, `file`, `skill`, `snapshot`, `agent`, `v2`, `wait`.
+Others: `config`, `lsp`, `ripgrep`, `file`, `skill`, `snapshot`, `agent`, `v2`,
+`wait`.
 
 ## Other commands
 
@@ -183,6 +190,10 @@ opencode generate                # prints the OpenAPI JSON spec
 
 ## Installed binary vs dev source (IMPORTANT note box)
 
-The installed `opencode` (v1.15.13) matches the dev source in `packages/opencode`. When citing internals, cite dev source paths but always verify a flag against `opencode <cmd> --help` on the installed binary, since the dev branch can drift ahead.
+The installed `opencode` (v1.15.13) matches the dev source in
+`packages/opencode`. When citing internals, cite dev source paths but always
+verify a flag against `opencode <cmd> --help` on the installed binary, since the
+dev branch can drift ahead.
 
-For DB internals see `references/db-investigation.md`; for the HTTP server see `references/server-api.md`.
+For DB internals see `references/db-investigation.md`; for the HTTP server see
+`references/server-api.md`.

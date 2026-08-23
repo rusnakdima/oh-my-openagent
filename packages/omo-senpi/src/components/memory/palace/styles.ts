@@ -246,4 +246,4 @@ body {
   color: var(--text-dim);
   font-size: var(--text-sm);
 }
-`
+`;

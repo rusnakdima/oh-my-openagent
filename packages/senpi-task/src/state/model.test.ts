@@ -1,15 +1,18 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
 import {
-  RESIDENCY_STATES,
-  TASK_STATUSES,
   createTaskRecord,
   messageability,
+  RESIDENCY_STATES,
+  TASK_STATUSES,
   transitionTaskRecord,
-} from "../index"
-import type { Messageability, ResidencyState, TaskStatus } from "../index"
+} from "../index";
+import type { Messageability, ResidencyState, TaskStatus } from "../index";
 
-const expectedMessageability: Record<TaskStatus, Record<ResidencyState, Messageability>> = {
+const expectedMessageability: Record<
+  TaskStatus,
+  Record<ResidencyState, Messageability>
+> = {
   pending: {
     resident: "steer",
     evicted: "not-continuable",
@@ -59,56 +62,71 @@ const expectedMessageability: Record<TaskStatus, Record<ResidencyState, Messagea
     persisted_only: "not-continuable",
     rpc_detached: "not-continuable",
   },
-}
+};
 
 describe("messageability", () => {
   test("#given every status and residency pair #when classified #then the table is exhaustive", () => {
     // given
     const pairs = TASK_STATUSES.flatMap((status) =>
-      RESIDENCY_STATES.map((residency) => ({ status, residency })),
-    )
+      RESIDENCY_STATES.map((residency) => ({ status, residency }))
+    );
 
     // when
     const actual = pairs.map(({ status, residency }) => ({
       key: `${status}/${residency}`,
       value: messageability(status, residency),
-    }))
+    }));
 
     // then
-    expect(actual).toHaveLength(TASK_STATUSES.length * RESIDENCY_STATES.length)
-    expect(Object.keys(expectedMessageability)).toHaveLength(TASK_STATUSES.length)
+    expect(actual).toHaveLength(TASK_STATUSES.length * RESIDENCY_STATES.length);
+    expect(Object.keys(expectedMessageability)).toHaveLength(
+      TASK_STATUSES.length,
+    );
     for (const status of TASK_STATUSES) {
-      expect(Object.keys(expectedMessageability[status])).toHaveLength(RESIDENCY_STATES.length)
+      expect(Object.keys(expectedMessageability[status])).toHaveLength(
+        RESIDENCY_STATES.length,
+      );
       for (const residency of RESIDENCY_STATES) {
-        expect(messageability(status, residency)).toBe(expectedMessageability[status][residency])
+        expect(messageability(status, residency)).toBe(
+          expectedMessageability[status][residency],
+        );
       }
     }
-  })
-})
+  });
+});
 
 describe("messageability suspended residencies", () => {
   test("#given any status #when residency is persisted_only or rpc_detached #then classification is not-continuable (no lazy revive-on-send)", () => {
     // given
-    const suspendedResidencies: readonly ResidencyState[] = ["persisted_only", "rpc_detached"]
+    const suspendedResidencies: readonly ResidencyState[] = [
+      "persisted_only",
+      "rpc_detached",
+    ];
 
     // when
     const actual = Object.fromEntries(
       TASK_STATUSES.flatMap((status) =>
         suspendedResidencies.map(
-          (residency) => [`${status}/${residency}`, messageability(status, residency)] as const,
-        ),
+          (residency) =>
+            [
+              `${status}/${residency}`,
+              messageability(status, residency),
+            ] as const,
+        )
       ),
-    )
+    );
 
     // then
     const expected = Object.fromEntries(
       TASK_STATUSES.flatMap((status) =>
-        suspendedResidencies.map((residency) => [`${status}/${residency}`, "not-continuable"] as const),
+        suspendedResidencies.map((residency) =>
+          [`${status}/${residency}`, "not-continuable"] as const
+        )
       ),
-    )
-    expect(actual).toEqual(expected)
-  })
-})
+    );
+    expect(actual).toEqual(expected);
+  });
+});
 
 describe("transitionTaskRecord", () => {
   test("#given a cancelled task #when late failure arrives #then cancelled remains terminal and failure is logged", () => {
@@ -120,31 +138,33 @@ describe("transitionTaskRecord", () => {
       execution_mode: "direct",
       model: "claude-sonnet-4",
       notify_on_terminal: false,
-    })
+    });
     const running = transitionTaskRecord(record, {
       type: "start",
       timestamp: "2026-07-06T00:00:00.000Z",
       pid: 1234,
-    }).record
+    }).record;
     const cancelled = transitionTaskRecord(running, {
       type: "cancel",
       timestamp: "2026-07-06T00:00:01.000Z",
       error_message: "user cancelled",
-    }).record
+    }).record;
 
     // when
     const lateFailure = transitionTaskRecord(cancelled, {
       type: "fail",
       timestamp: "2026-07-06T00:00:02.000Z",
       error_message: "process exited later",
-    })
+    });
 
     // then
-    expect(lateFailure.applied).toBe(false)
-    expect(lateFailure.record.status).toBe("cancelled")
-    expect(lateFailure.record.error_message).toBe("user cancelled")
-    expect(lateFailure.audit.type).toBe("late_transition_ignored")
-    if (lateFailure.audit.type !== "late_transition_ignored") throw new Error("Expected late transition audit")
-    expect(lateFailure.audit.attempted_status).toBe("error")
-  })
-})
+    expect(lateFailure.applied).toBe(false);
+    expect(lateFailure.record.status).toBe("cancelled");
+    expect(lateFailure.record.error_message).toBe("user cancelled");
+    expect(lateFailure.audit.type).toBe("late_transition_ignored");
+    if (lateFailure.audit.type !== "late_transition_ignored") {
+      throw new Error("Expected late transition audit");
+    }
+    expect(lateFailure.audit.attempted_status).toBe("error");
+  });
+});

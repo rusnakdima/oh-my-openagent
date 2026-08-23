@@ -1,9 +1,11 @@
 import {
   createSystemDirective,
   SystemDirectiveTypes,
-} from "../../shared/system-directive"
+} from "../../shared/system-directive";
 
-export const COMPACTION_CONTEXT_PROMPT = `${createSystemDirective(SystemDirectiveTypes.COMPACTION_CONTEXT)}
+export const COMPACTION_CONTEXT_PROMPT = `${
+  createSystemDirective(SystemDirectiveTypes.COMPACTION_CONTEXT)
+}
 
 When summarizing this session, keep the result compact and continuation-focused. Prefer terse bullets over replaying the transcript.
 
@@ -53,4 +55,4 @@ This section is CRITICAL for reviewer agents (momus, oracle) to maintain continu
 - **RESUME, DON'T RESTART.** Each listed delegated task retains full context. After compaction, use \`task_id\` to continue existing delegated work instead of spawning new tasks. This saves tokens, preserves learned context, and prevents duplicate work.
 
 This context is critical for maintaining continuity after compaction.
-`
+`;

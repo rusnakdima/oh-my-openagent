@@ -1,8 +1,8 @@
-import type { AgentConfig } from "@opencode-ai/sdk"
-import type { AgentMode, AgentPromptMetadata } from "./types"
-import { createAgentToolRestrictions } from "../shared/permission-compat"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import type { AgentMode, AgentPromptMetadata } from "./types";
+import { createAgentToolRestrictions } from "../shared/permission-compat";
 
-const MODE: AgentMode = "subagent"
+const MODE: AgentMode = "subagent";
 
 export const EXPLORE_PROMPT_METADATA: AgentPromptMetadata = {
   category: "exploration",
@@ -10,7 +10,10 @@ export const EXPLORE_PROMPT_METADATA: AgentPromptMetadata = {
   promptAlias: "Explore",
   keyTrigger: "2+ modules involved → fire `explore` background",
   triggers: [
-    { domain: "Explore", trigger: "Find existing codebase structure, patterns and styles" },
+    {
+      domain: "Explore",
+      trigger: "Find existing codebase structure, patterns and styles",
+    },
   ],
   useWhen: [
     "Multiple search angles needed",
@@ -22,13 +25,18 @@ export const EXPLORE_PROMPT_METADATA: AgentPromptMetadata = {
     "Single keyword/pattern suffices",
     "Known file location",
   ],
-}
+};
 
 export function createExploreAgent(model: string): AgentConfig {
   const restrictions = createAgentToolRestrictions(
     ["write", "edit", "apply_patch", "task", "call_omo_agent"],
-    ["lsp_symbols", "lsp_goto_definition", "lsp_find_references", "lsp_diagnostics"],
-  )
+    [
+      "lsp_symbols",
+      "lsp_goto_definition",
+      "lsp_find_references",
+      "lsp_diagnostics",
+    ],
+  );
 
   return {
     description:
@@ -37,7 +45,8 @@ export function createExploreAgent(model: string): AgentConfig {
     model,
     temperature: 0.1,
     ...restrictions,
-    prompt: `You are a codebase search specialist. Your job: find files and code, return actionable results.
+    prompt:
+      `You are a codebase search specialist. Your job: find files and code, return actionable results.
 
 ## Your Mission
 
@@ -114,6 +123,6 @@ Use the right tool for the job:
 - **History/evolution** (when added, who changed): git commands
 
 Flood with parallel calls. Cross-validate findings across multiple tools.`,
-  }
+  };
 }
-createExploreAgent.mode = MODE
+createExploreAgent.mode = MODE;

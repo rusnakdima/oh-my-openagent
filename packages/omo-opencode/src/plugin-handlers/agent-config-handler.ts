@@ -13,9 +13,11 @@ import type { ApplyAgentConfigParams } from "./agent-config-types";
 export async function applyAgentConfig(
   params: ApplyAgentConfigParams,
 ): Promise<Record<string, unknown>> {
-  const migratedDisabledAgents = (params.pluginConfig.disabled_agents ?? []).map(
-    (agent: string) => AGENT_NAME_MAP[agent.toLowerCase()] ?? AGENT_NAME_MAP[agent] ?? agent,
-  ) as typeof params.pluginConfig.disabled_agents;
+  const migratedDisabledAgents = (params.pluginConfig.disabled_agents ?? [])
+    .map(
+      (agent: string) =>
+        AGENT_NAME_MAP[agent.toLowerCase()] ?? AGENT_NAME_MAP[agent] ?? agent,
+    ) as typeof params.pluginConfig.disabled_agents;
   const allDiscoveredSkills = await discoverAgentSkills(params);
   const sources = loadAgentSources(params);
   const browserProvider =
@@ -27,18 +29,21 @@ export async function applyAgentConfig(
   // (written by the TUI sidebar pick), then the mirror file as a legacy fallback.
   const globalTui = getSelectedGlobalModelLive() ?? (() => {
     try {
-      const mirror = readMirror(params.ctx.directory)
-      const m = mirror?.tuiSelectedModel
-      return m ? { providerID: m.providerID, modelID: m.modelID } : null
+      const mirror = readMirror(params.ctx.directory);
+      const m = mirror?.tuiSelectedModel;
+      return m ? { providerID: m.providerID, modelID: m.modelID } : null;
     } catch {
-      return null
+      return null;
     }
-  })()
-  const effectiveGlobalModel = globalTui ? `${globalTui.providerID}/${globalTui.modelID}` : undefined
-  const effectiveUiModel = effectiveGlobalModel ?? currentModel
+  })();
+  const effectiveGlobalModel = globalTui
+    ? `${globalTui.providerID}/${globalTui.modelID}`
+    : undefined;
+  const effectiveUiModel = effectiveGlobalModel ?? currentModel;
   const disabledSkills = collectDisabledSkillAliases(params.pluginConfig);
   const useTaskSystem = isTaskSystemEnabled(params.pluginConfig);
-  const disableOmoEnv = params.pluginConfig.experimental?.disable_omo_env ?? false;
+  const disableOmoEnv = params.pluginConfig.experimental?.disable_omo_env ??
+    false;
   const builtinAgents = await createBuiltinAgents(
     migratedDisabledAgents,
     params.pluginConfig.agents,

@@ -1,122 +1,148 @@
-import type { OhMyOpenCodeConfig } from "../../config"
-import type { MonitorManager } from "../../features/monitor"
-import type { PluginContext } from "../types"
+import type { OhMyOpenCodeConfig } from "../../config";
+import type { MonitorManager } from "../../features/monitor";
+import type { PluginContext } from "../types";
 
 import {
+  createBtwContextStripHook,
   createClaudeCodeHooksHook,
   createKeywordDetectorHook,
   createMonitorStatusInjectorHook,
   createTeamMailboxInjector,
   createTeamModeStatusInjector,
   createToolPairValidatorHook,
-  createBtwContextStripHook,
-} from "../../hooks"
+} from "../../hooks";
 import {
   contextCollector,
   createContextInjectorMessagesTransformHook,
-} from "../../features/context-injector"
-import { createBtwSideContextInjectorHook } from "../../features/btw-side"
-import { safeCreateHook } from "../../shared/safe-create-hook"
-import { isBtwMarked } from "../../hooks/btw-context-strip/predicates"
+} from "../../features/context-injector";
+import { createBtwSideContextInjectorHook } from "../../features/btw-side";
+import { safeCreateHook } from "../../shared/safe-create-hook";
+import { isBtwMarked } from "../../hooks/btw-context-strip/predicates";
 
 export type TransformHooks = {
-  claudeCodeHooks: ReturnType<typeof createClaudeCodeHooksHook> | null
-  keywordDetector: ReturnType<typeof createKeywordDetectorHook> | null
-  btwSideContextInjector: ReturnType<typeof createBtwSideContextInjectorHook>
-  contextInjectorMessagesTransform: ReturnType<typeof createContextInjectorMessagesTransformHook>
-  teamModeStatusInjector: ReturnType<typeof createTeamModeStatusInjector> | null
-  teamMailboxInjector: ReturnType<typeof createTeamMailboxInjector> | null
-  toolPairValidator: ReturnType<typeof createToolPairValidatorHook> | null
-  monitorStatusInjector: ReturnType<typeof createMonitorStatusInjectorHook> | null
-  btwContextStrip: { "experimental.chat.messages.transform": ReturnType<typeof createBtwContextStripHook> }
-}
+  claudeCodeHooks: ReturnType<typeof createClaudeCodeHooksHook> | null;
+  keywordDetector: ReturnType<typeof createKeywordDetectorHook> | null;
+  btwSideContextInjector: ReturnType<typeof createBtwSideContextInjectorHook>;
+  contextInjectorMessagesTransform: ReturnType<
+    typeof createContextInjectorMessagesTransformHook
+  >;
+  teamModeStatusInjector:
+    | ReturnType<typeof createTeamModeStatusInjector>
+    | null;
+  teamMailboxInjector: ReturnType<typeof createTeamMailboxInjector> | null;
+  toolPairValidator: ReturnType<typeof createToolPairValidatorHook> | null;
+  monitorStatusInjector:
+    | ReturnType<typeof createMonitorStatusInjectorHook>
+    | null;
+  btwContextStrip: {
+    "experimental.chat.messages.transform": ReturnType<
+      typeof createBtwContextStripHook
+    >;
+  };
+};
 
 export function createTransformHooks(args: {
-  ctx: PluginContext
-  pluginConfig: OhMyOpenCodeConfig
-  isHookEnabled: (hookName: string) => boolean
-  safeHookEnabled?: boolean
-  monitorManager?: MonitorManager
+  ctx: PluginContext;
+  pluginConfig: OhMyOpenCodeConfig;
+  isHookEnabled: (hookName: string) => boolean;
+  safeHookEnabled?: boolean;
+  monitorManager?: MonitorManager;
 }): TransformHooks {
-  const { ctx, pluginConfig, isHookEnabled, monitorManager } = args
-  const safeHookEnabled = args.safeHookEnabled ?? true
+  const { ctx, pluginConfig, isHookEnabled, monitorManager } = args;
+  const safeHookEnabled = args.safeHookEnabled ?? true;
 
   const claudeCodeHooks = isHookEnabled("claude-code-hooks")
     ? safeCreateHook(
-        "claude-code-hooks",
-        () =>
-          createClaudeCodeHooksHook(
-            ctx,
-            {
-              disabledHooks: (pluginConfig.claude_code?.hooks ?? true) ? undefined : true,
-              keywordDetectorDisabled: !isHookEnabled("keyword-detector"),
-            },
-            contextCollector,
-          ),
-        { enabled: safeHookEnabled },
-      )
-    : null
+      "claude-code-hooks",
+      () =>
+        createClaudeCodeHooksHook(
+          ctx,
+          {
+            disabledHooks: (pluginConfig.claude_code?.hooks ?? true)
+              ? undefined
+              : true,
+            keywordDetectorDisabled: !isHookEnabled("keyword-detector"),
+          },
+          contextCollector,
+        ),
+      { enabled: safeHookEnabled },
+    )
+    : null;
 
   const keywordDetector = isHookEnabled("keyword-detector")
     ? safeCreateHook(
-        "keyword-detector",
-        () =>
-          createKeywordDetectorHook(
-            ctx,
-            contextCollector,
-            undefined,
-            pluginConfig.keyword_detector,
-            pluginConfig.default_mode,
-          ),
-        { enabled: safeHookEnabled },
-      )
-    : null
+      "keyword-detector",
+      () =>
+        createKeywordDetectorHook(
+          ctx,
+          contextCollector,
+          undefined,
+          pluginConfig.keyword_detector,
+          pluginConfig.default_mode,
+        ),
+      { enabled: safeHookEnabled },
+    )
+    : null;
 
   const contextInjectorMessagesTransform =
-    createContextInjectorMessagesTransformHook(contextCollector)
+    createContextInjectorMessagesTransformHook(contextCollector);
   const btwSideContextInjector = createBtwSideContextInjectorHook({
     client: ctx.client,
-  })
+  });
 
-  const teamModeConfig = pluginConfig.team_mode
+  const teamModeConfig = pluginConfig.team_mode;
 
   const teamModeStatusInjector = teamModeConfig?.enabled
     ? safeCreateHook(
-        "team-mode-status-injector",
-        () => createTeamModeStatusInjector(teamModeConfig, pluginConfig.keyword_detector),
-        { enabled: safeHookEnabled },
-      )
-    : null
+      "team-mode-status-injector",
+      () =>
+        createTeamModeStatusInjector(
+          teamModeConfig,
+          pluginConfig.keyword_detector,
+        ),
+      { enabled: safeHookEnabled },
+    )
+    : null;
 
   const teamMailboxInjector = teamModeConfig?.enabled
     ? safeCreateHook(
-        "team-mailbox-injector",
-        () => createTeamMailboxInjector(ctx, teamModeConfig),
-        { enabled: safeHookEnabled },
-      )
-    : null
+      "team-mailbox-injector",
+      () => createTeamMailboxInjector(ctx, teamModeConfig),
+      { enabled: safeHookEnabled },
+    )
+    : null;
 
   const toolPairValidator = isHookEnabled("tool-pair-validator")
     ? safeCreateHook(
-        "tool-pair-validator",
-        () => createToolPairValidatorHook(),
-        { enabled: safeHookEnabled },
-      )
-    : null
+      "tool-pair-validator",
+      () => createToolPairValidatorHook(),
+      { enabled: safeHookEnabled },
+    )
+    : null;
 
-  const monitorConfig = pluginConfig.monitor
-  const monitorStatusInjector = monitorConfig?.enabled && monitorManager && isHookEnabled("monitor-status-injector")
+  const monitorConfig = pluginConfig.monitor;
+  const monitorStatusInjector = monitorConfig?.enabled && monitorManager &&
+      isHookEnabled("monitor-status-injector")
     ? safeCreateHook(
-        "monitor-status-injector",
-        () => createMonitorStatusInjectorHook(monitorManager, { enabled: monitorConfig.enabled }),
-        { enabled: safeHookEnabled },
-      )
-    : null
+      "monitor-status-injector",
+      () =>
+        createMonitorStatusInjectorHook(monitorManager, {
+          enabled: monitorConfig.enabled,
+        }),
+      { enabled: safeHookEnabled },
+    )
+    : null;
 
   // btwContextStrip is always enabled (context-shielded /btw command; no config gate)
-  const btwContextStrip: { "experimental.chat.messages.transform": ReturnType<typeof createBtwContextStripHook> } = {
-    "experimental.chat.messages.transform": createBtwContextStripHook(isBtwMarked),
-  }
+  const btwContextStrip: {
+    "experimental.chat.messages.transform": ReturnType<
+      typeof createBtwContextStripHook
+    >;
+  } = {
+    "experimental.chat.messages.transform": createBtwContextStripHook(
+      isBtwMarked,
+    ),
+  };
 
   return {
     claudeCodeHooks,
@@ -128,5 +154,5 @@ export function createTransformHooks(args: {
     toolPairValidator,
     monitorStatusInjector,
     btwContextStrip,
-  }
+  };
 }

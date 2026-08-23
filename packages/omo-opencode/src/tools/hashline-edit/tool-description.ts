@@ -1,4 +1,5 @@
-export const HASHLINE_EDIT_DESCRIPTION = `Edit files using LINE#ID format for precise, safe modifications.
+export const HASHLINE_EDIT_DESCRIPTION =
+  `Edit files using LINE#ID format for precise, safe modifications.
 
 WORKFLOW:
 1. Read target file/range and copy exact LINE#ID tags.
@@ -92,4 +93,4 @@ Built-in autocorrect (you do NOT need to handle these):
 
 RECOVERY (when >>> mismatch error appears):
   Copy the updated LINE#ID tags shown in the error output directly.
-  Re-read only if the needed tags are missing from the error snippet.`
+  Re-read only if the needed tags are missing from the error snippet.`;

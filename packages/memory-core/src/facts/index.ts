@@ -1,97 +1,97 @@
-export { loadFactsPersona } from "./assets/assets"
+export { loadFactsPersona } from "./assets/assets";
 export {
-  FactsQueue,
   type FactsEnqueueRequest,
   type FactsEnqueueResult,
+  FactsQueue,
   type FactsQueueOptions,
-} from "./queue"
+} from "./queue";
 export {
   applyFactsBatch,
-  FactsExtractionValidationError,
-  parseFactsExtractionJsonl,
-  validateFactsRecovery,
   type ApplyFactsBatchOptions,
   type ApplyFactsBatchResult,
   type FactsBatch,
   type FactsExtractionRecord,
+  FactsExtractionValidationError,
   type FactsKnownPerson,
   type FactsPayload,
   type FactsPersonReference,
-} from "./extraction"
+  parseFactsExtractionJsonl,
+  validateFactsRecovery,
+} from "./extraction";
 export {
-  FACTS_FAILURES_VERSION,
   FACTS_FAILURE_REASONS,
-  FactsFailuresCorruptError,
-  parseFailuresFile,
-  renderFailuresFile,
+  FACTS_FAILURES_VERSION,
   type FactsFailureReason,
   type FactsFailureRecord,
-  type FactsFailureState,
+  FactsFailuresCorruptError,
   type FactsFailuresFile,
-} from "./failures-schema"
+  type FactsFailureState,
+  parseFailuresFile,
+  renderFailuresFile,
+} from "./failures-schema";
 export {
   applyFailure,
+  type ApplyFailureInput,
   clearForRetry,
   clearOnSuccess,
-  type ApplyFailureInput,
   type FactsFailureFilter,
   type FactsFailureTarget,
-} from "./failures-backoff"
+} from "./failures-backoff";
 export {
   FactsFailureStore,
   type FactsFailureStoreOptions,
   type RecordFailureRequest,
-} from "./failures-store"
+} from "./failures-store";
 export {
+  type CappedFactsBatch,
+  type CappedFactsBatchInput,
   FACTS_STARVATION_MS,
+  type FactsPayloadEnvelope,
   MAX_FACTS_PAYLOAD_BYTES,
   measureFactsPayloadBytes,
   selectCappedFactsBatch,
   serializeFactsPayload,
-  type CappedFactsBatch,
-  type CappedFactsBatchInput,
-  type FactsPayloadEnvelope,
-} from "./payload-cap"
+} from "./payload-cap";
 export {
-  factsSelectionKey,
-  selectLaunchable,
   type FactsLaunchSelection,
+  factsSelectionKey,
   type FactsSkipReason,
-} from "./failures-selection"
+  selectLaunchable,
+} from "./failures-selection";
 export {
+  type FactsApplyRecovery,
   FactsPlanParentDirtyError,
   factsRecordsHash,
-  planFactsMutation,
-  type FactsApplyRecovery,
   type FactsRecoveryPath,
-} from "./mutation-plan"
+  planFactsMutation,
+} from "./mutation-plan";
 export {
   applyFactsRecovery,
-  findFactsBatchReceipt,
   type FactsRecoveryResult,
-} from "./recovery"
+  findFactsBatchReceipt,
+} from "./recovery";
 export {
-  normalizeObservationText,
-  planFactsRouting,
-  renderPersonTargets,
   type FactsAliasTie,
   type FactsPeopleRouting,
   type FactsPersonTarget,
   type FactsRoutingPlan,
-} from "./person-routing"
+  normalizeObservationText,
+  planFactsRouting,
+  renderPersonTargets,
+} from "./person-routing";
 export {
-  FACTS_QUEUE_VERSION,
   canonicalPosition,
-  factsQueuePaths,
-  initialCursor,
-  parseConsumed,
-  parseCursor,
-  parseQueueEntry,
-  queueTimestamp,
+  FACTS_QUEUE_VERSION,
   type FactsConsumedRecord,
   type FactsConsumedWatermark,
   type FactsCursor,
   type FactsQueueEntry,
   type FactsQueueLayout,
+  factsQueuePaths,
   type FactsQueueRange,
-} from "./schema"
+  initialCursor,
+  parseConsumed,
+  parseCursor,
+  parseQueueEntry,
+  queueTimestamp,
+} from "./schema";

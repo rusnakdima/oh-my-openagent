@@ -1,10 +1,10 @@
-import { describe, expect, it } from "bun:test"
-import { existsSync, statSync } from "node:fs"
-import { join } from "node:path"
-import { fileURLToPath } from "node:url"
+import { describe, expect, it } from "bun:test";
+import { existsSync, statSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const packageRoot = fileURLToPath(new URL("..", import.meta.url))
-const builtExtensionPath = join(packageRoot, "plugin", "extensions", "omo.js")
+const packageRoot = fileURLToPath(new URL("..", import.meta.url));
+const builtExtensionPath = join(packageRoot, "plugin", "extensions", "omo.js");
 
 // PLAN TARGET (todo 17e): the built omo.js must stay at or under 700,000 bytes.
 //
@@ -49,14 +49,17 @@ const builtExtensionPath = join(packageRoot, "plugin", "extensions", "omo.js")
 // a session_shutdown clear path, and guard reads in both start-work-continuation and ulw-loop. This
 // is first-party correctness code (a bug fix, not a new third-party inline), measured at 900,869
 // bytes after minification. bundle-purity.test.ts passes on the new build.
-const BUDGET_BYTES = 1_050_000
+const BUDGET_BYTES = 1_050_000;
 
 describe("omo-senpi bundle size budget", () => {
   it("#given the built extension #when its byte size is measured #then it stays within the documented byte budget", () => {
-    expect(existsSync(builtExtensionPath), `missing built extension at ${builtExtensionPath}`).toBe(true)
-    const bytes = statSync(builtExtensionPath).size
+    expect(
+      existsSync(builtExtensionPath),
+      `missing built extension at ${builtExtensionPath}`,
+    ).toBe(true);
+    const bytes = statSync(builtExtensionPath).size;
     // A trip here means the bundle grew past budget: split, lazy-load, or trim a dependency.
     // Never raise this ceiling to the failing value.
-    expect(bytes).toBeLessThanOrEqual(BUDGET_BYTES)
-  })
-})
+    expect(bytes).toBeLessThanOrEqual(BUDGET_BYTES);
+  });
+});

@@ -1,16 +1,18 @@
-import type { FallbackState } from "./types"
+import type { FallbackState } from "./types";
 
 type FallbackStateSnapshot = {
-  readonly originalModel: string
-  readonly currentModel: string
-  readonly fallbackIndex: number
-  readonly failedModels: Map<string, number>
-  readonly attemptCount: number
-  readonly pendingFallbackModel: string | undefined
-  readonly pendingFallbackPromptMayHaveBeenAccepted: boolean | undefined
-}
+  readonly originalModel: string;
+  readonly currentModel: string;
+  readonly fallbackIndex: number;
+  readonly failedModels: Map<string, number>;
+  readonly attemptCount: number;
+  readonly pendingFallbackModel: string | undefined;
+  readonly pendingFallbackPromptMayHaveBeenAccepted: boolean | undefined;
+};
 
-export function snapshotFallbackState(state: FallbackState): FallbackStateSnapshot {
+export function snapshotFallbackState(
+  state: FallbackState,
+): FallbackStateSnapshot {
   return {
     originalModel: state.originalModel,
     currentModel: state.currentModel,
@@ -18,16 +20,21 @@ export function snapshotFallbackState(state: FallbackState): FallbackStateSnapsh
     failedModels: new Map(state.failedModels),
     attemptCount: state.attemptCount,
     pendingFallbackModel: state.pendingFallbackModel,
-    pendingFallbackPromptMayHaveBeenAccepted: state.pendingFallbackPromptMayHaveBeenAccepted,
-  }
+    pendingFallbackPromptMayHaveBeenAccepted:
+      state.pendingFallbackPromptMayHaveBeenAccepted,
+  };
 }
 
-export function restoreFallbackState(state: FallbackState, snapshot: FallbackStateSnapshot): void {
-  state.originalModel = snapshot.originalModel
-  state.currentModel = snapshot.currentModel
-  state.fallbackIndex = snapshot.fallbackIndex
-  state.failedModels = new Map(snapshot.failedModels)
-  state.attemptCount = snapshot.attemptCount
-  state.pendingFallbackModel = snapshot.pendingFallbackModel
-  state.pendingFallbackPromptMayHaveBeenAccepted = snapshot.pendingFallbackPromptMayHaveBeenAccepted
+export function restoreFallbackState(
+  state: FallbackState,
+  snapshot: FallbackStateSnapshot,
+): void {
+  state.originalModel = snapshot.originalModel;
+  state.currentModel = snapshot.currentModel;
+  state.fallbackIndex = snapshot.fallbackIndex;
+  state.failedModels = new Map(snapshot.failedModels);
+  state.attemptCount = snapshot.attemptCount;
+  state.pendingFallbackModel = snapshot.pendingFallbackModel;
+  state.pendingFallbackPromptMayHaveBeenAccepted =
+    snapshot.pendingFallbackPromptMayHaveBeenAccepted;
 }

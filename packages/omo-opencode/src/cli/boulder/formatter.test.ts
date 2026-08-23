@@ -1,8 +1,8 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it } from "bun:test";
 
-import { stripAnsi } from "../doctor/framework/format-shared"
-import { formatJsonOutput, formatTextOutput } from "./formatter"
-import type { BoulderCliResult } from "./types"
+import { stripAnsi } from "../doctor/framework/format-shared";
+import { formatJsonOutput, formatTextOutput } from "./formatter";
+import type { BoulderCliResult } from "./types";
 
 describe("boulder formatter", () => {
   it("renders text output with statuses and progress", () => {
@@ -27,15 +27,15 @@ describe("boulder formatter", () => {
           },
         },
       ],
-    }
+    };
 
-    const textOutput = stripAnsi(formatTextOutput(result))
-    expect(textOutput).toContain("boulder progress")
-    expect(textOutput).toContain("plan: alpha")
-    expect(textOutput).toContain("status: active")
-    expect(textOutput).toContain("progress: 50% (1/2)")
-    expect(textOutput).toContain("elapsed: 30m 0s")
-  })
+    const textOutput = stripAnsi(formatTextOutput(result));
+    expect(textOutput).toContain("boulder progress");
+    expect(textOutput).toContain("plan: alpha");
+    expect(textOutput).toContain("status: active");
+    expect(textOutput).toContain("progress: 50% (1/2)");
+    expect(textOutput).toContain("elapsed: 30m 0s");
+  });
 
   it("renders parseable json output", () => {
     const result: BoulderCliResult = {
@@ -55,9 +55,9 @@ describe("boulder formatter", () => {
           session_count: 1,
         },
       ],
-    }
+    };
 
-    const jsonOutput = formatJsonOutput(result)
-    expect(JSON.parse(jsonOutput)).toEqual(result)
-  })
-})
+    const jsonOutput = formatJsonOutput(result);
+    expect(JSON.parse(jsonOutput)).toEqual(result);
+  });
+});

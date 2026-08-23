@@ -1,16 +1,21 @@
 /// <reference types="bun-types" />
-import { describe, expect, test } from "bun:test"
-import type { BackgroundTask } from "../../features/background-agent"
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
-import { createBackgroundOutput } from "./create-background-output"
-import type { BackgroundOutputClient, BackgroundOutputManager } from "./clients"
+import { describe, expect, test } from "bun:test";
+import type { BackgroundTask } from "../../features/background-agent";
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
+import { createBackgroundOutput } from "./create-background-output";
+import type {
+  BackgroundOutputClient,
+  BackgroundOutputManager,
+} from "./clients";
 
-const mockContext = unsafeTestValue<Parameters<ReturnType<typeof createBackgroundOutput>["execute"]>[1]>({
+const mockContext = unsafeTestValue<
+  Parameters<ReturnType<typeof createBackgroundOutput>["execute"]>[1]
+>({
   sessionID: "ses_parent",
   messageID: "msg_parent",
   agent: "sisyphus",
   abort: new AbortController().signal,
-})
+});
 
 function createTask(): BackgroundTask {
   return {
@@ -22,7 +27,7 @@ function createTask(): BackgroundTask {
     prompt: "run",
     agent: "sisyphus-junior",
     status: "running",
-  }
+  };
 }
 
 const client: BackgroundOutputClient = {
@@ -36,38 +41,40 @@ const client: BackgroundOutputClient = {
       ],
     }),
   },
-}
+};
 
-const LEGACY_BACKGROUND_OUTPUT_POLL_INTERVAL_MS = 1000
+const LEGACY_BACKGROUND_OUTPUT_POLL_INTERVAL_MS = 1000;
 
 describe("background_output blocking poll interval", () => {
   test("#given a short blocking timeout and a task that completes on retry #when fetching output #then it does not sleep for the legacy one second interval", async () => {
     // given
-    let pollCount = 0
-    const task = createTask()
+    let pollCount = 0;
+    const task = createTask();
     const manager: BackgroundOutputManager = {
       getTask: (id: string) => {
-        if (id !== task.id) return undefined
-        pollCount += 1
+        if (id !== task.id) return undefined;
+        pollCount += 1;
         if (pollCount >= 3) {
-          task.status = "completed"
+          task.status = "completed";
         }
-        return task
+        return task;
       },
-    }
-    const tool = createBackgroundOutput(manager, client)
-    const startedAt = Date.now()
+    };
+    const tool = createBackgroundOutput(manager, client);
+    const startedAt = Date.now();
 
     // when
     const output = await tool.execute({
       task_id: task.id,
       block: true,
       timeout: 30,
-    }, mockContext)
+    }, mockContext);
 
     // then
-    expect(Date.now() - startedAt).toBeLessThan(LEGACY_BACKGROUND_OUTPUT_POLL_INTERVAL_MS)
-    expect(pollCount).toBeGreaterThanOrEqual(3)
-    expect(output).toContain("completed result")
-  })
-})
+    expect(Date.now() - startedAt).toBeLessThan(
+      LEGACY_BACKGROUND_OUTPUT_POLL_INTERVAL_MS,
+    );
+    expect(pollCount).toBeGreaterThanOrEqual(3);
+    expect(output).toContain("completed result");
+  });
+});

@@ -1,18 +1,24 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { buildTaskMetadataBlock, extractTaskLink, parseTaskMetadataBlock } from "./task-metadata-contract"
+import {
+  buildTaskMetadataBlock,
+  extractTaskLink,
+  parseTaskMetadataBlock,
+} from "./task-metadata-contract";
 
 describe("buildTaskMetadataBlock", () => {
   test("#given only session id #when building #then it preserves the frozen block format", () => {
     // given
-    const link = { sessionId: "ses_abc" }
+    const link = { sessionId: "ses_abc" };
 
     // when
-    const block = buildTaskMetadataBlock(link)
+    const block = buildTaskMetadataBlock(link);
 
     // then
-    expect(block).toBe("<task_metadata>\nsession_id: ses_abc\n</task_metadata>")
-  })
+    expect(block).toBe(
+      "<task_metadata>\nsession_id: ses_abc\n</task_metadata>",
+    );
+  });
 
   test("#given extended task metadata #when building #then it emits optional lines in order", () => {
     // given
@@ -22,25 +28,26 @@ describe("buildTaskMetadataBlock", () => {
       backgroundTaskId: "bg_123",
       agent: "explore",
       category: "quick",
-    }
+    };
 
     // when
-    const block = buildTaskMetadataBlock(link)
+    const block = buildTaskMetadataBlock(link);
 
     // then
     expect(block).toBe(
-      "<task_metadata>\nsession_id: ses_bg_123\ntask_id: ses_bg_123\nbackground_task_id: bg_123\nsubagent: explore\ncategory: quick\n</task_metadata>"
-    )
-  })
-})
+      "<task_metadata>\nsession_id: ses_bg_123\ntask_id: ses_bg_123\nbackground_task_id: bg_123\nsubagent: explore\ncategory: quick\n</task_metadata>",
+    );
+  });
+});
 
 describe("parseTaskMetadataBlock", () => {
   test("#given a task metadata block #when parsing #then it extracts the structured link", () => {
     // given
-    const text = "<task_metadata>\nsession_id: ses_sync_123\ntask_id: task_123\nbackground_task_id: bg_123\nsubagent: oracle\ncategory: deep\n</task_metadata>"
+    const text =
+      "<task_metadata>\nsession_id: ses_sync_123\ntask_id: task_123\nbackground_task_id: bg_123\nsubagent: oracle\ncategory: deep\n</task_metadata>";
 
     // when
-    const parsed = parseTaskMetadataBlock(text)
+    const parsed = parseTaskMetadataBlock(text);
 
     // then
     expect(parsed).toEqual({
@@ -49,20 +56,20 @@ describe("parseTaskMetadataBlock", () => {
       backgroundTaskId: "bg_123",
       agent: "oracle",
       category: "deep",
-    })
-  })
+    });
+  });
 
   test("#given text without metadata #when parsing #then it returns an empty link", () => {
     // given
-    const text = "Task completed without metadata"
+    const text = "Task completed without metadata";
 
     // when
-    const parsed = parseTaskMetadataBlock(text)
+    const parsed = parseTaskMetadataBlock(text);
 
     // then
-    expect(parsed).toEqual({})
-  })
-})
+    expect(parsed).toEqual({});
+  });
+});
 
 describe("extractTaskLink", () => {
   test("#given metadata session aliases #when extracting #then metadata wins over output text", () => {
@@ -73,11 +80,12 @@ describe("extractTaskLink", () => {
       background_task_id: "bg_meta_123",
       subagent: "atlas",
       category: "unspecified-high",
-    }
-    const output = "<task_metadata>\nsession_id: ses_text_456\n</task_metadata>"
+    };
+    const output =
+      "<task_metadata>\nsession_id: ses_text_456\n</task_metadata>";
 
     // when
-    const extracted = extractTaskLink(metadata, output)
+    const extracted = extractTaskLink(metadata, output);
 
     // then
     expect(extracted).toEqual({
@@ -86,31 +94,32 @@ describe("extractTaskLink", () => {
       backgroundTaskId: "bg_meta_123",
       agent: "atlas",
       category: "unspecified-high",
-    })
-  })
+    });
+  });
 
   test("#given missing metadata #when extracting #then it falls back to task metadata text", () => {
     // given
-    const output = "Task completed.\n\n<task_metadata>\nsession_id: ses_text_456\nsubagent: oracle\n</task_metadata>"
+    const output =
+      "Task completed.\n\n<task_metadata>\nsession_id: ses_text_456\nsubagent: oracle\n</task_metadata>";
 
     // when
-    const extracted = extractTaskLink(undefined, output)
+    const extracted = extractTaskLink(undefined, output);
 
     // then
     expect(extracted).toEqual({
       sessionId: "ses_text_456",
       agent: "oracle",
-    })
-  })
+    });
+  });
 
   test("#given explicit session id output #when extracting #then it preserves Session ID compatibility", () => {
     // given
-    const output = "Background task launched.\n\nSession ID: ses_bg_789"
+    const output = "Background task launched.\n\nSession ID: ses_bg_789";
 
     // when
-    const extracted = extractTaskLink(undefined, output)
+    const extracted = extractTaskLink(undefined, output);
 
     // then
-    expect(extracted).toEqual({ sessionId: "ses_bg_789" })
-  })
-})
+    expect(extracted).toEqual({ sessionId: "ses_bg_789" });
+  });
+});

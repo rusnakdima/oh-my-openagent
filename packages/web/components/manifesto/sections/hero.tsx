@@ -1,10 +1,10 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import Image from "next/image"
-import { Badge } from "@/components/ui/badge"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import Image from "next/image";
+import { Badge } from "@/components/ui/badge";
 
 export async function HeroSection(): Promise<JSX.Element> {
-  const t = await getTranslations("manifesto")
+  const t = await getTranslations("manifesto");
 
   return (
     <section
@@ -23,7 +23,10 @@ export async function HeroSection(): Promise<JSX.Element> {
       </div>
 
       <div className="animate-in fade-in slide-in-from-bottom-2 relative z-10 mx-auto max-w-4xl space-y-6 duration-500">
-        <Badge variant="outline" className="border-primary/50 text-primary mb-4 px-4 py-1 text-sm">
+        <Badge
+          variant="outline"
+          className="border-primary/50 text-primary mb-4 px-4 py-1 text-sm"
+        >
           {t("badge")}
         </Badge>
         <h1 className="from-foreground to-foreground/60 bg-gradient-to-b bg-clip-text text-5xl font-bold tracking-tight text-transparent md:text-7xl">
@@ -34,5 +37,5 @@ export async function HeroSection(): Promise<JSX.Element> {
         </p>
       </div>
     </section>
-  )
+  );
 }

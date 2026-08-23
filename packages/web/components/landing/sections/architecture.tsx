@@ -1,10 +1,13 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { PRINCIPLE_KEYS, PRINCIPLE_ICONS } from "@/components/landing/constants"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  PRINCIPLE_ICONS,
+  PRINCIPLE_KEYS,
+} from "@/components/landing/constants";
 
 export async function ArchitectureSection(): Promise<JSX.Element> {
-  const t = await getTranslations("landing")
+  const t = await getTranslations("landing");
 
   return (
     <section className="bg-black py-24" data-section="architecture">
@@ -18,7 +21,7 @@ export async function ArchitectureSection(): Promise<JSX.Element> {
 
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {PRINCIPLE_KEYS.map((key) => {
-            const Icon = PRINCIPLE_ICONS[key]
+            const Icon = PRINCIPLE_ICONS[key];
             return (
               <div key={key}>
                 <Card className="h-full border-zinc-800 bg-zinc-900/30">
@@ -37,10 +40,10 @@ export async function ArchitectureSection(): Promise<JSX.Element> {
                   </CardContent>
                 </Card>
               </div>
-            )
+            );
           })}
         </div>
       </div>
     </section>
-  )
+  );
 }

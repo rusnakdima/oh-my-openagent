@@ -1,1 +1,1 @@
-export { createWorktreeIsolationHook } from "./hook"
+export { createWorktreeIsolationHook } from "./hook";

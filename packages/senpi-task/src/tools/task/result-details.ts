@@ -1,10 +1,12 @@
-import type { ExecutionMode, StartResult } from "../../manager"
-import type { ToolProgressDetails } from "../../progress"
-import type { TaskRecord } from "../../state"
-import type { TaskToolParamsStatic } from "./params"
-import type { TaskSkillSummary, TaskToolDetails, TaskToolMode } from "./types"
+import type { ExecutionMode, StartResult } from "../../manager";
+import type { ToolProgressDetails } from "../../progress";
+import type { TaskRecord } from "../../state";
+import type { TaskToolParamsStatic } from "./params";
+import type { TaskSkillSummary, TaskToolDetails, TaskToolMode } from "./types";
 
-export type SingleSpawnParams = Omit<TaskToolParamsStatic, "prompt" | "tasks"> & { readonly prompt: string }
+export type SingleSpawnParams =
+  & Omit<TaskToolParamsStatic, "prompt" | "tasks">
+  & { readonly prompt: string };
 
 export function recordSummary(record: TaskRecord, includeLifecycle?: boolean) {
   return {
@@ -17,17 +19,20 @@ export function recordSummary(record: TaskRecord, includeLifecycle?: boolean) {
     model: record.model,
     run_stats: record.run_stats,
     ...(includeLifecycle && {
-          description: record.description,
-          agent_type: record.agent_type,
-          residency_state: record.residency_state,
-          depth: record.depth,
-          created_at: record.created_at,
-          updated_at: record.updated_at,
-        }),
-  }
+      description: record.description,
+      agent_type: record.agent_type,
+      residency_state: record.residency_state,
+      depth: record.depth,
+      created_at: record.created_at,
+      updated_at: record.updated_at,
+    }),
+  };
 }
 
-export function recordDetails(record: TaskRecord, mode: TaskToolMode): TaskToolDetails {
+export function recordDetails(
+  record: TaskRecord,
+  mode: TaskToolMode,
+): TaskToolDetails {
   return {
     ...recordSummary(record),
     mode,
@@ -35,7 +40,7 @@ export function recordDetails(record: TaskRecord, mode: TaskToolMode): TaskToolD
     resolved_model: record.resolved_model,
     fallback_attempts: record.fallback_attempts,
     run_in_background: false,
-  }
+  };
 }
 
 export function startedDetails(
@@ -58,7 +63,7 @@ export function startedDetails(
     run_in_background: params.run_in_background === true,
     queue_position: started.queue_position,
     ...(skills === undefined ? {} : { skills }),
-  }
+  };
 }
 
 export function partialDetails(
@@ -68,5 +73,8 @@ export function partialDetails(
   progress: ToolProgressDetails,
   skills?: TaskSkillSummary,
 ): TaskToolDetails & ToolProgressDetails {
-  return { ...startedDetails(started, params, executionMode, skills), ...progress }
+  return {
+    ...startedDetails(started, params, executionMode, skills),
+    ...progress,
+  };
 }

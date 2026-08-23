@@ -13,46 +13,50 @@
  * unbounded for exactly the concurrent shape this telemetry exists to measure.
  */
 
-export const MAX_TRACKED_CALLS = 2000
+export const MAX_TRACKED_CALLS = 2000;
 
 export type ToolExecutionObservation = {
-  readonly kind: "start" | "end"
-  readonly toolCallId: string
-  readonly toolName: string
-  readonly atMs: number
-}
+  readonly kind: "start" | "end";
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly atMs: number;
+};
 
 export type PairedToolCall = {
-  readonly toolCallId: string
-  readonly toolName: string
-  readonly startMs: number
-  readonly endMs: number
-}
+  readonly toolCallId: string;
+  readonly toolName: string;
+  readonly startMs: number;
+  readonly endMs: number;
+};
 
 export type ConcurrencyWave = {
-  readonly calls: readonly PairedToolCall[]
-  readonly spanMs: number
-  readonly maxConcurrency: number
-}
+  readonly calls: readonly PairedToolCall[];
+  readonly spanMs: number;
+  readonly maxConcurrency: number;
+};
 
 export type WaveCounters = {
-  readonly observedCalls: number
-  readonly pairedCalls: number
-  readonly incomplete: number
-  readonly clockAnomalies: number
-  readonly droppedCalls: number
-  readonly malformed: number
-}
+  readonly observedCalls: number;
+  readonly pairedCalls: number;
+  readonly incomplete: number;
+  readonly clockAnomalies: number;
+  readonly droppedCalls: number;
+  readonly malformed: number;
+};
 
 export type WaveAssembly = {
-  readonly waves: readonly ConcurrencyWave[]
-  readonly counters: WaveCounters
-}
+  readonly waves: readonly ConcurrencyWave[];
+  readonly counters: WaveCounters;
+};
 
-type MutableCounters = { -readonly [Key in keyof WaveCounters]: WaveCounters[Key] }
-type PendingStart = { readonly toolName: string; readonly startMs: number }
+type MutableCounters = {
+  -readonly [Key in keyof WaveCounters]: WaveCounters[Key];
+};
+type PendingStart = { readonly toolName: string; readonly startMs: number };
 
-export function assembleWaves(observations: readonly ToolExecutionObservation[]): WaveAssembly {
+export function assembleWaves(
+  observations: readonly ToolExecutionObservation[],
+): WaveAssembly {
   const counters: MutableCounters = {
     observedCalls: 0,
     pairedCalls: 0,
@@ -60,76 +64,81 @@ export function assembleWaves(observations: readonly ToolExecutionObservation[])
     clockAnomalies: 0,
     droppedCalls: 0,
     malformed: 0,
-  }
-  const pending = new Map<string, PendingStart>()
-  const paired: PairedToolCall[] = []
+  };
+  const pending = new Map<string, PendingStart>();
+  const paired: PairedToolCall[] = [];
 
   for (const candidate of observations) {
-    const observation = parseObservation(candidate)
+    const observation = parseObservation(candidate);
     if (observation === undefined) {
-      counters.malformed += 1
-      continue
+      counters.malformed += 1;
+      continue;
     }
     if (observation.kind === "start") {
-      counters.observedCalls += 1
+      counters.observedCalls += 1;
       if (paired.length + pending.size >= MAX_TRACKED_CALLS) {
-        counters.droppedCalls += 1
-        continue
+        counters.droppedCalls += 1;
+        continue;
       }
-      pending.set(observation.toolCallId, { toolName: observation.toolName, startMs: observation.atMs })
-      continue
+      pending.set(observation.toolCallId, {
+        toolName: observation.toolName,
+        startMs: observation.atMs,
+      });
+      continue;
     }
-    const started = pending.get(observation.toolCallId)
-    if (started === undefined) continue
-    pending.delete(observation.toolCallId)
+    const started = pending.get(observation.toolCallId);
+    if (started === undefined) continue;
+    pending.delete(observation.toolCallId);
     if (observation.atMs < started.startMs) {
-      counters.clockAnomalies += 1
-      continue
+      counters.clockAnomalies += 1;
+      continue;
     }
-    counters.pairedCalls += 1
+    counters.pairedCalls += 1;
     paired.push({
       toolCallId: observation.toolCallId,
       toolName: started.toolName,
       startMs: started.startMs,
       endMs: observation.atMs,
-    })
+    });
   }
 
-  counters.incomplete = pending.size
-  return { waves: groupIntoWaves(paired), counters }
+  counters.incomplete = pending.size;
+  return { waves: groupIntoWaves(paired), counters };
 }
 
-function groupIntoWaves(calls: readonly PairedToolCall[]): readonly ConcurrencyWave[] {
-  const ordered = [...calls].sort(byStartThenEnd)
-  const waves: ConcurrencyWave[] = []
-  let current: PairedToolCall[] = []
-  let reach = Number.NEGATIVE_INFINITY
+function groupIntoWaves(
+  calls: readonly PairedToolCall[],
+): readonly ConcurrencyWave[] {
+  const ordered = [...calls].sort(byStartThenEnd);
+  const waves: ConcurrencyWave[] = [];
+  let current: PairedToolCall[] = [];
+  let reach = Number.NEGATIVE_INFINITY;
 
   for (const call of ordered) {
     if (current.length > 0 && call.startMs > reach) {
-      waves.push(buildWave(current))
-      current = []
-      reach = Number.NEGATIVE_INFINITY
+      waves.push(buildWave(current));
+      current = [];
+      reach = Number.NEGATIVE_INFINITY;
     }
-    current.push(call)
-    reach = Math.max(reach, call.endMs)
+    current.push(call);
+    reach = Math.max(reach, call.endMs);
   }
-  if (current.length > 0) waves.push(buildWave(current))
-  return waves
+  if (current.length > 0) waves.push(buildWave(current));
+  return waves;
 }
 
 function buildWave(calls: readonly PairedToolCall[]): ConcurrencyWave {
-  let minStart = Number.POSITIVE_INFINITY
-  let maxEnd = Number.NEGATIVE_INFINITY
+  let minStart = Number.POSITIVE_INFINITY;
+  let maxEnd = Number.NEGATIVE_INFINITY;
   for (const call of calls) {
-    minStart = Math.min(minStart, call.startMs)
-    maxEnd = Math.max(maxEnd, call.endMs)
+    minStart = Math.min(minStart, call.startMs);
+    maxEnd = Math.max(maxEnd, call.endMs);
   }
   return {
     calls: [...calls],
     spanMs: maxEnd - minStart,
     maxConcurrency: sweepMaxConcurrency(calls),
-  }
+  };
 }
 
 /**
@@ -137,39 +146,47 @@ function buildWave(calls: readonly PairedToolCall[]): ConcurrencyWave {
  * exactly when the next one begins is never counted as two concurrent executions.
  */
 function sweepMaxConcurrency(calls: readonly PairedToolCall[]): number {
-  const boundaries: { atMs: number; delta: number }[] = []
+  const boundaries: { atMs: number; delta: number }[] = [];
   for (const call of calls) {
-    boundaries.push({ atMs: call.startMs, delta: 1 })
-    boundaries.push({ atMs: call.endMs, delta: -1 })
+    boundaries.push({ atMs: call.startMs, delta: 1 });
+    boundaries.push({ atMs: call.endMs, delta: -1 });
   }
-  boundaries.sort((left, right) => left.atMs - right.atMs || left.delta - right.delta)
+  boundaries.sort((left, right) =>
+    left.atMs - right.atMs || left.delta - right.delta
+  );
 
-  let active = 0
-  let peak = 0
+  let active = 0;
+  let peak = 0;
   for (const boundary of boundaries) {
-    active += boundary.delta
-    peak = Math.max(peak, active)
+    active += boundary.delta;
+    peak = Math.max(peak, active);
   }
-  return peak
+  return peak;
 }
 
 function byStartThenEnd(left: PairedToolCall, right: PairedToolCall): number {
-  return left.startMs - right.startMs || left.endMs - right.endMs
+  return left.startMs - right.startMs || left.endMs - right.endMs;
 }
 
-function parseObservation(value: unknown): ToolExecutionObservation | undefined {
-  if (!isRecord(value)) return undefined
-  const kind = value["kind"]
-  const toolCallId = value["toolCallId"]
-  const toolName = value["toolName"]
-  const atMs = value["atMs"]
-  if (kind !== "start" && kind !== "end") return undefined
-  if (typeof toolCallId !== "string" || toolCallId.length === 0) return undefined
-  if (typeof toolName !== "string" || toolName.length === 0) return undefined
-  if (typeof atMs !== "number" || !Number.isFinite(atMs) || atMs < 0) return undefined
-  return { kind, toolCallId, toolName, atMs }
+function parseObservation(
+  value: unknown,
+): ToolExecutionObservation | undefined {
+  if (!isRecord(value)) return undefined;
+  const kind = value["kind"];
+  const toolCallId = value["toolCallId"];
+  const toolName = value["toolName"];
+  const atMs = value["atMs"];
+  if (kind !== "start" && kind !== "end") return undefined;
+  if (typeof toolCallId !== "string" || toolCallId.length === 0) {
+    return undefined;
+  }
+  if (typeof toolName !== "string" || toolName.length === 0) return undefined;
+  if (typeof atMs !== "number" || !Number.isFinite(atMs) || atMs < 0) {
+    return undefined;
+  }
+  return { kind, toolCallId, toolName, atMs };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
+  return typeof value === "object" && value !== null && !Array.isArray(value);
 }

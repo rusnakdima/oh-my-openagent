@@ -1,11 +1,14 @@
-import { homedir } from "node:os"
-import { join } from "node:path"
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 export function getClaudeConfigDir(): string {
-  const envConfigDir = process.env.CLAUDE_CONFIG_DIR
+  const envConfigDir = process.env.CLAUDE_CONFIG_DIR;
   if (envConfigDir) {
-    return envConfigDir
+    return envConfigDir;
   }
 
-  return join(process.env.HOME || process.env.USERPROFILE || homedir(), ".claude")
+  return join(
+    process.env.HOME || process.env.USERPROFILE || homedir(),
+    ".claude",
+  );
 }

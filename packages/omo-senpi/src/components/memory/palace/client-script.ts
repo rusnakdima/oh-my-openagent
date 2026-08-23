@@ -189,5 +189,5 @@ export function palaceClientScript(dataElementId: string): string {
     });
   });
 })();
-`
+`;
 }

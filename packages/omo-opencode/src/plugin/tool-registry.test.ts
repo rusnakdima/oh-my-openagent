@@ -1,32 +1,34 @@
-const { beforeEach, describe, expect, mock, spyOn, test } = require("bun:test")
-import { tool } from "@opencode-ai/plugin"
+const { beforeEach, describe, expect, mock, spyOn, test } = require("bun:test");
+import { tool } from "@opencode-ai/plugin";
 
-import { OhMyOpenCodeConfigSchema, type OhMyOpenCodeConfig } from "../config"
-import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch"
-import type { ToolsRecord } from "./types"
+import { type OhMyOpenCodeConfig, OhMyOpenCodeConfigSchema } from "../config";
+import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch";
+import type { ToolsRecord } from "./types";
 
 const fakeTool = tool({
   description: "test tool",
   args: {},
   async execute(): Promise<string> {
-    return "ok"
+    return "ok";
   },
-})
+});
 
 const delegateTaskTool = tool({
   description: "task tool",
   args: {},
   async execute(): Promise<string> {
-    return "ok"
+    return "ok";
   },
-})
+});
 
 const syncSessionCreatedCallbacks: Array<
-  ((event: { sessionID: string; parentID: string; title: string }) => Promise<void>) | undefined
-> = []
+  ((
+    event: { sessionID: string; parentID: string; title: string },
+  ) => Promise<void>) | undefined
+> = [];
 
-const trackedPaneBySession = new Map<string, string>()
-let dispatchOpenClawEvent: ReturnType<typeof spyOn>
+const trackedPaneBySession = new Map<string, string>();
+let dispatchOpenClawEvent: ReturnType<typeof spyOn>;
 
 const TEAM_TOOL_NAMES = [
   "team_create",
@@ -41,11 +43,13 @@ const TEAM_TOOL_NAMES = [
   "team_task_get",
   "team_status",
   "team_list",
-] as const
+] as const;
 
-const { createToolRegistry, trimToolsToCap } = await import("./tool-registry")
+const { createToolRegistry, trimToolsToCap } = await import("./tool-registry");
 
-const toolFactories: NonNullable<Parameters<typeof createToolRegistry>[0]["toolFactories"]> = {
+const toolFactories: NonNullable<
+  Parameters<typeof createToolRegistry>[0]["toolFactories"]
+> = {
   createBackgroundTools: mock(() => ({})),
   createCallOmoAgent: mock(() => fakeTool),
   createLookAt: mock(() => fakeTool),
@@ -54,10 +58,16 @@ const toolFactories: NonNullable<Parameters<typeof createToolRegistry>[0]["toolF
   createGrepTools: mock(() => ({})),
   createGlobTools: mock(() => ({})),
   createSessionManagerTools: mock(() => ({})),
-  createDelegateTask: mock((options: { onSyncSessionCreated?: typeof syncSessionCreatedCallbacks[number] }) => {
-    syncSessionCreatedCallbacks.push(options.onSyncSessionCreated)
-    return delegateTaskTool
-  }),
+  createDelegateTask: mock(
+    (
+      options: {
+        onSyncSessionCreated?: typeof syncSessionCreatedCallbacks[number];
+      },
+    ) => {
+      syncSessionCreatedCallbacks.push(options.onSyncSessionCreated);
+      return delegateTaskTool;
+    },
+  ),
   discoverCommandsSync: mock(() => []),
   interactive_bash: fakeTool,
   createTaskCreateTool: mock(() => fakeTool),
@@ -77,13 +87,15 @@ const toolFactories: NonNullable<Parameters<typeof createToolRegistry>[0]["toolF
   createTeamTaskUpdateTool: mock(() => fakeTool),
   createTeamStatusTool: mock(() => fakeTool),
   createTeamListTool: mock(() => fakeTool),
-}
+};
 
 type PluginConfigOverrides = Omit<Partial<OhMyOpenCodeConfig>, "team_mode"> & {
-  team_mode?: Partial<NonNullable<OhMyOpenCodeConfig["team_mode"]>>
-}
+  team_mode?: Partial<NonNullable<OhMyOpenCodeConfig["team_mode"]>>;
+};
 
-function createPluginConfig(overrides: PluginConfigOverrides = {}): OhMyOpenCodeConfig {
+function createPluginConfig(
+  overrides: PluginConfigOverrides = {},
+): OhMyOpenCodeConfig {
   return OhMyOpenCodeConfigSchema.parse({
     git_master: {
       commit_footer: false,
@@ -91,13 +103,16 @@ function createPluginConfig(overrides: PluginConfigOverrides = {}): OhMyOpenCode
       git_env_prefix: "",
     },
     ...overrides,
-  })
+  });
 }
 
 beforeEach(() => {
-  dispatchOpenClawEvent = spyOn(openclawRuntimeDispatch, "dispatchOpenClawEvent")
-  syncSessionCreatedCallbacks.length = 0
-})
+  dispatchOpenClawEvent = spyOn(
+    openclawRuntimeDispatch,
+    "dispatchOpenClawEvent",
+  );
+  syncSessionCreatedCallbacks.length = 0;
+});
 
 describe("#given tool trimming prioritization", () => {
   test("#when max_tools trims a hashline edit registration named edit #then edit is removed before higher-priority tools", () => {
@@ -105,22 +120,24 @@ describe("#given tool trimming prioritization", () => {
       bash: fakeTool,
       edit: fakeTool,
       read: fakeTool,
-    } satisfies ToolsRecord
+    } satisfies ToolsRecord;
 
-    trimToolsToCap(filteredTools, 2)
+    trimToolsToCap(filteredTools, 2);
 
-    expect(filteredTools).not.toHaveProperty("edit")
-    expect(filteredTools).toHaveProperty("bash")
-    expect(filteredTools).toHaveProperty("read")
-  })
-})
+    expect(filteredTools).not.toHaveProperty("edit");
+    expect(filteredTools).toHaveProperty("bash");
+    expect(filteredTools).toHaveProperty("read");
+  });
+});
 
 describe("#given task_system configuration", () => {
   test("#when task_system is omitted #then task tools are not registered by default", () => {
-    syncSessionCreatedCallbacks.length = 0
+    syncSessionCreatedCallbacks.length = 0;
 
     const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig(),
       managers: {
         backgroundManager: {},
@@ -135,20 +152,22 @@ describe("#given task_system configuration", () => {
       },
       availableCategories: [],
       toolFactories,
-    })
+    });
 
-    expect(result.taskSystemEnabled).toBe(false)
-    expect(result.filteredTools).not.toHaveProperty("task_create")
-    expect(result.filteredTools).not.toHaveProperty("task_get")
-    expect(result.filteredTools).not.toHaveProperty("task_list")
-    expect(result.filteredTools).not.toHaveProperty("task_update")
-  })
+    expect(result.taskSystemEnabled).toBe(false);
+    expect(result.filteredTools).not.toHaveProperty("task_create");
+    expect(result.filteredTools).not.toHaveProperty("task_get");
+    expect(result.filteredTools).not.toHaveProperty("task_list");
+    expect(result.filteredTools).not.toHaveProperty("task_update");
+  });
 
   test("#when task_system is enabled #then task tools are registered", () => {
-    syncSessionCreatedCallbacks.length = 0
+    syncSessionCreatedCallbacks.length = 0;
 
     const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig({
         experimental: { task_system: true },
       }),
@@ -165,22 +184,25 @@ describe("#given task_system configuration", () => {
       },
       availableCategories: [],
       toolFactories,
-    })
+    });
 
-    expect(result.taskSystemEnabled).toBe(true)
-    expect(result.filteredTools).toHaveProperty("task_create")
-    expect(result.filteredTools).toHaveProperty("task_get")
-    expect(result.filteredTools).toHaveProperty("task_list")
-    expect(result.filteredTools).toHaveProperty("task_update")
-  })
-})
+    expect(result.taskSystemEnabled).toBe(true);
+    expect(result.filteredTools).toHaveProperty("task_create");
+    expect(result.filteredTools).toHaveProperty("task_get");
+    expect(result.filteredTools).toHaveProperty("task_list");
+    expect(result.filteredTools).toHaveProperty("task_update");
+  });
+});
 
 describe("#given the OMO skill tool overrides OpenCode native skill discovery", () => {
   test("#when the registry creates the skill tool #then plugin skills are advertised in the description", () => {
-    const createSkillToolCallsBefore = toolFactories.createSkillTool.mock.calls.length
+    const createSkillToolCallsBefore =
+      toolFactories.createSkillTool.mock.calls.length;
 
     createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig(),
       managers: {
         backgroundManager: {},
@@ -206,9 +228,10 @@ describe("#given the OMO skill tool overrides OpenCode native skill discovery", 
       },
       availableCategories: [],
       toolFactories,
-    })
+    });
 
-    const skillToolOptions = toolFactories.createSkillTool.mock.calls[createSkillToolCallsBefore]?.[0]
+    const skillToolOptions = toolFactories.createSkillTool.mock
+      .calls[createSkillToolCallsBefore]?.[0];
 
     expect(skillToolOptions).toMatchObject({
       includeSkillsInDescription: true,
@@ -220,16 +243,18 @@ describe("#given the OMO skill tool overrides OpenCode native skill discovery", 
           },
         },
       ],
-    })
-  })
-})
+    });
+  });
+});
 
 describe("#given team_mode configuration", () => {
   test("#when team_mode is enabled #then all 12 team tools are registered", () => {
-    syncSessionCreatedCallbacks.length = 0
+    syncSessionCreatedCallbacks.length = 0;
 
     const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig({
         team_mode: {
           enabled: true,
@@ -248,18 +273,20 @@ describe("#given team_mode configuration", () => {
       },
       availableCategories: [],
       toolFactories,
-    })
+    });
 
     for (const teamToolName of TEAM_TOOL_NAMES) {
-      expect(result.filteredTools).toHaveProperty(teamToolName)
+      expect(result.filteredTools).toHaveProperty(teamToolName);
     }
-  })
+  });
 
   test("#when team_mode is disabled #then zero team tools are registered", () => {
-    syncSessionCreatedCallbacks.length = 0
+    syncSessionCreatedCallbacks.length = 0;
 
     const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig({
         team_mode: {
           enabled: false,
@@ -278,20 +305,24 @@ describe("#given team_mode configuration", () => {
       },
       availableCategories: [],
       toolFactories,
-    })
+    });
 
-    const registeredTeamToolNames = Object.keys(result.filteredTools).filter((toolName) => toolName.startsWith("team_"))
+    const registeredTeamToolNames = Object.keys(result.filteredTools).filter((
+      toolName,
+    ) => toolName.startsWith("team_"));
 
-    expect(registeredTeamToolNames).toHaveLength(0)
-  })
-})
+    expect(registeredTeamToolNames).toHaveLength(0);
+  });
+});
 
 describe("#given tmux integration is disabled", () => {
   test("#when system tmux is available #then interactive_bash remains registered", () => {
-    syncSessionCreatedCallbacks.length = 0
+    syncSessionCreatedCallbacks.length = 0;
 
     const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig({
         tmux: {
           enabled: false,
@@ -316,16 +347,18 @@ describe("#given tmux integration is disabled", () => {
       availableCategories: [],
       interactiveBashEnabled: true,
       toolFactories,
-    })
+    });
 
-    expect(result.filteredTools).toHaveProperty("interactive_bash")
-  })
+    expect(result.filteredTools).toHaveProperty("interactive_bash");
+  });
 
   test("#when system tmux is unavailable #then interactive_bash is not registered", () => {
-    syncSessionCreatedCallbacks.length = 0
+    syncSessionCreatedCallbacks.length = 0;
 
     const result = createToolRegistry({
-      ctx: { directory: "/tmp" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig({
         tmux: {
           enabled: false,
@@ -350,38 +383,42 @@ describe("#given tmux integration is disabled", () => {
       availableCategories: [],
       interactiveBashEnabled: false,
       toolFactories,
-    })
+    });
 
-    expect(result.filteredTools).not.toHaveProperty("interactive_bash")
-  })
-})
+    expect(result.filteredTools).not.toHaveProperty("interactive_bash");
+  });
+});
 
 describe("#given openclaw is enabled for sync task sessions", () => {
   test("#when the sync session-created callback runs #then it dispatches openclaw with the tracked pane id", async () => {
-    syncSessionCreatedCallbacks.length = 0
-    dispatchOpenClawEvent.mockReset()
-    trackedPaneBySession.clear()
+    syncSessionCreatedCallbacks.length = 0;
+    dispatchOpenClawEvent.mockReset();
+    trackedPaneBySession.clear();
 
     const tmuxSessionManager = {
-      async onSessionCreated(event: { properties?: { info?: { id?: string } } }): Promise<void> {
-        const sessionID = event.properties?.info?.id
+      async onSessionCreated(
+        event: { properties?: { info?: { id?: string } } },
+      ): Promise<void> {
+        const sessionID = event.properties?.info?.id;
         if (sessionID) {
-          trackedPaneBySession.set(sessionID, `%pane-${sessionID}`)
+          trackedPaneBySession.set(sessionID, `%pane-${sessionID}`);
         }
       },
       getTrackedPaneId(sessionID: string): string | undefined {
-        return trackedPaneBySession.get(sessionID)
+        return trackedPaneBySession.get(sessionID);
       },
-    }
+    };
 
     const openclawConfig = {
       enabled: true,
       gateways: {},
       hooks: {},
-    }
+    };
 
     createToolRegistry({
-      ctx: { directory: "/tmp/project" } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp/project" } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig({ openclaw: openclawConfig }),
       managers: {
         backgroundManager: {},
@@ -396,16 +433,17 @@ describe("#given openclaw is enabled for sync task sessions", () => {
       },
       availableCategories: [],
       toolFactories,
-    })
+    });
 
-    const onSyncSessionCreated = syncSessionCreatedCallbacks[syncSessionCreatedCallbacks.length - 1]
+    const onSyncSessionCreated =
+      syncSessionCreatedCallbacks[syncSessionCreatedCallbacks.length - 1];
     await onSyncSessionCreated?.({
       sessionID: "ses-sync-1",
       parentID: "ses-parent",
       title: "sync task",
-    })
+    });
 
-    expect(dispatchOpenClawEvent).toHaveBeenCalledTimes(1)
+    expect(dispatchOpenClawEvent).toHaveBeenCalledTimes(1);
     expect(dispatchOpenClawEvent).toHaveBeenCalledWith({
       config: openclawConfig,
       rawEvent: "session.created",
@@ -414,6 +452,6 @@ describe("#given openclaw is enabled for sync task sessions", () => {
         projectPath: "/tmp/project",
         tmuxPaneId: "%pane-ses-sync-1",
       },
-    })
-  })
-})
+    });
+  });
+});

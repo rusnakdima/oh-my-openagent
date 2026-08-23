@@ -1,47 +1,50 @@
-import { existsSync } from "node:fs"
-import { createRequire } from "node:module"
-import { homedir } from "node:os"
-import { dirname, join } from "node:path"
+import { existsSync } from "node:fs";
+import { createRequire } from "node:module";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 
-import { astGrepRuntimeDir, findSgBinarySync } from "@oh-my-opencode/utils"
+import { astGrepRuntimeDir, findSgBinarySync } from "@oh-my-opencode/utils";
 
-import type { DependencyInfo, FixResult } from "../framework/types"
-import { spawnWithTimeout } from "../framework/spawn-with-timeout"
-import { getCachedBinaryPath } from "../../../hooks/comment-checker/downloader"
-import { bunWhich } from "../../../shared/bun-which-shim"
-import { isModuleResolutionFailure } from "../../../shared/module-resolution-failure"
-import { getOpenCodeCacheDir } from "../../../shared"
+import type { DependencyInfo, FixResult } from "../framework/types";
+import { spawnWithTimeout } from "../framework/spawn-with-timeout";
+import { getCachedBinaryPath } from "../../../hooks/comment-checker/downloader";
+import { bunWhich } from "../../../shared/bun-which-shim";
+import { isModuleResolutionFailure } from "../../../shared/module-resolution-failure";
+import { getOpenCodeCacheDir } from "../../../shared";
 
 type BinaryCheck =
   | { exists: true; path: string }
-  | { exists: false; path: null }
+  | { exists: false; path: null };
 
 async function checkBinaryExists(binary: string): Promise<BinaryCheck> {
   try {
-    const path = bunWhich(binary)
+    const path = bunWhich(binary);
     if (path) {
-      return { exists: true, path }
+      return { exists: true, path };
     }
   } catch (error) {
-    if (!(error instanceof Error)) throw error
+    if (!(error instanceof Error)) throw error;
   }
-  return { exists: false, path: null }
+  return { exists: false, path: null };
 }
 
 async function getBinaryVersion(binary: string): Promise<string | null> {
   try {
-    const result = await spawnWithTimeout([binary, "--version"], { stdout: "pipe", stderr: "pipe" })
-    if (result.timedOut || result.exitCode !== 0) return null
-    return result.stdout.trim().split("\n")[0] ?? null
+    const result = await spawnWithTimeout([binary, "--version"], {
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    if (result.timedOut || result.exitCode !== 0) return null;
+    return result.stdout.trim().split("\n")[0] ?? null;
   } catch (error) {
-    if (!(error instanceof Error)) throw error
-    return null
+    if (!(error instanceof Error)) throw error;
+    return null;
   }
 }
 
 export async function checkAstGrepCli(): Promise<DependencyInfo> {
-  const runtimeDir = astGrepRuntimeDir(join(homedir(), ".omo"))
-  const sgPath = findSgBinarySync({ runtimeDir })
+  const runtimeDir = astGrepRuntimeDir(join(homedir(), ".omo"));
+  const sgPath = findSgBinarySync({ runtimeDir });
   if (sgPath === null) {
     return {
       name: "AST-Grep CLI",
@@ -49,11 +52,12 @@ export async function checkAstGrepCli(): Promise<DependencyInfo> {
       installed: false,
       version: null,
       path: null,
-      installHint: "Provisioned automatically by the bundled ast-grep skill; reinstall or start a new OpenCode session to retry.",
-    }
+      installHint:
+        "Provisioned automatically by the bundled ast-grep skill; reinstall or start a new OpenCode session to retry.",
+    };
   }
 
-  const version = await getBinaryVersion(sgPath)
+  const version = await getBinaryVersion(sgPath);
 
   return {
     name: "AST-Grep CLI",
@@ -61,48 +65,56 @@ export async function checkAstGrepCli(): Promise<DependencyInfo> {
     installed: true,
     version,
     path: sgPath,
-  }
+  };
 }
 
 function resolveCommentCheckerPackageJson(): string {
-  const require = createRequire(import.meta.url)
-  return require.resolve("@code-yeongyu/comment-checker/package.json")
+  const require = createRequire(import.meta.url);
+  return require.resolve("@code-yeongyu/comment-checker/package.json");
 }
 
 export function findCommentCheckerPackageBinary(
   baseDirOverride?: string,
   resolvePackageJsonPath: () => string = resolveCommentCheckerPackageJson,
 ): string | null {
-  const binaryName = process.platform === "win32" ? "comment-checker.exe" : "comment-checker"
-  const platformKey = `${process.platform}-${process.arch === "x64" ? "x64" : process.arch}`
+  const binaryName = process.platform === "win32"
+    ? "comment-checker.exe"
+    : "comment-checker";
+  const platformKey = `${process.platform}-${
+    process.arch === "x64" ? "x64" : process.arch
+  }`;
   try {
-    const packageDir = baseDirOverride ?? dirname(resolvePackageJsonPath())
-    const vendorPath = join(packageDir, "vendor", platformKey, binaryName)
-    if (existsSync(vendorPath)) return vendorPath
-    const binPath = join(packageDir, "bin", binaryName)
-    if (existsSync(binPath)) return binPath
+    const packageDir = baseDirOverride ?? dirname(resolvePackageJsonPath());
+    const vendorPath = join(packageDir, "vendor", platformKey, binaryName);
+    if (existsSync(vendorPath)) return vendorPath;
+    const binPath = join(packageDir, "bin", binaryName);
+    if (existsSync(binPath)) return binPath;
   } catch (error) {
-    if (!(error instanceof Error) && !isModuleResolutionFailure(error)) throw error
+    if (!(error instanceof Error) && !isModuleResolutionFailure(error)) {
+      throw error;
+    }
   }
-  return null
+  return null;
 }
 
 export async function checkCommentChecker(): Promise<DependencyInfo> {
   // Check cached binary first (matches runtime resolution order)
-  const cachedPath = getCachedBinaryPath()
+  const cachedPath = getCachedBinaryPath();
   if (cachedPath) {
-    const version = await getBinaryVersion(cachedPath)
+    const version = await getBinaryVersion(cachedPath);
     return {
       name: "Comment Checker",
       required: false,
       installed: true,
       version,
       path: cachedPath,
-    }
+    };
   }
 
-  const binaryCheck = await checkBinaryExists("comment-checker")
-  const resolvedPath = binaryCheck.exists ? binaryCheck.path : findCommentCheckerPackageBinary()
+  const binaryCheck = await checkBinaryExists("comment-checker");
+  const resolvedPath = binaryCheck.exists
+    ? binaryCheck.path
+    : findCommentCheckerPackageBinary();
 
   if (!resolvedPath) {
     return {
@@ -112,10 +124,10 @@ export async function checkCommentChecker(): Promise<DependencyInfo> {
       version: null,
       path: null,
       installHint: "Hook will be disabled if not available",
-    }
+    };
   }
 
-  const version = await getBinaryVersion(resolvedPath)
+  const version = await getBinaryVersion(resolvedPath);
 
   return {
     name: "Comment Checker",
@@ -123,17 +135,25 @@ export async function checkCommentChecker(): Promise<DependencyInfo> {
     installed: true,
     version,
     path: resolvedPath,
-  }
+  };
 }
 
 export async function fixAstGrep(): Promise<FixResult> {
-  const skillRoot = join(homedir(), ".omo", "skills", "ast-grep")
-  const installScript = join(skillRoot, "install.sh")
+  const skillRoot = join(homedir(), ".omo", "skills", "ast-grep");
+  const installScript = join(skillRoot, "install.sh");
   if (existsSync(installScript)) {
     try {
-      const result = await spawnWithTimeout(["bash", installScript, "--quiet"], {}, 60_000)
+      const result = await spawnWithTimeout(
+        ["bash", installScript, "--quiet"],
+        {},
+        60_000,
+      );
       if (result.exitCode === 0) {
-        return { success: true, message: "AST-Grep installed", fixed: ["ast-grep CLI"] }
+        return {
+          success: true,
+          message: "AST-Grep installed",
+          fixed: ["ast-grep CLI"],
+        };
       }
     } catch {
       // fall through to npm
@@ -141,24 +161,56 @@ export async function fixAstGrep(): Promise<FixResult> {
   }
   // Fallback: npm install
   try {
-    const result = await spawnWithTimeout(["npm", "install", "-g", "@ast-grep/cli"], {}, 60_000)
+    const result = await spawnWithTimeout(
+      ["npm", "install", "-g", "@ast-grep/cli"],
+      {},
+      60_000,
+    );
     if (result.exitCode === 0) {
-      return { success: true, message: "AST-Grep installed via npm", fixed: ["ast-grep CLI"] }
+      return {
+        success: true,
+        message: "AST-Grep installed via npm",
+        fixed: ["ast-grep CLI"],
+      };
     }
-    return { success: false, message: `npm install failed: ${result.stderr || result.stdout}` }
+    return {
+      success: false,
+      message: `npm install failed: ${result.stderr || result.stdout}`,
+    };
   } catch (err) {
-    return { success: false, message: err instanceof Error ? err.message : "Failed to install ast-grep" }
+    return {
+      success: false,
+      message: err instanceof Error
+        ? err.message
+        : "Failed to install ast-grep",
+    };
   }
 }
 
 export async function fixCommentChecker(): Promise<FixResult> {
   try {
-    const result = await spawnWithTimeout(["bun", "add", "-g", "@code-yeongyu/comment-checker"], {}, 60_000)
+    const result = await spawnWithTimeout(
+      ["bun", "add", "-g", "@code-yeongyu/comment-checker"],
+      {},
+      60_000,
+    );
     if (result.exitCode === 0) {
-      return { success: true, message: "Comment checker installed", fixed: ["comment-checker binary"] }
+      return {
+        success: true,
+        message: "Comment checker installed",
+        fixed: ["comment-checker binary"],
+      };
     }
-    return { success: false, message: `bun add failed: ${result.stderr || result.stdout}` }
+    return {
+      success: false,
+      message: `bun add failed: ${result.stderr || result.stdout}`,
+    };
   } catch (err) {
-    return { success: false, message: err instanceof Error ? err.message : "Failed to install comment-checker" }
+    return {
+      success: false,
+      message: err instanceof Error
+        ? err.message
+        : "Failed to install comment-checker",
+    };
   }
 }

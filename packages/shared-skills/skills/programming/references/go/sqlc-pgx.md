@@ -1,8 +1,11 @@
 # Database Stack — sqlc + pgx + goose + testcontainers
 
-The canonical 2026 PostgreSQL stack. **Type-safe SQL with zero runtime reflection**, hot-path-friendly connection pooling, sane migrations, real Postgres in tests.
+The canonical 2026 PostgreSQL stack. **Type-safe SQL with zero runtime
+reflection**, hot-path-friendly connection pooling, sane migrations, real
+Postgres in tests.
 
-If you came here from a `gorm` project: gorm is rejected. See "Why not gorm" at the end.
+If you came here from a `gorm` project: gorm is rejected. See "Why not gorm" at
+the end.
 
 ---
 
@@ -47,16 +50,16 @@ internal/store/
 version: "2"
 sql:
   - engine: "postgresql"
-    schema:  "schema.sql"
+    schema: "schema.sql"
     queries: "queries"
     gen:
       go:
         package: "sqlc"
-        out:     "sqlc"
+        out: "sqlc"
         sql_package: "pgx/v5"
         emit_json_tags: false
         emit_prepared_queries: false
-        emit_interface: true          # generates a Querier interface
+        emit_interface: true # generates a Querier interface
         emit_exact_table_names: false
         emit_pointers_for_null_types: true
         emit_empty_slices: true
@@ -64,18 +67,21 @@ sql:
           - db_type: "uuid"
             go_type:
               import: "github.com/google/uuid"
-              type:   "UUID"
+              type: "UUID"
           - db_type: "timestamptz"
             go_type:
               import: "time"
-              type:   "Time"
+              type: "Time"
 ```
 
 Key choices:
 
-- `sql_package: "pgx/v5"` — generated code uses pgx directly, not `database/sql`. Faster, type-safer.
-- `emit_interface: true` — generates a `Querier` interface. Lets stores accept either `*pgxpool.Pool` or `pgx.Tx` for transaction support.
-- `emit_pointers_for_null_types: true` — nullable columns become `*T`, not `sql.NullString`. Cleaner mapping to domain types.
+- `sql_package: "pgx/v5"` — generated code uses pgx directly, not
+  `database/sql`. Faster, type-safer.
+- `emit_interface: true` — generates a `Querier` interface. Lets stores accept
+  either `*pgxpool.Pool` or `pgx.Tx` for transaction support.
+- `emit_pointers_for_null_types: true` — nullable columns become `*T`, not
+  `sql.NullString`. Cleaner mapping to domain types.
 - `overrides` for `uuid` → `google/uuid.UUID` and `timestamptz` → `time.Time`.
 
 ---
@@ -129,13 +135,16 @@ DELETE FROM users WHERE id = $1;
 
 sqlc directives:
 
-- `:one` — exactly one row; returns `(T, error)`. Returns `pgx.ErrNoRows` on miss.
+- `:one` — exactly one row; returns `(T, error)`. Returns `pgx.ErrNoRows` on
+  miss.
 - `:many` — zero or more rows; returns `([]T, error)`.
 - `:exec` — no rows returned; returns `error`.
 - `:execrows` — returns `(int64, error)` with affected row count.
-- `:batchone` / `:batchmany` / `:batchexec` — pgx batch mode for bulk operations.
+- `:batchone` / `:batchmany` / `:batchexec` — pgx batch mode for bulk
+  operations.
 
-Run `task gen:sqlc` (or `sqlc generate`). The generated file is committed; CI checks it is up-to-date.
+Run `task gen:sqlc` (or `sqlc generate`). The generated file is committed; CI
+checks it is up-to-date.
 
 ---
 
@@ -161,7 +170,9 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
 }
 ```
 
-Type-safe inputs, type-safe outputs, compile-time-checked column-to-field mapping. **A schema change that drops a column breaks compilation.** Hand-rolled SQL would have failed at runtime.
+Type-safe inputs, type-safe outputs, compile-time-checked column-to-field
+mapping. **A schema change that drops a column breaks compilation.** Hand-rolled
+SQL would have failed at runtime.
 
 ---
 
@@ -199,7 +210,8 @@ func NewPool(ctx context.Context, dsn string) (*pgxpool.Pool, error) {
 }
 ```
 
-`pgxpool.Pool` is `Querier`-compatible (implements the interface sqlc generates). Same pool flows into sqlc queries unchanged.
+`pgxpool.Pool` is `Querier`-compatible (implements the interface sqlc
+generates). Same pool flows into sqlc queries unchanged.
 
 ---
 
@@ -270,9 +282,12 @@ func rowToDomain(r sqlc.User) (domain.User, error) {
 }
 ```
 
-The wrapping is verbose. **That is the point.** sqlc rows are storage representations; domain types are business representations. Mapping them explicitly is where invariants are enforced.
+The wrapping is verbose. **That is the point.** sqlc rows are storage
+representations; domain types are business representations. Mapping them
+explicitly is where invariants are enforced.
 
-`pgx.ErrNoRows` becomes `domain.ErrUserNotFound` — callers never see storage-level errors.
+`pgx.ErrNoRows` becomes `domain.ErrUserNotFound` — callers never see
+storage-level errors.
 
 ---
 
@@ -303,7 +318,8 @@ func (s *UserStore) CreateWithProfile(
 
 Pattern:
 
-- `defer tx.Rollback(ctx)` immediately after `Begin` — safe even after Commit (returns "tx closed", which we ignore via the unhandled return).
+- `defer tx.Rollback(ctx)` immediately after `Begin` — safe even after Commit
+  (returns "tx closed", which we ignore via the unhandled return).
 - `q.WithTx(tx)` returns a `*Queries` bound to the tx.
 - Last line: `tx.Commit(ctx)`.
 
@@ -347,8 +363,10 @@ goose -dir internal/store/migrations postgres "$DATABASE_URL" down
 
 Rules:
 
-- One DDL change per migration. Never combine schema + data migrations in one file.
-- `Down` is real, not a stub. CI runs `up` → `down` → `up` on a fresh container to prove reversibility.
+- One DDL change per migration. Never combine schema + data migrations in one
+  file.
+- `Down` is real, not a stub. CI runs `up` → `down` → `up` on a fresh container
+  to prove reversibility.
 - Migrations are append-only. Never edit a merged migration; add a new one.
 
 `goose` can run programmatically as well:
@@ -424,9 +442,12 @@ func TestUserStore_Create_returns_new_user(t *testing.T) {
 }
 ```
 
-testcontainers spins a real Postgres in Docker, runs migrations, hands you a pool. Tests are slow (~2s startup) but **real** — no fake that diverges from production.
+testcontainers spins a real Postgres in Docker, runs migrations, hands you a
+pool. Tests are slow (~2s startup) but **real** — no fake that diverges from
+production.
 
-For test suites with many cases, share one container across tests in the same package via `TestMain`:
+For test suites with many cases, share one container across tests in the same
+package via `TestMain`:
 
 ```go
 var testPool *pgxpool.Pool
@@ -448,15 +469,15 @@ Each test then uses a transaction it rolls back at the end — fast and isolated
 
 ## Why NOT gorm
 
-| Concern | gorm | sqlc + pgx |
-|---|---|---|
-| Type safety | runtime reflection; column-to-field via tags | compile-time-checked from SQL |
-| Performance | 2–5x slower than pgx | pgx is the fastest Go pg driver |
-| N+1 queries | encouraged by `Preload` API | explicit JOIN in `.sql` |
-| Migrations | AutoMigrate (unsafe in prod) | goose, explicit |
-| Debugging | "what query did it run?" requires logging | the query IS the source |
-| Cancellation | spotty ctx support | first-class |
-| Active development | Yes but with churn and breaking changes | sqlc is stable |
+| Concern            | gorm                                         | sqlc + pgx                      |
+| ------------------ | -------------------------------------------- | ------------------------------- |
+| Type safety        | runtime reflection; column-to-field via tags | compile-time-checked from SQL   |
+| Performance        | 2–5x slower than pgx                         | pgx is the fastest Go pg driver |
+| N+1 queries        | encouraged by `Preload` API                  | explicit JOIN in `.sql`         |
+| Migrations         | AutoMigrate (unsafe in prod)                 | goose, explicit                 |
+| Debugging          | "what query did it run?" requires logging    | the query IS the source         |
+| Cancellation       | spotty ctx support                           | first-class                     |
+| Active development | Yes but with churn and breaking changes      | sqlc is stable                  |
 
 Existing gorm projects: leave them. New code: sqlc + pgx.
 

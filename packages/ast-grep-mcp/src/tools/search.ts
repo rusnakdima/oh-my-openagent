@@ -3,13 +3,13 @@
 
 import {
   DEFAULT_MATCHES,
-  MAX_MATCHES,
   DEFAULT_TIMEOUT_MS,
+  MAX_MATCHES,
   MAX_TIMEOUT_MS,
   SgRunnerError,
   spawnSgRunner,
 } from "../sg-runner";
-import { normalizeRecords, type NormalizedMatch } from "../normalize";
+import { type NormalizedMatch, normalizeRecords } from "../normalize";
 import { validatePatternHints } from "../pattern-hints";
 
 // ---- constants ----
@@ -32,9 +32,31 @@ export const SEARCH_TOOL_DESCRIPTION =
 // ---- input schema ----
 
 const LANGUAGES = [
-  "bash", "c", "cpp", "csharp", "css", "elixir", "go", "haskell", "html",
-  "java", "javascript", "json", "kotlin", "lua", "nix", "php", "python",
-  "ruby", "rust", "scala", "solidity", "swift", "typescript", "tsx", "yaml",
+  "bash",
+  "c",
+  "cpp",
+  "csharp",
+  "css",
+  "elixir",
+  "go",
+  "haskell",
+  "html",
+  "java",
+  "javascript",
+  "json",
+  "kotlin",
+  "lua",
+  "nix",
+  "php",
+  "python",
+  "ruby",
+  "rust",
+  "scala",
+  "solidity",
+  "swift",
+  "typescript",
+  "tsx",
+  "yaml",
 ] as const;
 
 // ub §3: strictness enum exactly [cst, smart, ast, relaxed, signature] — "template" excluded
@@ -81,56 +103,113 @@ function parseSearchInput(input: unknown): ParseResult {
   const obj = input as Record<string, unknown>;
 
   // pattern (required, string, minLength 1, ≤16KiB)
-  if (typeof obj.pattern !== "string") return { ok: false, error: "pattern must be a string" };
-  if (obj.pattern.length === 0) return { ok: false, error: "pattern must be at least 1 character" };
+  if (typeof obj.pattern !== "string") {
+    return { ok: false, error: "pattern must be a string" };
+  }
+  if (obj.pattern.length === 0) {
+    return { ok: false, error: "pattern must be at least 1 character" };
+  }
   if (Buffer.byteLength(obj.pattern, "utf8") > MAX_PATTERN_BYTES) {
     return { ok: false, error: "pattern must be at most 16384 bytes" };
   }
 
   // language (required, enum of 25 canonical names)
-  if (typeof obj.language !== "string" || !(LANGUAGES as readonly string[]).includes(obj.language)) {
-    return { ok: false, error: `language must be one of: ${LANGUAGES.join(", ")}` };
+  if (
+    typeof obj.language !== "string" ||
+    !(LANGUAGES as readonly string[]).includes(obj.language)
+  ) {
+    return {
+      ok: false,
+      error: `language must be one of: ${LANGUAGES.join(", ")}`,
+    };
   }
 
   // paths (required, 1-64 non-empty strings, each ≤4096 code points)
-  if (!Array.isArray(obj.paths)) return { ok: false, error: "paths must be an array" };
+  if (!Array.isArray(obj.paths)) {
+    return { ok: false, error: "paths must be an array" };
+  }
   if (obj.paths.length < 1 || obj.paths.length > MAX_PATHS) {
     return { ok: false, error: `paths must have 1-${MAX_PATHS} entries` };
   }
   for (const p of obj.paths) {
-    if (typeof p !== "string" || p.length === 0) return { ok: false, error: "each path must be a non-empty string" };
-    if (codePoints(p) > MAX_PATH_LEN) return { ok: false, error: `each path must be at most ${MAX_PATH_LEN} characters` };
+    if (typeof p !== "string" || p.length === 0) {
+      return { ok: false, error: "each path must be a non-empty string" };
+    }
+    if (codePoints(p) > MAX_PATH_LEN) {
+      return {
+        ok: false,
+        error: `each path must be at most ${MAX_PATH_LEN} characters`,
+      };
+    }
   }
 
   // workdir (optional, non-empty string, ≤4096 code points)
   if (obj.workdir !== undefined) {
-    if (typeof obj.workdir !== "string") return { ok: false, error: "workdir must be a string" };
-    if (obj.workdir.length === 0) return { ok: false, error: "workdir must be at least 1 character" };
-    if (codePoints(obj.workdir) > MAX_WORKDIR_LEN) return { ok: false, error: `workdir must be at most ${MAX_WORKDIR_LEN} characters` };
+    if (typeof obj.workdir !== "string") {
+      return { ok: false, error: "workdir must be a string" };
+    }
+    if (obj.workdir.length === 0) {
+      return { ok: false, error: "workdir must be at least 1 character" };
+    }
+    if (codePoints(obj.workdir) > MAX_WORKDIR_LEN) {
+      return {
+        ok: false,
+        error: `workdir must be at most ${MAX_WORKDIR_LEN} characters`,
+      };
+    }
   }
 
   // globs (optional, ≤32 items, each non-empty ≤1024 code points)
   if (obj.globs !== undefined) {
-    if (!Array.isArray(obj.globs)) return { ok: false, error: "globs must be an array" };
-    if (obj.globs.length > MAX_GLOBS) return { ok: false, error: `globs must have at most ${MAX_GLOBS} entries` };
+    if (!Array.isArray(obj.globs)) {
+      return { ok: false, error: "globs must be an array" };
+    }
+    if (obj.globs.length > MAX_GLOBS) {
+      return {
+        ok: false,
+        error: `globs must have at most ${MAX_GLOBS} entries`,
+      };
+    }
     for (const g of obj.globs) {
-      if (typeof g !== "string" || g.length === 0) return { ok: false, error: "each glob must be a non-empty string" };
-      if (codePoints(g) > MAX_GLOB_LEN) return { ok: false, error: `each glob must be at most ${MAX_GLOB_LEN} characters` };
+      if (typeof g !== "string" || g.length === 0) {
+        return { ok: false, error: "each glob must be a non-empty string" };
+      }
+      if (codePoints(g) > MAX_GLOB_LEN) {
+        return {
+          ok: false,
+          error: `each glob must be at most ${MAX_GLOB_LEN} characters`,
+        };
+      }
     }
   }
 
   // selector (optional, non-empty string, ≤128 code points)
   if (obj.selector !== undefined) {
-    if (typeof obj.selector !== "string") return { ok: false, error: "selector must be a string" };
-    if (obj.selector.length === 0) return { ok: false, error: "selector must be at least 1 character" };
-    if (codePoints(obj.selector) > MAX_SELECTOR_LEN) return { ok: false, error: `selector must be at most ${MAX_SELECTOR_LEN} characters` };
+    if (typeof obj.selector !== "string") {
+      return { ok: false, error: "selector must be a string" };
+    }
+    if (obj.selector.length === 0) {
+      return { ok: false, error: "selector must be at least 1 character" };
+    }
+    if (codePoints(obj.selector) > MAX_SELECTOR_LEN) {
+      return {
+        ok: false,
+        error: `selector must be at most ${MAX_SELECTOR_LEN} characters`,
+      };
+    }
   }
 
   // strictness (optional, enum [cst, smart, ast, relaxed, signature], default "smart")
   let strictness: (typeof STRICTNESS)[number] = "smart";
   if (obj.strictness !== undefined) {
-    if (typeof obj.strictness !== "string" || !(STRICTNESS as readonly string[]).includes(obj.strictness)) {
-      return { ok: false, error: `strictness must be one of: ${STRICTNESS.join(", ")}` };
+    if (
+      typeof obj.strictness !== "string" ||
+      !(STRICTNESS as readonly string[]).includes(obj.strictness)
+    ) {
+      return {
+        ok: false,
+        error: `strictness must be one of: ${STRICTNESS.join(", ")}`,
+      };
     }
     strictness = obj.strictness as (typeof STRICTNESS)[number];
   }
@@ -138,8 +217,14 @@ function parseSearchInput(input: unknown): ParseResult {
   // maxMatches (optional, integer 1-500, default 50)
   let maxMatches = DEFAULT_MATCHES;
   if (obj.maxMatches !== undefined) {
-    if (typeof obj.maxMatches !== "number" || !Number.isInteger(obj.maxMatches) || obj.maxMatches < 1 || obj.maxMatches > MAX_MATCHES) {
-      return { ok: false, error: `maxMatches must be an integer between 1 and ${MAX_MATCHES}` };
+    if (
+      typeof obj.maxMatches !== "number" || !Number.isInteger(obj.maxMatches) ||
+      obj.maxMatches < 1 || obj.maxMatches > MAX_MATCHES
+    ) {
+      return {
+        ok: false,
+        error: `maxMatches must be an integer between 1 and ${MAX_MATCHES}`,
+      };
     }
     maxMatches = obj.maxMatches;
   }
@@ -147,19 +232,30 @@ function parseSearchInput(input: unknown): ParseResult {
   // timeoutMs (optional, integer 1000-300000, default 300000)
   let timeoutMs = DEFAULT_TIMEOUT_MS;
   if (obj.timeoutMs !== undefined) {
-    if (typeof obj.timeoutMs !== "number" || !Number.isInteger(obj.timeoutMs) || obj.timeoutMs < MIN_TIMEOUT_MS || obj.timeoutMs > MAX_TIMEOUT_MS) {
-      return { ok: false, error: `timeoutMs must be an integer between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS}` };
+    if (
+      typeof obj.timeoutMs !== "number" || !Number.isInteger(obj.timeoutMs) ||
+      obj.timeoutMs < MIN_TIMEOUT_MS || obj.timeoutMs > MAX_TIMEOUT_MS
+    ) {
+      return {
+        ok: false,
+        error:
+          `timeoutMs must be an integer between ${MIN_TIMEOUT_MS} and ${MAX_TIMEOUT_MS}`,
+      };
     }
     timeoutMs = obj.timeoutMs;
   }
 
   // includeHidden (optional, boolean)
-  if (obj.includeHidden !== undefined && typeof obj.includeHidden !== "boolean") {
+  if (
+    obj.includeHidden !== undefined && typeof obj.includeHidden !== "boolean"
+  ) {
     return { ok: false, error: "includeHidden must be a boolean" };
   }
 
   // followSymlinks (optional, boolean)
-  if (obj.followSymlinks !== undefined && typeof obj.followSymlinks !== "boolean") {
+  if (
+    obj.followSymlinks !== undefined && typeof obj.followSymlinks !== "boolean"
+  ) {
     return { ok: false, error: "followSymlinks must be a boolean" };
   }
 
@@ -170,11 +266,23 @@ function parseSearchInput(input: unknown): ParseResult {
 
   // additionalProperties: false — reject unknown keys
   const known = new Set([
-    "pattern", "language", "paths", "workdir", "globs", "selector",
-    "strictness", "maxMatches", "timeoutMs", "includeHidden", "followSymlinks", "force",
+    "pattern",
+    "language",
+    "paths",
+    "workdir",
+    "globs",
+    "selector",
+    "strictness",
+    "maxMatches",
+    "timeoutMs",
+    "includeHidden",
+    "followSymlinks",
+    "force",
   ]);
   for (const key of Object.keys(obj)) {
-    if (!known.has(key)) return { ok: false, error: `Unknown property: ${key}` };
+    if (!known.has(key)) {
+      return { ok: false, error: `Unknown property: ${key}` };
+    }
   }
 
   return {
@@ -199,7 +307,14 @@ function parseSearchInput(input: unknown): ParseResult {
 // ---- CLI translation (ub §3) ----
 
 export function buildSearchArgs(input: SearchInput): string[] {
-  const args: string[] = ["run", "-p", input.pattern, "--lang", input.language, "--json=stream"];
+  const args: string[] = [
+    "run",
+    "-p",
+    input.pattern,
+    "--lang",
+    input.language,
+    "--json=stream",
+  ];
 
   // strictness (always emitted, defaults to "smart")
   args.push("--strictness", input.strictness ?? "smart");
@@ -208,7 +323,11 @@ export function buildSearchArgs(input: SearchInput): string[] {
   if (input.selector) args.push("--selector", input.selector);
 
   // globs (optional, each as --globs <glob>)
-  if (input.globs) for (const glob of input.globs) args.push("--globs", glob);
+  if (input.globs) {
+    for (const glob of input.globs) {
+      args.push("--globs", glob);
+    }
+  }
 
   // includeHidden → --no-ignore hidden ONLY
   if (input.includeHidden) args.push("--no-ignore", "hidden");
@@ -268,7 +387,11 @@ export interface SearchSuccessPayload {
   };
   readonly truncation: {
     readonly truncated: boolean;
-    readonly reason: "match_limit" | "output_cap" | "sg_output_truncated" | null;
+    readonly reason:
+      | "match_limit"
+      | "output_cap"
+      | "sg_output_truncated"
+      | null;
     readonly maxMatches: number;
     readonly maxPayloadBytes: number;
     readonly salvagedRecords: number;
@@ -351,7 +474,9 @@ export async function executeSearch(
     limit: maxMatches,
   });
   if (validation.rejected) {
-    const rejectHint = validation.hints.find((h) => h.severity === "always-reject" || h.severity === "reject");
+    const rejectHint = validation.hints.find((h) =>
+      h.severity === "always-reject" || h.severity === "reject"
+    );
     return makeError(
       (validation.code ?? "INVALID_ARGUMENT") as SearchErrorCode,
       rejectHint?.message ?? "Pattern validation failed",

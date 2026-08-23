@@ -1,22 +1,22 @@
 export {
   extractRuntimeFallbackAutoRetrySignal,
   type RuntimeFallbackAutoRetrySignal,
-} from "./runtime-fallback-auto-retry-signal"
-export { RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS } from "./runtime-fallback-retryable-patterns"
+} from "./runtime-fallback-auto-retry-signal";
+export { RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS } from "./runtime-fallback-retryable-patterns";
 export {
   getRuntimeFallbackErrorMessage,
   getRuntimeFallbackErrorName,
   getRuntimeFallbackRetryableSignal,
   getRuntimeFallbackStatusCode,
-} from "./runtime-fallback-error-shape"
+} from "./runtime-fallback-error-shape";
 
 import {
   getRuntimeFallbackErrorMessage,
   getRuntimeFallbackErrorName,
   getRuntimeFallbackRetryableSignal,
   getRuntimeFallbackStatusCode,
-} from "./runtime-fallback-error-shape"
-import { RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS } from "./runtime-fallback-retryable-patterns"
+} from "./runtime-fallback-error-shape";
+import { RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS } from "./runtime-fallback-retryable-patterns";
 
 export type RuntimeFallbackErrorType =
   | "missing_api_key"
@@ -24,61 +24,76 @@ export type RuntimeFallbackErrorType =
   | "model_not_found"
   | "quota_exceeded"
   | "context_overflow"
-  | "abort"
+  | "abort";
 
 export interface RuntimeFallbackRetryOptions {
   onUnsafeRetryableSignalRejected?: (details: {
-    readonly statusCode: number
-    readonly retryOnErrors: readonly number[]
-  }) => void
+    readonly statusCode: number;
+    readonly retryOnErrors: readonly number[];
+  }) => void;
 }
 
-function isStatusCodeRetrySafe(code: number, retryOnErrors: readonly number[]): boolean {
-  return retryOnErrors.includes(code) || (code >= 500 && code < 600) || code === 408 || code === 425 || code === 429
+function isStatusCodeRetrySafe(
+  code: number,
+  retryOnErrors: readonly number[],
+): boolean {
+  return retryOnErrors.includes(code) || (code >= 500 && code < 600) ||
+    code === 408 || code === 425 || code === 429;
 }
 
 function isLocalizedQuotaExhaustionMessage(message: string): boolean {
   return (
     (/预扣费额度失败/i.test(message) && /用户剩余额度/i.test(message)) ||
     (/用户剩余额度/i.test(message) && /需要预扣费额度/i.test(message))
-  )
+  );
 }
 
-export function classifyRuntimeFallbackError(error: unknown): RuntimeFallbackErrorType | undefined {
-  const message = getRuntimeFallbackErrorMessage(error)
-  const errorName = getRuntimeFallbackErrorName(error)?.toLowerCase().replace(/[_-]/g, "")
+export function classifyRuntimeFallbackError(
+  error: unknown,
+): RuntimeFallbackErrorType | undefined {
+  const message = getRuntimeFallbackErrorMessage(error);
+  const errorName = getRuntimeFallbackErrorName(error)?.toLowerCase().replace(
+    /[_-]/g,
+    "",
+  );
 
-  if (errorName?.includes("messageabortederror") || errorName?.includes("aborterror")) {
-    return "abort"
+  if (
+    errorName?.includes("messageabortederror") ||
+    errorName?.includes("aborterror")
+  ) {
+    return "abort";
   }
 
   if (
     errorName === "contextoverflowerror" ||
     // Broader match: any provider error name containing "context" + "window/overflow"
     (errorName?.includes("context") &&
-      (errorName?.includes("overflow") || errorName?.includes("window") || errorName?.includes("limit")))
+      (errorName?.includes("overflow") || errorName?.includes("window") ||
+        errorName?.includes("limit")))
   ) {
-    return "context_overflow"
+    return "context_overflow";
   }
 
   if (
     errorName?.includes("ailoadapikeyerror") ||
     errorName?.includes("loadapi") ||
-    (/api.?key.?is.?missing/i.test(message) && /environment variable/i.test(message))
+    (/api.?key.?is.?missing/i.test(message) &&
+      /environment variable/i.test(message))
   ) {
-    return "missing_api_key"
+    return "missing_api_key";
   }
 
   if (/api.?key/i.test(message) && /must be a string/i.test(message)) {
-    return "invalid_api_key"
+    return "invalid_api_key";
   }
 
   if (
     errorName?.includes("providermodelnotfounderror") ||
     errorName?.includes("modelnotfounderror") ||
-    (errorName?.includes("unknownerror") && /model\s+not\s+found/i.test(message))
+    (errorName?.includes("unknownerror") &&
+      /model\s+not\s+found/i.test(message))
   ) {
-    return "model_not_found"
+    return "model_not_found";
   }
 
   if (
@@ -106,32 +121,36 @@ export function classifyRuntimeFallbackError(error: unknown): RuntimeFallbackErr
     /已耗尽/.test(message) ||
     isLocalizedQuotaExhaustionMessage(message)
   ) {
-    return "quota_exceeded"
+    return "quota_exceeded";
   }
 
-  return undefined
+  return undefined;
 }
 
 export function getQuotaExceededRemediation(providerID?: string): string {
   const remediation: Record<string, string> = {
     openai: " Visit https://platform.openai.com/account/usage to add credits.",
-    anthropic: " Visit https://console.anthropic.com/settings/credits to add credits.",
+    anthropic:
+      " Visit https://console.anthropic.com/settings/credits to add credits.",
     google: " Visit https://aistudio.google.com/app/billing to enable billing.",
-    "google-vertex": " Visit https://console.cloud.google.com/apis/credentials to add a billing account.",
+    "google-vertex":
+      " Visit https://console.cloud.google.com/apis/credentials to add a billing account.",
     aws: " Visit https://console.aws.amazon.com/billing/ to add funds.",
-    "aws-bedrock": " Visit https://console.aws.amazon.com/bedrock/ to add funds.",
+    "aws-bedrock":
+      " Visit https://console.aws.amazon.com/bedrock/ to add funds.",
     ollama: " Check your Ollama server's available memory and model capacity.",
     "openrouter ": " Visit https://openrouter.ai/settings to add credits.",
     groq: " Visit https://console.groq.com/settings to add credits.",
     deepseek: " Visit https://platform.deepseek.com/account to add credits.",
-  }
-  return remediation[providerID ?? ""] ?? ""
+  };
+  return remediation[providerID ?? ""] ?? "";
 }
 
-const SERVER_ERROR_PATTERN = /(?:^|\s)(?:5\d\d|internal\s+server\s+error|server\s+error)(?:\s|$)/i
+const SERVER_ERROR_PATTERN =
+  /(?:^|\s)(?:5\d\d|internal\s+server\s+error|server\s+error)(?:\s|$)/i;
 
 function isServerErrorMessage(message: string): boolean {
-  return SERVER_ERROR_PATTERN.test(message)
+  return SERVER_ERROR_PATTERN.test(message);
 }
 
 export function isRuntimeFallbackRetryableError(
@@ -139,52 +158,59 @@ export function isRuntimeFallbackRetryableError(
   retryOnErrors: readonly number[],
   options: RuntimeFallbackRetryOptions = {},
 ): boolean {
-  const statusCode = getRuntimeFallbackStatusCode(error, retryOnErrors)
-  const message = getRuntimeFallbackErrorMessage(error)
-  const errorName = getRuntimeFallbackErrorName(error)?.toLowerCase().replace(/[_-]/g, "")
-  const errorType = classifyRuntimeFallbackError(error)
+  const statusCode = getRuntimeFallbackStatusCode(error, retryOnErrors);
+  const message = getRuntimeFallbackErrorMessage(error);
+  const errorName = getRuntimeFallbackErrorName(error)?.toLowerCase().replace(
+    /[_-]/g,
+    "",
+  );
+  const errorType = classifyRuntimeFallbackError(error);
 
   // Guard by name pattern first — catches providers that use non-standard error names
   // for context overflow (e.g. ContextWindowExceededError, context_limit_error).
-  const isContextOverflowByName =
-    errorName?.includes("context") &&
+  const isContextOverflowByName = errorName?.includes("context") &&
     (errorName?.includes("overflow") ||
       errorName?.includes("window") ||
-      errorName?.includes("limit"))
+      errorName?.includes("limit"));
 
   if (isContextOverflowByName) {
-    return false
+    return false;
   }
 
   // OpenCode starts native compaction for this error; fallback would abort that compaction on its timeout.
-  if (errorType === "abort" || errorType === "context_overflow") return false
+  if (errorType === "abort" || errorType === "context_overflow") return false;
 
   if (
     errorType === "missing_api_key" ||
     errorType === "model_not_found" ||
     errorType === "quota_exceeded"
   ) {
-    return true
+    return true;
   }
 
   if (statusCode && retryOnErrors.includes(statusCode)) {
-    return true
+    return true;
   }
 
-  const retryableSignal = getRuntimeFallbackRetryableSignal(error)
+  const retryableSignal = getRuntimeFallbackRetryableSignal(error);
   if (retryableSignal === true) {
-    if (statusCode === undefined || isStatusCodeRetrySafe(statusCode, retryOnErrors)) {
-      return true
+    if (
+      statusCode === undefined ||
+      isStatusCodeRetrySafe(statusCode, retryOnErrors)
+    ) {
+      return true;
     }
 
-    options.onUnsafeRetryableSignalRejected?.({ statusCode, retryOnErrors })
+    options.onUnsafeRetryableSignalRejected?.({ statusCode, retryOnErrors });
   }
 
   // Server error message pattern: catch cases where statusCode was not extractable
   // but the error message itself contains a 5xx indicator
   if (isServerErrorMessage(message)) {
-    return true
+    return true;
   }
 
-  return RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS.some((pattern) => pattern.test(message))
+  return RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS.some((pattern) =>
+    pattern.test(message)
+  );
 }

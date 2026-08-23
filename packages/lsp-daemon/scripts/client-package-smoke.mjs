@@ -1,6 +1,13 @@
 #!/usr/bin/env node
 import { execFileSync, spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,41 +20,43 @@ const outputPath = evidenceDir ? join(evidenceDir, "package-smoke.json") : "";
 const commandLog = [];
 
 function parseEvidenceDir(args) {
-	const index = args.indexOf("--evidence-dir");
-	if (index === -1) return "";
-	const value = args[index + 1];
-	if (!value || !value.startsWith("/")) throw new Error("--evidence-dir must be absolute");
-	mkdirSync(value, { recursive: true });
-	return value;
+  const index = args.indexOf("--evidence-dir");
+  if (index === -1) return "";
+  const value = args[index + 1];
+  if (!value || !value.startsWith("/")) {
+    throw new Error("--evidence-dir must be absolute");
+  }
+  mkdirSync(value, { recursive: true });
+  return value;
 }
 
 function run(command, args, options = {}) {
-	commandLog.push({ command, args, cwd: options.cwd ?? packageRoot });
-	return execFileSync(command, args, {
-		cwd: options.cwd ?? packageRoot,
-		encoding: "utf8",
-		env: { ...process.env, NODE_PATH: "", ...(options.env ?? {}) },
-		stdio: ["ignore", "pipe", "pipe"],
-	});
+  commandLog.push({ command, args, cwd: options.cwd ?? packageRoot });
+  return execFileSync(command, args, {
+    cwd: options.cwd ?? packageRoot,
+    encoding: "utf8",
+    env: { ...process.env, NODE_PATH: "", ...(options.env ?? {}) },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 }
 
 function runStatus(command, args, options = {}) {
-	commandLog.push({ command, args, cwd: options.cwd ?? packageRoot });
-	return spawnSync(command, args, {
-		cwd: options.cwd ?? packageRoot,
-		encoding: "utf8",
-		env: { ...process.env, NODE_PATH: "", ...(options.env ?? {}) },
-	});
+  commandLog.push({ command, args, cwd: options.cwd ?? packageRoot });
+  return spawnSync(command, args, {
+    cwd: options.cwd ?? packageRoot,
+    encoding: "utf8",
+    env: { ...process.env, NODE_PATH: "", ...(options.env ?? {}) },
+  });
 }
 
 function readJson(path) {
-	return JSON.parse(readFileSync(path, "utf8"));
+  return JSON.parse(readFileSync(path, "utf8"));
 }
 
 function writeConsumerScript(path) {
-	writeFileSync(
-		path,
-		`
+  writeFileSync(
+    path,
+    `
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -136,13 +145,13 @@ writeFileSync(output, JSON.stringify({
 	publicKeys: Object.keys(clientModule).sort(),
 }, null, 2) + "\\n");
 `,
-	);
+  );
 }
 
 function writeConsumerTypes(path) {
-	writeFileSync(
-		path,
-		`
+  writeFileSync(
+    path,
+    `
 import {
 	type CallToolOptions,
 	type LspDiagnosticsDetails,
@@ -175,170 +184,203 @@ const details: LspDiagnosticsDetails = {
 const pair = [statusPromise, diagnosticsPromise];
 console.log(pair.length, inferredContext.capabilities.installDecisionTool, details.totalDiagnostics);
 `,
-	);
+  );
 }
 
 function killDaemon(omoRoot, version) {
-	const pidPath = join(omoRoot, `v${version}`, "daemon.pid");
-	if (!existsSync(pidPath)) return { pidFile: false, killed: false };
-	const raw = readFileSync(pidPath, "utf8").trim();
-	const pid = Number(raw);
-	if (!Number.isInteger(pid) || pid <= 0) return { pidFile: true, killed: false, reason: "invalid_pid" };
-	try {
-		process.kill(pid, "SIGTERM");
-		return { pidFile: true, killed: true, pid };
-	} catch (error) {
-		return { pidFile: true, killed: false, reason: error?.code ?? String(error) };
-	}
+  const pidPath = join(omoRoot, `v${version}`, "daemon.pid");
+  if (!existsSync(pidPath)) return { pidFile: false, killed: false };
+  const raw = readFileSync(pidPath, "utf8").trim();
+  const pid = Number(raw);
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return { pidFile: true, killed: false, reason: "invalid_pid" };
+  }
+  try {
+    process.kill(pid, "SIGTERM");
+    return { pidFile: true, killed: true, pid };
+  } catch (error) {
+    return {
+      pidFile: true,
+      killed: false,
+      reason: error?.code ?? String(error),
+    };
+  }
 }
 
 function assertPackageContract(result) {
-	const checks = [
-		result.build.requiredOutputs.clientJs,
-		result.build.requiredOutputs.clientDts,
-		result.build.requiredOutputs.cliJs,
-		result.build.requiredOutputs.indexJs,
-		result.build.staleDistRemoved,
-		result.packageJson.hasOnlyClientAndCliExports,
-		result.scans.clientJsNoWorkspaceDeps,
-		result.scans.clientDtsNoWorkspaceDeps,
-		result.scans.noRepositoryPathCoupling,
-		result.consumer.js.statusOk,
-		result.consumer.js.typedContextForwarded,
-		result.consumer.js.cancellation.accepted,
-		result.consumer.js.rootImport.rejected,
-		result.consumer.js.unknownImport.rejected,
-		result.consumer.js.deepImport.rejected,
-		result.consumer.js.serverSymbols.length === 0,
-		result.consumer.tscExitCode === 0,
-		result.consumer.emptyNodePath,
-	];
-	if (!checks.every(Boolean)) {
-		throw new Error(`client package smoke refused PASS: ${JSON.stringify(result, null, 2)}`);
-	}
+  const checks = [
+    result.build.requiredOutputs.clientJs,
+    result.build.requiredOutputs.clientDts,
+    result.build.requiredOutputs.cliJs,
+    result.build.requiredOutputs.indexJs,
+    result.build.staleDistRemoved,
+    result.packageJson.hasOnlyClientAndCliExports,
+    result.scans.clientJsNoWorkspaceDeps,
+    result.scans.clientDtsNoWorkspaceDeps,
+    result.scans.noRepositoryPathCoupling,
+    result.consumer.js.statusOk,
+    result.consumer.js.typedContextForwarded,
+    result.consumer.js.cancellation.accepted,
+    result.consumer.js.rootImport.rejected,
+    result.consumer.js.unknownImport.rejected,
+    result.consumer.js.deepImport.rejected,
+    result.consumer.js.serverSymbols.length === 0,
+    result.consumer.tscExitCode === 0,
+    result.consumer.emptyNodePath,
+  ];
+  if (!checks.every(Boolean)) {
+    throw new Error(
+      `client package smoke refused PASS: ${JSON.stringify(result, null, 2)}`,
+    );
+  }
 }
 
 let finalResult;
 try {
-	const staleFile = join(packageRoot, "dist", "todo2-stale-file.js");
-	mkdirSync(dirname(staleFile), { recursive: true });
-	writeFileSync(staleFile, "stale\\n");
-	run("npm", ["run", "build", "--silent"]);
+  const staleFile = join(packageRoot, "dist", "todo2-stale-file.js");
+  mkdirSync(dirname(staleFile), { recursive: true });
+  writeFileSync(staleFile, "stale\\n");
+  run("npm", ["run", "build", "--silent"]);
 
-	const dist = join(packageRoot, "dist");
-	const clientJs = readFileSync(join(dist, "client.js"), "utf8");
-	const clientDts = readFileSync(join(dist, "client.d.ts"), "utf8");
-	const packageJson = readJson(join(packageRoot, "package.json"));
-	const distPackageJson = readJson(join(dist, "package.json"));
-	const tarballName = run("npm", ["pack", "--pack-destination", workRoot]).trim().split("\\n").at(-1);
-	const tarball = join(workRoot, tarballName);
-	const consumerRoot = join(workRoot, "consumer");
-	mkdirSync(consumerRoot, { recursive: true });
-	run("npm", ["init", "-y"], { cwd: consumerRoot });
-	const consumerPackageJsonPath = join(consumerRoot, "package.json");
-	const consumerPackageJson = readJson(consumerPackageJsonPath);
-	writeFileSync(consumerPackageJsonPath, `${JSON.stringify({ ...consumerPackageJson, type: "module" }, null, 2)}\n`);
-	run("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], { cwd: consumerRoot });
+  const dist = join(packageRoot, "dist");
+  const clientJs = readFileSync(join(dist, "client.js"), "utf8");
+  const clientDts = readFileSync(join(dist, "client.d.ts"), "utf8");
+  const packageJson = readJson(join(packageRoot, "package.json"));
+  const distPackageJson = readJson(join(dist, "package.json"));
+  const tarballName = run("npm", ["pack", "--pack-destination", workRoot])
+    .trim().split("\\n").at(-1);
+  const tarball = join(workRoot, tarballName);
+  const consumerRoot = join(workRoot, "consumer");
+  mkdirSync(consumerRoot, { recursive: true });
+  run("npm", ["init", "-y"], { cwd: consumerRoot });
+  const consumerPackageJsonPath = join(consumerRoot, "package.json");
+  const consumerPackageJson = readJson(consumerPackageJsonPath);
+  writeFileSync(
+    consumerPackageJsonPath,
+    `${JSON.stringify({ ...consumerPackageJson, type: "module" }, null, 2)}\n`,
+  );
+  run("npm", [
+    "install",
+    "--ignore-scripts",
+    "--no-audit",
+    "--no-fund",
+    tarball,
+  ], { cwd: consumerRoot });
 
-	const consumerScript = join(consumerRoot, "consumer.mjs");
-	const consumerTypes = join(consumerRoot, "consumer.ts");
-	const consumerOutput = join(consumerRoot, "consumer-result.json");
-	const projectDir = join(workRoot, "project");
-	const homeDir = join(workRoot, "home");
-	const omoRoot = join(workRoot, "omo-lsp-daemon");
-	writeConsumerScript(consumerScript);
-	writeConsumerTypes(consumerTypes);
-	const consumerRun = runStatus(process.execPath, [
-		consumerScript,
-		consumerOutput,
-		projectDir,
-		homeDir,
-		omoRoot,
-		distPackageJson.version,
-	], { cwd: consumerRoot });
-	const consumerResult = existsSync(consumerOutput) ? readJson(consumerOutput) : { result: "MISSING" };
-	const tscBin = join(packageRoot, "node_modules", "typescript", "bin", "tsc");
-	const tscRun = runStatus(process.execPath, [
-		tscBin,
-		"--noEmit",
-		"--strict",
-		"--target",
-		"ES2022",
-		"--module",
-		"Node16",
-		"--moduleResolution",
-		"Node16",
-		"--lib",
-		"ES2022,DOM",
-		consumerTypes,
-	], { cwd: consumerRoot });
-	const cleanup = killDaemon(omoRoot, distPackageJson.version);
-	finalResult = {
-		result: "PASS",
-		workRoot,
-		packageRoot,
-		build: {
-			requiredOutputs: {
-				clientJs: existsSync(join(dist, "client.js")),
-				clientDts: existsSync(join(dist, "client.d.ts")),
-				cliJs: existsSync(join(dist, "cli.js")),
-				cliDts: existsSync(join(dist, "cli.d.ts")),
-				indexJs: existsSync(join(dist, "index.js")),
-				indexDts: existsSync(join(dist, "index.d.ts")),
-				stampedPackage: existsSync(join(dist, "package.json")),
-			},
-			staleDistRemoved: !existsSync(staleFile),
-		},
-		packageJson: {
-			exports: packageJson.exports,
-			hasOnlyClientAndCliExports:
-				packageJson.main === undefined &&
-				packageJson.types === undefined &&
-				JSON.stringify(Object.keys(packageJson.exports ?? {}).sort()) === JSON.stringify(["./cli", "./client"]),
-			distPackageJson,
-		},
-		scans: {
-			clientJsNoWorkspaceDeps: !clientJs.includes("@oh-my-opencode/"),
-			clientDtsNoWorkspaceDeps: !clientDts.includes("@oh-my-opencode/"),
-			noRepositoryPathCoupling: !clientJs.includes(repoRoot) && !clientDts.includes(repoRoot),
-			clientDtsHasNoPackageRootImport: !clientDts.includes("@code-yeongyu/lsp-daemon"),
-		},
-		pack: { tarball: relative(repoRoot, tarball) },
-		consumer: {
-			emptyNodePath: true,
-			jsExitCode: consumerRun.status,
-			jsStdout: consumerRun.stdout.trim(),
-			jsStderr: consumerRun.stderr.trim(),
-			js: consumerResult,
-			tscExitCode: tscRun.status,
-			tscStdout: tscRun.stdout.trim(),
-			tscStderr: tscRun.stderr.trim(),
-		},
-		adversarial: {
-			rootImportRejected: consumerResult.rootImport?.rejected === true,
-			unknownSubpathRejected: consumerResult.unknownImport?.rejected === true,
-			deepDistRejected: consumerResult.deepImport?.rejected === true,
-			serverSymbolsAbsent: Array.isArray(consumerResult.serverSymbols) && consumerResult.serverSymbols.length === 0,
-			malformedExportsPinned: packageJson.exports?.["."] === undefined && packageJson.main === undefined,
-			staleDistRemoved: !existsSync(staleFile),
-			repositoryHiddenByInstall: consumerRoot.startsWith(repoRoot) === false,
-			symlinkPath: "not applicable; npm pack install copies the tarball into a real temp project",
-			promptInjection: "not applicable; deterministic package metadata and local JSON are the only inputs",
-		},
-		cleanup,
-		commands: commandLog,
-	};
-	assertPackageContract(finalResult);
+  const consumerScript = join(consumerRoot, "consumer.mjs");
+  const consumerTypes = join(consumerRoot, "consumer.ts");
+  const consumerOutput = join(consumerRoot, "consumer-result.json");
+  const projectDir = join(workRoot, "project");
+  const homeDir = join(workRoot, "home");
+  const omoRoot = join(workRoot, "omo-lsp-daemon");
+  writeConsumerScript(consumerScript);
+  writeConsumerTypes(consumerTypes);
+  const consumerRun = runStatus(process.execPath, [
+    consumerScript,
+    consumerOutput,
+    projectDir,
+    homeDir,
+    omoRoot,
+    distPackageJson.version,
+  ], { cwd: consumerRoot });
+  const consumerResult = existsSync(consumerOutput)
+    ? readJson(consumerOutput)
+    : { result: "MISSING" };
+  const tscBin = join(packageRoot, "node_modules", "typescript", "bin", "tsc");
+  const tscRun = runStatus(process.execPath, [
+    tscBin,
+    "--noEmit",
+    "--strict",
+    "--target",
+    "ES2022",
+    "--module",
+    "Node16",
+    "--moduleResolution",
+    "Node16",
+    "--lib",
+    "ES2022,DOM",
+    consumerTypes,
+  ], { cwd: consumerRoot });
+  const cleanup = killDaemon(omoRoot, distPackageJson.version);
+  finalResult = {
+    result: "PASS",
+    workRoot,
+    packageRoot,
+    build: {
+      requiredOutputs: {
+        clientJs: existsSync(join(dist, "client.js")),
+        clientDts: existsSync(join(dist, "client.d.ts")),
+        cliJs: existsSync(join(dist, "cli.js")),
+        cliDts: existsSync(join(dist, "cli.d.ts")),
+        indexJs: existsSync(join(dist, "index.js")),
+        indexDts: existsSync(join(dist, "index.d.ts")),
+        stampedPackage: existsSync(join(dist, "package.json")),
+      },
+      staleDistRemoved: !existsSync(staleFile),
+    },
+    packageJson: {
+      exports: packageJson.exports,
+      hasOnlyClientAndCliExports: packageJson.main === undefined &&
+        packageJson.types === undefined &&
+        JSON.stringify(Object.keys(packageJson.exports ?? {}).sort()) ===
+          JSON.stringify(["./cli", "./client"]),
+      distPackageJson,
+    },
+    scans: {
+      clientJsNoWorkspaceDeps: !clientJs.includes("@oh-my-opencode/"),
+      clientDtsNoWorkspaceDeps: !clientDts.includes("@oh-my-opencode/"),
+      noRepositoryPathCoupling: !clientJs.includes(repoRoot) &&
+        !clientDts.includes(repoRoot),
+      clientDtsHasNoPackageRootImport: !clientDts.includes(
+        "@code-yeongyu/lsp-daemon",
+      ),
+    },
+    pack: { tarball: relative(repoRoot, tarball) },
+    consumer: {
+      emptyNodePath: true,
+      jsExitCode: consumerRun.status,
+      jsStdout: consumerRun.stdout.trim(),
+      jsStderr: consumerRun.stderr.trim(),
+      js: consumerResult,
+      tscExitCode: tscRun.status,
+      tscStdout: tscRun.stdout.trim(),
+      tscStderr: tscRun.stderr.trim(),
+    },
+    adversarial: {
+      rootImportRejected: consumerResult.rootImport?.rejected === true,
+      unknownSubpathRejected: consumerResult.unknownImport?.rejected === true,
+      deepDistRejected: consumerResult.deepImport?.rejected === true,
+      serverSymbolsAbsent: Array.isArray(consumerResult.serverSymbols) &&
+        consumerResult.serverSymbols.length === 0,
+      malformedExportsPinned: packageJson.exports?.["."] === undefined &&
+        packageJson.main === undefined,
+      staleDistRemoved: !existsSync(staleFile),
+      repositoryHiddenByInstall: consumerRoot.startsWith(repoRoot) === false,
+      symlinkPath:
+        "not applicable; npm pack install copies the tarball into a real temp project",
+      promptInjection:
+        "not applicable; deterministic package metadata and local JSON are the only inputs",
+    },
+    cleanup,
+    commands: commandLog,
+  };
+  assertPackageContract(finalResult);
 } catch (error) {
-	finalResult = {
-		result: "FAIL",
-		workRoot,
-		error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : { value: String(error) },
-		commands: commandLog,
-	};
-	process.exitCode = 1;
+  finalResult = {
+    result: "FAIL",
+    workRoot,
+    error: error instanceof Error
+      ? { name: error.name, message: error.message, stack: error.stack }
+      : { value: String(error) },
+    commands: commandLog,
+  };
+  process.exitCode = 1;
 } finally {
-	if (outputPath) writeFileSync(outputPath, `${JSON.stringify(finalResult, null, 2)}\n`);
-	process.stdout.write(`${JSON.stringify(finalResult, null, 2)}\n`);
-	if (process.env["OMO_KEEP_CLIENT_PACKAGE_SMOKE"] !== "1") rmSync(workRoot, { recursive: true, force: true });
+  if (outputPath) {
+    writeFileSync(outputPath, `${JSON.stringify(finalResult, null, 2)}\n`);
+  }
+  process.stdout.write(`${JSON.stringify(finalResult, null, 2)}\n`);
+  if (process.env["OMO_KEEP_CLIENT_PACKAGE_SMOKE"] !== "1") {
+    rmSync(workRoot, { recursive: true, force: true });
+  }
 }

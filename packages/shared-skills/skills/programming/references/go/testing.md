@@ -1,23 +1,27 @@
 # Testing
 
-TDD shape, table-driven tests, `require` vs `assert`, snapshot tests, property-based tests, integration tests with testcontainers, goroutine-leak detection. The discipline in `programming/SKILL.md` (Given/When/Then, less mock the better, efficient AND accurate) — this document gives the Go-specific recipes.
+TDD shape, table-driven tests, `require` vs `assert`, snapshot tests,
+property-based tests, integration tests with testcontainers, goroutine-leak
+detection. The discipline in `programming/SKILL.md` (Given/When/Then, less mock
+the better, efficient AND accurate) — this document gives the Go-specific
+recipes.
 
 ---
 
 ## Tools
 
-| Need | Use |
-|---|---|
-| Assertions | `stretchr/testify/require` (and `assert` only inside table loops) |
-| Mocks | `go.uber.org/mock` (gomock successor) |
-| Goroutine leaks | `go.uber.org/goleak` |
-| Snapshots / golden | `hexops/autogold/v2` |
-| Property-based | `pgregory.net/rapid` |
-| HTTP mocks (outbound) | `h2non/gock` |
-| HTTP test server (inbound) | stdlib `net/http/httptest` |
-| Integration containers | `testcontainers/testcontainers-go` |
-| TUI | `charm.land/bubbletea/v2/teatest` |
-| Bench tooling | stdlib `testing.B` + `perf.dev/benchstat` |
+| Need                       | Use                                                               |
+| -------------------------- | ----------------------------------------------------------------- |
+| Assertions                 | `stretchr/testify/require` (and `assert` only inside table loops) |
+| Mocks                      | `go.uber.org/mock` (gomock successor)                             |
+| Goroutine leaks            | `go.uber.org/goleak`                                              |
+| Snapshots / golden         | `hexops/autogold/v2`                                              |
+| Property-based             | `pgregory.net/rapid`                                              |
+| HTTP mocks (outbound)      | `h2non/gock`                                                      |
+| HTTP test server (inbound) | stdlib `net/http/httptest`                                        |
+| Integration containers     | `testcontainers/testcontainers-go`                                |
+| TUI                        | `charm.land/bubbletea/v2/teatest`                                 |
+| Bench tooling              | stdlib `testing.B` + `perf.dev/benchstat`                         |
 
 ---
 
@@ -35,7 +39,8 @@ func Test_UserService_Create_persists_user_when_inputs_valid(t *testing.T)
 func Test_UserService_Create_returns_validation_error_when_email_invalid(t *testing.T)
 ```
 
-A test name should answer "what behavior is this asserting?" without reading the body. Names that need a comment to explain them are misnamed.
+A test name should answer "what behavior is this asserting?" without reading the
+body. Names that need a comment to explain them are misnamed.
 
 ---
 
@@ -55,7 +60,9 @@ func Test_Email_NewEmail_rejects_input_without_at_sign(t *testing.T) {
 }
 ```
 
-`require.*` fails the test immediately on miss. Use `require` for preconditions and primary assertions. Use `assert.*` only inside table-driven loops where you want all cases to report.
+`require.*` fails the test immediately on miss. Use `require` for preconditions
+and primary assertions. Use `assert.*` only inside table-driven loops where you
+want all cases to report.
 
 ---
 
@@ -95,9 +102,11 @@ func Test_Email_NewEmail(t *testing.T) {
 Rules:
 
 - One **scenario** per row, not one **assertion** per row.
-- Subtest names are sentences in lowercase; `t.Run(tt.name, ...)` makes them filterable: `go test -run Test_Email_NewEmail/rejects_missing_@`.
+- Subtest names are sentences in lowercase; `t.Run(tt.name, ...)` makes them
+  filterable: `go test -run Test_Email_NewEmail/rejects_missing_@`.
 - The loop body itself is Given/When/Then in shape.
-- For Go 1.22+, the loop var capture works correctly without the `tt := tt` shadow line — the `copyloopvar` linter enforces the new style.
+- For Go 1.22+, the loop var capture works correctly without the `tt := tt`
+  shadow line — the `copyloopvar` linter enforces the new style.
 
 ---
 
@@ -105,10 +114,13 @@ Rules:
 
 In Go specifically:
 
-1. **Real implementation.** Domain types, pure functions, value objects — instantiate them. They are fast.
-2. **In-memory fake** that satisfies the interface. Has its own test suite proving behavioral parity with the real impl.
+1. **Real implementation.** Domain types, pure functions, value objects —
+   instantiate them. They are fast.
+2. **In-memory fake** that satisfies the interface. Has its own test suite
+   proving behavioral parity with the real impl.
 3. **`httptest.Server`** for HTTP collaborators (real wire, no internet).
-4. **`testcontainers`** for stateful collaborators (Postgres, Redis, S3-compatible, Kafka).
+4. **`testcontainers`** for stateful collaborators (Postgres, Redis,
+   S3-compatible, Kafka).
 5. **gomock** ONLY for: clocks, randomness, third-party SaaS with no sandbox.
 
 ### Example: an in-memory fake
@@ -144,9 +156,13 @@ func (r *FakeUserRepo) Get(ctx context.Context, id domain.UserID) (domain.User, 
 }
 ```
 
-The fake has the same observable behavior as the real one. Tests against `FakeUserRepo` survive when the production repo's internals change. Tests against a gomock stub of `UserRepo` break.
+The fake has the same observable behavior as the real one. Tests against
+`FakeUserRepo` survive when the production repo's internals change. Tests
+against a gomock stub of `UserRepo` break.
 
-**A test passing against a fake AND a test passing against the real impl is the gold standard.** Run the same test suite twice — once with the fake, once with testcontainers. The fakes earn their keep when the suites diverge.
+**A test passing against a fake AND a test passing against the real impl is the
+gold standard.** Run the same test suite twice — once with the fake, once with
+testcontainers. The fakes earn their keep when the suites diverge.
 
 ### Example: gomock for the unmockable
 
@@ -214,10 +230,14 @@ func Test_E2E_user_can_signup_then_login(t *testing.T) {
 
 Patterns:
 
-- `//go:build e2e` build tag separates slow E2E from fast unit tests. Run with `go test -tags=e2e ./...`.
-- One narrative per test: "user can sign up then log in". One `Test_E2E_*` per user-visible outcome.
-- Real DB via testcontainers, real gin engine, real HTTP. **No mocks.** The point is to catch integration bugs.
-- Bounded context — every E2E gets a `context.WithTimeout` so failures don't hang CI.
+- `//go:build e2e` build tag separates slow E2E from fast unit tests. Run with
+  `go test -tags=e2e ./...`.
+- One narrative per test: "user can sign up then log in". One `Test_E2E_*` per
+  user-visible outcome.
+- Real DB via testcontainers, real gin engine, real HTTP. **No mocks.** The
+  point is to catch integration bugs.
+- Bounded context — every E2E gets a `context.WithTimeout` so failures don't
+  hang CI.
 
 ---
 
@@ -238,7 +258,8 @@ func TestMain(m *testing.M) {
 }
 ```
 
-One line at the top of every package that spawns goroutines. Catches the bug class the race detector cannot.
+One line at the top of every package that spawns goroutines. Catches the bug
+class the race detector cannot.
 
 ---
 
@@ -259,16 +280,20 @@ func Test_RenderHelp_matches_snapshot(t *testing.T) {
 }
 ```
 
-First run: `go test -update ./...` writes `testdata/Test_RenderHelp.golden`. Future runs compare; failures show a diff. Re-approve intentional changes with `-update`.
+First run: `go test -update ./...` writes `testdata/Test_RenderHelp.golden`.
+Future runs compare; failures show a diff. Re-approve intentional changes with
+`-update`.
 
 **Use snapshots for STRUCTURE, not BEHAVIOR.** Good targets:
 
 - CLI `--help` output
 - JSON response shape
 - Generated SQL queries
-- Rendered prompts (assert the structure, not exact wording — see SKILL.md prompt-test rule)
+- Rendered prompts (assert the structure, not exact wording — see SKILL.md
+  prompt-test rule)
 
-Bad targets: a function's return value where you should `require.Equal` on the actual structure.
+Bad targets: a function's return value where you should `require.Equal` on the
+actual structure.
 
 ---
 
@@ -299,8 +324,10 @@ func Test_Email_NewEmail_then_String_roundtrips(t *testing.T) {
 `rapid` shrinks failing cases to minimal counterexamples. Use for:
 
 - Round-trips (parse → serialize → parse).
-- Algebraic properties (sort produces ordered, dedup is idempotent, JSON marshal/unmarshal is involutive).
-- Invariants under random input (validator never panics, serializer never produces invalid UTF-8).
+- Algebraic properties (sort produces ordered, dedup is idempotent, JSON
+  marshal/unmarshal is involutive).
+- Invariants under random input (validator never panics, serializer never
+  produces invalid UTF-8).
 
 ---
 
@@ -358,7 +385,9 @@ func Test_Client_retries_on_500(t *testing.T) {
 }
 ```
 
-`httptest.NewServer` spins a real HTTP server on a random port. The fake handler implements the upstream contract. Test the client against the contract, not the implementation.
+`httptest.NewServer` spins a real HTTP server on a random port. The fake handler
+implements the upstream contract. Test the client against the contract, not the
+implementation.
 
 ---
 
@@ -367,10 +396,13 @@ func Test_Client_retries_on_500(t *testing.T) {
 - **No `time.Sleep` in tests.** If you need delay, you need a Clock injection.
 - **`go test -shuffle=on`** in every CI run.
 - **`go test -count=1`** to defeat the cache.
-- **Subscribe to the event, do not poll for it.** Channels, callbacks, `t.Cleanup` over polling.
-- **`t.Parallel()`** for tests that share no state. Speeds up large suites by 4-8x.
+- **Subscribe to the event, do not poll for it.** Channels, callbacks,
+  `t.Cleanup` over polling.
+- **`t.Parallel()`** for tests that share no state. Speeds up large suites by
+  4-8x.
 
-A test that fails 1-in-10 runs is a bug, not flake. The race detector + `-shuffle=on` + ordering hygiene catches >95% of "flake".
+A test that fails 1-in-10 runs is a bug, not flake. The race detector +
+`-shuffle=on` + ordering hygiene catches >95% of "flake".
 
 ---
 
@@ -391,7 +423,9 @@ go test -bench=. -count=10 -benchmem ./... | tee bench.txt
 benchstat bench.txt   # statistical comparison
 ```
 
-Always `-count=10` for stable means. `-benchmem` reports allocations. A 5%-slower benchmark in one run is noise; 10 runs + benchstat tells you what is real.
+Always `-count=10` for stable means. `-benchmem` reports allocations. A
+5%-slower benchmark in one run is noise; 10 runs + benchstat tells you what is
+real.
 
 To compare before/after a change:
 
@@ -414,9 +448,13 @@ go test -race -shuffle=on -coverprofile=cover.out ./...
 go tool cover -html=cover.out -o cover.html
 ```
 
-**Aim for 80%+ on `internal/domain` and `internal/service`.** Boundary code (handlers, store mappers) is exercised by integration tests, where line coverage understates what is actually verified. Do not chase 100% — the last 5% is usually error paths that need fault-injection to hit.
+**Aim for 80%+ on `internal/domain` and `internal/service`.** Boundary code
+(handlers, store mappers) is exercised by integration tests, where line coverage
+understates what is actually verified. Do not chase 100% — the last 5% is
+usually error paths that need fault-injection to hit.
 
-The `golangci-lint` config does not enforce a minimum — coverage as a CI gate becomes a goal-displacement metric. Treat it as feedback, not requirement.
+The `golangci-lint` config does not enforce a minimum — coverage as a CI gate
+becomes a goal-displacement metric. Treat it as feedback, not requirement.
 
 ---
 
@@ -444,15 +482,15 @@ For full-view regression, snapshot the rendered output via `autogold`.
 
 ## Antipatterns the skill rejects
 
-| Bad | Why | Good |
-|---|---|---|
-| `if got != want { t.Errorf("expected %v got %v", want, got) }` | Reinvents `require.Equal` | Use testify |
-| `time.Sleep(100 * time.Millisecond)` after triggering async work | Flake | Subscribe to completion signal, bounded await |
-| `t.Skip(...)` to silence a known failure | Buries the bug | Fix or open an issue; never silently skip |
-| One mega-test asserting 12 things | First failure hides next 11 | Split by `Then` |
-| Snapshot-everything | Locks formatting, not behavior | Snapshots for structure, asserts for values |
-| Mock every collaborator | Test asserts implementation, not behavior | Real or fake, never mock everything |
-| Test calls private function via `_test.go` in same package only | Couples test to implementation | Test through the public surface |
+| Bad                                                              | Why                                       | Good                                          |
+| ---------------------------------------------------------------- | ----------------------------------------- | --------------------------------------------- |
+| `if got != want { t.Errorf("expected %v got %v", want, got) }`   | Reinvents `require.Equal`                 | Use testify                                   |
+| `time.Sleep(100 * time.Millisecond)` after triggering async work | Flake                                     | Subscribe to completion signal, bounded await |
+| `t.Skip(...)` to silence a known failure                         | Buries the bug                            | Fix or open an issue; never silently skip     |
+| One mega-test asserting 12 things                                | First failure hides next 11               | Split by `Then`                               |
+| Snapshot-everything                                              | Locks formatting, not behavior            | Snapshots for structure, asserts for values   |
+| Mock every collaborator                                          | Test asserts implementation, not behavior | Real or fake, never mock everything           |
+| Test calls private function via `_test.go` in same package only  | Couples test to implementation            | Test through the public surface               |
 
 ---
 
@@ -464,4 +502,5 @@ For full-view regression, snapshot the rendered output via `autogold`.
 - rapid: https://pkg.go.dev/pgregory.net/rapid
 - testcontainers-go: https://golang.testcontainers.org
 - benchstat: https://pkg.go.dev/golang.org/x/perf/cmd/benchstat
-- "Go test naming conventions" (Dave Cheney): https://dave.cheney.net/practical-go/presentations/qcon-china.html
+- "Go test naming conventions" (Dave Cheney):
+  https://dave.cheney.net/practical-go/presentations/qcon-china.html

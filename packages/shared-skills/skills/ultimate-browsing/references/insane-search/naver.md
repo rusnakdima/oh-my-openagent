@@ -1,6 +1,7 @@
 # 네이버 계열 접근 전략
 
-> 네이버 서비스별로 접근 방법이 다르다. 블로그는 모바일 URL, 뉴스/증권은 Jina Reader.
+> 네이버 서비스별로 접근 방법이 다르다. 블로그는 모바일 URL, 뉴스/증권은 Jina
+> Reader.
 
 ## 네이버 블로그
 
@@ -16,6 +17,7 @@ curl -sL \
 ```
 
 RSS도 가능 (최신 50개, 본문 약 300자):
+
 ```bash
 curl -sL "https://rss.blog.naver.com/{BLOG_ID}.xml"
 ```
@@ -56,7 +58,8 @@ curl -sL "https://api.finance.naver.com/siseJson.naver?symbol=005930&requestType
 
 ## 네이버 검색 (신원위장으로 직접 접근)
 
-curl_cffi + 세션 쿠키 워밍으로 네이버 검색 결과를 직접 크롤링할 수 있다. API 키 불필요.
+curl_cffi + 세션 쿠키 워밍으로 네이버 검색 결과를 직접 크롤링할 수 있다. API 키
+불필요.
 
 ```python
 from curl_cffi import requests
@@ -82,21 +85,22 @@ r = s.get(f"https://search.naver.com/search.naver?where=news&query={quote('검�
 
 ### 추출 가능한 데이터
 
-| 탭 | URL 패턴 | 추출 |
-|---|---|---|
-| 통합 | `search.naver?query=` | 블로그 URL, 외부 링크, 뉴스 |
-| 블로그 | `where=post&query=` | blog.naver.com URL, 제목, 스니펫 |
-| 뉴스 | `where=news&query=` | n.news.naver.com URL, 제목 |
+| 탭     | URL 패턴              | 추출                             |
+| ------ | --------------------- | -------------------------------- |
+| 통합   | `search.naver?query=` | 블로그 URL, 외부 링크, 뉴스      |
+| 블로그 | `where=post&query=`   | blog.naver.com URL, 제목, 스니펫 |
+| 뉴스   | `where=news&query=`   | n.news.naver.com URL, 제목       |
 
 ### 한국어 키워드 검색의 핵심 경로
 
-웹 검색 도구는 한국어 신규 콘텐츠 인덱싱이 지연되지만, 네이버 검색은 한국어에 최적화되어 있다.
-**한국 사이트 키워드 검색 → 네이버 검색 직접 접근이 가장 정확하고 빠르다.**
+웹 검색 도구는 한국어 신규 콘텐츠 인덱싱이 지연되지만, 네이버 검색은 한국어에
+최적화되어 있다. **한국 사이트 키워드 검색 → 네이버 검색 직접 접근이 가장
+정확하고 빠르다.**
 
 ## 네이버 카페
 
-로그인 + iframe 이중 장벽. 본문 직접 접근 불가.
-fallback 체인에서 Phase 1~3을 시도하되, login/paywall 감지 시 "인증 필요"로 종료.
+로그인 + iframe 이중 장벽. 본문 직접 접근 불가. fallback 체인에서 Phase 1~3을
+시도하되, login/paywall 감지 시 "인증 필요"로 종료.
 
 ## 네이버 TV
 

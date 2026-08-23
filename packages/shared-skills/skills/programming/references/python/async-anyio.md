@@ -7,7 +7,8 @@
 
 ## 1. Task Groups (The Core Primitive)
 
-AnyIO uses **structured concurrency** via task groups. A task group is an async context manager that guarantees all child tasks finish before the block exits.
+AnyIO uses **structured concurrency** via task groups. A task group is an async
+context manager that guarantees all child tasks finish before the block exits.
 
 ### `start_soon` — fire-and-forget
 
@@ -28,13 +29,15 @@ anyio.run(main)
 ```
 
 **Signature**: `tg.start_soon(func, *args, name=None)`
+
 - `func` must be a **coroutine function** (not a coroutine object).
 - `name` is optional, for introspection/debugging.
 - No return value; exceptions propagate as `ExceptionGroup` on exit.
 
 ### `start` — wait for ready signal
 
-Use when a task must initialize before the caller proceeds (e.g., starting a server and then connecting to it).
+Use when a task must initialize before the caller proceeds (e.g., starting a
+server and then connecting to it).
 
 ```python
 from anyio import TASK_STATUS_IGNORED, create_task_group, run
@@ -56,6 +59,7 @@ run(main)
 ```
 
 **Rule of thumb**:
+
 - Use `start_soon` when you don't need to know when the task is ready.
 - Use `start` when the task must signal readiness before you continue.
 
@@ -74,7 +78,9 @@ async def main() -> None:
 anyio.run(main)
 ```
 
-**Signature**: `tg.create_task(coro, *, name=None, context=None) -> TaskHandle[T]`
+**Signature**:
+`tg.create_task(coro, *, name=None, context=None) -> TaskHandle[T]`
+
 - Returns a `TaskHandle` you can `await` for the result.
 - If the task raises, awaiting raises `TaskFailed` (or `TaskCancelled`).
 - This is the canonical replacement for `asyncio.gather` when you need results.
@@ -83,33 +89,36 @@ anyio.run(main)
 
 ## 2. asyncio → anyio Cheat Sheet
 
-| asyncio | anyio | Notes |
-|---------|-------|-------|
-| `asyncio.gather(a, b, c)` | `tg.create_task(a); tg.create_task(b); tg.create_task(c); results = [await h for h in handles]` | No direct gather; structured concurrency requires explicit task group scope. For fire-and-forget, use `tg.start_soon`. |
-| `asyncio.create_task(coro)` | `tg.start_soon(func, *args)` or `tg.create_task(coro)` | `start_soon` takes a coroutine **function** + args. `create_task` takes a coroutine **object** and returns a handle. |
-| `asyncio.sleep(n)` | `anyio.sleep(n)` | Identical semantics. |
-| `asyncio.wait_for(coro, timeout)` | `with anyio.fail_after(timeout): await coro` | Raises `TimeoutError`. Use `move_on_after` for silent timeout. |
-| `asyncio.Event()` | `anyio.Event()` | AnyIO events are **not reusable**; create a new one instead of `.clear()`. |
-| `asyncio.Lock()` | `anyio.Lock()` | Use `async with lock:`. Pass `fast_acquire=True` if performance-critical. |
-| `asyncio.Semaphore(n)` | `anyio.Semaphore(n)` | Same. Pass `fast_acquire=True` if performance-critical. |
-| `asyncio.Condition()` | `anyio.Condition()` | Same semantics. |
-| `asyncio.run(main())` | `anyio.run(main)` | Backend-agnostic entry point. |
-| `asyncio.Queue(maxsize=N)` | `anyio.create_memory_object_stream[T](max_buffer_size=N)` | Returns `(send_stream, receive_stream)`. Supports `async for` on receive end. |
-| `asyncio.to_thread(fn, *args)` | `anyio.to_thread.run_sync(fn, *args)` | Supports `abandon_on_cancel=True` and custom `limiter`. |
-| `asyncio.run_coroutine_threadsafe(coro, loop)` | `anyio.from_thread.run(func, *args)` | Call async code from a worker thread. |
-| `loop.call_soon_threadsafe(callback)` | `anyio.from_thread.run_sync(func, *args)` | Call sync code in event loop thread from worker thread, **with return value**. |
-| `asyncio.shield(coro)` | `with anyio.CancelScope(shield=True): ...` | AnyIO shielding does not orphan tasks. |
-| `asyncio.timeout(delay)` | `with anyio.fail_after(delay): ...` | AnyIO uses level cancellation, not edge cancellation. |
-| `asyncio.CancelledError` | `anyio.get_cancelled_exc_class()` | Use this to catch cancellation portably across backends. |
+| asyncio                                        | anyio                                                                                           | Notes                                                                                                                  |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `asyncio.gather(a, b, c)`                      | `tg.create_task(a); tg.create_task(b); tg.create_task(c); results = [await h for h in handles]` | No direct gather; structured concurrency requires explicit task group scope. For fire-and-forget, use `tg.start_soon`. |
+| `asyncio.create_task(coro)`                    | `tg.start_soon(func, *args)` or `tg.create_task(coro)`                                          | `start_soon` takes a coroutine **function** + args. `create_task` takes a coroutine **object** and returns a handle.   |
+| `asyncio.sleep(n)`                             | `anyio.sleep(n)`                                                                                | Identical semantics.                                                                                                   |
+| `asyncio.wait_for(coro, timeout)`              | `with anyio.fail_after(timeout): await coro`                                                    | Raises `TimeoutError`. Use `move_on_after` for silent timeout.                                                         |
+| `asyncio.Event()`                              | `anyio.Event()`                                                                                 | AnyIO events are **not reusable**; create a new one instead of `.clear()`.                                             |
+| `asyncio.Lock()`                               | `anyio.Lock()`                                                                                  | Use `async with lock:`. Pass `fast_acquire=True` if performance-critical.                                              |
+| `asyncio.Semaphore(n)`                         | `anyio.Semaphore(n)`                                                                            | Same. Pass `fast_acquire=True` if performance-critical.                                                                |
+| `asyncio.Condition()`                          | `anyio.Condition()`                                                                             | Same semantics.                                                                                                        |
+| `asyncio.run(main())`                          | `anyio.run(main)`                                                                               | Backend-agnostic entry point.                                                                                          |
+| `asyncio.Queue(maxsize=N)`                     | `anyio.create_memory_object_stream[T](max_buffer_size=N)`                                       | Returns `(send_stream, receive_stream)`. Supports `async for` on receive end.                                          |
+| `asyncio.to_thread(fn, *args)`                 | `anyio.to_thread.run_sync(fn, *args)`                                                           | Supports `abandon_on_cancel=True` and custom `limiter`.                                                                |
+| `asyncio.run_coroutine_threadsafe(coro, loop)` | `anyio.from_thread.run(func, *args)`                                                            | Call async code from a worker thread.                                                                                  |
+| `loop.call_soon_threadsafe(callback)`          | `anyio.from_thread.run_sync(func, *args)`                                                       | Call sync code in event loop thread from worker thread, **with return value**.                                         |
+| `asyncio.shield(coro)`                         | `with anyio.CancelScope(shield=True): ...`                                                      | AnyIO shielding does not orphan tasks.                                                                                 |
+| `asyncio.timeout(delay)`                       | `with anyio.fail_after(delay): ...`                                                             | AnyIO uses level cancellation, not edge cancellation.                                                                  |
+| `asyncio.CancelledError`                       | `anyio.get_cancelled_exc_class()`                                                               | Use this to catch cancellation portably across backends.                                                               |
 
 ---
 
 ## 3. Cancellation & CancelScope
 
-AnyIO uses **level cancellation** (inspired by Trio), not asyncio's **edge cancellation**.
+AnyIO uses **level cancellation** (inspired by Trio), not asyncio's **edge
+cancellation**.
 
-- **Edge cancellation** (asyncio): A `CancelledError` is injected once. If caught and not re-raised, the task keeps running.
-- **Level cancellation** (anyio): As long as a task is inside an effectively cancelled scope, every yield point raises a new cancellation exception.
+- **Edge cancellation** (asyncio): A `CancelledError` is injected once. If
+  caught and not re-raised, the task keeps running.
+- **Level cancellation** (anyio): As long as a task is inside an effectively
+  cancelled scope, every yield point raises a new cancellation exception.
 
 ### Basic CancelScope
 
@@ -166,11 +175,14 @@ async def do_something(resource) -> None:
 
 ### Structured Concurrency Guarantee
 
-A task group contains its own `CancelScope`. If any child task raises an exception:
+A task group contains its own `CancelScope`. If any child task raises an
+exception:
+
 1. The task group's cancel scope is cancelled.
 2. All other child tasks receive cancellation.
 3. The task group waits for all children to finish.
-4. The original exception (wrapped in `ExceptionGroup` if multiple) is re-raised.
+4. The original exception (wrapped in `ExceptionGroup` if multiple) is
+   re-raised.
 
 ---
 
@@ -223,7 +235,8 @@ with move_on_after(10, shield=True):
 
 ## 5. Memory Object Streams (Queue Replacement)
 
-Replaces `asyncio.Queue` with a safer, typed, structured-concurrency-friendly construct.
+Replaces `asyncio.Queue` with a safer, typed, structured-concurrency-friendly
+construct.
 
 ```python
 from anyio import create_task_group, create_memory_object_stream, run
@@ -249,8 +262,11 @@ run(main)
 ```
 
 **Key differences from `asyncio.Queue`**:
-- **Bounded by default**: `max_buffer_size=0` means send blocks until a receiver is ready.
-- **Cloneable**: Each producer/consumer can close its own clone. The stream only ends when **all** clones of one end are closed.
+
+- **Bounded by default**: `max_buffer_size=0` means send blocks until a receiver
+  is ready.
+- **Cloneable**: Each producer/consumer can close its own clone. The stream only
+  ends when **all** clones of one end are closed.
 - **Async iterable**: `async for item in receive_stream:` works out of the box.
 - **Type-safe**: Generic `create_memory_object_stream[T]()`.
 - **Synchronous close**: Both `close()` and `async with` work.
@@ -259,7 +275,8 @@ run(main)
 
 ## 6. Backend Selection
 
-AnyIO is backend-agnostic. Code written against AnyIO APIs runs on both asyncio and Trio.
+AnyIO is backend-agnostic. Code written against AnyIO APIs runs on both asyncio
+and Trio.
 
 ```python
 import anyio
@@ -276,7 +293,9 @@ anyio.run(main, backend="trio")
 anyio.run(main, backend="asyncio", backend_options={"debug": True})
 ```
 
-**Library design rule**: Never hardcode a backend. Let the application choose via `anyio.run()`. Libraries should only import `anyio` and avoid backend-specific APIs.
+**Library design rule**: Never hardcode a backend. Let the application choose
+via `anyio.run()`. Libraries should only import `anyio` and avoid
+backend-specific APIs.
 
 ---
 
@@ -284,7 +303,9 @@ anyio.run(main, backend="asyncio", backend_options={"debug": True})
 
 ### Using asyncio libraries under the asyncio backend
 
-If a third-party library exposes only an asyncio interface (returns asyncio coroutine objects), it works directly under the asyncio backend because AnyIO runs on top of asyncio's event loop:
+If a third-party library exposes only an asyncio interface (returns asyncio
+coroutine objects), it works directly under the asyncio backend because AnyIO
+runs on top of asyncio's event loop:
 
 ```python
 import anyio
@@ -297,18 +318,19 @@ async def main() -> None:
 anyio.run(main, backend="asyncio")
 ```
 
-**Important**: This only works on the `asyncio` backend. On the `trio` backend, asyncio-native objects will not work.
+**Important**: This only works on the `asyncio` backend. On the `trio` backend,
+asyncio-native objects will not work.
 
 ### When you MUST use asyncio APIs
 
 Some APIs have no AnyIO equivalent and require direct event loop access:
 
-| Scenario | asyncio API | AnyIO approach |
-|----------|-------------|----------------|
-| Signal handlers | `loop.add_signal_handler()` | `anyio.open_signal_receiver()` |
-| Custom protocols | `asyncio.Protocol` | Use AnyIO streams / sockets |
-| Direct Future manipulation | `asyncio.Future` | Avoid; use AnyIO primitives |
-| Eager task factories | `asyncio.eager_task_factory` | Experimental in AnyIO; avoid |
+| Scenario                   | asyncio API                  | AnyIO approach                 |
+| -------------------------- | ---------------------------- | ------------------------------ |
+| Signal handlers            | `loop.add_signal_handler()`  | `anyio.open_signal_receiver()` |
+| Custom protocols           | `asyncio.Protocol`           | Use AnyIO streams / sockets    |
+| Direct Future manipulation | `asyncio.Future`             | Avoid; use AnyIO primitives    |
+| Eager task factories       | `asyncio.eager_task_factory` | Experimental in AnyIO; avoid   |
 
 If you absolutely need the running loop:
 
@@ -323,7 +345,8 @@ async def main() -> None:
 anyio.run(main, backend="asyncio")
 ```
 
-**Best practice**: Wrap asyncio-only code in a backend-agnostic facade, and document that the feature requires the asyncio backend.
+**Best practice**: Wrap asyncio-only code in a backend-agnostic facade, and
+document that the feature requires the asyncio backend.
 
 ---
 
@@ -434,9 +457,11 @@ anyio.run(main)
 - AnyIO Documentation (stable): https://anyio.readthedocs.io/en/stable/
 - AnyIO GitHub (HEAD `cb245dba`): https://github.com/agronholm/anyio
 - Task Groups: https://anyio.readthedocs.io/en/stable/tasks.html
-- Cancellation & Timeouts: https://anyio.readthedocs.io/en/stable/cancellation.html
+- Cancellation & Timeouts:
+  https://anyio.readthedocs.io/en/stable/cancellation.html
 - Streams: https://anyio.readthedocs.io/en/stable/streams.html
 - Synchronization: https://anyio.readthedocs.io/en/stable/synchronization.html
 - Threads: https://anyio.readthedocs.io/en/stable/threads.html
 - Basics / Backends: https://anyio.readthedocs.io/en/stable/basics.html
-- Design Rationale (why asyncio is problematic): https://anyio.readthedocs.io/en/stable/why.html
+- Design Rationale (why asyncio is problematic):
+  https://anyio.readthedocs.io/en/stable/why.html

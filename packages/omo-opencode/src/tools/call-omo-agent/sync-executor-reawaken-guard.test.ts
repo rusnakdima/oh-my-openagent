@@ -1,11 +1,11 @@
 /// <reference types="bun-types" />
 
-import { afterEach, describe, expect, mock, test } from "bun:test"
+import { afterEach, describe, expect, mock, test } from "bun:test";
 
-import { _resetForTesting } from "../../features/claude-code-session-state"
-import { handleSessionIdle } from "../../hooks/todo-continuation-enforcer/idle-event"
-import { createSessionStateStore } from "../../hooks/todo-continuation-enforcer/session-state"
-import { executeSync } from "./sync-executor"
+import { _resetForTesting } from "../../features/claude-code-session-state";
+import { handleSessionIdle } from "../../hooks/todo-continuation-enforcer/idle-event";
+import { createSessionStateStore } from "../../hooks/todo-continuation-enforcer/session-state";
+import { executeSync } from "./sync-executor";
 
 function createDependencies(sessionID: string, isNew: boolean) {
   return {
@@ -14,7 +14,7 @@ function createDependencies(sessionID: string, isNew: boolean) {
     processMessages: mock(async () => "agent response"),
     setSessionFallbackChain: mock(() => {}),
     clearSessionFallbackChain: mock(() => {}),
-  }
+  };
 }
 
 function createToolContext() {
@@ -24,11 +24,11 @@ function createToolContext() {
     agent: "sisyphus",
     abort: new AbortController().signal,
     metadata: mock(async () => {}),
-  }
+  };
 }
 
 function createExecuteContext(abortMock: ReturnType<typeof mock>) {
-  const promptAsync = mock(async () => ({ data: {} }))
+  const promptAsync = mock(async () => ({ data: {} }));
   return {
     client: {
       session: {
@@ -37,7 +37,7 @@ function createExecuteContext(abortMock: ReturnType<typeof mock>) {
         abort: abortMock,
       },
     },
-  }
+  };
 }
 
 function createEnforcerContext() {
@@ -47,8 +47,18 @@ function createEnforcerContext() {
       session: {
         messages: async () => ({
           data: [
-            { info: { role: "user", id: "m1", time: { created: 1 } }, parts: [{ type: "text", text: "implement feature" }] },
-            { info: { role: "assistant", id: "m2", time: { created: 2, completed: 3 } }, parts: [{ type: "text", text: "did part of the work" }] },
+            {
+              info: { role: "user", id: "m1", time: { created: 1 } },
+              parts: [{ type: "text", text: "implement feature" }],
+            },
+            {
+              info: {
+                role: "assistant",
+                id: "m2",
+                time: { created: 2, completed: 3 },
+              },
+              parts: [{ type: "text", text: "did part of the work" }],
+            },
           ],
         }),
         todo: async () => ({
@@ -60,20 +70,21 @@ function createEnforcerContext() {
       },
       tui: { showToast: mock(async () => ({})) },
     },
-  }
+  };
 }
 
 async function driveEnforcerIdle(sessionID: string): Promise<boolean> {
-  const store = createSessionStateStore()
+  const store = createSessionStateStore();
   await handleSessionIdle({
     ctx: createEnforcerContext() as never,
     sessionID,
     sessionStateStore: store,
     backgroundManager: { getTasksByParentSession: () => [] } as never,
-  })
-  const countdownArmed = store.getState(sessionID).countdownStartedAt !== undefined
-  store.cancelCountdown(sessionID)
-  return countdownArmed
+  });
+  const countdownArmed =
+    store.getState(sessionID).countdownStartedAt !== undefined;
+  store.cancelCountdown(sessionID);
+  return countdownArmed;
 }
 
 const args = {
@@ -81,49 +92,64 @@ const args = {
   description: "test task",
   prompt: "find something",
   run_in_background: false,
-}
+};
 
 describe("issue #5112 - completed sync subagent must not be re-awakened", () => {
   afterEach(() => {
-    _resetForTesting()
-  })
+    _resetForTesting();
+  });
 
   test("#given a created sync subagent that completed with incomplete todos #when its post-handoff session.idle fires #then todo-continuation does not re-awaken it", async () => {
     //#given
-    const childSessionID = "ses-sync-child-created"
-    const abortMock = mock(async () => ({ data: true }))
-    await executeSync(args, createToolContext(), createExecuteContext(abortMock) as never, createDependencies(childSessionID, true))
+    const childSessionID = "ses-sync-child-created";
+    const abortMock = mock(async () => ({ data: true }));
+    await executeSync(
+      args,
+      createToolContext(),
+      createExecuteContext(abortMock) as never,
+      createDependencies(childSessionID, true),
+    );
 
     //#when
-    const reawakened = await driveEnforcerIdle(childSessionID)
+    const reawakened = await driveEnforcerIdle(childSessionID);
 
     //#then
-    expect(reawakened).toBe(false)
-  })
+    expect(reawakened).toBe(false);
+  });
 
   test("#given a created sync subagent completed #when the handoff finishes #then the child session is aborted (PR #5113)", async () => {
     //#given
-    const childSessionID = "ses-sync-child-abort"
-    const abortMock = mock(async () => ({ data: true }))
+    const childSessionID = "ses-sync-child-abort";
+    const abortMock = mock(async () => ({ data: true }));
 
     //#when
-    await executeSync(args, createToolContext(), createExecuteContext(abortMock) as never, createDependencies(childSessionID, true))
+    await executeSync(
+      args,
+      createToolContext(),
+      createExecuteContext(abortMock) as never,
+      createDependencies(childSessionID, true),
+    );
 
     //#then
-    expect(abortMock).toHaveBeenCalledWith({ path: { id: childSessionID } })
-  })
+    expect(abortMock).toHaveBeenCalledWith({ path: { id: childSessionID } });
+  });
 
   test("#given the sync run reused an existing session (isNew=false) #when the run finishes #then it is neither aborted nor exempted from continuation", async () => {
     //#given
-    const childSessionID = "ses-sync-child-reused"
-    const abortMock = mock(async () => ({ data: true }))
-    await executeSync(args, createToolContext(), createExecuteContext(abortMock) as never, createDependencies(childSessionID, false))
+    const childSessionID = "ses-sync-child-reused";
+    const abortMock = mock(async () => ({ data: true }));
+    await executeSync(
+      args,
+      createToolContext(),
+      createExecuteContext(abortMock) as never,
+      createDependencies(childSessionID, false),
+    );
 
     //#when
-    const reawakened = await driveEnforcerIdle(childSessionID)
+    const reawakened = await driveEnforcerIdle(childSessionID);
 
     //#then
-    expect(abortMock).not.toHaveBeenCalled()
-    expect(reawakened).toBe(true)
-  })
-})
+    expect(abortMock).not.toHaveBeenCalled();
+    expect(reawakened).toBe(true);
+  });
+});

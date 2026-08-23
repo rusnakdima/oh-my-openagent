@@ -1,4 +1,4 @@
-import type { ToolDefinition } from "@code-yeongyu/senpi"
+import type { ToolDefinition } from "@code-yeongyu/senpi";
 
 // The shared-MCP-client mechanism: sharedParentTools are the parent extension's own
 // registered ToolDefinitions (same process, same execute closures, same client instances).
@@ -6,19 +6,22 @@ import type { ToolDefinition } from "@code-yeongyu/senpi"
 // or coordinate its own graph; memberScopedTools (merged afterwards) are the ONLY sanctioned bypass.
 
 export type SharedToolFilterOptions = {
-  readonly uiOnlyToolNames?: Iterable<string>
-}
+  readonly uiOnlyToolNames?: Iterable<string>;
+};
 
 export function isTaskOrTeamFamilyTool(name: string): boolean {
-  return name === "dag" || name === "task" || name.startsWith("task_") || name.startsWith("team_")
+  return name === "dag" || name === "task" || name.startsWith("task_") ||
+    name.startsWith("team_");
 }
 
 export function filterSharedParentTools(
   tools: readonly ToolDefinition[],
   options: SharedToolFilterOptions = {},
 ): ToolDefinition[] {
-  const uiOnly = new Set(options.uiOnlyToolNames ?? [])
-  return tools.filter((tool) => !isTaskOrTeamFamilyTool(tool.name) && !uiOnly.has(tool.name))
+  const uiOnly = new Set(options.uiOnlyToolNames ?? []);
+  return tools.filter((tool) =>
+    !isTaskOrTeamFamilyTool(tool.name) && !uiOnly.has(tool.name)
+  );
 }
 
 export function mergeChildCustomTools(
@@ -26,5 +29,8 @@ export function mergeChildCustomTools(
   memberScopedTools: readonly ToolDefinition[] | undefined,
   options: SharedToolFilterOptions = {},
 ): ToolDefinition[] {
-  return [...filterSharedParentTools(sharedParentTools, options), ...(memberScopedTools ?? [])]
+  return [
+    ...filterSharedParentTools(sharedParentTools, options),
+    ...(memberScopedTools ?? []),
+  ];
 }

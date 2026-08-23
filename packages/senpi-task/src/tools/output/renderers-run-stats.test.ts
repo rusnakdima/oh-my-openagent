@@ -1,16 +1,16 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import type { ThemeColor } from "@code-yeongyu/senpi"
+import type { ThemeColor } from "@code-yeongyu/senpi";
 
-import { toolResult } from "../control"
-import { renderTaskOutputResult, type OutputRenderTheme } from "./renderers"
-import type { TaskOutputDetails } from "./types"
+import { toolResult } from "../control";
+import { type OutputRenderTheme, renderTaskOutputResult } from "./renderers";
+import type { TaskOutputDetails } from "./types";
 
 const TEST_THEME: OutputRenderTheme = {
   fg: (_color: ThemeColor, text: string) => text,
-}
+};
 
-const RESULT_OPTIONS = { expanded: false, isPartial: false }
+const RESULT_OPTIONS = { expanded: false, isPartial: false };
 
 describe("task_output run stats rendering", () => {
   test("#given a completed task with run stats #when the status row renders #then duration tool count and tps stay adjacent", () => {
@@ -36,13 +36,17 @@ describe("task_output run stats rendering", () => {
           tokens_per_second: 118,
         },
       },
-    }
+    };
 
     // when
-    const [line = ""] = renderTaskOutputResult(toolResult("ignored", details), RESULT_OPTIONS, TEST_THEME).render(200)
+    const [line = ""] = renderTaskOutputResult(
+      toolResult("ignored", details),
+      RESULT_OPTIONS,
+      TEST_THEME,
+    ).render(200);
 
     // then
-    expect(line).toContain("task_output st_done completed")
-    expect(line).toContain("· ran 2m 14s · 5 tools · 118 tok/s")
-  })
-})
+    expect(line).toContain("task_output st_done completed");
+    expect(line).toContain("· ran 2m 14s · 5 tools · 118 tok/s");
+  });
+});

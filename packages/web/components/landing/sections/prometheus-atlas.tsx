@@ -1,14 +1,23 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import { Brain, Layers, ArrowRight } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import { ArrowRight, Brain, Layers } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export async function PrometheusAtlasSection(): Promise<JSX.Element> {
-  const t = await getTranslations("landing")
+  const t = await getTranslations("landing");
 
   return (
-    <section className="border-y border-white/5 bg-[#0a0a0a] py-24" data-section="prometheus-atlas">
+    <section
+      className="border-y border-white/5 bg-[#0a0a0a] py-24"
+      data-section="prometheus-atlas"
+    >
       <div className="reveal-on-enter container mx-auto px-4 md:px-6">
         <div className="mb-16 text-center">
           <Badge className="mb-6 border-violet-500/20 bg-violet-500/10 px-4 py-1.5 text-violet-400">
@@ -17,7 +26,9 @@ export async function PrometheusAtlasSection(): Promise<JSX.Element> {
           <h2 className="mb-4 text-4xl font-bold text-white md:text-5xl">
             {t("prometheusAtlas.title")}
           </h2>
-          <p className="mx-auto max-w-2xl text-xl text-zinc-400">{t("prometheusAtlas.headline")}</p>
+          <p className="mx-auto max-w-2xl text-xl text-zinc-400">
+            {t("prometheusAtlas.headline")}
+          </p>
         </div>
 
         <div className="mb-12 grid grid-cols-1 gap-8 lg:grid-cols-2">
@@ -28,7 +39,10 @@ export async function PrometheusAtlasSection(): Promise<JSX.Element> {
                   <div className="rounded-lg bg-violet-400/10 p-2">
                     <Brain className="h-6 w-6 text-violet-400" />
                   </div>
-                  <Badge variant="outline" className="border-zinc-700 text-xs text-zinc-400">
+                  <Badge
+                    variant="outline"
+                    className="border-zinc-700 text-xs text-zinc-400"
+                  >
                     {t("prometheusAtlas.prometheus.model")}
                   </Badge>
                 </div>
@@ -45,7 +59,10 @@ export async function PrometheusAtlasSection(): Promise<JSX.Element> {
                 </p>
                 <ul className="space-y-2">
                   {([0, 1, 2, 3] as const).map((i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-zinc-400">
+                    <li
+                      key={i}
+                      className="flex items-center gap-2 text-sm text-zinc-400"
+                    >
                       <ArrowRight className="h-3 w-3 shrink-0 text-violet-400" />
                       {t(`prometheusAtlas.prometheus.features.${i}`)}
                     </li>
@@ -62,7 +79,10 @@ export async function PrometheusAtlasSection(): Promise<JSX.Element> {
                   <div className="rounded-lg bg-violet-400/10 p-2">
                     <Layers className="h-6 w-6 text-violet-400" />
                   </div>
-                  <Badge variant="outline" className="border-zinc-700 text-xs text-zinc-400">
+                  <Badge
+                    variant="outline"
+                    className="border-zinc-700 text-xs text-zinc-400"
+                  >
                     {t("prometheusAtlas.atlas.model")}
                   </Badge>
                 </div>
@@ -79,7 +99,10 @@ export async function PrometheusAtlasSection(): Promise<JSX.Element> {
                 </p>
                 <ul className="space-y-2">
                   {([0, 1, 2, 3] as const).map((i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-zinc-400">
+                    <li
+                      key={i}
+                      className="flex items-center gap-2 text-sm text-zinc-400"
+                    >
                       <ArrowRight className="h-3 w-3 shrink-0 text-violet-400" />
                       {t(`prometheusAtlas.atlas.features.${i}`)}
                     </li>
@@ -116,5 +139,5 @@ export async function PrometheusAtlasSection(): Promise<JSX.Element> {
         </div>
       </div>
     </section>
-  )
+  );
 }

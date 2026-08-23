@@ -1,10 +1,17 @@
-import { join } from "node:path"
+import { join } from "node:path";
 
-import { readRunJson, unlinkRunArtifact, writeRunJsonAtomic, type RunLaunchManifest } from "../run-artifacts"
+import {
+  readRunJson,
+  type RunLaunchManifest,
+  unlinkRunArtifact,
+  writeRunJsonAtomic,
+} from "../run-artifacts";
 
-const runDir = process.argv[2]
-if (runDir === undefined) throw new TypeError("run directory is required")
-const launch = await readRunJson<RunLaunchManifest>(join(runDir, "launch.json"))
+const runDir = process.argv[2];
+if (runDir === undefined) throw new TypeError("run directory is required");
+const launch = await readRunJson<RunLaunchManifest>(
+  join(runDir, "launch.json"),
+);
 await writeRunJsonAtomic(join(runDir, "outcome.json"), {
   version: 1,
   runId: launch.runId,
@@ -12,6 +19,6 @@ await writeRunJsonAtomic(join(runDir, "outcome.json"), {
   finishedAt: new Date().toISOString(),
   childExit: { code: null, signal: "SIGTERM" },
   timedOut: true,
-})
-await unlinkRunArtifact(join(runDir, "launch.json"))
-process.exit(1)
+});
+await unlinkRunArtifact(join(runDir, "launch.json"));
+process.exit(1);

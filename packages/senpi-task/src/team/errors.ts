@@ -4,7 +4,7 @@ export type SenpiTeamSpecErrorCode =
   | "RESERVED_CALLER_TEAM_LEAD"
   | "INVALID_SPEC"
   | "UNRESOLVABLE_CATEGORY"
-  | "UNKNOWN_SUBAGENT_TYPE"
+  | "UNKNOWN_SUBAGENT_TYPE";
 
 /**
  * Raised when a senpi-task team spec cannot be normalized or validated. Carries a typed `code` so
@@ -13,13 +13,13 @@ export type SenpiTeamSpecErrorCode =
  * throws this error spawns zero members.
  */
 export class SenpiTeamSpecError extends Error {
-  readonly code: SenpiTeamSpecErrorCode
-  readonly teamName: string
+  readonly code: SenpiTeamSpecErrorCode;
+  readonly teamName: string;
 
   constructor(message: string, code: SenpiTeamSpecErrorCode, teamName: string) {
-    super(message)
-    this.name = "SenpiTeamSpecError"
-    this.code = code
-    this.teamName = teamName
+    super(message);
+    this.name = "SenpiTeamSpecError";
+    this.code = code;
+    this.teamName = teamName;
   }
 }

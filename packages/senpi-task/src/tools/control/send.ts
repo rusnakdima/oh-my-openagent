@@ -1,20 +1,33 @@
-import { defineTool, type ToolDefinition } from "@code-yeongyu/senpi"
+import { defineTool, type ToolDefinition } from "@code-yeongyu/senpi";
 
-import { runTeamSend } from "../team/messaging"
-import type { TeamToolsService } from "../team/types"
-import { defaultResolveCallerSessionId } from "./caller-session"
-import { renderMemberScopedTaskSendCall, renderTaskSendCall, renderTaskSendResult } from "./renderers"
-import { invalidArguments, mapSendOutcome, notFound } from "./send-results"
-import { isStructuredMessage, MemberScopedTaskSendParams, TaskSendParams } from "./send-schema"
-import type { MemberScopedTaskSendInput, TaskSendInput } from "./send-schema"
-import { resolveSendTeamRunId, routeStructuredMessage } from "./send-shutdown"
-import type { TaskSendTeamRouting } from "./send-shutdown"
-export type { DefaultTeamRunIdResolution } from "./send-shutdown"
-import { toolResult } from "./tool-result"
-import type { CallerSessionResolver, SendManager, SendResultDetails, SendToolResult } from "./types"
-export { MemberScopedTaskSendParams, TaskSendParams } from "./send-schema"
-export type { MemberScopedTaskSendInput, TaskSendInput } from "./send-schema"
-export type { TaskSendTeamRouting } from "./send-shutdown"
+import { runTeamSend } from "../team/messaging";
+import type { TeamToolsService } from "../team/types";
+import { defaultResolveCallerSessionId } from "./caller-session";
+import {
+  renderMemberScopedTaskSendCall,
+  renderTaskSendCall,
+  renderTaskSendResult,
+} from "./renderers";
+import { invalidArguments, mapSendOutcome, notFound } from "./send-results";
+import {
+  isStructuredMessage,
+  MemberScopedTaskSendParams,
+  TaskSendParams,
+} from "./send-schema";
+import type { MemberScopedTaskSendInput, TaskSendInput } from "./send-schema";
+import { resolveSendTeamRunId, routeStructuredMessage } from "./send-shutdown";
+import type { TaskSendTeamRouting } from "./send-shutdown";
+export type { DefaultTeamRunIdResolution } from "./send-shutdown";
+import { toolResult } from "./tool-result";
+import type {
+  CallerSessionResolver,
+  SendManager,
+  SendResultDetails,
+  SendToolResult,
+} from "./types";
+export { MemberScopedTaskSendParams, TaskSendParams } from "./send-schema";
+export type { MemberScopedTaskSendInput, TaskSendInput } from "./send-schema";
+export type { TaskSendTeamRouting } from "./send-shutdown";
 
 const DESCRIPTION = [
   "Send a message to a child task or team member, keyed by to.",
@@ -26,18 +39,18 @@ const DESCRIPTION = [
   "Cross-session: a child owned by another session is refused unless you pass all_scope=true.",
   "Team messages always steer into the recipient's running turn.",
   "One-shot agents (momus) always refuse task_send in every state; spawn a new momus instead.",
-].join(" ")
+].join(" ");
 
 const MEMBER_SCOPED_DESCRIPTION = [
   "Send a durable message to another team member or the team lead.",
   "Team messages always steer into the recipient's running turn.",
-].join(" ")
+].join(" ");
 
 export type TaskSendDeps = {
-  readonly manager: SendManager
-  readonly teamRouting?: TaskSendTeamRouting
-  readonly resolveCallerSessionId?: CallerSessionResolver
-}
+  readonly manager: SendManager;
+  readonly teamRouting?: TaskSendTeamRouting;
+  readonly resolveCallerSessionId?: CallerSessionResolver;
+};
 
 export async function runTaskSend(
   manager: SendManager,
@@ -45,8 +58,8 @@ export async function runTaskSend(
   callerSessionId: string | undefined,
   teamRouting?: TaskSendTeamRouting,
 ): Promise<SendToolResult> {
-  const validation = validateParams(params)
-  if (validation !== undefined) return validation
+  const validation = validateParams(params);
+  if (validation !== undefined) return validation;
 
   if (typeof params.message === "string") {
     const outcome = await manager.sendToTask({
@@ -55,86 +68,120 @@ export async function runTaskSend(
       deliverAs: "steer",
       ...(callerSessionId !== undefined ? { callerSessionId } : {}),
       ...(params.all_scope === true ? { allScope: true } : {}),
-    })
+    });
 
-    if (outcome.kind !== "not_found") return mapSendOutcome(outcome)
-    if (teamRouting === undefined) return notFound(manager, outcome.reason, callerSessionId)
+    if (outcome.kind !== "not_found") return mapSendOutcome(outcome);
+    if (teamRouting === undefined) {
+      return notFound(manager, outcome.reason, callerSessionId);
+    }
 
-    const resolution = await resolveSendTeamRunId(params, teamRouting)
-    if (resolution.kind === "none") return notFound(manager, outcome.reason, callerSessionId)
-    if (resolution.kind === "error") return invalidArguments(resolution.reason)
+    const resolution = await resolveSendTeamRunId(params, teamRouting);
+    if (resolution.kind === "none") {
+      return notFound(manager, outcome.reason, callerSessionId);
+    }
+    if (resolution.kind === "error") return invalidArguments(resolution.reason);
 
-    const teamResult = await runTeamSend(teamRouting.service, resolution.teamRunId, teamRouting.from, {
-      to: params.to,
-      body: params.message,
-      ...(params.summary !== undefined ? { summary: params.summary } : {}),
-    })
-    return toolResult(firstText(teamResult), { kind: "team_message", team: teamResult.details })
+    const teamResult = await runTeamSend(
+      teamRouting.service,
+      resolution.teamRunId,
+      teamRouting.from,
+      {
+        to: params.to,
+        body: params.message,
+        ...(params.summary !== undefined ? { summary: params.summary } : {}),
+      },
+    );
+    return toolResult(firstText(teamResult), {
+      kind: "team_message",
+      team: teamResult.details,
+    });
   }
 
-  if (params.message !== undefined) return routeStructuredMessage(params.to, params.message, params, teamRouting)
+  if (params.message !== undefined) {
+    return routeStructuredMessage(
+      params.to,
+      params.message,
+      params,
+      teamRouting,
+    );
+  }
 
-  return invalidArguments("message is required")
+  return invalidArguments("message is required");
 }
 
 function validateParams(params: TaskSendInput): SendToolResult | undefined {
-  const message = params.message
-  if (message === undefined) return invalidArguments("message is required")
+  const message = params.message;
+  if (message === undefined) return invalidArguments("message is required");
   if (isShutdownRejectWithoutReason(message)) {
-    return invalidArguments("reason is required when rejecting a shutdown")
+    return invalidArguments("reason is required when rejecting a shutdown");
   }
-  return undefined
+  return undefined;
 }
 
-function isShutdownRejectWithoutReason(message: TaskSendInput["message"]): boolean {
+function isShutdownRejectWithoutReason(
+  message: TaskSendInput["message"],
+): boolean {
   return (
     isStructuredMessage(message) &&
     message.type === "shutdown_response" &&
     message.approve === false &&
     (message.reason === undefined || message.reason.trim().length === 0)
-  )
+  );
 }
 
 function firstText(result: Awaited<ReturnType<typeof runTeamSend>>): string {
-  const first = result.content[0]
-  return first?.type === "text" ? first.text : "Team message sent."
+  const first = result.content[0];
+  return first?.type === "text" ? first.text : "Team message sent.";
 }
 
-export function createTaskSendTool(deps: TaskSendDeps): ToolDefinition<typeof TaskSendParams, SendResultDetails> {
-  const resolveCaller = deps.resolveCallerSessionId ?? defaultResolveCallerSessionId
+export function createTaskSendTool(
+  deps: TaskSendDeps,
+): ToolDefinition<typeof TaskSendParams, SendResultDetails> {
+  const resolveCaller = deps.resolveCallerSessionId ??
+    defaultResolveCallerSessionId;
   return {
     name: "task_send",
     label: "Task Send",
     description: DESCRIPTION,
     parameters: TaskSendParams,
-    execute: (_toolCallId, params, _signal, _onUpdate, ctx) => runTaskSend(deps.manager, params, resolveCaller(ctx), deps.teamRouting),
+    execute: (_toolCallId, params, _signal, _onUpdate, ctx) =>
+      runTaskSend(deps.manager, params, resolveCaller(ctx), deps.teamRouting),
     renderCall: (args, theme) => renderTaskSendCall(args, theme),
-    renderResult: (result, options, theme) => renderTaskSendResult(result, options, theme),
-  }
+    renderResult: (result, options, theme) =>
+      renderTaskSendResult(result, options, theme),
+  };
 }
 
 export type MemberScopedTaskSendDeps = {
-  readonly manager: SendManager
-  readonly service: TeamToolsService
-  readonly teamRunId: string
-  readonly from: string
-  readonly resolveCallerSessionId?: CallerSessionResolver
-}
+  readonly manager: SendManager;
+  readonly service: TeamToolsService;
+  readonly teamRunId: string;
+  readonly from: string;
+  readonly resolveCallerSessionId?: CallerSessionResolver;
+};
 
 export function createMemberScopedTaskSendTool(deps: MemberScopedTaskSendDeps) {
-  const resolveCaller = deps.resolveCallerSessionId ?? defaultResolveCallerSessionId
+  const resolveCaller = deps.resolveCallerSessionId ??
+    defaultResolveCallerSessionId;
   return defineTool<typeof MemberScopedTaskSendParams, SendResultDetails>({
     name: "task_send",
     label: "Task Send",
     description: MEMBER_SCOPED_DESCRIPTION,
     parameters: MemberScopedTaskSendParams,
-    execute: (_toolCallId, params: MemberScopedTaskSendInput, _signal, _onUpdate, ctx) =>
+    execute: (
+      _toolCallId,
+      params: MemberScopedTaskSendInput,
+      _signal,
+      _onUpdate,
+      ctx,
+    ) =>
       runTaskSend(deps.manager, params, resolveCaller(ctx), {
         service: deps.service,
         from: deps.from,
         teamRunId: deps.teamRunId,
       }),
     renderCall: (args, theme) => renderMemberScopedTaskSendCall(args, theme),
-    renderResult: (result, options, theme) => renderTaskSendResult(result, options, theme),
-  })
+    renderResult: (result, options, theme) =>
+      renderTaskSendResult(result, options, theme),
+  });
 }

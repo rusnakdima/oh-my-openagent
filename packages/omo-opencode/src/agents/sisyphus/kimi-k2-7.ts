@@ -14,24 +14,24 @@
 
 import type {
   AvailableAgent,
-  AvailableTool,
-  AvailableSkill,
   AvailableCategory,
+  AvailableSkill,
+  AvailableTool,
 } from "../dynamic-agent-prompt-builder";
 import { KIMI_TOOL_LOOP_GUARD } from "../kimi-tool-loop-guard";
 import {
   buildAgentIdentitySection,
-  buildKeyTriggersSection,
-  buildToolSelectionTable,
-  buildExploreSection,
-  buildLibrarianSection,
-  buildDelegationTable,
-  buildCategorySkillsDelegationGuide,
-  buildOracleSection,
-  buildHardBlocksSection,
-  buildAntiPatternsSection,
   buildAntiDuplicationSection,
+  buildAntiPatternsSection,
+  buildCategorySkillsDelegationGuide,
+  buildDelegationTable,
+  buildExploreSection,
+  buildHardBlocksSection,
+  buildKeyTriggersSection,
+  buildLibrarianSection,
   buildNonClaudePlannerSection,
+  buildOracleSection,
+  buildToolSelectionTable,
   categorizeTools,
 } from "../dynamic-agent-prompt-builder";
 
@@ -64,10 +64,17 @@ export function buildKimiK27SisyphusPrompt(
   useTaskSystem = false,
 ): string {
   const keyTriggers = buildKeyTriggersSection(availableAgents, availableSkills);
-  const toolSelection = buildToolSelectionTable(availableAgents, availableTools, availableSkills);
+  const toolSelection = buildToolSelectionTable(
+    availableAgents,
+    availableTools,
+    availableSkills,
+  );
   const exploreSection = buildExploreSection(availableAgents);
   const librarianSection = buildLibrarianSection(availableAgents);
-  const categorySkillsGuide = buildCategorySkillsDelegationGuide(availableCategories, availableSkills);
+  const categorySkillsGuide = buildCategorySkillsDelegationGuide(
+    availableCategories,
+    availableSkills,
+  );
   const delegationTable = buildDelegationTable(availableAgents);
   const oracleSection = buildOracleSection(availableAgents);
   const hardBlocks = buildHardBlocksSection();

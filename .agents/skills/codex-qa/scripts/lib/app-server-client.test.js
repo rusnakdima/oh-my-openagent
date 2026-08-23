@@ -10,9 +10,24 @@ describe("app-server-client summary", () => {
       turnId: "turn",
       expectHook: ["sessionStart", "userPromptSubmit"],
       hooks: [
-        { method: "hook/completed", eventName: "sessionStart", status: "completed", source: "plugin" },
-        { method: "hook/completed", eventName: "userPromptSubmit", status: "completed", source: "plugin" },
-        { method: "hook/completed", eventName: "userPromptSubmit", status: "failed", source: "plugin" },
+        {
+          method: "hook/completed",
+          eventName: "sessionStart",
+          status: "completed",
+          source: "plugin",
+        },
+        {
+          method: "hook/completed",
+          eventName: "userPromptSubmit",
+          status: "completed",
+          source: "plugin",
+        },
+        {
+          method: "hook/completed",
+          eventName: "userPromptSubmit",
+          status: "failed",
+          source: "plugin",
+        },
       ],
       stderr: "",
     });
@@ -20,7 +35,12 @@ describe("app-server-client summary", () => {
     expect(summary.ok).toBe(false);
     expect(summary.missingHooks).toEqual([]);
     expect(summary.failedHooks).toEqual([
-      { method: "hook/completed", eventName: "userPromptSubmit", status: "failed", source: "plugin" },
+      {
+        method: "hook/completed",
+        eventName: "userPromptSubmit",
+        status: "failed",
+        source: "plugin",
+      },
     ]);
   });
 
@@ -32,8 +52,18 @@ describe("app-server-client summary", () => {
       turnId: "turn",
       expectHook: ["sessionStart", "userPromptSubmit"],
       hooks: [
-        { method: "hook/completed", eventName: "sessionStart", status: "completed", source: "plugin" },
-        { method: "hook/completed", eventName: "userPromptSubmit", status: "completed", source: "plugin" },
+        {
+          method: "hook/completed",
+          eventName: "sessionStart",
+          status: "completed",
+          source: "plugin",
+        },
+        {
+          method: "hook/completed",
+          eventName: "userPromptSubmit",
+          status: "completed",
+          source: "plugin",
+        },
       ],
       stderr: "",
     });
@@ -43,6 +73,9 @@ describe("app-server-client summary", () => {
   });
 
   it("#given a comma-separated expectation #when parsed #then whitespace and empties are ignored", () => {
-    expect(parseExpectedHooks(" sessionStart, ,userPromptSubmit ")).toEqual(["sessionStart", "userPromptSubmit"]);
+    expect(parseExpectedHooks(" sessionStart, ,userPromptSubmit ")).toEqual([
+      "sessionStart",
+      "userPromptSubmit",
+    ]);
   });
 });
