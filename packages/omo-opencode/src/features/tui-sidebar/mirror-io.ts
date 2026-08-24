@@ -1,40 +1,45 @@
-import { mkdirSync, readFileSync } from "node:fs"
-import { dirname } from "node:path"
+import { mkdirSync, readFileSync } from "node:fs";
+import { dirname } from "node:path";
 
-import { writeFileAtomically } from "../../shared/write-file-atomically"
-import { STALE_MS } from "./constants"
-import { canonicalProjectDir, mirrorFilePath } from "./mirror-path"
-import { parseSnapshot } from "./snapshot-schema"
-import type { TuiRuntimeSnapshot } from "./snapshot-schema"
+import { writeFileAtomically } from "../../shared/write-file-atomically";
+import { STALE_MS } from "./constants";
+import { canonicalProjectDir, mirrorFilePath } from "./mirror-path";
+import { parseSnapshot } from "./snapshot-schema";
+import type { TuiRuntimeSnapshot } from "./snapshot-schema";
 
-export function writeMirror(projectDir: string, snapshot: TuiRuntimeSnapshot): void {
-  const filePath = mirrorFilePath(projectDir)
-  const content = JSON.stringify(snapshot)
+export function writeMirror(
+  projectDir: string,
+  snapshot: TuiRuntimeSnapshot,
+): void {
+  const filePath = mirrorFilePath(projectDir);
+  const content = JSON.stringify(snapshot);
 
-  mkdirSync(dirname(filePath), { recursive: true })
-  writeFileAtomically(filePath, content, { mode: 0o600 })
+  mkdirSync(dirname(filePath), { recursive: true });
+  writeFileAtomically(filePath, content, { mode: 0o600 });
 }
 
 export function readMirror(projectDir: string): TuiRuntimeSnapshot | null {
-  let raw: unknown
+  let raw: unknown;
   try {
-    raw = JSON.parse(readFileSync(mirrorFilePath(projectDir), "utf-8"))
+    raw = JSON.parse(readFileSync(mirrorFilePath(projectDir), "utf-8"));
   } catch (error) {
     if (error instanceof Error) {
-      return null
+      return null;
     }
-    throw error
+    throw error;
   }
 
-  const snapshot = parseSnapshot(raw)
+  const snapshot = parseSnapshot(raw);
   if (snapshot === null) {
-    return null
+    return null;
   }
-  if (canonicalProjectDir(snapshot.projectDir) !== canonicalProjectDir(projectDir)) {
-    return null
+  if (
+    canonicalProjectDir(snapshot.projectDir) !== canonicalProjectDir(projectDir)
+  ) {
+    return null;
   }
   if (Date.now() - snapshot.updatedAt > STALE_MS) {
-    return null
+    return null;
   }
-  return snapshot
+  return snapshot;
 }

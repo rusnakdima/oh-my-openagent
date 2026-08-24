@@ -17,22 +17,22 @@
       // Orchestrator: delegates to planning agents first
       // omit model -> uses TUI Global Model / default_model
       "sisyphus": {
-        "prompt_append": "Always consult prometheus and atlas for planning. Never rush to implementation.",
+        "prompt_append": "Always consult prometheus and atlas for planning. Never rush to implementation."
       },
 
       // Implementation: uses planning outputs
       "hephaestus": {
-        "prompt_append": "Follow established plans precisely. Ask for clarification when plans are ambiguous.",
+        "prompt_append": "Follow established plans precisely. Ask for clarification when plans are ambiguous."
       },
 
       // Primary planner: deep interview mode
       "prometheus": {
-        "prompt_append": "Interview extensively. Question assumptions. Build exhaustive plans with milestones, risks, and contingencies. Use deep & quick agents heavily in parallel for research.",
+        "prompt_append": "Interview extensively. Question assumptions. Build exhaustive plans with milestones, risks, and contingencies. Use deep & quick agents heavily in parallel for research."
       },
 
       // Architecture consultant
       "oracle": {
-        "reasoning": "xhigh",
+        "reasoning": "xhigh"
       },
 
       // Research and documentation
@@ -46,34 +46,34 @@
 
       // Plan review and refinement: heavily used
       "metis": {
-        "prompt_append": "Critically evaluate plans. Identify gaps, risks, and improvements. Be thorough.",
+        "prompt_append": "Critically evaluate plans. Identify gaps, risks, and improvements. Be thorough."
       },
 
       // Critic: challenges assumptions
       "momus": {
-        "prompt_append": "Challenge all assumptions in plans. Look for edge cases, failure modes, and overlooked requirements.",
+        "prompt_append": "Challenge all assumptions in plans. Look for edge cases, failure modes, and overlooked requirements."
       },
 
       // Long-running planning sessions
       "atlas": {
-        "prompt_append": "Preserve context across long planning sessions. Track evolving decisions.",
+        "prompt_append": "Preserve context across long planning sessions. Track evolving decisions."
       },
 
       // Quick research tasks
-      "sisyphus-junior": {},
+      "sisyphus-junior": {}
     },
 
     "categories": {
       "quick": {},
       "unspecified-low": { "reasoning": "xhigh" },
       "unspecified-high": {
-        "reasoning": "xhigh",
+        "reasoning": "xhigh"
       },
       "writing": { "reasoning": "low" },
       "visual-engineering": { "reasoning": "max" },
       "deep": { "reasoning": "medium" },
       "ultrabrain": { "reasoning": "xhigh" },
-      "artistry": { "reasoning": "high" },
+      "artistry": { "reasoning": "high" }
     },
 
     // Moderate concurrency: planning is sequential by nature
@@ -82,19 +82,19 @@
       "staleTimeoutMs": 300000,
       "providerConcurrency": {
         "anthropic": 3,
-        "openai": 3,
+        "openai": 3
       },
       "modelConcurrency": {
         "anthropic/claude-opus-5": 2,
-        "openai/gpt-5.6-sol": 2,
-      },
+        "openai/gpt-5.6-sol": 2
+      }
     },
 
     "sisyphus_agent": {
       "planner_enabled": true,
-      "replace_plan": true,
+      "replace_plan": true
     },
 
-    "experimental": { "aggressive_truncation": true },
-  },
+    "experimental": { "aggressive_truncation": true }
+  }
 }

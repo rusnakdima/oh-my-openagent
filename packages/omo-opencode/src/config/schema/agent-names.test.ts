@@ -1,7 +1,7 @@
 /// <reference path="../../../../../bun-test.d.ts" />
 
-import { describe, expect, test } from "bun:test"
-import { OhMyOpenCodeConfigSchema } from "./oh-my-opencode-config"
+import { describe, expect, test } from "bun:test";
+import { OhMyOpenCodeConfigSchema } from "./oh-my-opencode-config";
 
 describe("OhMyOpenCodeConfigSchema disabled_skills", () => {
   test("accepts review-work, runtime security skills", () => {
@@ -16,13 +16,13 @@ describe("OhMyOpenCodeConfigSchema disabled_skills", () => {
         "debugging",
         "visual-qa",
       ],
-    }
+    };
 
     // when
-    const result = OhMyOpenCodeConfigSchema.safeParse(config)
+    const result = OhMyOpenCodeConfigSchema.safeParse(config);
 
     // then
-    expect(result.success).toBe(true)
+    expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.disabled_skills).toEqual([
         "review-work",
@@ -32,7 +32,7 @@ describe("OhMyOpenCodeConfigSchema disabled_skills", () => {
         "security-review",
         "debugging",
         "visual-qa",
-      ])
+      ]);
     }
-  })
-})
+  });
+});

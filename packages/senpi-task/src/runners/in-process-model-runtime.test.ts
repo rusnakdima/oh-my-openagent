@@ -1,19 +1,25 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "bun:test";
 
-import { mkdtempSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import type { CreateAgentSessionOptions } from "@code-yeongyu/senpi"
+import type { CreateAgentSessionOptions } from "@code-yeongyu/senpi";
 
-import { InProcessRunner, type ChildSession, type ChildSpec } from "./in-process"
+import {
+  type ChildSession,
+  type ChildSpec,
+  InProcessRunner,
+} from "./in-process";
 
 test("#given a parent model runtime #when the child session is constructed #then native providers remain executable", async () => {
   // given
-  let captured: CreateAgentSessionOptions | undefined
-  const modelRuntime = { kind: "native-provider-runtime" } as unknown as NonNullable<
+  let captured: CreateAgentSessionOptions | undefined;
+  const modelRuntime = {
+    kind: "native-provider-runtime",
+  } as unknown as NonNullable<
     CreateAgentSessionOptions["modelRuntime"]
-  >
+  >;
   const session: ChildSession = {
     sessionId: "child-session",
     prompt: () => Promise.resolve(),
@@ -23,7 +29,7 @@ test("#given a parent model runtime #when the child session is constructed #then
     subscribe: () => () => {},
     getLastAssistantText: () => undefined,
     dispose() {},
-  }
+  };
   const spec: ChildSpec = {
     taskId: "task-1",
     cwd: process.cwd(),
@@ -33,18 +39,18 @@ test("#given a parent model runtime #when the child session is constructed #then
     parentSessionId: "parent-1",
     rootSessionId: "root-1",
     prompt: "do the work",
-  }
+  };
   const runner = new InProcessRunner({
     createSession: async (options) => {
-      captured = options
-      return session
+      captured = options;
+      return session;
     },
-  })
+  });
 
   // when
-  const handle = await runner.start(spec)
-  await handle.waitForIdle()
+  const handle = await runner.start(spec);
+  await handle.waitForIdle();
 
   // then
-  expect(captured?.modelRuntime).toBe(modelRuntime)
-})
+  expect(captured?.modelRuntime).toBe(modelRuntime);
+});

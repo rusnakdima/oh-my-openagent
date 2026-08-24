@@ -1,212 +1,235 @@
-import { existsSync, readdirSync } from "node:fs"
-import { readdir, readFile, writeFile } from "node:fs/promises"
-import { join } from "node:path"
-import { MESSAGE_STORAGE, PART_STORAGE, SESSION_STORAGE, TODO_DIR, TRANSCRIPT_DIR } from "./constants"
-import { getMessageDir } from "../../shared/opencode-message-dir"
-import { log } from "../../shared/logger"
-import type { SessionInfo, SessionMessage, SessionMetadata, TodoItem } from "./types"
+import { existsSync, readdirSync } from "node:fs";
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import {
+  MESSAGE_STORAGE,
+  PART_STORAGE,
+  SESSION_STORAGE,
+  TODO_DIR,
+  TRANSCRIPT_DIR,
+} from "./constants";
+import { getMessageDir } from "../../shared/opencode-message-dir";
+import { log } from "../../shared/logger";
+import type {
+  SessionInfo,
+  SessionMessage,
+  SessionMetadata,
+  TodoItem,
+} from "./types";
 
 function ignoreFileStorageError(error: unknown): void {
   if (error instanceof Error) {
-    log(`[session-file-storage] Ignoring error: ${error.message}`)
-    return
+    log(`[session-file-storage] Ignoring error: ${error.message}`);
+    return;
   }
-  throw error
+  throw error;
 }
 
-export async function getFileMainSessions(directory?: string): Promise<SessionMetadata[]> {
-  if (!existsSync(SESSION_STORAGE)) return []
+export async function getFileMainSessions(
+  directory?: string,
+): Promise<SessionMetadata[]> {
+  if (!existsSync(SESSION_STORAGE)) return [];
 
-  const sessions: SessionMetadata[] = []
+  const sessions: SessionMetadata[] = [];
 
   try {
-    const projectDirs = await readdir(SESSION_STORAGE, { withFileTypes: true })
+    const projectDirs = await readdir(SESSION_STORAGE, { withFileTypes: true });
     for (const projectDir of projectDirs) {
-      if (!projectDir.isDirectory()) continue
-      const projectPath = join(SESSION_STORAGE, projectDir.name)
-      const sessionFiles = await readdir(projectPath)
+      if (!projectDir.isDirectory()) continue;
+      const projectPath = join(SESSION_STORAGE, projectDir.name);
+      const sessionFiles = await readdir(projectPath);
 
       for (const file of sessionFiles) {
-        if (!file.endsWith(".json")) continue
+        if (!file.endsWith(".json")) continue;
 
         try {
-          const content = await readFile(join(projectPath, file), "utf-8")
-          const meta = JSON.parse(content) as SessionMetadata
-          if (meta.parentID) continue
-          if (directory && meta.directory !== directory) continue
-          sessions.push(meta)
+          const content = await readFile(join(projectPath, file), "utf-8");
+          const meta = JSON.parse(content) as SessionMetadata;
+          if (meta.parentID) continue;
+          if (directory && meta.directory !== directory) continue;
+          sessions.push(meta);
         } catch (error) {
-          ignoreFileStorageError(error)
-          continue
+          ignoreFileStorageError(error);
+          continue;
         }
       }
     }
   } catch (error) {
-    ignoreFileStorageError(error)
-    return []
+    ignoreFileStorageError(error);
+    return [];
   }
 
-  return sessions.sort((a, b) => b.time.updated - a.time.updated)
+  return sessions.sort((a, b) => b.time.updated - a.time.updated);
 }
 
 export async function getFileAllSessions(): Promise<string[]> {
-  if (!existsSync(MESSAGE_STORAGE)) return []
+  if (!existsSync(MESSAGE_STORAGE)) return [];
 
-  const sessions: string[] = []
+  const sessions: string[] = [];
 
   async function scanDirectory(dir: string): Promise<void> {
     try {
-      const entries = await readdir(dir, { withFileTypes: true })
+      const entries = await readdir(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (!entry.isDirectory()) continue
-        const sessionPath = join(dir, entry.name)
-        const files = await readdir(sessionPath)
+        if (!entry.isDirectory()) continue;
+        const sessionPath = join(dir, entry.name);
+        const files = await readdir(sessionPath);
         if (files.some((file) => file.endsWith(".json"))) {
-          sessions.push(entry.name)
-          continue
+          sessions.push(entry.name);
+          continue;
         }
-        await scanDirectory(sessionPath)
+        await scanDirectory(sessionPath);
       }
     } catch (error) {
-      ignoreFileStorageError(error)
-      return
+      ignoreFileStorageError(error);
+      return;
     }
   }
 
-  await scanDirectory(MESSAGE_STORAGE)
-  return [...new Set(sessions)]
+  await scanDirectory(MESSAGE_STORAGE);
+  return [...new Set(sessions)];
 }
 
 export async function fileSessionExists(sessionID: string): Promise<boolean> {
-  return getMessageDir(sessionID) !== null
+  return getMessageDir(sessionID) !== null;
 }
 
-export async function getFileSessionMessages(sessionID: string): Promise<SessionMessage[]> {
-  const messageDir = getMessageDir(sessionID)
-  if (!messageDir || !existsSync(messageDir)) return []
+export async function getFileSessionMessages(
+  sessionID: string,
+): Promise<SessionMessage[]> {
+  const messageDir = getMessageDir(sessionID);
+  if (!messageDir || !existsSync(messageDir)) return [];
 
-  const messages: SessionMessage[] = []
+  const messages: SessionMessage[] = [];
   try {
-    const files = await readdir(messageDir)
+    const files = await readdir(messageDir);
     for (const file of files) {
-      if (!file.endsWith(".json")) continue
+      if (!file.endsWith(".json")) continue;
       try {
-        const content = await readFile(join(messageDir, file), "utf-8")
-        const meta = JSON.parse(content)
-        const parts = await readParts(meta.id)
+        const content = await readFile(join(messageDir, file), "utf-8");
+        const meta = JSON.parse(content);
+        const parts = await readParts(meta.id);
         messages.push({
           id: meta.id,
           role: meta.role,
           agent: meta.agent,
           time: meta.time,
           parts,
-        })
+        });
       } catch (error) {
-        ignoreFileStorageError(error)
-        continue
+        ignoreFileStorageError(error);
+        continue;
       }
     }
   } catch (error) {
-    ignoreFileStorageError(error)
-    return []
+    ignoreFileStorageError(error);
+    return [];
   }
 
   return messages.sort((a, b) => {
-    const aTime = a.time?.created ?? 0
-    const bTime = b.time?.created ?? 0
-    if (aTime !== bTime) return aTime - bTime
-    return a.id.localeCompare(b.id)
-  })
+    const aTime = a.time?.created ?? 0;
+    const bTime = b.time?.created ?? 0;
+    if (aTime !== bTime) return aTime - bTime;
+    return a.id.localeCompare(b.id);
+  });
 }
 
-async function readParts(messageID: string): Promise<Array<{ id: string; type: string; [key: string]: unknown }>> {
-  const partDir = join(PART_STORAGE, messageID)
-  if (!existsSync(partDir)) return []
+async function readParts(
+  messageID: string,
+): Promise<Array<{ id: string; type: string; [key: string]: unknown }>> {
+  const partDir = join(PART_STORAGE, messageID);
+  if (!existsSync(partDir)) return [];
 
-  const parts: Array<{ id: string; type: string; [key: string]: unknown }> = []
+  const parts: Array<{ id: string; type: string; [key: string]: unknown }> = [];
   try {
-    const files = await readdir(partDir)
+    const files = await readdir(partDir);
     for (const file of files) {
-      if (!file.endsWith(".json")) continue
+      if (!file.endsWith(".json")) continue;
       try {
-        const content = await readFile(join(partDir, file), "utf-8")
-        parts.push(JSON.parse(content))
+        const content = await readFile(join(partDir, file), "utf-8");
+        parts.push(JSON.parse(content));
       } catch (error) {
-        ignoreFileStorageError(error)
-        continue
+        ignoreFileStorageError(error);
+        continue;
       }
     }
   } catch (error) {
-    ignoreFileStorageError(error)
-    return []
+    ignoreFileStorageError(error);
+    return [];
   }
 
-  return parts.sort((a, b) => a.id.localeCompare(b.id))
+  return parts.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-export async function getFileSessionTodos(sessionID: string): Promise<TodoItem[]> {
-  if (!existsSync(TODO_DIR)) return []
+export async function getFileSessionTodos(
+  sessionID: string,
+): Promise<TodoItem[]> {
+  if (!existsSync(TODO_DIR)) return [];
 
   try {
-    const allFiles = await readdir(TODO_DIR)
-    const todoFiles = allFiles.filter((file) => file === `${sessionID}.json`)
+    const allFiles = await readdir(TODO_DIR);
+    const todoFiles = allFiles.filter((file) => file === `${sessionID}.json`);
 
     for (const file of todoFiles) {
       try {
-        const content = await readFile(join(TODO_DIR, file), "utf-8")
-        const data = JSON.parse(content)
-        if (!Array.isArray(data)) continue
+        const content = await readFile(join(TODO_DIR, file), "utf-8");
+        const data = JSON.parse(content);
+        if (!Array.isArray(data)) continue;
         return data.map((item) => ({
           id: item.id || "",
           content: item.content || "",
           status: item.status || "pending",
           priority: item.priority,
-        }))
+        }));
       } catch (error) {
-        ignoreFileStorageError(error)
-        continue
+        ignoreFileStorageError(error);
+        continue;
       }
     }
   } catch (error) {
-    ignoreFileStorageError(error)
-    return []
+    ignoreFileStorageError(error);
+    return [];
   }
 
-  return []
+  return [];
 }
 
-export async function getFileSessionTranscript(sessionID: string): Promise<number> {
-  if (!existsSync(TRANSCRIPT_DIR)) return 0
-  const transcriptFile = join(TRANSCRIPT_DIR, `${sessionID}.jsonl`)
-  if (!existsSync(transcriptFile)) return 0
+export async function getFileSessionTranscript(
+  sessionID: string,
+): Promise<number> {
+  if (!existsSync(TRANSCRIPT_DIR)) return 0;
+  const transcriptFile = join(TRANSCRIPT_DIR, `${sessionID}.jsonl`);
+  if (!existsSync(transcriptFile)) return 0;
 
   try {
-    const content = await readFile(transcriptFile, "utf-8")
-    return content.trim().split("\n").filter(Boolean).length
+    const content = await readFile(transcriptFile, "utf-8");
+    return content.trim().split("\n").filter(Boolean).length;
   } catch (error) {
-    ignoreFileStorageError(error)
-    return 0
+    ignoreFileStorageError(error);
+    return 0;
   }
 }
 
-export async function getFileSessionInfo(sessionID: string): Promise<SessionInfo | null> {
-  const messages = await getFileSessionMessages(sessionID)
-  if (messages.length === 0) return null
+export async function getFileSessionInfo(
+  sessionID: string,
+): Promise<SessionInfo | null> {
+  const messages = await getFileSessionMessages(sessionID);
+  if (messages.length === 0) return null;
 
-  const agentsUsed = new Set<string>()
-  let firstMessage: Date | undefined
-  let lastMessage: Date | undefined
+  const agentsUsed = new Set<string>();
+  let firstMessage: Date | undefined;
+  let lastMessage: Date | undefined;
 
   for (const msg of messages) {
-    if (msg.agent) agentsUsed.add(msg.agent)
-    if (!msg.time?.created) continue
-    const date = new Date(msg.time.created)
-    if (!firstMessage || date < firstMessage) firstMessage = date
-    if (!lastMessage || date > lastMessage) lastMessage = date
+    if (msg.agent) agentsUsed.add(msg.agent);
+    if (!msg.time?.created) continue;
+    const date = new Date(msg.time.created);
+    if (!firstMessage || date < firstMessage) firstMessage = date;
+    if (!lastMessage || date > lastMessage) lastMessage = date;
   }
 
-  const todos = await getFileSessionTodos(sessionID)
-  const transcriptEntries = await getFileSessionTranscript(sessionID)
+  const todos = await getFileSessionTodos(sessionID);
+  const transcriptEntries = await getFileSessionTranscript(sessionID);
 
   return {
     id: sessionID,
@@ -218,88 +241,94 @@ export async function getFileSessionInfo(sessionID: string): Promise<SessionInfo
     has_transcript: transcriptEntries > 0,
     todos,
     transcript_entries: transcriptEntries,
-  }
+  };
 }
 
 export function getSessionMetadataPath(sessionID: string): string | null {
-  if (!existsSync(SESSION_STORAGE)) return null
+  if (!existsSync(SESSION_STORAGE)) return null;
 
   try {
-    const projectDirs = readdirSync(SESSION_STORAGE, { withFileTypes: true })
+    const projectDirs = readdirSync(SESSION_STORAGE, { withFileTypes: true });
     for (const projectDir of projectDirs) {
-      if (!projectDir.isDirectory()) continue
-      const sessionPath = join(SESSION_STORAGE, projectDir.name, `${sessionID}.json`)
+      if (!projectDir.isDirectory()) continue;
+      const sessionPath = join(
+        SESSION_STORAGE,
+        projectDir.name,
+        `${sessionID}.json`,
+      );
       if (existsSync(sessionPath)) {
-        return sessionPath
+        return sessionPath;
       }
     }
   } catch {
-    return null
+    return null;
   }
 
-  return null
+  return null;
 }
 
 export async function getFileSessionTags(sessionID: string): Promise<string[]> {
-  const metaPath = getSessionMetadataPath(sessionID)
-  if (!metaPath) return []
+  const metaPath = getSessionMetadataPath(sessionID);
+  if (!metaPath) return [];
 
   try {
-    const content = await readFile(metaPath, "utf-8")
-    const meta = JSON.parse(content) as SessionMetadata
-    return meta.tags ?? []
+    const content = await readFile(metaPath, "utf-8");
+    const meta = JSON.parse(content) as SessionMetadata;
+    return meta.tags ?? [];
   } catch {
-    return []
+    return [];
   }
 }
 
 export async function setFileSessionTags(
   sessionID: string,
   tags: string[],
-  action: "add" | "remove" | "replace"
+  action: "add" | "remove" | "replace",
 ): Promise<{ success: boolean; tags: string[] }> {
-  const metaPath = getSessionMetadataPath(sessionID)
+  const metaPath = getSessionMetadataPath(sessionID);
   if (!metaPath) {
-    return { success: false, tags: [] }
+    return { success: false, tags: [] };
   }
 
   try {
-    const content = await readFile(metaPath, "utf-8")
-    const meta = JSON.parse(content) as SessionMetadata
+    const content = await readFile(metaPath, "utf-8");
+    const meta = JSON.parse(content) as SessionMetadata;
 
-    let newTags: string[]
+    let newTags: string[];
     switch (action) {
       case "replace":
-        newTags = [...tags]
-        break
+        newTags = [...tags];
+        break;
       case "add":
-        newTags = Array.from(new Set([...(meta.tags ?? []), ...tags]))
-        break
+        newTags = Array.from(new Set([...(meta.tags ?? []), ...tags]));
+        break;
       case "remove":
-        const removeSet = new Set(tags)
-        newTags = (meta.tags ?? []).filter((t) => !removeSet.has(t))
-        break
+        const removeSet = new Set(tags);
+        newTags = (meta.tags ?? []).filter((t) => !removeSet.has(t));
+        break;
     }
 
-    meta.tags = newTags
-    meta.time.updated = Date.now()
+    meta.tags = newTags;
+    meta.time.updated = Date.now();
 
-    await writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8")
+    await writeFile(metaPath, JSON.stringify(meta, null, 2), "utf-8");
 
-    return { success: true, tags: newTags }
+    return { success: true, tags: newTags };
   } catch (error) {
-    return { success: false, tags: [] }
+    return { success: false, tags: [] };
   }
 }
 
-export async function getFileSessionMetadata(sessionID: string): Promise<SessionMetadata | null> {
-  const metaPath = getSessionMetadataPath(sessionID)
-  if (!metaPath) return null
+export async function getFileSessionMetadata(
+  sessionID: string,
+): Promise<SessionMetadata | null> {
+  const metaPath = getSessionMetadataPath(sessionID);
+  if (!metaPath) return null;
 
   try {
-    const content = await readFile(metaPath, "utf-8")
-    return JSON.parse(content) as SessionMetadata
+    const content = await readFile(metaPath, "utf-8");
+    return JSON.parse(content) as SessionMetadata;
   } catch {
-    return null
+    return null;
   }
 }

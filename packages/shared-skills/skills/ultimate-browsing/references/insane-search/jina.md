@@ -1,14 +1,14 @@
 # 범용 웹 추출 — Jina Reader
 
-> `r.jina.ai/URL` 한 줄로 거의 모든 공개 URL을 마크다운으로 변환.
-> Puppeteer 기반 실제 브라우저 렌더링 — JS SPA까지 처리.
+> `r.jina.ai/URL` 한 줄로 거의 모든 공개 URL을 마크다운으로 변환. Puppeteer 기반
+> 실제 브라우저 렌더링 — JS SPA까지 처리.
 >
 > **2026-08-09 probe 기준 무료 무키 경로는 종료됨.** 익명 호출은 401이며,
 > 리다이렉트를 따라가면 Cloudflare Turnstile(`Just a moment...`)에 막힌다.
-> **이제 `JINA_API_KEY` 환경 변수가 필요**하다 — `Authorization: Bearer <key>` 헤더.
-> 엔진에서는 `engine/surrogates.yaml`의 `jina_reader` 엔트리가 키가 있을 때만 활성화된다
-> (kind=reader, provenance=live — 서버 측 재렌더링).
-> 예전 "무료 500 RPM" 안내는 모두 폐기되었으므로 따르지 않는다.
+> **이제 `JINA_API_KEY` 환경 변수가 필요**하다 — `Authorization: Bearer <key>`
+> 헤더. 엔진에서는 `engine/surrogates.yaml`의 `jina_reader` 엔트리가 키가 있을
+> 때만 활성화된다 (kind=reader, provenance=live — 서버 측 재렌더링). 예전 "무료
+> 500 RPM" 안내는 모두 폐기되었으므로 따르지 않는다.
 
 ## 기본 사용
 
@@ -94,37 +94,36 @@ curl -H "X-Respond-With: html" "https://r.jina.ai/{URL}"
 
 ## 검증된 성공 사이트
 
-| 사이트 | 결과 | 비고 |
-|--------|------|------|
-| Threads | 성공 | 프로필 + 포스트 |
-| 클리앙 | 성공 | 게시글 목록 + 본문 |
-| 루리웹 | 성공 | 게시글 목록 + 본문 |
-| 뽐뿌 | 성공 | 게시글 + RSS도 가능 |
-| 네이버 뉴스 | 성공 | 기사 목록 + 본문 완전 |
-| 네이버 증권 | 성공 | 실시간 주가 |
-| 긱뉴스 | 성공 | 토픽 목록 + 본문 |
-| 44bits | 성공 | 기사 목록 |
-| 커리어리 | 성공 | JS 렌더링으로 추출 |
-| 브런치 | 성공 | 기사 전문 |
-| 한경 | 성공 | 뉴스 기사 |
-| 다음 뉴스 | 성공 | 뉴스 기사 |
-| Medium | 성공 | 기사 전문 (paywall 제외) |
-| Substack | 성공 | 뉴스레터 전문 |
-| dev.to | 성공 | 기사 전문 |
-| PDF (모든 URL) | 성공 | 자동 변환 |
+| 사이트         | 결과 | 비고                     |
+| -------------- | ---- | ------------------------ |
+| Threads        | 성공 | 프로필 + 포스트          |
+| 클리앙         | 성공 | 게시글 목록 + 본문       |
+| 루리웹         | 성공 | 게시글 목록 + 본문       |
+| 뽐뿌           | 성공 | 게시글 + RSS도 가능      |
+| 네이버 뉴스    | 성공 | 기사 목록 + 본문 완전    |
+| 네이버 증권    | 성공 | 실시간 주가              |
+| 긱뉴스         | 성공 | 토픽 목록 + 본문         |
+| 44bits         | 성공 | 기사 목록                |
+| 커리어리       | 성공 | JS 렌더링으로 추출       |
+| 브런치         | 성공 | 기사 전문                |
+| 한경           | 성공 | 뉴스 기사                |
+| 다음 뉴스      | 성공 | 뉴스 기사                |
+| Medium         | 성공 | 기사 전문 (paywall 제외) |
+| Substack       | 성공 | 뉴스레터 전문            |
+| dev.to         | 성공 | 기사 전문                |
+| PDF (모든 URL) | 성공 | 자동 변환                |
 
 ## 실패하는 사이트
 
-| 사이트 | 이유 |
-|--------|------|
-| X/Twitter | 402 — Syndication/oEmbed 사용 (twitter.md 참조) |
-| Reddit | 차단 — JSON API 사용 (json-api.md 참조) |
-| 디시인사이드 | 빈 본문 반환 |
-| 에펨코리아 | HTTP 430 |
-| 요즘IT | CloudFront 403 |
-| 네이버 쇼핑 | CAPTCHA |
-| 쿠팡 | WAF 차단 |
-
+| 사이트       | 이유                                            |
+| ------------ | ----------------------------------------------- |
+| X/Twitter    | 402 — Syndication/oEmbed 사용 (twitter.md 참조) |
+| Reddit       | 차단 — JSON API 사용 (json-api.md 참조)         |
+| 디시인사이드 | 빈 본문 반환                                    |
+| 에펨코리아   | HTTP 430                                        |
+| 요즘IT       | CloudFront 403                                  |
+| 네이버 쇼핑  | CAPTCHA                                         |
+| 쿠팡         | WAF 차단                                        |
 
 ## RSS 자동 발견
 

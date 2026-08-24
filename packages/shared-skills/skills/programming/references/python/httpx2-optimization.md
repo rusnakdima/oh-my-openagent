@@ -1,8 +1,13 @@
 # httpx2 — Production Defaults
 
-> **Source**: [pydantic/httpx2](https://github.com/pydantic/httpx2) — next-generation HTTP client for Python 3, continuation of HTTPX under Pydantic stewardship.
+> **Source**: [pydantic/httpx2](https://github.com/pydantic/httpx2) —
+> next-generation HTTP client for Python 3, continuation of HTTPX under Pydantic
+> stewardship.
 >
-> **Rule**: Every network request MUST use `httpx2`. **ALL optimizations below are ON by default** — HTTP/2, brotli+zstd, tuned connection pool, fine-grained timeouts, transport retries, TCP_NODELAY. This is the baseline, not a stretch goal. A bare `httpx2.AsyncClient()` is a bug.
+> **Rule**: Every network request MUST use `httpx2`. **ALL optimizations below
+> are ON by default** — HTTP/2, brotli+zstd, tuned connection pool, fine-grained
+> timeouts, transport retries, TCP_NODELAY. This is the baseline, not a stretch
+> goal. A bare `httpx2.AsyncClient()` is a bug.
 
 ---
 
@@ -15,20 +20,22 @@ dependencies = [
 ]
 ```
 
-| Extra | What it enables | Why it's mandatory |
-|-------|----------------|--------------------|
-| `http2` | HTTP/2 multiplexing via `h2` | Single TCP connection handles concurrent requests; eliminates head-of-line blocking |
-| `brotli` | Brotli content decoding (`br`) | ~20% smaller payloads than gzip for text/JSON |
-| `zstd` | Zstandard content decoding | Faster decompression than brotli at similar ratios; stdlib in Python ≥ 3.14 |
-| `socks` | SOCKS5 proxy support via `socksio` | Install only if you route through SOCKS proxies |
+| Extra    | What it enables                    | Why it's mandatory                                                                  |
+| -------- | ---------------------------------- | ----------------------------------------------------------------------------------- |
+| `http2`  | HTTP/2 multiplexing via `h2`       | Single TCP connection handles concurrent requests; eliminates head-of-line blocking |
+| `brotli` | Brotli content decoding (`br`)     | ~20% smaller payloads than gzip for text/JSON                                       |
+| `zstd`   | Zstandard content decoding         | Faster decompression than brotli at similar ratios; stdlib in Python ≥ 3.14         |
+| `socks`  | SOCKS5 proxy support via `socksio` | Install only if you route through SOCKS proxies                                     |
 
-All three core extras (`http2,brotli,zstd`) are non-negotiable. Omitting any is leaving performance on the table.
+All three core extras (`http2,brotli,zstd`) are non-negotiable. Omitting any is
+leaving performance on the table.
 
 ---
 
 ## 2. The canonical defaults — ALL ON
 
-These are not "optimizations to consider". These are **the correct defaults** that every httpx2 client must use.
+These are not "optimizations to consider". These are **the correct defaults**
+that every httpx2 client must use.
 
 ```python
 import socket
@@ -56,18 +63,18 @@ SOCKET_OPTIONS: list[tuple[int, int, int]] = [
 
 ### Why each knob is set this way
 
-| Setting | Library default | Our default | Why |
-|---------|----------------|-------------|-----|
-| `http2` | `False` | **`True`** | HTTP/2 multiplexing is strictly superior for any modern API |
-| `max_connections` | `100` | `200` | Headroom for fan-out; prevents pool exhaustion under load |
-| `max_keepalive_connections` | `20` | `40` | Keeps warm connections alive; fewer TLS handshakes |
-| `keepalive_expiry` | `5.0s` | `30.0s` | 5s is too aggressive — kills connections between burst requests |
-| `Timeout(5.0)` uniform | `5.0` all | Split | Uniform 5s is too tight for reads, too loose for connects |
-| `read` timeout | `5.0` | `30.0` | Slow APIs and streaming need breathing room |
-| `pool` timeout | `5.0` | `10.0` | Explicit — hitting this means `max_connections` needs raising |
-| `TCP_NODELAY` | off | **on** | Eliminates Nagle's 40ms coalescing delay for small payloads |
-| `retries` | `0` | `3` | Retries on `ConnectError`/`ConnectTimeout` only — safe and resilient |
-| `follow_redirects` | `False` | **`True`** | Most APIs redirect; failing on 3xx is wrong default behavior |
+| Setting                     | Library default | Our default | Why                                                                  |
+| --------------------------- | --------------- | ----------- | -------------------------------------------------------------------- |
+| `http2`                     | `False`         | **`True`**  | HTTP/2 multiplexing is strictly superior for any modern API          |
+| `max_connections`           | `100`           | `200`       | Headroom for fan-out; prevents pool exhaustion under load            |
+| `max_keepalive_connections` | `20`            | `40`        | Keeps warm connections alive; fewer TLS handshakes                   |
+| `keepalive_expiry`          | `5.0s`          | `30.0s`     | 5s is too aggressive — kills connections between burst requests      |
+| `Timeout(5.0)` uniform      | `5.0` all       | Split       | Uniform 5s is too tight for reads, too loose for connects            |
+| `read` timeout              | `5.0`           | `30.0`      | Slow APIs and streaming need breathing room                          |
+| `pool` timeout              | `5.0`           | `10.0`      | Explicit — hitting this means `max_connections` needs raising        |
+| `TCP_NODELAY`               | off             | **on**      | Eliminates Nagle's 40ms coalescing delay for small payloads          |
+| `retries`                   | `0`             | `3`         | Retries on `ConnectError`/`ConnectTimeout` only — safe and resilient |
+| `follow_redirects`          | `False`         | **`True`**  | Most APIs redirect; failing on 3xx is wrong default behavior         |
 
 ---
 
@@ -171,22 +178,25 @@ with create_client() as client:
     r = client.get("https://api.example.com/health")
 ```
 
-**If you are NOT using this factory pattern, you are doing it wrong.** A bare `httpx2.AsyncClient()` leaves HTTP/2 off, retries off, TCP_NODELAY off, keepalive too short, and timeouts too uniform.
+**If you are NOT using this factory pattern, you are doing it wrong.** A bare
+`httpx2.AsyncClient()` leaves HTTP/2 off, retries off, TCP_NODELAY off,
+keepalive too short, and timeouts too uniform.
 
 ---
 
 ## 4. Special case overrides
 
-The factory defaults cover 95% of use cases. Override only when you have a specific reason:
+The factory defaults cover 95% of use cases. Override only when you have a
+specific reason:
 
-| Scenario | Override |
-|----------|----------|
-| LLM streaming endpoints | `timeout=httpx2.Timeout(connect=10.0, read=None, write=10.0, pool=10.0)` — no read timeout on streaming |
-| Single-host API with low concurrency | `limits=httpx2.Limits(max_connections=50, max_keepalive_connections=20, keepalive_expiry=60.0)` |
-| Ephemeral short-lived requests | `keepalive_expiry=5.0` — don't hold connections |
-| Unix domain sockets | `httpx2.AsyncHTTPTransport(uds="/path/to/socket", ...)` |
-| mTLS / client certs | Pass `verify=ssl_ctx` with `ctx.load_cert_chain(certfile=...)` |
-| SOCKS proxy | `httpx2[socks]`, `proxy="socks5://..."` |
+| Scenario                             | Override                                                                                                |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| LLM streaming endpoints              | `timeout=httpx2.Timeout(connect=10.0, read=None, write=10.0, pool=10.0)` — no read timeout on streaming |
+| Single-host API with low concurrency | `limits=httpx2.Limits(max_connections=50, max_keepalive_connections=20, keepalive_expiry=60.0)`         |
+| Ephemeral short-lived requests       | `keepalive_expiry=5.0` — don't hold connections                                                         |
+| Unix domain sockets                  | `httpx2.AsyncHTTPTransport(uds="/path/to/socket", ...)`                                                 |
+| mTLS / client certs                  | Pass `verify=ssl_ctx` with `ctx.load_cert_chain(certfile=...)`                                          |
+| SOCKS proxy                          | `httpx2[socks]`, `proxy="socks5://..."`                                                                 |
 
 ---
 
@@ -243,7 +253,8 @@ async def raise_on_error(response: httpx2.Response) -> None:
 
 ## 6. Verification script — confirm your setup is fully optimized
 
-Run this against your target endpoint to **verify** (not decide) that all optimizations are active:
+Run this against your target endpoint to **verify** (not decide) that all
+optimizations are active:
 
 ```python
 """Verify httpx2 is fully optimized against a target endpoint."""
@@ -308,53 +319,55 @@ if __name__ == "__main__":
 
 ### `httpx2.AsyncClient` / `httpx2.Client`
 
-| Parameter | Type | Library Default | **Our Default** |
-|-----------|------|-----------------|-----------------|
-| `http1` | `bool` | `True` | `True` |
-| `http2` | `bool` | `False` | **`True`** |
-| `verify` | `ssl.SSLContext \| str \| bool` | `True` | `True` |
-| `cert` | `CertTypes \| None` | `None` | `None` |
-| `proxy` | `str \| Proxy \| None` | `None` | `None` |
-| `mounts` | `dict[str, Transport]` | `None` | `None` |
-| `timeout` | `Timeout \| float \| None` | `Timeout(5.0)` | **Split: 5/30/10/10** |
-| `limits` | `Limits` | `Limits(100, 20, 5.0)` | **`Limits(200, 40, 30.0)`** |
-| `follow_redirects` | `bool` | `False` | **`True`** |
-| `max_redirects` | `int` | `20` | `20` |
-| `event_hooks` | `dict` | `{}` | **Wire logging** |
-| `base_url` | `str` | `""` | Set for single-API clients |
-| `trust_env` | `bool` | `True` | `True` |
-| `default_encoding` | `str \| Callable` | `"utf-8"` | `"utf-8"` |
+| Parameter          | Type                            | Library Default        | **Our Default**             |
+| ------------------ | ------------------------------- | ---------------------- | --------------------------- |
+| `http1`            | `bool`                          | `True`                 | `True`                      |
+| `http2`            | `bool`                          | `False`                | **`True`**                  |
+| `verify`           | `ssl.SSLContext \| str \| bool` | `True`                 | `True`                      |
+| `cert`             | `CertTypes \| None`             | `None`                 | `None`                      |
+| `proxy`            | `str \| Proxy \| None`          | `None`                 | `None`                      |
+| `mounts`           | `dict[str, Transport]`          | `None`                 | `None`                      |
+| `timeout`          | `Timeout \| float \| None`      | `Timeout(5.0)`         | **Split: 5/30/10/10**       |
+| `limits`           | `Limits`                        | `Limits(100, 20, 5.0)` | **`Limits(200, 40, 30.0)`** |
+| `follow_redirects` | `bool`                          | `False`                | **`True`**                  |
+| `max_redirects`    | `int`                           | `20`                   | `20`                        |
+| `event_hooks`      | `dict`                          | `{}`                   | **Wire logging**            |
+| `base_url`         | `str`                           | `""`                   | Set for single-API clients  |
+| `trust_env`        | `bool`                          | `True`                 | `True`                      |
+| `default_encoding` | `str \| Callable`               | `"utf-8"`              | `"utf-8"`                   |
 
 ### `httpx2.AsyncHTTPTransport` / `httpx2.HTTPTransport`
 
-| Parameter | Type | Library Default | **Our Default** |
-|-----------|------|-----------------|-----------------|
-| `http1` | `bool` | `True` | `True` |
-| `http2` | `bool` | `False` | **`True`** |
-| `retries` | `int` | `0` | **`3`** |
-| `limits` | `Limits` | `Limits(100, 20, 5.0)` | **`Limits(200, 40, 30.0)`** |
-| `uds` | `str \| None` | `None` | `None` |
-| `local_address` | `str \| None` | `None` | `None` |
-| `socket_options` | `Iterable[SOCKET_OPTION]` | `None` | **`[TCP_NODELAY]`** |
-| `proxy` | `str \| Proxy \| None` | `None` | `None` |
+| Parameter        | Type                      | Library Default        | **Our Default**             |
+| ---------------- | ------------------------- | ---------------------- | --------------------------- |
+| `http1`          | `bool`                    | `True`                 | `True`                      |
+| `http2`          | `bool`                    | `False`                | **`True`**                  |
+| `retries`        | `int`                     | `0`                    | **`3`**                     |
+| `limits`         | `Limits`                  | `Limits(100, 20, 5.0)` | **`Limits(200, 40, 30.0)`** |
+| `uds`            | `str \| None`             | `None`                 | `None`                      |
+| `local_address`  | `str \| None`             | `None`                 | `None`                      |
+| `socket_options` | `Iterable[SOCKET_OPTION]` | `None`                 | **`[TCP_NODELAY]`**         |
+| `proxy`          | `str \| Proxy \| None`    | `None`                 | `None`                      |
 
 ### `httpx2.Timeout`
 
 | Parameter | Library Default | **Our Default** |
-|-----------|-----------------|-----------------|
-| `connect` | `5.0` | `5.0` |
-| `read` | `5.0` | **`30.0`** |
-| `write` | `5.0` | **`10.0`** |
-| `pool` | `5.0` | **`10.0`** |
+| --------- | --------------- | --------------- |
+| `connect` | `5.0`           | `5.0`           |
+| `read`    | `5.0`           | **`30.0`**      |
+| `write`   | `5.0`           | **`10.0`**      |
+| `pool`    | `5.0`           | **`10.0`**      |
 
 ### `httpx2.Limits`
 
-| Parameter | Library Default | **Our Default** |
-|-----------|-----------------|-----------------|
-| `max_connections` | `100` | **`200`** |
-| `max_keepalive_connections` | `20` | **`40`** |
-| `keepalive_expiry` | `5.0` | **`30.0`** |
+| Parameter                   | Library Default | **Our Default** |
+| --------------------------- | --------------- | --------------- |
+| `max_connections`           | `100`           | **`200`**       |
+| `max_keepalive_connections` | `20`            | **`40`**        |
+| `keepalive_expiry`          | `5.0`           | **`30.0`**      |
 
 ### Async backend (httpcore2)
 
-httpcore2 uses `anyio` by default (works with both asyncio and trio). No extra config needed if you're already on the anyio stack. For trio, install `httpcore2[trio]`.
+httpcore2 uses `anyio` by default (works with both asyncio and trio). No extra
+config needed if you're already on the anyio stack. For trio, install
+`httpcore2[trio]`.

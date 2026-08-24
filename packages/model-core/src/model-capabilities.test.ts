@@ -1,19 +1,25 @@
 // allow: SIZE_OK - legacy generated snapshot contract with shared provider-cache stubs; add new behavior in focused sibling tests instead.
 
-import type { ModelCapabilitiesSnapshot } from "./model-capabilities"
-import { afterEach, describe, expect, test, spyOn } from "bun:test"
-import { getModelCapabilities, getBundledModelCapabilitiesSnapshot } from "./model-capabilities"
-import * as connectedProvidersCache from "./connected-providers-cache"
-import bundledModelCapabilitiesSnapshotJson from "../../../packages/omo-opencode/src/generated/model-capabilities.generated.json"
-import { AGENT_MODEL_REQUIREMENTS, CATEGORY_MODEL_REQUIREMENTS } from "./model-requirements"
+import type { ModelCapabilitiesSnapshot } from "./model-capabilities";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
+import {
+  getBundledModelCapabilitiesSnapshot,
+  getModelCapabilities,
+} from "./model-capabilities";
+import * as connectedProvidersCache from "./connected-providers-cache";
+import bundledModelCapabilitiesSnapshotJson from "../../../packages/omo-opencode/src/generated/model-capabilities.generated.json";
+import {
+  AGENT_MODEL_REQUIREMENTS,
+  CATEGORY_MODEL_REQUIREMENTS,
+} from "./model-requirements";
 
 describe("getModelCapabilities", () => {
-  let findProviderModelMetadataSpy: ReturnType<typeof spyOn> | undefined
+  let findProviderModelMetadataSpy: ReturnType<typeof spyOn> | undefined;
 
   afterEach(() => {
-    findProviderModelMetadataSpy?.mockRestore()
-    findProviderModelMetadataSpy = undefined
-  })
+    findProviderModelMetadataSpy?.mockRestore();
+    findProviderModelMetadataSpy = undefined;
+  });
 
   const bundledSnapshot: ModelCapabilitiesSnapshot = {
     generatedAt: "2026-03-25T00:00:00.000Z",
@@ -69,10 +75,13 @@ describe("getModelCapabilities", () => {
         temperature: true,
       },
     },
-  }
+  };
 
   test("uses runtime metadata before snapshot data", () => {
-    findProviderModelMetadataSpy = spyOn(connectedProvidersCache, "findProviderModelMetadata").mockReturnValue(undefined)
+    findProviderModelMetadataSpy = spyOn(
+      connectedProvidersCache,
+      "findProviderModelMetadata",
+    ).mockReturnValue(undefined);
     const result = getModelCapabilities({
       providerID: "anthropic",
       modelID: "claude-opus-4-7",
@@ -84,7 +93,7 @@ describe("getModelCapabilities", () => {
         },
       },
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "claude-opus-4-7",
@@ -94,17 +103,20 @@ describe("getModelCapabilities", () => {
       supportsTemperature: true,
       maxOutputTokens: 128_000,
       toolCall: true,
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "snapshot-backed",
       canonicalization: { source: "canonical" },
       snapshot: { source: "bundled-snapshot" },
       variants: { source: "runtime" },
-    })
-  })
+    });
+  });
 
   test("reads structured runtime capabilities from the SDK v2 shape", () => {
-    findProviderModelMetadataSpy = spyOn(connectedProvidersCache, "findProviderModelMetadata").mockReturnValue(undefined)
+    findProviderModelMetadataSpy = spyOn(
+      connectedProvidersCache,
+      "findProviderModelMetadata",
+    ).mockReturnValue(undefined);
     const result = getModelCapabilities({
       providerID: "openai",
       modelID: "gpt-5.4",
@@ -123,7 +135,7 @@ describe("getModelCapabilities", () => {
         },
       },
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "gpt-5.4",
@@ -135,17 +147,20 @@ describe("getModelCapabilities", () => {
         input: ["text", "image"],
         output: ["text"],
       },
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "snapshot-backed",
       reasoning: { source: "runtime" },
       supportsThinking: { source: "runtime" },
       toolCall: { source: "runtime" },
-    })
-  })
+    });
+  });
 
   test("respects root-level thinking flags when providers do not nest them under capabilities", () => {
-    findProviderModelMetadataSpy = spyOn(connectedProvidersCache, "findProviderModelMetadata").mockReturnValue(undefined)
+    findProviderModelMetadataSpy = spyOn(
+      connectedProvidersCache,
+      "findProviderModelMetadata",
+    ).mockReturnValue(undefined);
     const result = getModelCapabilities({
       providerID: "custom-proxy",
       modelID: "gpt-5.4",
@@ -153,19 +168,22 @@ describe("getModelCapabilities", () => {
         supportsThinking: true,
       },
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "gpt-5.4",
       supportsThinking: true,
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       supportsThinking: { source: "runtime" },
-    })
-  })
+    });
+  });
 
   test("accepts runtime variant arrays without corrupting them into numeric keys", () => {
-    findProviderModelMetadataSpy = spyOn(connectedProvidersCache, "findProviderModelMetadata").mockReturnValue(undefined)
+    findProviderModelMetadataSpy = spyOn(
+      connectedProvidersCache,
+      "findProviderModelMetadata",
+    ).mockReturnValue(undefined);
     const result = getModelCapabilities({
       providerID: "openai",
       modelID: "gpt-5.4",
@@ -173,18 +191,21 @@ describe("getModelCapabilities", () => {
         variants: ["low", "medium", "high", "xhigh"],
       },
       bundledSnapshot,
-    })
+    });
 
-    expect(result.variants).toEqual(["low", "medium", "high", "xhigh"])
-  })
+    expect(result.variants).toEqual(["low", "medium", "high", "xhigh"]);
+  });
 
   test("normalizes the legacy Claude Opus thinking alias before snapshot lookup", () => {
-    findProviderModelMetadataSpy = spyOn(connectedProvidersCache, "findProviderModelMetadata").mockReturnValue(undefined)
+    findProviderModelMetadataSpy = spyOn(
+      connectedProvidersCache,
+      "findProviderModelMetadata",
+    ).mockReturnValue(undefined);
     const result = getModelCapabilities({
       providerID: "anthropic",
       modelID: "claude-opus-4-7-thinking",
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "claude-opus-4-7",
@@ -192,7 +213,7 @@ describe("getModelCapabilities", () => {
       supportsThinking: true,
       supportsTemperature: true,
       maxOutputTokens: 128_000,
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "alias-backed",
       canonicalization: {
@@ -200,16 +221,19 @@ describe("getModelCapabilities", () => {
         ruleID: "claude-thinking-legacy-alias",
       },
       snapshot: { source: "bundled-snapshot" },
-    })
-  })
+    });
+  });
 
   test("maps local gemini aliases to canonical models.dev entries", () => {
-    findProviderModelMetadataSpy = spyOn(connectedProvidersCache, "findProviderModelMetadata").mockReturnValue(undefined)
+    findProviderModelMetadataSpy = spyOn(
+      connectedProvidersCache,
+      "findProviderModelMetadata",
+    ).mockReturnValue(undefined);
     const result = getModelCapabilities({
       providerID: "google",
       modelID: "gemini-3.1-pro-high",
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "gemini-3.1-pro",
@@ -217,7 +241,7 @@ describe("getModelCapabilities", () => {
       supportsThinking: true,
       supportsTemperature: true,
       maxOutputTokens: 65_000,
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "alias-backed",
       canonicalization: {
@@ -225,15 +249,15 @@ describe("getModelCapabilities", () => {
         ruleID: "gemini-3.1-pro-tier-alias",
       },
       snapshot: { source: "bundled-snapshot" },
-    })
-  })
+    });
+  });
 
   test("canonicalizes provider-prefixed gemini aliases without changing the transport-facing request", () => {
     const result = getModelCapabilities({
       providerID: "google",
       modelID: "google/gemini-3.1-pro-high",
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       requestedModelID: "google/gemini-3.1-pro-high",
@@ -242,7 +266,7 @@ describe("getModelCapabilities", () => {
       supportsThinking: true,
       supportsTemperature: true,
       maxOutputTokens: 65_000,
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "alias-backed",
       canonicalization: {
@@ -250,15 +274,15 @@ describe("getModelCapabilities", () => {
         ruleID: "gemini-3.1-pro-tier-alias",
       },
       snapshot: { source: "bundled-snapshot" },
-    })
-  })
+    });
+  });
 
   test("canonicalizes provider-prefixed Claude thinking aliases to bare snapshot IDs", () => {
     const result = getModelCapabilities({
       providerID: "anthropic",
       modelID: "anthropic/claude-opus-4-7-thinking",
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       requestedModelID: "anthropic/claude-opus-4-7-thinking",
@@ -267,7 +291,7 @@ describe("getModelCapabilities", () => {
       supportsThinking: true,
       supportsTemperature: true,
       maxOutputTokens: 128_000,
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "alias-backed",
       canonicalization: {
@@ -275,11 +299,14 @@ describe("getModelCapabilities", () => {
         ruleID: "claude-thinking-legacy-alias",
       },
       snapshot: { source: "bundled-snapshot" },
-    })
-  })
+    });
+  });
 
   test("prefers runtime models.dev cache over bundled snapshot", () => {
-    findProviderModelMetadataSpy = spyOn(connectedProvidersCache, "findProviderModelMetadata").mockReturnValue(undefined)
+    findProviderModelMetadataSpy = spyOn(
+      connectedProvidersCache,
+      "findProviderModelMetadata",
+    ).mockReturnValue(undefined);
     const runtimeSnapshot: ModelCapabilitiesSnapshot = {
       ...bundledSnapshot,
       models: {
@@ -292,124 +319,124 @@ describe("getModelCapabilities", () => {
           },
         },
       },
-    }
+    };
 
     const result = getModelCapabilities({
       providerID: "openai",
       modelID: "gpt-5.4",
       bundledSnapshot,
       runtimeSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "gpt-5.4",
       maxOutputTokens: 64_000,
       supportsTemperature: false,
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       snapshot: { source: "runtime-snapshot" },
       maxOutputTokens: { source: "runtime-snapshot" },
       supportsTemperature: { source: "runtime-snapshot" },
-    })
-  })
+    });
+  });
 
   test("falls back to heuristic family rules when no snapshot entry exists", () => {
     const result = getModelCapabilities({
       providerID: "openai",
       modelID: "o3-mini",
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "o3-mini",
       family: "openai-reasoning",
       variants: ["low", "medium", "high"],
       reasoningEfforts: ["none", "minimal", "low", "medium", "high"],
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "heuristic-backed",
       snapshot: { source: "none" },
       family: { source: "heuristic" },
       reasoningEfforts: { source: "heuristic" },
-    })
-  })
+    });
+  });
 
   test("exposes GLM max reasoning effort through heuristic capabilities", () => {
     const result = getModelCapabilities({
       providerID: "zai-coding-plan",
       modelID: "glm-5.2",
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       canonicalModelID: "glm-5.2",
       family: "glm",
       variants: ["low", "medium", "high", "max"],
       reasoningEfforts: ["high", "max"],
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "heuristic-backed",
       family: { source: "heuristic" },
       variants: { source: "heuristic" },
       reasoningEfforts: { source: "heuristic" },
-    })
-  })
+    });
+  });
 
   test("prefers snapshot reasoning over heuristic supportsThinking for MiniMax M2.7", () => {
     // given
-    const modelID = "minimax-m2.7"
+    const modelID = "minimax-m2.7";
 
     // when
     const result = getModelCapabilities({
       providerID: "volcengine",
       modelID,
       bundledSnapshot,
-    })
+    });
 
     // then: snapshot reasoning metadata should win over heuristic fallback
-    expect(result.supportsThinking).toBe(true)
-    expect(result.diagnostics.supportsThinking.source).toBe("bundled-snapshot")
-  })
+    expect(result.supportsThinking).toBe(true);
+    expect(result.diagnostics.supportsThinking.source).toBe("bundled-snapshot");
+  });
 
   test("marks non-thinking Kimi K2.6 as not supporting thinking", () => {
     // given
-    const modelID = "kimi-k2.6"
+    const modelID = "kimi-k2.6";
 
     // when
     const result = getModelCapabilities({
       providerID: "volcengine",
       modelID,
       bundledSnapshot,
-    })
+    });
 
     // then
-    expect(result.supportsThinking).toBe(false)
-    expect(result.diagnostics.supportsThinking.source).toBe("heuristic")
-  })
+    expect(result.supportsThinking).toBe(false);
+    expect(result.diagnostics.supportsThinking.source).toBe("heuristic");
+  });
 
   test("keeps thinking-flavored Kimi K2.6 models as supporting thinking", () => {
     // given
-    const modelID = "kimi-k2.6-thinking"
+    const modelID = "kimi-k2.6-thinking";
 
     // when
     const result = getModelCapabilities({
       providerID: "volcengine",
       modelID,
       bundledSnapshot,
-    })
+    });
 
     // then
-    expect(result.supportsThinking).toBe(true)
-    expect(result.family).toBe("kimi-thinking")
-    expect(result.diagnostics.supportsThinking.source).toBe("heuristic")
-  })
+    expect(result.supportsThinking).toBe(true);
+    expect(result.family).toBe("kimi-thinking");
+    expect(result.diagnostics.supportsThinking.source).toBe("heuristic");
+  });
 
   test("detects prefixed o-series model IDs through the heuristic fallback", () => {
     const result = getModelCapabilities({
       providerID: "azure-openai",
       modelID: "openai/o3-mini",
       bundledSnapshot,
-    })
+    });
 
     expect(result).toMatchObject({
       requestedModelID: "openai/o3-mini",
@@ -417,27 +444,37 @@ describe("getModelCapabilities", () => {
       family: "openai-reasoning",
       variants: ["low", "medium", "high"],
       reasoningEfforts: ["none", "minimal", "low", "medium", "high"],
-    })
+    });
     expect(result.diagnostics).toMatchObject({
       resolutionMode: "heuristic-backed",
       snapshot: { source: "none" },
       family: { source: "heuristic" },
-    })
-  })
+    });
+  });
 
   test("keeps every built-in OmO requirement model snapshot-backed", () => {
-    const bundledSnapshot = getBundledModelCapabilitiesSnapshot(bundledModelCapabilitiesSnapshotJson)
-    const requirementModels = new Map<string, string>()
+    const bundledSnapshot = getBundledModelCapabilitiesSnapshot(
+      bundledModelCapabilitiesSnapshotJson,
+    );
+    const requirementModels = new Map<string, string>();
 
     for (const requirement of Object.values(AGENT_MODEL_REQUIREMENTS)) {
       for (const entry of requirement.fallbackChain) {
-        requirementModels.set(entry.model, requirementModels.get(entry.model) ?? entry.providers[0] ?? "test-provider")
+        requirementModels.set(
+          entry.model,
+          requirementModels.get(entry.model) ?? entry.providers[0] ??
+            "test-provider",
+        );
       }
     }
 
     for (const requirement of Object.values(CATEGORY_MODEL_REQUIREMENTS)) {
       for (const entry of requirement.fallbackChain) {
-        requirementModels.set(entry.model, requirementModels.get(entry.model) ?? entry.providers[0] ?? "test-provider")
+        requirementModels.set(
+          entry.model,
+          requirementModels.get(entry.model) ?? entry.providers[0] ??
+            "test-provider",
+        );
       }
     }
 
@@ -446,12 +483,16 @@ describe("getModelCapabilities", () => {
         providerID,
         modelID,
         bundledSnapshot,
-      })
+      });
 
-      expect(result.diagnostics.resolutionMode).toMatch(/^(snapshot-backed|alias-backed|unknown)$/)
-      expect(result.diagnostics.snapshot.source).toMatch(/^(bundled-snapshot|none)$/)
+      expect(result.diagnostics.resolutionMode).toMatch(
+        /^(snapshot-backed|alias-backed|unknown)$/,
+      );
+      expect(result.diagnostics.snapshot.source).toMatch(
+        /^(bundled-snapshot|none)$/,
+      );
     }
-  })
+  });
 
   test("prefers snapshot reasoning over heuristic supportsThinking: false", () => {
     // given: a model matching the kimi heuristic (supportsThinking: false) but with reasoning: true in snapshot
@@ -472,19 +513,21 @@ describe("getModelCapabilities", () => {
           },
         },
       },
-    })
+    });
 
     // then: snapshot metadata should win over heuristic fallback
-    expect(capabilities.supportsThinking).toBe(true)
-    expect(capabilities.diagnostics.supportsThinking.source).toBe("bundled-snapshot")
-  })
+    expect(capabilities.supportsThinking).toBe(true);
+    expect(capabilities.diagnostics.supportsThinking.source).toBe(
+      "bundled-snapshot",
+    );
+  });
 
   test("prefers runtime thinking over heuristic supportsThinking: false", () => {
     // given: a model matching the kimi heuristic but runtime reports thinking
     findProviderModelMetadataSpy = spyOn(
       connectedProvidersCache,
       "findProviderModelMetadata",
-    ).mockReturnValue(undefined)
+    ).mockReturnValue(undefined);
 
     const capabilities = getModelCapabilities({
       providerID: "moonshotai",
@@ -492,10 +535,10 @@ describe("getModelCapabilities", () => {
       runtimeModel: {
         reasoning: true,
       },
-    })
+    });
 
     // then: runtime metadata should win over heuristic fallback
-    expect(capabilities.supportsThinking).toBe(true)
-    expect(capabilities.diagnostics.supportsThinking.source).toBe("runtime")
-  })
-})
+    expect(capabilities.supportsThinking).toBe(true);
+    expect(capabilities.diagnostics.supportsThinking.source).toBe("runtime");
+  });
+});

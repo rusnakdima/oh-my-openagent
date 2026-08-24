@@ -1,51 +1,53 @@
-import { execFileSync } from "node:child_process"
-import { existsSync, realpathSync } from "node:fs"
-import { dirname, join, resolve, win32 } from "node:path"
+import { execFileSync } from "node:child_process";
+import { existsSync, realpathSync } from "node:fs";
+import { dirname, join, resolve, win32 } from "node:path";
 
-const worktreePathCache = new Map<string, string | undefined>()
+const worktreePathCache = new Map<string, string | undefined>();
 
 function normalizePath(path: string): string {
-  const resolvedPath = process.platform !== "win32" && win32.isAbsolute(path) ? path : resolve(path)
+  const resolvedPath = process.platform !== "win32" && win32.isAbsolute(path)
+    ? path
+    : resolve(path);
   if (!existsSync(resolvedPath)) {
-    return resolvedPath
+    return resolvedPath;
   }
 
   try {
-    return realpathSync.native(resolvedPath)
+    return realpathSync.native(resolvedPath);
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
     try {
-      return realpathSync(resolvedPath)
+      return realpathSync(resolvedPath);
     } catch (fallbackError) {
       if (!(fallbackError instanceof Error)) {
-        throw fallbackError
+        throw fallbackError;
       }
-      return resolvedPath
+      return resolvedPath;
     }
   }
 }
 
 function pathKey(path: string): string {
-  const normalized = path.replace(/\\/g, "/")
-  return process.platform === "win32" ? normalized.toLowerCase() : normalized
+  const normalized = path.replace(/\\/g, "/");
+  return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
 
 function findGitMetadataRoot(startDirectory: string): string | undefined {
-  let currentDirectory = normalizePath(startDirectory)
+  let currentDirectory = normalizePath(startDirectory);
 
   while (true) {
     if (existsSync(join(currentDirectory, ".git"))) {
-      return currentDirectory
+      return currentDirectory;
     }
 
-    const parentDirectory = dirname(currentDirectory)
+    const parentDirectory = dirname(currentDirectory);
     if (parentDirectory === currentDirectory) {
-      return undefined
+      return undefined;
     }
 
-    currentDirectory = normalizePath(parentDirectory)
+    currentDirectory = normalizePath(parentDirectory);
   }
 }
 
@@ -54,57 +56,61 @@ function findAncestorDirectories(
   targetPaths: ReadonlyArray<ReadonlyArray<string>>,
   stopDirectory?: string,
 ): string[] {
-  const directories: string[] = []
-  const seen = new Set<string>()
-  let currentDirectory = normalizePath(startDirectory)
-  const resolvedStopDirectory = stopDirectory ? normalizePath(stopDirectory) : undefined
-  const stopDirectoryKey = resolvedStopDirectory ? pathKey(resolvedStopDirectory) : undefined
+  const directories: string[] = [];
+  const seen = new Set<string>();
+  let currentDirectory = normalizePath(startDirectory);
+  const resolvedStopDirectory = stopDirectory
+    ? normalizePath(stopDirectory)
+    : undefined;
+  const stopDirectoryKey = resolvedStopDirectory
+    ? pathKey(resolvedStopDirectory)
+    : undefined;
 
   while (true) {
     for (const targetPath of targetPaths) {
-      const candidateDirectory = join(currentDirectory, ...targetPath)
+      const candidateDirectory = join(currentDirectory, ...targetPath);
       if (!existsSync(candidateDirectory)) {
-        continue
+        continue;
       }
 
-      const normalizedCandidateDirectory = normalizePath(candidateDirectory)
-      const candidateDirectoryKey = pathKey(normalizedCandidateDirectory)
+      const normalizedCandidateDirectory = normalizePath(candidateDirectory);
+      const candidateDirectoryKey = pathKey(normalizedCandidateDirectory);
       if (seen.has(candidateDirectoryKey)) {
-        continue
+        continue;
       }
 
-      seen.add(candidateDirectoryKey)
-      directories.push(normalizedCandidateDirectory)
+      seen.add(candidateDirectoryKey);
+      directories.push(normalizedCandidateDirectory);
     }
 
     if (stopDirectoryKey === pathKey(currentDirectory)) {
-      return directories
+      return directories;
     }
 
-    const parentDirectory = dirname(currentDirectory)
+    const parentDirectory = dirname(currentDirectory);
     if (parentDirectory === currentDirectory) {
-      return directories
+      return directories;
     }
 
-    currentDirectory = normalizePath(parentDirectory)
+    currentDirectory = normalizePath(parentDirectory);
   }
 }
 
 export function clearWorktreeCache(): void {
-  worktreePathCache.clear()
+  worktreePathCache.clear();
 }
 
 export function detectWorktreePath(directory: string): string | undefined {
-  const resolvedDirectory = resolve(directory)
-  const cacheKey = pathKey(normalizePath(resolvedDirectory))
+  const resolvedDirectory = resolve(directory);
+  const cacheKey = pathKey(normalizePath(resolvedDirectory));
   if (worktreePathCache.has(cacheKey)) {
-    return worktreePathCache.get(cacheKey)
+    return worktreePathCache.get(cacheKey);
   }
 
-  const gitMetadataRoot = findGitMetadataRoot(resolvedDirectory)
+  const gitMetadataRoot = findGitMetadataRoot(resolvedDirectory);
   if (gitMetadataRoot !== undefined) {
-    worktreePathCache.set(cacheKey, gitMetadataRoot)
-    return gitMetadataRoot
+    worktreePathCache.set(cacheKey, gitMetadataRoot);
+    return gitMetadataRoot;
   }
 
   try {
@@ -113,37 +119,46 @@ export function detectWorktreePath(directory: string): string | undefined {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
-    }).trim()
-    const normalizedWorktreePath = normalizePath(worktreePath)
+    }).trim();
+    const normalizedWorktreePath = normalizePath(worktreePath);
 
-    worktreePathCache.set(cacheKey, normalizedWorktreePath)
-    return normalizedWorktreePath
+    worktreePathCache.set(cacheKey, normalizedWorktreePath);
+    return normalizedWorktreePath;
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
-    worktreePathCache.set(cacheKey, undefined)
-    return undefined
+    worktreePathCache.set(cacheKey, undefined);
+    return undefined;
   }
 }
 
-export function findProjectClaudeSkillDirs(startDirectory: string, stopDirectory?: string): string[] {
+export function findProjectClaudeSkillDirs(
+  startDirectory: string,
+  stopDirectory?: string,
+): string[] {
   return findAncestorDirectories(
     startDirectory,
     [[".claude", "skills"]],
     stopDirectory ?? detectWorktreePath(startDirectory),
-  )
+  );
 }
 
-export function findProjectAgentsSkillDirs(startDirectory: string, stopDirectory?: string): string[] {
+export function findProjectAgentsSkillDirs(
+  startDirectory: string,
+  stopDirectory?: string,
+): string[] {
   return findAncestorDirectories(
     startDirectory,
     [[".agents", "skills"]],
     stopDirectory ?? detectWorktreePath(startDirectory),
-  )
+  );
 }
 
-export function findProjectOpencodeSkillDirs(startDirectory: string, stopDirectory?: string): string[] {
+export function findProjectOpencodeSkillDirs(
+  startDirectory: string,
+  stopDirectory?: string,
+): string[] {
   return findAncestorDirectories(
     startDirectory,
     [
@@ -151,10 +166,13 @@ export function findProjectOpencodeSkillDirs(startDirectory: string, stopDirecto
       [".opencode", "skill"],
     ],
     stopDirectory ?? detectWorktreePath(startDirectory),
-  )
+  );
 }
 
-export function findProjectOpencodeCommandDirs(startDirectory: string, stopDirectory?: string): string[] {
+export function findProjectOpencodeCommandDirs(
+  startDirectory: string,
+  stopDirectory?: string,
+): string[] {
   return findAncestorDirectories(
     startDirectory,
     [
@@ -162,5 +180,5 @@ export function findProjectOpencodeCommandDirs(startDirectory: string, stopDirec
       [".opencode", "command"],
     ],
     stopDirectory ?? detectWorktreePath(startDirectory),
-  )
+  );
 }

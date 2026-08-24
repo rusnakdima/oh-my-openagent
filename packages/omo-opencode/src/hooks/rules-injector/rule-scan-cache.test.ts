@@ -18,11 +18,23 @@ function createImportSuffix(): string {
 describe("createRuleScanCache", () => {
   it("returns undefined before set, returns stored value, and clears entries", async () => {
     // given
-    const { createRuleScanCache } = await import(`./rule-scan-cache${createImportSuffix()}`);
+    const { createRuleScanCache } = await import(
+      `./rule-scan-cache${createImportSuffix()}`
+    );
     const cache = createRuleScanCache();
     const value = [
-      { path: "/tmp/a.md", realPath: "/tmp/a.md", isGlobal: false, distance: 0 },
-      { path: "/tmp/b.md", realPath: "/tmp/b.md", isGlobal: false, distance: 1 },
+      {
+        path: "/tmp/a.md",
+        realPath: "/tmp/a.md",
+        isGlobal: false,
+        distance: 0,
+      },
+      {
+        path: "/tmp/b.md",
+        realPath: "/tmp/b.md",
+        isGlobal: false,
+        distance: 1,
+      },
     ];
 
     // when
@@ -69,8 +81,12 @@ describe("findRuleFiles with scan cache", () => {
 
   it("reuses cached directory scan results for identical inputs", async () => {
     // given
-    const { createRuleScanCache } = await import(`./rule-scan-cache${createImportSuffix()}`);
-    const { findRuleFiles } = await import(`./rule-file-finder${createImportSuffix()}`);
+    const { createRuleScanCache } = await import(
+      `./rule-scan-cache${createImportSuffix()}`
+    );
+    const { findRuleFiles } = await import(
+      `./rule-file-finder${createImportSuffix()}`
+    );
     const cache = createRuleScanCache();
     const secondRuleFile = join(expectedRuleDir, "python.instructions.md");
 
@@ -78,24 +94,45 @@ describe("findRuleFiles with scan cache", () => {
     writeFileSync(expectedRuleFile, "TypeScript rules\n");
 
     // when
-    const firstCandidates = findRuleFiles(projectRoot, homeDir, currentFile, undefined, cache);
+    const firstCandidates = findRuleFiles(
+      projectRoot,
+      homeDir,
+      currentFile,
+      undefined,
+      cache,
+    );
     writeFileSync(secondRuleFile, "Python rules\n");
-    const secondCandidates = findRuleFiles(projectRoot, homeDir, currentFile, undefined, cache);
+    const secondCandidates = findRuleFiles(
+      projectRoot,
+      homeDir,
+      currentFile,
+      undefined,
+      cache,
+    );
     const uncachedCandidates = findRuleFiles(projectRoot, homeDir, currentFile);
 
     // then
-    expect(firstCandidates.map((candidate) => candidate.path)).toEqual([expectedRuleFile]);
-    expect(secondCandidates.map((candidate) => candidate.path)).toEqual([expectedRuleFile]);
-    expect(uncachedCandidates.map((candidate) => candidate.path).sort()).toEqual([
+    expect(firstCandidates.map((candidate) => candidate.path)).toEqual([
       expectedRuleFile,
-      secondRuleFile,
-    ].sort());
+    ]);
+    expect(secondCandidates.map((candidate) => candidate.path)).toEqual([
+      expectedRuleFile,
+    ]);
+    expect(uncachedCandidates.map((candidate) => candidate.path).sort())
+      .toEqual([
+        expectedRuleFile,
+        secondRuleFile,
+      ].sort());
   });
 
   it("does not re-resolve symlinked rule path on cache hit", async () => {
     // given
-    const { createRuleScanCache } = await import(`./rule-scan-cache${createImportSuffix()}`);
-    const { findRuleFiles } = await import(`./rule-file-finder${createImportSuffix()}`);
+    const { createRuleScanCache } = await import(
+      `./rule-scan-cache${createImportSuffix()}`
+    );
+    const { findRuleFiles } = await import(
+      `./rule-file-finder${createImportSuffix()}`
+    );
     const actualGithubA = join(projectRoot, "actual-github-a");
     const actualGithubB = join(projectRoot, "actual-github-b");
     const instructionsBaseA = join(actualGithubA, "instructions");
@@ -112,11 +149,23 @@ describe("findRuleFiles with scan cache", () => {
     const cache = createRuleScanCache();
 
     // when
-    const firstCandidates = findRuleFiles(projectRoot, homeDir, currentFile, undefined, cache);
+    const firstCandidates = findRuleFiles(
+      projectRoot,
+      homeDir,
+      currentFile,
+      undefined,
+      cache,
+    );
     const cachedRealPath = firstCandidates[0]?.realPath;
     unlinkSync(symlinkGithub);
     symlinkSync(actualGithubB, symlinkGithub, "dir");
-    const secondCandidates = findRuleFiles(projectRoot, homeDir, currentFile, undefined, cache);
+    const secondCandidates = findRuleFiles(
+      projectRoot,
+      homeDir,
+      currentFile,
+      undefined,
+      cache,
+    );
     const reusedRealPath = secondCandidates[0]?.realPath;
 
     // then
@@ -126,8 +175,12 @@ describe("findRuleFiles with scan cache", () => {
 
   it("reuses ancestor directory scan for sibling files in the same project", async () => {
     // given
-    const { createRuleScanCache } = await import(`./rule-scan-cache${createImportSuffix()}`);
-    const { findRuleFiles } = await import(`./rule-file-finder${createImportSuffix()}`);
+    const { createRuleScanCache } = await import(
+      `./rule-scan-cache${createImportSuffix()}`
+    );
+    const { findRuleFiles } = await import(
+      `./rule-file-finder${createImportSuffix()}`
+    );
     const siblingDirA = join(projectRoot, "src", "alpha");
     const siblingDirB = join(projectRoot, "src", "beta");
     const siblingFileA = join(siblingDirA, "a.ts");
@@ -141,10 +194,22 @@ describe("findRuleFiles with scan cache", () => {
     const cache = createRuleScanCache();
 
     // when
-    const firstCandidates = findRuleFiles(projectRoot, homeDir, siblingFileA, undefined, cache);
+    const firstCandidates = findRuleFiles(
+      projectRoot,
+      homeDir,
+      siblingFileA,
+      undefined,
+      cache,
+    );
     unlinkSync(expectedRuleFile);
     rmSync(expectedRuleDir, { recursive: true, force: true });
-    const siblingCandidates = findRuleFiles(projectRoot, homeDir, siblingFileB, undefined, cache);
+    const siblingCandidates = findRuleFiles(
+      projectRoot,
+      homeDir,
+      siblingFileB,
+      undefined,
+      cache,
+    );
 
     // then
     expect(firstCandidates.map((candidate) => candidate.path)).toEqual([

@@ -1,27 +1,30 @@
-import pc from "picocolors"
-import type { RunOptions, RunContext } from "./types"
-import { createEventState, processEvents, serializeError } from "./events"
-import { loadPluginConfig } from "../../plugin-config"
-import { createServerConnection } from "./server-connection"
-import { resolveSession } from "./session-resolver"
-import { createJsonOutputManager } from "./json-output"
-import { executeOnCompleteHook } from "./on-complete-hook"
-import { resolveRunAgent } from "./agent-resolver"
-import { resolveRunModel } from "./model-resolver"
-import { pollForCompletion } from "./poll-for-completion"
-import { waitForPromptStart } from "./prompt-start"
-import { loadAgentProfileColors } from "./agent-profile-colors"
-import { suppressRunInput } from "./stdin-suppression"
-import { createTimestampedStdoutController } from "./timestamp-output"
-import { createCliPostHog, getPostHogDistinctId } from "../../shared/posthog"
-import { dispatchInternalPrompt, isInternalPromptDispatchAccepted } from "../../shared/prompt-async-gate"
-import { isAmbiguousPostDispatchPromptFailure } from "../../shared/prompt-failure-classifier"
-import { resolveRunnableRunAgent } from "./runnable-agent-resolver"
-import { resolveOrCreateWorktree } from "./worktree-resolver"
+import pc from "picocolors";
+import type { RunContext, RunOptions } from "./types";
+import { createEventState, processEvents, serializeError } from "./events";
+import { loadPluginConfig } from "../../plugin-config";
+import { createServerConnection } from "./server-connection";
+import { resolveSession } from "./session-resolver";
+import { createJsonOutputManager } from "./json-output";
+import { executeOnCompleteHook } from "./on-complete-hook";
+import { resolveRunAgent } from "./agent-resolver";
+import { resolveRunModel } from "./model-resolver";
+import { pollForCompletion } from "./poll-for-completion";
+import { waitForPromptStart } from "./prompt-start";
+import { loadAgentProfileColors } from "./agent-profile-colors";
+import { suppressRunInput } from "./stdin-suppression";
+import { createTimestampedStdoutController } from "./timestamp-output";
+import { createCliPostHog, getPostHogDistinctId } from "../../shared/posthog";
+import {
+  dispatchInternalPrompt,
+  isInternalPromptDispatchAccepted,
+} from "../../shared/prompt-async-gate";
+import { isAmbiguousPostDispatchPromptFailure } from "../../shared/prompt-failure-classifier";
+import { resolveRunnableRunAgent } from "./runnable-agent-resolver";
+import { resolveOrCreateWorktree } from "./worktree-resolver";
 
-export { resolveRunAgent }
+export { resolveRunAgent };
 
-const EVENT_PROCESSOR_SHUTDOWN_TIMEOUT_MS = 2_000
+const EVENT_PROCESSOR_SHUTDOWN_TIMEOUT_MS = 2_000;
 
 export async function waitForEventProcessorShutdown(
   eventProcessor: Promise<void>,
@@ -29,83 +32,93 @@ export async function waitForEventProcessorShutdown(
 ): Promise<void> {
   const completed = await Promise.race([
     eventProcessor.then(() => true),
-    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), timeoutMs)),
-  ])
+    new Promise<boolean>((resolve) =>
+      setTimeout(() => resolve(false), timeoutMs)
+    ),
+  ]);
 
-  void completed
+  void completed;
 }
 
 export async function run(options: RunOptions): Promise<number> {
-  process.env.OPENCODE_CLI_RUN_MODE = "true"
-  process.env.OPENCODE_CLIENT = "run"
+  process.env.OPENCODE_CLI_RUN_MODE = "true";
+  process.env.OPENCODE_CLIENT = "run";
 
-  const startTime = Date.now()
+  const startTime = Date.now();
   const {
     message,
     directory: explicitDirectory,
     worktree: worktreeSpec,
-  } = options
-  const repoRoot = explicitDirectory ?? process.cwd()
+  } = options;
+  const repoRoot = explicitDirectory ?? process.cwd();
 
   // Resolve/create worktree if --worktree was specified
-  const directory = worktreeSpec ? await resolveOrCreateWorktree(worktreeSpec, repoRoot) : repoRoot
+  const directory = worktreeSpec
+    ? await resolveOrCreateWorktree(worktreeSpec, repoRoot)
+    : repoRoot;
 
-  const jsonManager = options.json ? createJsonOutputManager() : null
-  if (jsonManager) jsonManager.redirectToStderr()
+  const jsonManager = options.json ? createJsonOutputManager() : null;
+  if (jsonManager) jsonManager.redirectToStderr();
   const timestampOutput = options.json || options.timestamp === false
     ? null
-    : createTimestampedStdoutController()
-  timestampOutput?.enable()
+    : createTimestampedStdoutController();
+  timestampOutput?.enable();
 
-  const pluginConfig = loadPluginConfig(repoRoot, { command: "run" })
-  const resolvedAgent = resolveRunAgent(options, pluginConfig)
-  const abortController = new AbortController()
+  const pluginConfig = loadPluginConfig(repoRoot, { command: "run" });
+  const resolvedAgent = resolveRunAgent(options, pluginConfig);
+  const abortController = new AbortController();
 
-  const posthog = createCliPostHog({ configEnabled: pluginConfig.telemetry })
-  const distinctId = getPostHogDistinctId()
+  const posthog = createCliPostHog({ configEnabled: pluginConfig.telemetry });
+  const distinctId = getPostHogDistinctId();
   try {
-    posthog.trackActive(distinctId, "run_started")
+    posthog.trackActive(distinctId, "run_started");
   } catch (error) {
     if (!(error instanceof Error)) {
-      void error
+      void error;
     }
   }
 
   try {
-    const resolvedModel = resolveRunModel(options.model)
+    const resolvedModel = resolveRunModel(options.model);
 
     const { client, cleanup: serverCleanup } = await createServerConnection({
       port: options.port,
       attach: options.attach,
       signal: abortController.signal,
-    })
+    });
 
     const cleanup = () => {
-      serverCleanup()
-    }
+      serverCleanup();
+    };
 
-    const restoreInput = suppressRunInput()
+    const restoreInput = suppressRunInput();
     const handleSigint = () => {
-      console.log(pc.yellow("\nInterrupted. Shutting down..."))
-      restoreInput()
-      cleanup()
-      process.exit(130)
-    }
+      console.log(pc.yellow("\nInterrupted. Shutting down..."));
+      restoreInput();
+      cleanup();
+      process.exit(130);
+    };
 
-    process.on("SIGINT", handleSigint)
+    process.on("SIGINT", handleSigint);
 
     try {
       const sessionID = await resolveSession({
         client,
         sessionId: options.sessionId,
         directory,
-      })
-      const runnableAgent = await resolveRunnableRunAgent(client, resolvedAgent, pluginConfig)
+      });
+      const runnableAgent = await resolveRunnableRunAgent(
+        client,
+        resolvedAgent,
+        pluginConfig,
+      );
 
-      console.log(pc.dim(`Session: ${sessionID}`))
+      console.log(pc.dim(`Session: ${sessionID}`));
 
       if (resolvedModel) {
-        console.log(pc.dim(`Model: ${resolvedModel.providerID}/${resolvedModel.modelID}`))
+        console.log(
+          pc.dim(`Model: ${resolvedModel.providerID}/${resolvedModel.modelID}`),
+        );
       }
 
       const ctx: RunContext = {
@@ -114,13 +127,14 @@ export async function run(options: RunOptions): Promise<number> {
         directory,
         abortController,
         verbose: options.verbose ?? false,
-      }
-      const events = await client.event.subscribe({ query: { directory } })
-      const eventState = createEventState()
-      eventState.agentColorsByName = await loadAgentProfileColors(client)
-      const eventProcessor = processEvents(ctx, events.stream, eventState).catch(
-        () => {},
-      )
+      };
+      const events = await client.event.subscribe({ query: { directory } });
+      const eventState = createEventState();
+      eventState.agentColorsByName = await loadAgentProfileColors(client);
+      const eventProcessor = processEvents(ctx, events.stream, eventState)
+        .catch(
+          () => {},
+        );
 
       const promptResult = await dispatchInternalPrompt({
         mode: "async",
@@ -141,32 +155,46 @@ export async function run(options: RunOptions): Promise<number> {
           },
           query: { directory },
         },
-      })
-      const promptMayHaveBeenAccepted = promptResult.status === "failed"
-        && isAmbiguousPostDispatchPromptFailure(promptResult)
+      });
+      const promptMayHaveBeenAccepted = promptResult.status === "failed" &&
+        isAmbiguousPostDispatchPromptFailure(promptResult);
       if (promptResult.status === "failed") {
         if (promptMayHaveBeenAccepted) {
           if (options.verbose) {
-            console.error(pc.dim("promptAsync returned an ambiguous error after dispatch; continuing to poll session"))
+            console.error(
+              pc.dim(
+                "promptAsync returned an ambiguous error after dispatch; continuing to poll session",
+              ),
+            );
           }
         } else {
-          throw promptResult.error
+          throw promptResult.error;
         }
       }
-      if (!promptMayHaveBeenAccepted && !isInternalPromptDispatchAccepted(promptResult)) {
-        throw new Error(`Session ${sessionID} is not idle; promptAsync skipped by gate: ${promptResult.status}`)
+      if (
+        !promptMayHaveBeenAccepted &&
+        !isInternalPromptDispatchAccepted(promptResult)
+      ) {
+        throw new Error(
+          `Session ${sessionID} is not idle; promptAsync skipped by gate: ${promptResult.status}`,
+        );
       }
-      await waitForPromptStart(ctx, eventState, abortController)
-      const exitCode = await pollForCompletion(ctx, eventState, abortController, {
-        requireMeaningfulWork: true,
-      })
+      await waitForPromptStart(ctx, eventState, abortController);
+      const exitCode = await pollForCompletion(
+        ctx,
+        eventState,
+        abortController,
+        {
+          requireMeaningfulWork: true,
+        },
+      );
 
-      abortController.abort()
+      abortController.abort();
 
-      await waitForEventProcessorShutdown(eventProcessor)
-      cleanup()
+      await waitForEventProcessorShutdown(eventProcessor);
+      cleanup();
 
-      const durationMs = Date.now() - startTime
+      const durationMs = Date.now() - startTime;
 
       if (options.onComplete) {
         await executeOnCompleteHook({
@@ -175,7 +203,7 @@ export async function run(options: RunOptions): Promise<number> {
           exitCode,
           durationMs,
           messageCount: eventState.messageCount,
-        })
+        });
       }
 
       if (jsonManager) {
@@ -185,33 +213,33 @@ export async function run(options: RunOptions): Promise<number> {
           durationMs,
           messageCount: eventState.messageCount,
           summary: eventState.lastPartText.slice(0, 200) || "Run completed",
-        })
+        });
       }
 
-      return exitCode
+      return exitCode;
     } catch (err) {
-      cleanup()
-      throw err
+      cleanup();
+      throw err;
     } finally {
-      process.removeListener("SIGINT", handleSigint)
-      restoreInput()
+      process.removeListener("SIGINT", handleSigint);
+      restoreInput();
     }
   } catch (err) {
-    if (jsonManager) jsonManager.restore()
-    timestampOutput?.restore()
+    if (jsonManager) jsonManager.restore();
+    timestampOutput?.restore();
     if (err instanceof Error && err.name === "AbortError") {
-      return 130
+      return 130;
     }
-    console.error(pc.red(`Error: ${serializeError(err)}`))
-    return 1
+    console.error(pc.red(`Error: ${serializeError(err)}`));
+    return 1;
   } finally {
     try {
-      await posthog.shutdown()
+      await posthog.shutdown();
     } catch (error) {
       if (!(error instanceof Error)) {
-        void error
+        void error;
       }
     }
-    timestampOutput?.restore()
+    timestampOutput?.restore();
   }
 }

@@ -1,23 +1,23 @@
 /** Generic GPT Hephaestus prompt - fallback for GPT models without a model-specific variant */
 
-import { GPT_FILE_EDIT_GUIDANCE } from "../gpt-apply-patch-guard"
+import { GPT_FILE_EDIT_GUIDANCE } from "../gpt-apply-patch-guard";
 import type {
   AvailableAgent,
-  AvailableTool,
-  AvailableSkill,
   AvailableCategory,
+  AvailableSkill,
+  AvailableTool,
 } from "../dynamic-agent-prompt-builder";
 import {
-  buildKeyTriggersSection,
-  buildToolSelectionTable,
-  buildExploreSection,
-  buildLibrarianSection,
+  buildAntiDuplicationSection,
+  buildAntiPatternsSection,
   buildCategorySkillsDelegationGuide,
   buildDelegationTable,
-  buildOracleSection,
+  buildExploreSection,
   buildHardBlocksSection,
-  buildAntiPatternsSection,
-  buildAntiDuplicationSection,
+  buildKeyTriggersSection,
+  buildLibrarianSection,
+  buildOracleSection,
+  buildToolSelectionTable,
 } from "../dynamic-agent-prompt-builder";
 
 function buildTodoDisciplineSection(useTaskSystem: boolean): string {
@@ -284,12 +284,12 @@ Every \`task()\` output includes a continuation ID (\`ses_...\`). **USE IT for f
 - **Verification failed** - \`task(task_id="ses_...", prompt="Failed: {error}. Fix.")\`
 
 ${
-  oracleSection
-    ? `
+    oracleSection
+      ? `
 ${oracleSection}
 `
-    : ""
-}
+      : ""
+  }
 
 ## Output Contract
 

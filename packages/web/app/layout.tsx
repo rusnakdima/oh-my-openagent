@@ -1,11 +1,11 @@
-import type { Metadata } from "next"
-import type { JSX, ReactNode } from "react"
-import { GeistSans } from "geist/font/sans"
-import { GeistMono } from "geist/font/mono"
-import Script from "next/script"
-import "./globals.css"
+import type { Metadata } from "next";
+import type { JSX, ReactNode } from "react";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import Script from "next/script";
+import "./globals.css";
 
-const primarySiteUrl = "https://omo.dev"
+const primarySiteUrl = "https://omo.dev";
 
 export const metadata: Metadata = {
   metadataBase: new URL(primarySiteUrl),
@@ -60,7 +60,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Oh My OpenAgent — The Best Agent Harness",
-    description: "Meet Sisyphus: The batteries-included agent that codes like you.",
+    description:
+      "Meet Sisyphus: The batteries-included agent that codes like you.",
     // twitter:image is supplied by app/twitter-image.tsx via the file-based convention.
   },
   robots: {
@@ -73,7 +74,7 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-}
+};
 
 const jsonLd = {
   "@context": "https://schema.org",
@@ -94,12 +95,14 @@ const jsonLd = {
     price: "0",
     priceCurrency: "USD",
   },
-}
+};
 
-const gaMeasurementId = "G-S0QJFKT46Q"
-const gaTrackedDomain = "omo.dev"
+const gaMeasurementId = "G-S0QJFKT46Q";
+const gaTrackedDomain = "omo.dev";
 
-export default function RootLayout({ children }: { readonly children: ReactNode }): JSX.Element {
+export default function RootLayout(
+  { children }: { readonly children: ReactNode },
+): JSX.Element {
   return (
     <html
       lang="en"
@@ -126,5 +129,5 @@ export default function RootLayout({ children }: { readonly children: ReactNode 
         {children}
       </body>
     </html>
-  )
+  );
 }

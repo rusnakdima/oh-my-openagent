@@ -1,75 +1,89 @@
 export type FirstMessageVariantGate = {
-  readonly shouldOverride: (sessionID: string) => boolean
-  readonly markApplied: (sessionID: string) => void
-}
+  readonly shouldOverride: (sessionID: string) => boolean;
+  readonly markApplied: (sessionID: string) => void;
+};
 
 export type ChatMessagePart = {
-  readonly type: string
-  readonly text?: string
-  readonly [key: string]: unknown
-}
+  readonly type: string;
+  readonly text?: string;
+  readonly [key: string]: unknown;
+};
 
 export type ChatMessageHandlerOutput = {
-  readonly message: Record<string, unknown>
-  readonly parts: ChatMessagePart[]
-}
+  readonly message: Record<string, unknown>;
+  readonly parts: ChatMessagePart[];
+};
 
 export type ChatMessageInput = {
-  readonly sessionID: string
-  readonly agent?: string
-  readonly model?: { readonly providerID: string; readonly modelID: string }
-}
+  readonly sessionID: string;
+  readonly agent?: string;
+  readonly model?: { readonly providerID: string; readonly modelID: string };
+};
 
 export type StartWorkHookOutput = {
-  readonly parts: Array<{ readonly type: string; readonly text?: string }>
-}
+  readonly parts: Array<{ readonly type: string; readonly text?: string }>;
+};
 
-export type SessionModelOverride = { readonly providerID: string; readonly modelID: string }
+export type SessionModelOverride = {
+  readonly providerID: string;
+  readonly modelID: string;
+};
 
-export type WorkStartingCommand = "start-work" | "ulw-loop"
+export type WorkStartingCommand = "start-work" | "ulw-loop";
 
 type ChatMessageHook = {
   "chat.message"?: (
     input: ChatMessageInput,
     output: ChatMessageHandlerOutput,
-  ) => Promise<void>
-}
+  ) => Promise<void>;
+};
 
 type StopContinuationGuard = {
-  "chat.message"?: (input: ChatMessageInput) => Promise<void>
-  stop?: (sessionID: string) => void
-  isStopped: (sessionID: string) => boolean
-  clear: (sessionID: string) => void
-}
+  "chat.message"?: (input: ChatMessageInput) => Promise<void>;
+  stop?: (sessionID: string) => void;
+  isStopped: (sessionID: string) => boolean;
+  clear: (sessionID: string) => void;
+};
 
 type GoalHook = {
-  setGoal: (sessionID: string, objective: string) => { readonly objective: string; readonly status: string } | null
-  getGoal: (sessionID: string) => { readonly objective: string; readonly status: string } | null
-  pauseGoal: (sessionID: string) => { readonly objective: string; readonly status: string } | null
-  resumeGoal: (sessionID: string) => { readonly objective: string; readonly status: string } | null
-  clearGoal: (sessionID: string) => boolean
-  markComplete: (sessionID: string) => { readonly objective: string; readonly status: string } | null
-}
+  setGoal: (
+    sessionID: string,
+    objective: string,
+  ) => { readonly objective: string; readonly status: string } | null;
+  getGoal: (
+    sessionID: string,
+  ) => { readonly objective: string; readonly status: string } | null;
+  pauseGoal: (
+    sessionID: string,
+  ) => { readonly objective: string; readonly status: string } | null;
+  resumeGoal: (
+    sessionID: string,
+  ) => { readonly objective: string; readonly status: string } | null;
+  clearGoal: (sessionID: string) => boolean;
+  markComplete: (
+    sessionID: string,
+  ) => { readonly objective: string; readonly status: string } | null;
+};
 
 type TodoContinuationEnforcerHook = {
-  cancelAllCountdowns: () => void
-}
+  cancelAllCountdowns: () => void;
+};
 
 export type ChatMessageHooks = {
-  modelFallback?: ChatMessageHook | null
-  stopContinuationGuard?: StopContinuationGuard | null
-  backgroundNotificationHook?: ChatMessageHook | null
-  runtimeFallback?: ChatMessageHook | null
-  imageProxy?: ChatMessageHook | null
-  keywordDetector?: ChatMessageHook | null
-  thinkMode?: ChatMessageHook | null
-  claudeCodeHooks?: ChatMessageHook | null
-  autoSlashCommand?: ChatMessageHook | null
-  noSisyphusGpt?: ChatMessageHook | null
-  noHephaestusNonGpt?: ChatMessageHook | null
-  hephaestusAgentsMdInjector?: ChatMessageHook | null
-  startWork?: ChatMessageHook | null
-  goal?: GoalHook | null
-  openspecSession?: ChatMessageHook | null
-  todoContinuationEnforcer?: TodoContinuationEnforcerHook | null
-}
+  modelFallback?: ChatMessageHook | null;
+  stopContinuationGuard?: StopContinuationGuard | null;
+  backgroundNotificationHook?: ChatMessageHook | null;
+  runtimeFallback?: ChatMessageHook | null;
+  imageProxy?: ChatMessageHook | null;
+  keywordDetector?: ChatMessageHook | null;
+  thinkMode?: ChatMessageHook | null;
+  claudeCodeHooks?: ChatMessageHook | null;
+  autoSlashCommand?: ChatMessageHook | null;
+  noSisyphusGpt?: ChatMessageHook | null;
+  noHephaestusNonGpt?: ChatMessageHook | null;
+  hephaestusAgentsMdInjector?: ChatMessageHook | null;
+  startWork?: ChatMessageHook | null;
+  goal?: GoalHook | null;
+  openspecSession?: ChatMessageHook | null;
+  todoContinuationEnforcer?: TodoContinuationEnforcerHook | null;
+};

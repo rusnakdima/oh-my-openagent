@@ -1,6 +1,7 @@
 # Data Modeling — Three Layers of Validation
 
-Go has no Pydantic. Go has no Zod. **You do not need them**, but only if you wire three layers correctly. This document is the canonical pattern.
+Go has no Pydantic. Go has no Zod. **You do not need them**, but only if you
+wire three layers correctly. This document is the canonical pattern.
 
 ## The three layers
 
@@ -35,7 +36,9 @@ Go has no Pydantic. Go has no Zod. **You do not need them**, but only if you wir
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Each layer parses once, into the next layer's types. **A function in the domain layer should never receive a raw string and validate it.** If it does, the boundary above failed.
+Each layer parses once, into the next layer's types. **A function in the domain
+layer should never receive a raw string and validate it.** If it does, the
+boundary above failed.
 
 ---
 
@@ -101,21 +104,21 @@ func fieldErrors(vErr validator.ValidationErrors) map[string]string {
 
 **Tag reference — the tags you actually use**:
 
-| Tag | Meaning |
-|---|---|
-| `required` | Non-zero value |
-| `omitempty` (json) | Skip if zero |
-| `min=N` / `max=N` | Length (strings/slices) or value (numbers) |
-| `gte=N` / `lte=N` / `gt=N` / `lt=N` | Numeric comparison |
-| `email` | RFC 5322-ish email |
-| `url` | Valid URL |
-| `uuid` / `uuid4` / `uuid7` | UUID format |
-| `alphanum` / `alpha` / `numeric` | Character class |
-| `iso3166_1_alpha2` | Country code (US, KR, JP) |
-| `iso4217` | Currency code (USD, KRW) |
-| `oneof=a b c` | Enum of literal values |
-| `dive` | Apply rules to each element of slice/map |
-| `eqfield=Field` | Cross-field equality (e.g., password confirm) |
+| Tag                                 | Meaning                                       |
+| ----------------------------------- | --------------------------------------------- |
+| `required`                          | Non-zero value                                |
+| `omitempty` (json)                  | Skip if zero                                  |
+| `min=N` / `max=N`                   | Length (strings/slices) or value (numbers)    |
+| `gte=N` / `lte=N` / `gt=N` / `lt=N` | Numeric comparison                            |
+| `email`                             | RFC 5322-ish email                            |
+| `url`                               | Valid URL                                     |
+| `uuid` / `uuid4` / `uuid7`          | UUID format                                   |
+| `alphanum` / `alpha` / `numeric`    | Character class                               |
+| `iso3166_1_alpha2`                  | Country code (US, KR, JP)                     |
+| `iso4217`                           | Currency code (USD, KRW)                      |
+| `oneof=a b c`                       | Enum of literal values                        |
+| `dive`                              | Apply rules to each element of slice/map      |
+| `eqfield=Field`                     | Cross-field equality (e.g., password confirm) |
 
 ### Custom validators — register at startup
 
@@ -164,14 +167,16 @@ func (u Username) String() string { return u.raw }
 1. An unexported field holding the raw form.
 2. A `New<Type>(raw) (<Type>, error)` constructor as the sole entry point.
 3. A `String() string` for printing.
-4. `MarshalJSON` / `UnmarshalJSON` if it crosses a JSON boundary outside HTTP handlers (e.g., logging payloads, queue messages).
+4. `MarshalJSON` / `UnmarshalJSON` if it crosses a JSON boundary outside HTTP
+   handlers (e.g., logging payloads, queue messages).
 5. Optionally: `Scan` and `Value` for `database/sql` interop (rare with sqlc).
 
 ---
 
 ## Layer 3: Storage — sqlc rows ↔ domain types
 
-sqlc generates row structs from `.sql` files. **Do not put validation tags on them.** Map between sqlc rows and domain types explicitly:
+sqlc generates row structs from `.sql` files. **Do not put validation tags on
+them.** Map between sqlc rows and domain types explicitly:
 
 ```go
 // internal/store/user_store.go
@@ -206,13 +211,15 @@ func rowToUser(r sqlc.UserRow) (domain.User, error) {
 }
 ```
 
-The mapping is verbose. **That is the point.** Each field is a deliberate choice; refactors flag every site.
+The mapping is verbose. **That is the point.** Each field is a deliberate
+choice; refactors flag every site.
 
 ---
 
 ## Discriminated unions (sum types) at the boundary
 
-When a wire payload has variants (e.g., `{"type": "user.created", ...}` vs `{"type": "user.deleted", ...}`):
+When a wire payload has variants (e.g., `{"type": "user.created", ...}` vs
+`{"type": "user.deleted", ...}`):
 
 ```go
 // Wire DTO with raw discriminator
@@ -248,7 +255,8 @@ func ParseEvent(dto EventDTO) (event.Event, error) {
 }
 ```
 
-The `exhaustive` linter on the switch + the `oneof` validation tag together cover both "unknown type" and "unhandled variant".
+The `exhaustive` linter on the switch + the `oneof` validation tag together
+cover both "unknown type" and "unhandled variant".
 
 ---
 
@@ -282,9 +290,12 @@ func (s *Status) UnmarshalJSON(data []byte) error {
 }
 ```
 
-**Never use `iota` enums for anything that crosses a wire boundary.** They serialize as integers, which (a) breaks debuggability, (b) makes reordering enum values a silent breaking change.
+**Never use `iota` enums for anything that crosses a wire boundary.** They
+serialize as integers, which (a) breaks debuggability, (b) makes reordering enum
+values a silent breaking change.
 
-Use the validator tag `binding:"oneof=pending active closed"` to enforce at the HTTP boundary.
+Use the validator tag `binding:"oneof=pending active closed"` to enforce at the
+HTTP boundary.
 
 ---
 
@@ -292,9 +303,12 @@ Use the validator tag `binding:"oneof=pending active closed"` to enforce at the 
 
 Three choices, in order of preference:
 
-1. **Sentinel zero value**: `Age int` with `0` meaning "unknown". Works when zero is genuinely unreachable as a valid value.
-2. **`sql.Null<T>`** for DB columns: `sql.NullString`, `sql.NullInt64`, `sql.NullTime`. sqlc generates these for nullable columns.
-3. **`*T`**: only when you need to distinguish "not provided" from "set to zero" in a JSON payload (PATCH semantics).
+1. **Sentinel zero value**: `Age int` with `0` meaning "unknown". Works when
+   zero is genuinely unreachable as a valid value.
+2. **`sql.Null<T>`** for DB columns: `sql.NullString`, `sql.NullInt64`,
+   `sql.NullTime`. sqlc generates these for nullable columns.
+3. **`*T`**: only when you need to distinguish "not provided" from "set to zero"
+   in a JSON payload (PATCH semantics).
 
 ```go
 // PATCH payload — `*string` discriminates absent vs empty
@@ -304,26 +318,29 @@ type UpdateUserRequest struct {
 }
 ```
 
-Avoid `*T` in domain types — it bloats every consumer with nil checks. Keep `*T` at the boundary, unwrap on the way in.
+Avoid `*T` in domain types — it bloats every consumer with nil checks. Keep `*T`
+at the boundary, unwrap on the way in.
 
 ---
 
 ## Common AI-generated antipatterns this rejects
 
-| Bad | Why | Good |
-|---|---|---|
-| `func handle(req map[string]any)` | No types, no validation | Define a struct, parse with `validator` |
-| `if email != "" { ... }` inside domain | Validation in the wrong layer | Make `email Email`, no check needed |
-| `type Status int` with `iota` for wire field | Silent breaking on reorder | `type Status string` with const literals |
-| Struct tags `json:"email,string"` (the `,string` coercion) | Magic coercion hides bad input | Strict parsing, fail-fast |
-| `json.Unmarshal` then range-check after | Two-step "validate after parse" | Use `validator` tags or custom `UnmarshalJSON` |
-| Reusing handler DTO as the domain type | Couples wire format to business logic | Two distinct types, explicit mapping |
+| Bad                                                        | Why                                   | Good                                           |
+| ---------------------------------------------------------- | ------------------------------------- | ---------------------------------------------- |
+| `func handle(req map[string]any)`                          | No types, no validation               | Define a struct, parse with `validator`        |
+| `if email != "" { ... }` inside domain                     | Validation in the wrong layer         | Make `email Email`, no check needed            |
+| `type Status int` with `iota` for wire field               | Silent breaking on reorder            | `type Status string` with const literals       |
+| Struct tags `json:"email,string"` (the `,string` coercion) | Magic coercion hides bad input        | Strict parsing, fail-fast                      |
+| `json.Unmarshal` then range-check after                    | Two-step "validate after parse"       | Use `validator` tags or custom `UnmarshalJSON` |
+| Reusing handler DTO as the domain type                     | Couples wire format to business logic | Two distinct types, explicit mapping           |
 
 ---
 
 ## Sources
 
 - go-playground/validator: https://github.com/go-playground/validator
-- gin binding internals: https://github.com/gin-gonic/gin/blob/master/binding/json.go
-- Parse, don't validate: https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/
+- gin binding internals:
+  https://github.com/gin-gonic/gin/blob/master/binding/json.go
+- Parse, don't validate:
+  https://lexi-lambda.github.io/blog/2019/11/05/parse-don-t-validate/
 - sqlc with custom types: https://docs.sqlc.dev/en/latest/howto/overrides.html

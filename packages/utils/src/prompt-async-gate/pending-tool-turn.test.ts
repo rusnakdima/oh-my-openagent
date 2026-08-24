@@ -2,15 +2,16 @@
 
 // allow: SIZE_OK - pending tool-turn tests share one prompt-gate state machine fixture; this release adds narrow regressions and future edits should split by gate state.
 
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 import {
   OMO_INTERNAL_INITIATOR_MARKER,
   OMO_INTERNAL_NOREPLY_MARKER,
-} from "../internal-initiator-marker"
-import { latestAssistantTurnBlocksInternalPrompt } from "./pending-tool-turn"
+} from "../internal-initiator-marker";
+import { latestAssistantTurnBlocksInternalPrompt } from "./pending-tool-turn";
 
-const NOREPLY_TAIL_TEXT = `notification\n${OMO_INTERNAL_INITIATOR_MARKER}\n${OMO_INTERNAL_NOREPLY_MARKER}`
-const REPLY_EXPECTING_TAIL_TEXT = `continue\n${OMO_INTERNAL_INITIATOR_MARKER}`
+const NOREPLY_TAIL_TEXT =
+  `notification\n${OMO_INTERNAL_INITIATOR_MARKER}\n${OMO_INTERNAL_NOREPLY_MARKER}`;
+const REPLY_EXPECTING_TAIL_TEXT = `continue\n${OMO_INTERNAL_INITIATOR_MARKER}`;
 
 describe("latestAssistantTurnBlocksInternalPrompt", () => {
   test("#given completed assistant question tool has no real user answer #when checking prompt safety #then internal prompts stay blocked", () => {
@@ -37,14 +38,14 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           },
         ],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
+    expect(blocks).toBe(true);
+  });
 
   test("#given internal wake follows an unanswered question #when checking prompt safety #then the internal wake does not count as an answer", () => {
     // given
@@ -68,16 +69,19 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           role: "user",
           time: { created: 4000 },
         },
-        parts: [{ type: "text", text: "wake\n<!-- OMO_INTERNAL_INITIATOR -->" }],
+        parts: [{
+          type: "text",
+          text: "wake\n<!-- OMO_INTERNAL_INITIATOR -->",
+        }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
+    expect(blocks).toBe(true);
+  });
 
   test("#given opencode question tool field has no real user answer #when checking prompt safety #then internal prompts stay blocked", () => {
     // given
@@ -101,16 +105,19 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           role: "user",
           time: { created: 4000 },
         },
-        parts: [{ type: "text", text: "wake\n<!-- OMO_INTERNAL_INITIATOR -->" }],
+        parts: [{
+          type: "text",
+          text: "wake\n<!-- OMO_INTERNAL_INITIATOR -->",
+        }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
+    expect(blocks).toBe(true);
+  });
 
   test("#given opencode ask-user-question tool field has no real user answer #when checking prompt safety #then internal prompts stay blocked", () => {
     // given
@@ -134,16 +141,19 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           role: "user",
           time: { created: 4000 },
         },
-        parts: [{ type: "text", text: "wake\n<!-- OMO_INTERNAL_INITIATOR -->" }],
+        parts: [{
+          type: "text",
+          text: "wake\n<!-- OMO_INTERNAL_INITIATOR -->",
+        }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
+    expect(blocks).toBe(true);
+  });
 
   test("#given answered question tool completed #when checking prompt safety #then internal prompts are not blocked by that question", () => {
     // given
@@ -160,19 +170,20 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
             tool: "question",
             state: {
               status: "completed",
-              output: "User has answered your questions: \"format\"=\"Flat codex:sess_abc\".",
+              output:
+                'User has answered your questions: "format"="Flat codex:sess_abc".',
             },
           },
         ],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(false)
-  })
+    expect(blocks).toBe(false);
+  });
 
   test("#given real user answer follows a question #when checking prompt safety #then internal prompts are not blocked by that question", () => {
     // given
@@ -198,14 +209,14 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
         },
         parts: [{ type: "text", text: "continue without the question tool" }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(false)
-  })
+    expect(blocks).toBe(false);
+  });
 
   test("#given completed assistant is followed by an orphaned reply-required internal wake #when checking prompt safety #then internal prompts are admitted", () => {
     // given
@@ -223,16 +234,20 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           role: "user",
           time: { created: 3000 },
         },
-        parts: [{ type: "text", text: "continue\n<!-- OMO_INTERNAL_INITIATOR -->", synthetic: true }],
+        parts: [{
+          type: "text",
+          text: "continue\n<!-- OMO_INTERNAL_INITIATOR -->",
+          synthetic: true,
+        }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(false)
-  })
+    expect(blocks).toBe(false);
+  });
 
   test("#given internal continuation gets only an empty unknown assistant turn #when checking prompt safety #then internal prompts stay blocked", () => {
     // given
@@ -242,7 +257,11 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           role: "user",
           time: { created: 1000 },
         },
-        parts: [{ type: "text", text: "continue\n<!-- OMO_INTERNAL_INITIATOR -->", synthetic: true }],
+        parts: [{
+          type: "text",
+          text: "continue\n<!-- OMO_INTERNAL_INITIATOR -->",
+          synthetic: true,
+        }],
       },
       {
         info: {
@@ -255,14 +274,14 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           { type: "step-finish", reason: "unknown" },
         ],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
+    expect(blocks).toBe(true);
+  });
 
   test("#given internal continuation receives assistant text #when checking prompt safety #then internal prompts are not blocked", () => {
     // given
@@ -272,7 +291,11 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           role: "user",
           time: { created: 1000 },
         },
-        parts: [{ type: "text", text: "continue\n<!-- OMO_INTERNAL_INITIATOR -->", synthetic: true }],
+        parts: [{
+          type: "text",
+          text: "continue\n<!-- OMO_INTERNAL_INITIATOR -->",
+          synthetic: true,
+        }],
       },
       {
         info: {
@@ -286,14 +309,14 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
           { type: "step-finish", reason: "unknown" },
         ],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(false)
-  })
+    expect(blocks).toBe(false);
+  });
 
   test("#given a completed assistant is followed by a noReply notification tail #when checking prompt safety #then internal prompts are not blocked", () => {
     // given
@@ -313,14 +336,14 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
         },
         parts: [{ type: "text", text: NOREPLY_TAIL_TEXT, synthetic: true }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(false)
-  })
+    expect(blocks).toBe(false);
+  });
 
   test("#given a completed assistant is followed by several stacked noReply notification tails #when checking prompt safety #then internal prompts are not blocked", () => {
     // given
@@ -341,14 +364,14 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
         info: { role: "user", time: { created: 4000 } },
         parts: [{ type: "text", text: NOREPLY_TAIL_TEXT, synthetic: true }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(false)
-  })
+    expect(blocks).toBe(false);
+  });
 
   test("#given a reply-expecting internal tail sits behind a noReply tail after completion #when checking prompt safety #then internal prompts are admitted", () => {
     // given
@@ -363,20 +386,24 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
       },
       {
         info: { role: "user", time: { created: 3000 } },
-        parts: [{ type: "text", text: REPLY_EXPECTING_TAIL_TEXT, synthetic: true }],
+        parts: [{
+          type: "text",
+          text: REPLY_EXPECTING_TAIL_TEXT,
+          synthetic: true,
+        }],
       },
       {
         info: { role: "user", time: { created: 4000 } },
         parts: [{ type: "text", text: NOREPLY_TAIL_TEXT, synthetic: true }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(false)
-  })
+    expect(blocks).toBe(false);
+  });
 
   test("#given an actively waiting assistant sits behind a noReply tail #when checking prompt safety #then internal prompts stay blocked", () => {
     // given
@@ -393,12 +420,12 @@ describe("latestAssistantTurnBlocksInternalPrompt", () => {
         info: { role: "user", time: { created: 3000 } },
         parts: [{ type: "text", text: NOREPLY_TAIL_TEXT, synthetic: true }],
       },
-    ]
+    ];
 
     // when
-    const blocks = latestAssistantTurnBlocksInternalPrompt(messages)
+    const blocks = latestAssistantTurnBlocksInternalPrompt(messages);
 
     // then
-    expect(blocks).toBe(true)
-  })
-})
+    expect(blocks).toBe(true);
+  });
+});

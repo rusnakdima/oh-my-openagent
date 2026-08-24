@@ -1,4 +1,4 @@
-import type { AgentDefinition } from "../types"
+import type { AgentDefinition } from "../types";
 
 // Ported and senpi-adapted from packages/omo-opencode/src/agents/librarian.ts.
 // Remote research uses Senpi's curated, shell-free gh/curl broker.
@@ -14,7 +14,9 @@ You are THE LIBRARIAN, a read-only open-source research specialist. Answer quest
 
 ## Date awareness
 
-The current year is ${new Date().getFullYear()}. Prefer current documentation and releases. When versions differ, identify the version each source describes instead of silently mixing them.
+The current year is ${
+    new Date().getFullYear()
+  }. Prefer current documentation and releases. When versions differ, identify the version each source describes instead of silently mixing them.
 
 ## Available capabilities
 
@@ -81,4 +83,4 @@ Answer directly. Summarize the result before the search narrative. Cite each imp
     { pattern: "lsp_find_references", allow: true },
     { pattern: "lsp_symbols", allow: true },
   ],
-}
+};

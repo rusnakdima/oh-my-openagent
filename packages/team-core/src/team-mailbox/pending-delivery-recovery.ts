@@ -1,32 +1,37 @@
-import type { TeamModeConfig } from "../config"
-import { isRecord } from "@oh-my-opencode/utils"
-import { log } from "../logger"
-import { releaseDeliveryReservation, reserveMessageForDelivery } from "./reservation"
+import type { TeamModeConfig } from "../config";
+import { isRecord } from "@oh-my-opencode/utils";
+import { log } from "../logger";
+import {
+  releaseDeliveryReservation,
+  reserveMessageForDelivery,
+} from "./reservation";
 
 type SessionMessagesClient = {
   session?: {
-    messages?: (input: { path: { id: string } }) => Promise<unknown>
-  }
-}
+    messages?: (input: { path: { id: string } }) => Promise<unknown>;
+  };
+};
 
 function getMessagesData(response: unknown): unknown[] {
   if (isRecord(response) && Array.isArray(response.data)) {
-    return response.data
+    return response.data;
   }
-  return Array.isArray(response) ? response : []
+  return Array.isArray(response) ? response : [];
 }
 
 function valueContainsMessageId(value: unknown, messageId: string): boolean {
   if (typeof value === "string") {
-    return value.includes(messageId)
+    return value.includes(messageId);
   }
   if (Array.isArray(value)) {
-    return value.some((entry) => valueContainsMessageId(entry, messageId))
+    return value.some((entry) => valueContainsMessageId(entry, messageId));
   }
   if (isRecord(value)) {
-    return Object.values(value).some((entry) => valueContainsMessageId(entry, messageId))
+    return Object.values(value).some((entry) =>
+      valueContainsMessageId(entry, messageId)
+    );
   }
-  return false
+  return false;
 }
 
 /**
@@ -46,27 +51,34 @@ export async function findDeliveredMessageIds(
   sessionID: string,
   messageIds: readonly string[],
 ): Promise<Set<string>> {
-  const delivered = new Set<string>()
-  if (messageIds.length === 0 || typeof client.session?.messages !== "function") {
-    return delivered
+  const delivered = new Set<string>();
+  if (
+    messageIds.length === 0 || typeof client.session?.messages !== "function"
+  ) {
+    return delivered;
   }
 
   try {
-    const response = await client.session.messages({ path: { id: sessionID } })
-    const messages = getMessagesData(response)
+    const response = await client.session.messages({ path: { id: sessionID } });
+    const messages = getMessagesData(response);
     for (const messageId of messageIds) {
-      if (messages.some((message) => valueContainsMessageId(message, messageId))) {
-        delivered.add(messageId)
+      if (
+        messages.some((message) => valueContainsMessageId(message, messageId))
+      ) {
+        delivered.add(messageId);
       }
     }
   } catch (error) {
-    log("[team-mailbox] failed to read session history for pending-delivery verification", {
-      sessionID,
-      error: error instanceof Error ? error.message : String(error),
-    })
+    log(
+      "[team-mailbox] failed to read session history for pending-delivery verification",
+      {
+        sessionID,
+        error: error instanceof Error ? error.message : String(error),
+      },
+    );
   }
 
-  return delivered
+  return delivered;
 }
 
 /**
@@ -82,10 +94,15 @@ export async function requeuePendingLiveDeliveries(
   config: TeamModeConfig,
 ): Promise<void> {
   for (const messageId of messageIds) {
-    const reservation = await reserveMessageForDelivery(teamRunId, memberName, messageId, config)
+    const reservation = await reserveMessageForDelivery(
+      teamRunId,
+      memberName,
+      messageId,
+      config,
+    );
     if (reservation === null) {
-      continue
+      continue;
     }
-    await releaseDeliveryReservation(reservation)
+    await releaseDeliveryReservation(reservation);
   }
 }

@@ -1,13 +1,13 @@
-import { randomUUID } from "node:crypto"
+import { randomUUID } from "node:crypto";
 
-import type { Message } from "@oh-my-opencode/team-core/types"
+import type { Message } from "@oh-my-opencode/team-core/types";
 
-import type { SendTeamMessageInput } from "./types"
+import type { SendTeamMessageInput } from "./types";
 
 export type BuildTeamMessageOptions = {
-  readonly now?: () => number
-  readonly newMessageId?: () => string
-}
+  readonly now?: () => number;
+  readonly newMessageId?: () => string;
+};
 
 /**
  * Builds a `kind: "message"` team-core `Message` for a team send. `messageId`/`timestamp` are injected
@@ -18,8 +18,8 @@ export function buildTeamMessage(
   input: Pick<SendTeamMessageInput, "from" | "to" | "body" | "summary">,
   options: BuildTeamMessageOptions = {},
 ): Message {
-  const timestamp = (options.now ?? Date.now)()
-  const messageId = (options.newMessageId ?? randomUUID)()
+  const timestamp = (options.now ?? Date.now)();
+  const messageId = (options.newMessageId ?? randomUUID)();
   const base: Message = {
     version: 1,
     messageId,
@@ -28,8 +28,10 @@ export function buildTeamMessage(
     kind: "message",
     body: input.body,
     timestamp,
-  }
-  return input.summary === undefined ? base : { ...base, summary: input.summary }
+  };
+  return input.summary === undefined
+    ? base
+    : { ...base, summary: input.summary };
 }
 
 // Byte-for-byte mirror of team-core team-mailbox `buildEnvelope` (poll.ts), replicated here because
@@ -42,16 +44,20 @@ export function buildPeerMessageEnvelope(message: Message): string {
     `messageId="${escapeAttributeValue(message.messageId)}"`,
     `kind="${escapeAttributeValue(message.kind)}"`,
     `correlationId="${escapeAttributeValue(message.correlationId ?? "")}"`,
-  ]
+  ];
   if (message.summary !== undefined) {
-    attributes.push(`summary="${escapeAttributeValue(message.summary)}"`)
+    attributes.push(`summary="${escapeAttributeValue(message.summary)}"`);
   }
   if (message.references !== undefined) {
-    attributes.push(`references="${escapeAttributeValue(JSON.stringify(message.references))}"`)
+    attributes.push(
+      `references="${
+        escapeAttributeValue(JSON.stringify(message.references))
+      }"`,
+    );
   }
   return `<peer_message ${attributes.join(" ")}>
 ${message.body}
-</peer_message>`
+</peer_message>`;
 }
 
 function escapeAttributeValue(value: string): string {
@@ -60,5 +66,5 @@ function escapeAttributeValue(value: string): string {
     .replaceAll('"', "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
-    .replaceAll("'", "&apos;")
+    .replaceAll("'", "&apos;");
 }

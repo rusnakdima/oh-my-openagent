@@ -1,19 +1,30 @@
 # Native Binary Debugging (No Source / Reverse Engineering)
 
-For binaries where you don't have trustworthy source: stripped production builds, third-party closed libs, malware, CTF challenges, firmware, vendored libs whose docs lie. The workflow is specific; doing it out of order wastes days.
+For binaries where you don't have trustworthy source: stripped production
+builds, third-party closed libs, malware, CTF challenges, firmware, vendored
+libs whose docs lie. The workflow is specific; doing it out of order wastes
+days.
 
-This reference **coordinates** the triage and dynamic work. The heavy tools each have their own reference:
+This reference **coordinates** the triage and dynamic work. The heavy tools each
+have their own reference:
+
 - **Static decompilation** → [tools/ghidra.md](../tools/ghidra.md)
 - **Interactive debugging** → [tools/pwndbg.md](../tools/pwndbg.md)
-- **Scripted interaction / exploitation** → [tools/pwntools.md](../tools/pwntools.md)
+- **Scripted interaction / exploitation** →
+  [tools/pwntools.md](../tools/pwntools.md)
 
-Read those before using them — especially Ghidra, which has a surprising amount of workflow that's not obvious.
+Read those before using them — especially Ghidra, which has a surprising amount
+of workflow that's not obvious.
 
 ---
 
 ## ⚠️ STOP — is this actually a stripped C/C++ binary?
 
-A growing share of "binaries" are actually **bundled high-level apps** — Bun SEA, Node SEA, Deno compile, pkg, nexe, Electron, Tauri, PyInstaller. Their workflow is completely different: the high-level source is recoverable with the right per-bundler tool (often plaintext, sometimes V8 cache / `.pyc` / eszip needing extra tooling), and Ghidra against the runtime VM wastes hours.
+A growing share of "binaries" are actually **bundled high-level apps** — Bun
+SEA, Node SEA, Deno compile, pkg, nexe, Electron, Tauri, PyInstaller. Their
+workflow is completely different: the high-level source is recoverable with the
+right per-bundler tool (often plaintext, sometimes V8 cache / `.pyc` / eszip
+needing extra tooling), and Ghidra against the runtime VM wastes hours.
 
 Quick check:
 
@@ -23,9 +34,15 @@ du -h ./target                                                   # 50 MB+ for a 
 strings -n 12 ./target | rg -iE 'bun|node_modules|webpack|esbuild|deno|pkg/lib|electron|pyinstaller|nexe|NODE_SEA_FUSE|tauri' | head -5
 ```
 
-**If any hits** → close this file, open [bundled-js-binary.md](bundled-js-binary.md) instead. Following the Ghidra/pwndbg path on a bundled-app binary wastes hours decompiling the runtime VM while the app-level bundle is recoverable with the right per-bundler tool (plaintext for Bun/pkg/nexe/Electron-asar; eszip / V8-cache / `.pyc` for Deno / Node SEA / PyInstaller).
+**If any hits** → close this file, open
+[bundled-js-binary.md](bundled-js-binary.md) instead. Following the
+Ghidra/pwndbg path on a bundled-app binary wastes hours decompiling the runtime
+VM while the app-level bundle is recoverable with the right per-bundler tool
+(plaintext for Bun/pkg/nexe/Electron-asar; eszip / V8-cache / `.pyc` for Deno /
+Node SEA / PyInstaller).
 
-If `file` says "Mach-O" or "ELF", `du` is < 20 MB, and the strings check is empty → continue here.
+If `file` says "Mach-O" or "ELF", `du` is < 20 MB, and the strings check is
+empty → continue here.
 
 ---
 
@@ -34,15 +51,17 @@ If `file` says "Mach-O" or "ELF", `du` is < 20 MB, and the strings check is empt
 Every step's output is input to the next. Skipping steps means guessing later.
 
 ```
-  [1] Triage           →  what kind of binary is this?
-  [2] Dynamic tracing  →  what syscalls / libcalls does it make?
-  [3] Static analysis  →  what does it DO, in readable form? (Ghidra)
-  [4] Dynamic debug    →  confirm hypotheses at runtime (pwndbg)
-  [5] Scripted repro   →  lock the bug with a pwntools script
-  [6] TDD + fix / report
+[1] Triage           →  what kind of binary is this?
+[2] Dynamic tracing  →  what syscalls / libcalls does it make?
+[3] Static analysis  →  what does it DO, in readable form? (Ghidra)
+[4] Dynamic debug    →  confirm hypotheses at runtime (pwndbg)
+[5] Scripted repro   →  lock the bug with a pwntools script
+[6] TDD + fix / report
 ```
 
-Steps 1 and 2 are fast (minutes). Step 3 is slow (tens of minutes to hours depending on size). Don't skip 1-2 and go straight to Ghidra — the triage output tells you what to focus on inside Ghidra.
+Steps 1 and 2 are fast (minutes). Step 3 is slow (tens of minutes to hours
+depending on size). Don't skip 1-2 and go straight to Ghidra — the triage output
+tells you what to focus on inside Ghidra.
 
 ---
 
@@ -78,15 +97,21 @@ file ./target                           # will say "stripped" or "not stripped"
 
 ### ⚠️ `strings -n N` silently drops short content
 
-`strings` prints runs of printable characters of length **≥ N**. With `-n 8`, **anything shorter than 8 chars sandwiched between non-printable bytes is dropped silently**. This includes:
+`strings` prints runs of printable characters of length **≥ N**. With `-n 8`,
+**anything shorter than 8 chars sandwiched between non-printable bytes is
+dropped silently**. This includes:
 
 - Short identifier interpolations in templates (`${x}`, `${i}`, `${R}`)
 - Short embedded constants (`v3`, `null`, integer immediates as bytes)
 - Short error codes between binary padding
 
-Real example: a JavaScript template literal `<INSTRUCTIONS>\n${x}\n</INSTRUCTIONS>` came out of `strings -n 8` as `<INSTRUCTIONS>\n</INSTRUCTIONS>` — the `${x}` (4 chars) was dropped. A consumer reading the dump would conclude the template was empty. It is not.
+Real example: a JavaScript template literal
+`<INSTRUCTIONS>\n${x}\n</INSTRUCTIONS>` came out of `strings -n 8` as
+`<INSTRUCTIONS>\n</INSTRUCTIONS>` — the `${x}` (4 chars) was dropped. A consumer
+reading the dump would conclude the template was empty. It is not.
 
-**Use `strings` only for fingerprinting (Phase 1).** For any extraction whose correctness matters, **read bytes directly**:
+**Use `strings` only for fingerprinting (Phase 1).** For any extraction whose
+correctness matters, **read bytes directly**:
 
 ```bash
 # Count occurrences of a needle
@@ -105,12 +130,15 @@ print(repr(data[max(0,pos-100):pos+200]))
 "
 ```
 
-If you must keep using `strings`, lower the threshold: `strings -n 1 -t x ./target | rg ...`. The signal-to-noise drops sharply but short content is preserved.
+If you must keep using `strings`, lower the threshold:
+`strings -n 1 -t x ./target | rg ...`. The signal-to-noise drops sharply but
+short content is preserved.
 
 Write the triage summary to the journal:
 
 ```markdown
 ## Binary triage
+
 - Type: <ELF 64-bit, dynamically linked, stripped>
 - Arch: <x86_64 | arm64 | ...>
 - Libs: <libc, openssl, libcurl>
@@ -140,12 +168,17 @@ ltrace -f -e 'str*+mem*' ./target             # filter to string/mem functions
 
 ### macOS: Mach-O specifics
 
-**SIP block reality check.** With System Integrity Protection enabled (default on every modern macOS), `dtruss` / `dtrace` will **silently fail** to attach to:
+**SIP block reality check.** With System Integrity Protection enabled (default
+on every modern macOS), `dtruss` / `dtrace` will **silently fail** to attach to:
+
 - Anything in `/usr`, `/bin`, `/sbin`, `/System`
-- Apple-signed binaries (Xcode CLT, Homebrew formulae from Apple-distributed taps)
+- Apple-signed binaries (Xcode CLT, Homebrew formulae from Apple-distributed
+  taps)
 - Notarized vendor binaries (Bun, Deno, Docker Desktop, etc.)
 
-`dtruss ./target` will appear to run but produce zero events. This is not a bug; it is the SIP design. Disabling SIP requires a Recovery Mode reboot — usually not worth it. Use the alternatives below.
+`dtruss ./target` will appear to run but produce zero events. This is not a bug;
+it is the SIP design. Disabling SIP requires a Recovery Mode reboot — usually
+not worth it. Use the alternatives below.
 
 ```bash
 # dtruss — works only when SIP allows it (your own unsigned binaries)
@@ -196,7 +229,10 @@ otool -s __TEXT __const ./target                 # constants section
 
 **Interactive debugging on macOS — use `lldb`, not `gdb`.**
 
-GDB on macOS requires a self-signed code-signing certificate (`codesign --entitlements gdb.entitlements --sign gdb-cert /opt/homebrew/bin/gdb`) and even then is unreliable on arm64. **Use `lldb` directly** — it ships with Xcode CLT and works without configuration.
+GDB on macOS requires a self-signed code-signing certificate
+(`codesign --entitlements gdb.entitlements --sign gdb-cert /opt/homebrew/bin/gdb`)
+and even then is unreliable on arm64. **Use `lldb` directly** — it ships with
+Xcode CLT and works without configuration.
 
 ```bash
 # Start lldb
@@ -229,7 +265,8 @@ lldb ./target
 (lldb) image dump symtab ./target
 ```
 
-**Function interception via `DYLD_INSERT_LIBRARIES`** (macOS equivalent of `LD_PRELOAD`):
+**Function interception via `DYLD_INSERT_LIBRARIES`** (macOS equivalent of
+`LD_PRELOAD`):
 
 ```bash
 # Build a shim dylib that overrides specific functions
@@ -237,11 +274,22 @@ lldb ./target
 DYLD_INSERT_LIBRARIES=./shim.dylib DYLD_FORCE_FLAT_NAMESPACE=1 ./target
 ```
 
-DYLD_INSERT works in the unrestricted case but is blocked in three distinct scenarios — distinguish them when diagnosing why your shim didn't load:
+DYLD_INSERT works in the unrestricted case but is blocked in three distinct
+scenarios — distinguish them when diagnosing why your shim didn't load:
 
-1. **SIP / restricted process** (target has the `__RESTRICT,__restrict` section, is setuid/setgid, or is a platform/Apple-signed binary): dyld unconditionally strips all `DYLD_*` env vars before the process starts. Nothing you set will reach the target.
-2. **Hardened runtime + library validation** (`CS_RUNTIME` flag set, `com.apple.security.cs.disable-library-validation` entitlement absent): the process accepts `DYLD_INSERT_LIBRARIES` but **rejects** loading any dylib that isn't signed by the same Team ID or by Apple. Symptom: shim is found but not loaded; check `log show --predicate 'eventMessage CONTAINS "library validation failed"'`.
-3. **Notarization / Gatekeeper translocation**: the binary may be running from a translocated path; relative paths in `DYLD_INSERT_LIBRARIES` won't resolve. Use absolute paths.
+1. **SIP / restricted process** (target has the `__RESTRICT,__restrict` section,
+   is setuid/setgid, or is a platform/Apple-signed binary): dyld unconditionally
+   strips all `DYLD_*` env vars before the process starts. Nothing you set will
+   reach the target.
+2. **Hardened runtime + library validation** (`CS_RUNTIME` flag set,
+   `com.apple.security.cs.disable-library-validation` entitlement absent): the
+   process accepts `DYLD_INSERT_LIBRARIES` but **rejects** loading any dylib
+   that isn't signed by the same Team ID or by Apple. Symptom: shim is found but
+   not loaded; check
+   `log show --predicate 'eventMessage CONTAINS "library validation failed"'`.
+3. **Notarization / Gatekeeper translocation**: the binary may be running from a
+   translocated path; relative paths in `DYLD_INSERT_LIBRARIES` won't resolve.
+   Use absolute paths.
 
 Check each:
 
@@ -272,7 +320,10 @@ log stream --predicate 'process == "target"' --level debug
 log show --predicate 'process == "target"' --last 1h --info --debug
 ```
 
-This is the **partial-runtime-evidence path** for macOS. See [methodology/partial-runtime-evidence.md](../methodology/partial-runtime-evidence.md) for how to combine app-level logs with static analysis when wire-level capture is blocked.
+This is the **partial-runtime-evidence path** for macOS. See
+[methodology/partial-runtime-evidence.md](../methodology/partial-runtime-evidence.md)
+for how to combine app-level logs with static analysis when wire-level capture
+is blocked.
 
 **Network capture on macOS (TLS-decrypted):**
 
@@ -320,36 +371,45 @@ networksetup -setsecurewebproxystate "$SERVICE" off
 sudo security delete-certificate -c "mitmproxy" /Library/Keychains/System.keychain
 ```
 
-**Critical**: forgetting step 6 leaves all your subsequent traffic mis-routed and silently MITM-able. Journal every step.
+**Critical**: forgetting step 6 leaves all your subsequent traffic mis-routed
+and silently MITM-able. Journal every step.
 
 ### What to look for
 
-| Observation | Hypothesis |
-|---|---|
-| `open("/etc/secret-config", ...)` | Reads unexpected config; look at what it does with contents |
-| `connect(... 1.2.3.4:443)` | Phones home or depends on an external service |
-| `getenv("FOO")` returning NULL | Env var expected but not set |
-| Repeated `poll`/`epoll_wait` with no progress | Stuck on I/O; check downstream |
-| `SIGSEGV` caught by signal handler | Custom crash recovery — often hides the real bug |
-| `dlopen("libfoo.so.42")` | Dynamic plugin loading; check plugin path |
+| Observation                                   | Hypothesis                                                  |
+| --------------------------------------------- | ----------------------------------------------------------- |
+| `open("/etc/secret-config", ...)`             | Reads unexpected config; look at what it does with contents |
+| `connect(... 1.2.3.4:443)`                    | Phones home or depends on an external service               |
+| `getenv("FOO")` returning NULL                | Env var expected but not set                                |
+| Repeated `poll`/`epoll_wait` with no progress | Stuck on I/O; check downstream                              |
+| `SIGSEGV` caught by signal handler            | Custom crash recovery — often hides the real bug            |
+| `dlopen("libfoo.so.42")`                      | Dynamic plugin loading; check plugin path                   |
 
 ---
 
 ## [3] Static analysis with Ghidra
 
-When triage + tracing have narrowed you to "something in function X" or "the crypto routine is weird", open Ghidra.
+When triage + tracing have narrowed you to "something in function X" or "the
+crypto routine is weird", open Ghidra.
 
-**Open [tools/ghidra.md](../tools/ghidra.md) before launching Ghidra** — the import / analyze / decompile workflow is not obvious and first-time users waste an hour figuring it out.
+**Open [tools/ghidra.md](../tools/ghidra.md) before launching Ghidra** — the
+import / analyze / decompile workflow is not obvious and first-time users waste
+an hour figuring it out.
 
-Ghidra's decompiler turns machine code into readable-ish C. That's usually what you want. Stay in the Decompiler view; drop to Listing (disassembly) only when the decompiler punts.
+Ghidra's decompiler turns machine code into readable-ish C. That's usually what
+you want. Stay in the Decompiler view; drop to Listing (disassembly) only when
+the decompiler punts.
 
 ---
 
 ## [4] Dynamic debugging with pwndbg
 
-Once static analysis gives you a hypothesis ("this branch at 0x401234 is where the validation fails"), confirm it at runtime with pwndbg.
+Once static analysis gives you a hypothesis ("this branch at 0x401234 is where
+the validation fails"), confirm it at runtime with pwndbg.
 
-**Open [tools/pwndbg.md](../tools/pwndbg.md) before launching gdb.** Pwndbg gives you the context view (registers / stack / disasm / code all visible at once) which is essential for binary debugging.
+**Open [tools/pwndbg.md](../tools/pwndbg.md) before launching gdb.** Pwndbg
+gives you the context view (registers / stack / disasm / code all visible at
+once) which is essential for binary debugging.
 
 Typical pwndbg flow:
 
@@ -368,9 +428,11 @@ pwndbg> ni / si                                # step next / step instruction
 
 ## [5] Scripted reproduction with pwntools
 
-Once you have a hypothesis with a concrete repro input, lock it down with pwntools. This is the "failing test" equivalent for binaries.
+Once you have a hypothesis with a concrete repro input, lock it down with
+pwntools. This is the "failing test" equivalent for binaries.
 
-**Open [tools/pwntools.md](../tools/pwntools.md)** — the Process/Remote/ELF/context APIs are the foundation.
+**Open [tools/pwntools.md](../tools/pwntools.md)** — the
+Process/Remote/ELF/context APIs are the foundation.
 
 ```python
 from pwn import *
@@ -383,7 +445,9 @@ result = p.recvall(timeout=3)
 assert b'expected-output-when-fixed' in result, f'bug repro: {result}'
 ```
 
-This script is now your "red test". When the fix is applied, the script should pass (or the assertion should be inverted for negative tests — e.g. "the crash string should NOT appear").
+This script is now your "red test". When the fix is applied, the script should
+pass (or the assertion should be inverted for negative tests — e.g. "the crash
+string should NOT appear").
 
 ---
 
@@ -393,7 +457,8 @@ Three options, in preference order:
 
 ### Option A: Patch at the source (if you have it)
 
-If the bug is in your own code and source is available, fix it there and rebuild. Standard TDD path.
+If the bug is in your own code and source is available, fix it there and
+rebuild. Standard TDD path.
 
 ### Option B: Binary patch
 
@@ -409,11 +474,15 @@ Journal the exact `dd` command and the original bytes so you can revert.
 
 ### Option C: Wrap / shim
 
-If you can't patch the binary, write a shim library (LD_PRELOAD on Linux, DYLD_INSERT_LIBRARIES on macOS) that overrides the buggy function. pwntools has examples.
+If you can't patch the binary, write a shim library (LD_PRELOAD on Linux,
+DYLD_INSERT_LIBRARIES on macOS) that overrides the buggy function. pwntools has
+examples.
 
 ### Option D: Report upstream
 
-If it's a third-party binary and none of the above are feasible, the "fix" is a high-quality bug report with:
+If it's a third-party binary and none of the above are feasible, the "fix" is a
+high-quality bug report with:
+
 - Full triage summary
 - Reproducible pwntools script
 - Ghidra decompilation of the buggy function
@@ -424,14 +493,14 @@ If it's a third-party binary and none of the above are feasible, the "fix" is a 
 
 ## Silent-failure patterns in native binaries
 
-| Pattern | Why it's silent |
-|---|---|
-| Ignored libc return codes (`read`, `write`, `malloc`) | Bug continues with garbage data; no check |
-| Signal handler swallows SIGSEGV | Crash converted to "something didn't work"; no log |
-| `setjmp`/`longjmp` unwinding over cleanup | Resources leak silently |
-| Thread-local error state never read (`errno`, `GetLastError`) | Error happened, nobody asked |
-| Recovered assertion failure in release build | `assert` compiled out; precondition violations silently corrupt |
-| Dangling pointer reads after free | Often looks like valid data until it doesn't |
+| Pattern                                                       | Why it's silent                                                 |
+| ------------------------------------------------------------- | --------------------------------------------------------------- |
+| Ignored libc return codes (`read`, `write`, `malloc`)         | Bug continues with garbage data; no check                       |
+| Signal handler swallows SIGSEGV                               | Crash converted to "something didn't work"; no log              |
+| `setjmp`/`longjmp` unwinding over cleanup                     | Resources leak silently                                         |
+| Thread-local error state never read (`errno`, `GetLastError`) | Error happened, nobody asked                                    |
+| Recovered assertion failure in release build                  | `assert` compiled out; precondition violations silently corrupt |
+| Dangling pointer reads after free                             | Often looks like valid data until it doesn't                    |
 
 ---
 

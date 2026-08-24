@@ -1,31 +1,31 @@
 export type {
   AvailableAgent,
-  AvailableTool,
-  AvailableSkill,
   AvailableCategory,
-} from "./dynamic-agent-prompt-types"
+  AvailableSkill,
+  AvailableTool,
+} from "./dynamic-agent-prompt-types";
 
-export { categorizeTools } from "./dynamic-agent-tool-categorization"
+export { categorizeTools } from "./dynamic-agent-tool-categorization";
 
 export {
   buildAgentIdentitySection,
-  buildKeyTriggersSection,
-  buildToolSelectionTable,
-  buildExploreSection,
-  buildLibrarianSection,
   buildDelegationTable,
-  buildOracleSection,
+  buildExploreSection,
   buildFrontendGuidanceSection,
+  buildKeyTriggersSection,
+  buildLibrarianSection,
   buildNonClaudePlannerSection,
+  buildOracleSection,
   buildParallelDelegationSection,
-} from "./dynamic-agent-core-sections"
+  buildToolSelectionTable,
+} from "./dynamic-agent-core-sections";
 
-export { buildCategorySkillsDelegationGuide } from "./dynamic-agent-category-skills-guide"
+export { buildCategorySkillsDelegationGuide } from "./dynamic-agent-category-skills-guide";
 
 export {
-  buildHardBlocksSection,
+  buildAntiDuplicationSection,
   buildAntiPatternsSection,
+  buildHardBlocksSection,
   buildToolCallFormatSection,
   buildUltraworkSection,
-  buildAntiDuplicationSection,
-} from "./dynamic-agent-policy-sections"
+} from "./dynamic-agent-policy-sections";

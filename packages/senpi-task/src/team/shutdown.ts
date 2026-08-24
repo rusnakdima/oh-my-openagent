@@ -1,11 +1,18 @@
-import { loadRuntimeState, transitionRuntimeState } from "@oh-my-opencode/team-core/team-state-store"
-import type { RuntimeState } from "@oh-my-opencode/team-core/types"
+import {
+  loadRuntimeState,
+  transitionRuntimeState,
+} from "@oh-my-opencode/team-core/team-state-store";
+import type { RuntimeState } from "@oh-my-opencode/team-core/types";
 
-import { TEAM_LEAD_SENTINEL } from "./normalize"
-import type { TeamCoreConfig } from "./runtime-config"
-import { findLatestShutdownRequestIndex, findRuntimeMember, isUnresolvedRequest } from "./shutdown-helpers"
+import { TEAM_LEAD_SENTINEL } from "./normalize";
+import type { TeamCoreConfig } from "./runtime-config";
+import {
+  findLatestShutdownRequestIndex,
+  findRuntimeMember,
+  isUnresolvedRequest,
+} from "./shutdown-helpers";
 
-export type SenpiShutdownErrorCode = "unknown_member" | "no_pending_request"
+export type SenpiShutdownErrorCode = "unknown_member" | "no_pending_request";
 
 /**
  * Raised by the shutdown protocol for the two lead-driven failure modes: a request/approval/rejection
@@ -13,55 +20,83 @@ export type SenpiShutdownErrorCode = "unknown_member" | "no_pending_request"
  * outstanding shutdown request. Carries the team run and member in play for diagnostics.
  */
 export class SenpiShutdownError extends Error {
-  readonly code: SenpiShutdownErrorCode
-  readonly teamRunId: string
-  readonly memberName: string
+  readonly code: SenpiShutdownErrorCode;
+  readonly teamRunId: string;
+  readonly memberName: string;
 
-  constructor(message: string, code: SenpiShutdownErrorCode, teamRunId: string, memberName: string) {
-    super(message)
-    this.name = "SenpiShutdownError"
-    this.code = code
-    this.teamRunId = teamRunId
-    this.memberName = memberName
+  constructor(
+    message: string,
+    code: SenpiShutdownErrorCode,
+    teamRunId: string,
+    memberName: string,
+  ) {
+    super(message);
+    this.name = "SenpiShutdownError";
+    this.code = code;
+    this.teamRunId = teamRunId;
+    this.memberName = memberName;
   }
 }
 
-export type ShutdownMessageKind = "shutdown_request" | "shutdown_approved" | "shutdown_rejected"
+export type ShutdownMessageKind =
+  | "shutdown_request"
+  | "shutdown_approved"
+  | "shutdown_rejected";
 
 // A single shutdown-protocol message the lead emits toward a member. The transport is injected so
 // the shutdown protocol stays decoupled from the messaging layer (todo 22) and testable in isolation.
 export type ShutdownOutboundMessage = {
-  readonly to: string
-  readonly kind: ShutdownMessageKind
-  readonly body: string
-}
+  readonly to: string;
+  readonly kind: ShutdownMessageKind;
+  readonly body: string;
+};
 
-export type ShutdownMessenger = (message: ShutdownOutboundMessage) => Promise<void>
+export type ShutdownMessenger = (
+  message: ShutdownOutboundMessage,
+) => Promise<void>;
 
 export type RequestShutdownDeps = {
-  readonly config: TeamCoreConfig
-  readonly sendMessage: ShutdownMessenger
-  readonly now?: () => number
-}
+  readonly config: TeamCoreConfig;
+  readonly sendMessage: ShutdownMessenger;
+  readonly now?: () => number;
+};
 
 export type ApproveShutdownDeps = RequestShutdownDeps & {
-  readonly cancelMemberTask: (memberName: string) => Promise<void>
-}
+  readonly cancelMemberTask: (memberName: string) => Promise<void>;
+};
 
-export type RejectShutdownDeps = RequestShutdownDeps
+export type RejectShutdownDeps = RequestShutdownDeps;
 
-function requireMember(state: RuntimeState, teamRunId: string, memberName: string): void {
+function requireMember(
+  state: RuntimeState,
+  teamRunId: string,
+  memberName: string,
+): void {
   if (findRuntimeMember(state, memberName) === undefined) {
-    throw new SenpiShutdownError(`unknown team member '${memberName}'`, "unknown_member", teamRunId, memberName)
+    throw new SenpiShutdownError(
+      `unknown team member '${memberName}'`,
+      "unknown_member",
+      teamRunId,
+      memberName,
+    );
   }
 }
 
-function requirePendingRequestIndex(state: RuntimeState, teamRunId: string, memberName: string): number {
-  const index = findLatestShutdownRequestIndex(state, memberName)
+function requirePendingRequestIndex(
+  state: RuntimeState,
+  teamRunId: string,
+  memberName: string,
+): number {
+  const index = findLatestShutdownRequestIndex(state, memberName);
   if (index < 0 || !isUnresolvedRequest(state.shutdownRequests[index])) {
-    throw new SenpiShutdownError(`no pending shutdown request for '${memberName}'`, "no_pending_request", teamRunId, memberName)
+    throw new SenpiShutdownError(
+      `no pending shutdown request for '${memberName}'`,
+      "no_pending_request",
+      teamRunId,
+      memberName,
+    );
   }
-  return index
+  return index;
 }
 
 /**
@@ -74,30 +109,40 @@ export async function requestShutdown(
   memberName: string,
   deps: RequestShutdownDeps,
 ): Promise<RuntimeState> {
-  const state = await loadRuntimeState(teamRunId, deps.config)
-  requireMember(state, teamRunId, memberName)
+  const state = await loadRuntimeState(teamRunId, deps.config);
+  requireMember(state, teamRunId, memberName);
 
-  const existingIndex = findLatestShutdownRequestIndex(state, memberName)
-  if (isUnresolvedRequest(state.shutdownRequests[existingIndex])) return state
+  const existingIndex = findLatestShutdownRequestIndex(state, memberName);
+  if (isUnresolvedRequest(state.shutdownRequests[existingIndex])) return state;
 
-  await deps.sendMessage({ to: memberName, kind: "shutdown_request", body: "" })
+  await deps.sendMessage({
+    to: memberName,
+    kind: "shutdown_request",
+    body: "",
+  });
 
-  const requestedAt = (deps.now ?? Date.now)()
+  const requestedAt = (deps.now ?? Date.now)();
   return transitionRuntimeState(
     teamRunId,
     (current) => {
-      const currentIndex = findLatestShutdownRequestIndex(current, memberName)
-      if (isUnresolvedRequest(current.shutdownRequests[currentIndex])) return current
+      const currentIndex = findLatestShutdownRequestIndex(current, memberName);
+      if (isUnresolvedRequest(current.shutdownRequests[currentIndex])) {
+        return current;
+      }
       return {
         ...current,
         shutdownRequests: [
           ...current.shutdownRequests,
-          { memberId: memberName, requesterName: TEAM_LEAD_SENTINEL, requestedAt },
+          {
+            memberId: memberName,
+            requesterName: TEAM_LEAD_SENTINEL,
+            requestedAt,
+          },
         ],
-      }
+      };
     },
     deps.config,
-  )
+  );
 }
 
 /**
@@ -110,33 +155,42 @@ export async function approveShutdown(
   memberName: string,
   deps: ApproveShutdownDeps,
 ): Promise<RuntimeState> {
-  const state = await loadRuntimeState(teamRunId, deps.config)
-  requireMember(state, teamRunId, memberName)
-  const requestIndex = requirePendingRequestIndex(state, teamRunId, memberName)
-  if (state.shutdownRequests[requestIndex]?.approvedAt !== undefined) return state
+  const state = await loadRuntimeState(teamRunId, deps.config);
+  requireMember(state, teamRunId, memberName);
+  const requestIndex = requirePendingRequestIndex(state, teamRunId, memberName);
+  if (state.shutdownRequests[requestIndex]?.approvedAt !== undefined) {
+    return state;
+  }
 
-  const approvedAt = (deps.now ?? Date.now)()
+  const approvedAt = (deps.now ?? Date.now)();
   const updated = await transitionRuntimeState(
     teamRunId,
     (current) => {
-      const currentIndex = findLatestShutdownRequestIndex(current, memberName)
+      const currentIndex = findLatestShutdownRequestIndex(current, memberName);
       return {
         ...current,
         members: current.members.map((member) => {
-          if (member.name !== memberName || member.status === "completed" || member.status === "errored") return member
-          return { ...member, status: "shutdown_approved" }
+          if (
+            member.name !== memberName || member.status === "completed" ||
+            member.status === "errored"
+          ) return member;
+          return { ...member, status: "shutdown_approved" };
         }),
         shutdownRequests: current.shutdownRequests.map((request, index) =>
-          index === currentIndex ? { ...request, approvedAt } : request,
+          index === currentIndex ? { ...request, approvedAt } : request
         ),
-      }
+      };
     },
     deps.config,
-  )
+  );
 
-  await deps.cancelMemberTask(memberName)
-  await deps.sendMessage({ to: memberName, kind: "shutdown_approved", body: memberName })
-  return updated
+  await deps.cancelMemberTask(memberName);
+  await deps.sendMessage({
+    to: memberName,
+    kind: "shutdown_approved",
+    body: memberName,
+  });
+  return updated;
 }
 
 /**
@@ -150,27 +204,35 @@ export async function rejectShutdown(
   reason: string,
   deps: RejectShutdownDeps,
 ): Promise<RuntimeState> {
-  const state = await loadRuntimeState(teamRunId, deps.config)
-  requireMember(state, teamRunId, memberName)
-  const requestIndex = requirePendingRequestIndex(state, teamRunId, memberName)
+  const state = await loadRuntimeState(teamRunId, deps.config);
+  requireMember(state, teamRunId, memberName);
+  const requestIndex = requirePendingRequestIndex(state, teamRunId, memberName);
 
-  const existing = state.shutdownRequests[requestIndex]
-  if (existing?.rejectedAt !== undefined && existing.rejectedReason === reason) return state
+  const existing = state.shutdownRequests[requestIndex];
+  if (
+    existing?.rejectedAt !== undefined && existing.rejectedReason === reason
+  ) return state;
 
-  await deps.sendMessage({ to: memberName, kind: "shutdown_rejected", body: reason })
+  await deps.sendMessage({
+    to: memberName,
+    kind: "shutdown_rejected",
+    body: reason,
+  });
 
-  const rejectedAt = (deps.now ?? Date.now)()
+  const rejectedAt = (deps.now ?? Date.now)();
   return transitionRuntimeState(
     teamRunId,
     (current) => {
-      const currentIndex = findLatestShutdownRequestIndex(current, memberName)
+      const currentIndex = findLatestShutdownRequestIndex(current, memberName);
       return {
         ...current,
         shutdownRequests: current.shutdownRequests.map((request, index) =>
-          index === currentIndex ? { ...request, rejectedAt, rejectedReason: reason } : request,
+          index === currentIndex
+            ? { ...request, rejectedAt, rejectedReason: reason }
+            : request
         ),
-      }
+      };
     },
     deps.config,
-  )
+  );
 }

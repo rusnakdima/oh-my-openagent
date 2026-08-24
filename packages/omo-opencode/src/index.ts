@@ -1,11 +1,11 @@
-import type { PluginModule } from "@opencode-ai/plugin"
-import { createPluginModule } from "./testing/create-plugin-module"
+import type { PluginModule } from "@opencode-ai/plugin";
+import { createPluginModule } from "./testing/create-plugin-module";
 
-const pluginModule: PluginModule = createPluginModule()
+const pluginModule: PluginModule = createPluginModule();
 
-export const omoPlugin = pluginModule.server
+export const omoPlugin = pluginModule.server;
 
-export default pluginModule
+export default pluginModule;
 
 export type {
   AgentName,
@@ -15,6 +15,6 @@ export type {
   HookName,
   McpName,
   OhMyOpenCodeConfig,
-} from "./config"
+} from "./config";
 
-export type { ConfigLoadError } from "./shared/config-errors"
+export type { ConfigLoadError } from "./shared/config-errors";

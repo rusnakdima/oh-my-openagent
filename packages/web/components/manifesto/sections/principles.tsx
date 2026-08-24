@@ -1,11 +1,11 @@
-import type { JSX } from "react"
-import { getTranslations } from "next-intl/server"
-import Image from "next/image"
-import { Section } from "@/components/ui/section"
+import type { JSX } from "react";
+import { getTranslations } from "next-intl/server";
+import Image from "next/image";
+import { Section } from "@/components/ui/section";
 
 export async function PrinciplesSection(): Promise<JSX.Element> {
-  const t = await getTranslations("manifesto")
-  const principles = ["predictable", "continuous", "delegatable"] as const
+  const t = await getTranslations("manifesto");
+  const principles = ["predictable", "continuous", "delegatable"] as const;
 
   return (
     <Section data-section="manifesto-principles" className="mx-auto max-w-6xl">
@@ -24,11 +24,15 @@ export async function PrinciplesSection(): Promise<JSX.Element> {
                 className="rounded-lg"
               />
             </div>
-            <h3 className="mb-3 text-xl font-bold">{t(`principles.${key}.title`)}</h3>
-            <p className="text-muted-foreground">{t(`principles.${key}.description`)}</p>
+            <h3 className="mb-3 text-xl font-bold">
+              {t(`principles.${key}.title`)}
+            </h3>
+            <p className="text-muted-foreground">
+              {t(`principles.${key}.description`)}
+            </p>
           </div>
         ))}
       </div>
     </Section>
-  )
+  );
 }

@@ -1,6 +1,6 @@
-import type { SkillInvocationState } from "@oh-my-opencode/senpi-task"
+import type { SkillInvocationState } from "@oh-my-opencode/senpi-task";
 
-import type { SenpiExtensionAPI } from "../../extension/types"
+import type { SenpiExtensionAPI } from "../../extension/types";
 
 // Session-scoped state feeding the senpi-task invocation gate for plan-gated agents (metis/momus).
 // Three observation channels, deliberately separated because they carry different trust levels:
@@ -21,14 +21,14 @@ import type { SenpiExtensionAPI } from "../../extension/types"
 // load_skills on a task spawn arms the CHILD only and is deliberately not a parent-session record.
 
 export type SkillInvocationTracker = {
-  readonly stateFor: (sessionId: string) => SkillInvocationState
-}
+  readonly stateFor: (sessionId: string) => SkillInvocationState;
+};
 
-const SKILL_COMMAND_PREFIX = "/skill:"
+const SKILL_COMMAND_PREFIX = "/skill:";
 // senpi expands `/skill:<name>` into this block BEFORE the input event fires, so the raw prefix
 // almost never survives to a handler. Match the NAME ATTRIBUTE: keying off the body would let any
 // other skill that merely mentions "ulw-plan" arm the gate by accident.
-const EXPANDED_SKILL_BLOCK_PATTERN = /<skill\s+name="([^"]+)"/gi
+const EXPANDED_SKILL_BLOCK_PATTERN = /<skill\s+name="([^"]+)"/gi;
 // The expansion is `<skill name="X" ...>...body...</skill>` followed by the user's own typed text.
 // The body is skill documentation, not something the user said, so it is stripped before any
 // text matching - otherwise a skill whose docs mention ulw-plan would arm the gate. A truncated
@@ -36,20 +36,23 @@ const EXPANDED_SKILL_BLOCK_PATTERN = /<skill\s+name="([^"]+)"/gi
 const EXPANDED_SKILL_BLOCK_BODY_PATTERNS: readonly RegExp[] = [
   /<skill\s+name="[^"]*"[\s\S]*?<\/skill>/gi,
   /<skill\s+name="[^"]*"[\s\S]*$/i,
-]
+];
 // Input injected programmatically by an extension - never a human keystroke.
-const AGENT_MANUFACTURABLE_INPUT_SOURCE = "extension"
-const SKILL_MD_PATH_PATTERN = /[\\/]skills[\\/]([^\\/]+)[\\/]SKILL\.md$/i
-const PLAN_ARTIFACT_PATH_PATTERN = /(^|[\\/])\.omo[\\/]plans[\\/][^\\/]+\.md$/i
-const PLAN_ARTIFACT_PATCH_PATTERN = /\.omo[\\/]plans[\\/][^\s"'`]+\.md/i
-const PLAN_ARTIFACT_PATCH_PATTERN_GLOBAL = new RegExp(PLAN_ARTIFACT_PATCH_PATTERN.source, "gi")
+const AGENT_MANUFACTURABLE_INPUT_SOURCE = "extension";
+const SKILL_MD_PATH_PATTERN = /[\\/]skills[\\/]([^\\/]+)[\\/]SKILL\.md$/i;
+const PLAN_ARTIFACT_PATH_PATTERN = /(^|[\\/])\.omo[\\/]plans[\\/][^\\/]+\.md$/i;
+const PLAN_ARTIFACT_PATCH_PATTERN = /\.omo[\\/]plans[\\/][^\s"'`]+\.md/i;
+const PLAN_ARTIFACT_PATCH_PATTERN_GLOBAL = new RegExp(
+  PLAN_ARTIFACT_PATCH_PATTERN.source,
+  "gi",
+);
 const INJECTED_BLOCK_PATTERNS = [
   /<ultrawork-mode>[\s\S]*?<\/ultrawork-mode>/gi,
   /<system-reminder>[\s\S]*?<\/system-reminder>/gi,
-]
+];
 const USER_REQUEST_PATTERNS: Readonly<Record<string, RegExp>> = {
   "ulw-plan": /\bulw[-_ ]?plan\b/i,
-}
+};
 // Own-words requests for a plan before implementation, per the ulw-plan SKILL.md contract. Kept
 // deliberately narrow: each alternative requires an explicit planning noun plus a request or
 // ordering cue, so ordinary work instructions ("fix the login bug") never arm the gate.
@@ -64,141 +67,180 @@ const OWN_WORDS_PLAN_REQUEST_PATTERNS: readonly RegExp[] = [
   // saying "승인은 계획 작성까지만 허가" mentions planning without requesting it.
   /계획(?:서)?(?:부터|을|를|\s)*\s*(?:먼저\s*)?(?:세워|세우|짜|작성해|수립해)/,
   /(?:먼저|우선)\s*계획(?:서)?(?:을|를)?\s*(?:세워|세우|짜|작성해|수립해)/,
-]
+];
 
 function isOwnWordsPlanRequest(text: string): boolean {
-  return OWN_WORDS_PLAN_REQUEST_PATTERNS.some((pattern) => pattern.test(text))
+  return OWN_WORDS_PLAN_REQUEST_PATTERNS.some((pattern) => pattern.test(text));
 }
 
 // Skill names carried by expanded `<skill name="...">` blocks in one input.
 function expandedSkillBlockNames(text: string): readonly string[] {
-  const names: string[] = []
+  const names: string[] = [];
   for (const match of text.matchAll(EXPANDED_SKILL_BLOCK_PATTERN)) {
-    const name = match[1]?.trim()
-    if (name !== undefined && name.length > 0) names.push(name)
+    const name = match[1]?.trim();
+    if (name !== undefined && name.length > 0) names.push(name);
   }
-  return [...new Set(names)]
+  return [...new Set(names)];
 }
-const PLAN_ARTIFACT_PATH_TOOLS: ReadonlySet<string> = new Set(["read", "write", "edit"])
+const PLAN_ARTIFACT_PATH_TOOLS: ReadonlySet<string> = new Set([
+  "read",
+  "write",
+  "edit",
+]);
 
-export function createSkillInvocationTracker(pi: SenpiExtensionAPI): SkillInvocationTracker {
-  const invokedBySession = new Map<string, Set<string>>()
-  const requestedBySession = new Map<string, Set<string>>()
-  const planTouchesBySession = new Map<string, Map<string, { count: number; lastTouchedAt: number }>>()
-  let planTouchSequence = 0
+export function createSkillInvocationTracker(
+  pi: SenpiExtensionAPI,
+): SkillInvocationTracker {
+  const invokedBySession = new Map<string, Set<string>>();
+  const requestedBySession = new Map<string, Set<string>>();
+  const planTouchesBySession = new Map<
+    string,
+    Map<string, { count: number; lastTouchedAt: number }>
+  >();
+  let planTouchSequence = 0;
 
-  const record = (target: Map<string, Set<string>>, sessionId: string | undefined, skill: string | undefined): void => {
-    if (sessionId === undefined || skill === undefined || skill.length === 0) return
-    const existing = target.get(sessionId)
-    if (existing !== undefined) {
-      existing.add(skill)
-      return
+  const record = (
+    target: Map<string, Set<string>>,
+    sessionId: string | undefined,
+    skill: string | undefined,
+  ): void => {
+    if (sessionId === undefined || skill === undefined || skill.length === 0) {
+      return;
     }
-    target.set(sessionId, new Set([skill]))
-  }
+    const existing = target.get(sessionId);
+    if (existing !== undefined) {
+      existing.add(skill);
+      return;
+    }
+    target.set(sessionId, new Set([skill]));
+  };
 
   pi.on("tool_result", (payload, eventCtx) => {
-    const event = asToolResultEvent(payload)
-    if (event === undefined || event.isError) return
-    const sessionId = extractSessionId(eventCtx)
-    if (event.toolName === "read") record(invokedBySession, sessionId, skillNameFromPath(event.path))
-    if (sessionId === undefined) return
-    const touched = planArtifactPathsTouched(event)
-    if (touched.length === 0) return
-    let touches = planTouchesBySession.get(sessionId)
+    const event = asToolResultEvent(payload);
+    if (event === undefined || event.isError) return;
+    const sessionId = extractSessionId(eventCtx);
+    if (event.toolName === "read") {
+      record(invokedBySession, sessionId, skillNameFromPath(event.path));
+    }
+    if (sessionId === undefined) return;
+    const touched = planArtifactPathsTouched(event);
+    if (touched.length === 0) return;
+    let touches = planTouchesBySession.get(sessionId);
     if (touches === undefined) {
-      touches = new Map()
-      planTouchesBySession.set(sessionId, touches)
+      touches = new Map();
+      planTouchesBySession.set(sessionId, touches);
     }
     for (const path of touched) {
-      planTouchSequence += 1
-      const prior = touches.get(path)
-      touches.set(path, { count: (prior?.count ?? 0) + 1, lastTouchedAt: planTouchSequence })
+      planTouchSequence += 1;
+      const prior = touches.get(path);
+      touches.set(path, {
+        count: (prior?.count ?? 0) + 1,
+        lastTouchedAt: planTouchSequence,
+      });
     }
-  })
+  });
 
   pi.on("input", (payload, eventCtx) => {
-    const event = asInputEvent(payload)
-    if (event === undefined) return
+    const event = asInputEvent(payload);
+    if (event === undefined) return;
     // Extension-injected text is code the model can drive; it must never arm a gate that exists to
     // prove a HUMAN asked. An absent source means a plain host that only delivers user input.
-    if (event.source === AGENT_MANUFACTURABLE_INPUT_SOURCE) return
-    const text = event.text
-    const sessionId = extractSessionId(eventCtx)
+    if (event.source === AGENT_MANUFACTURABLE_INPUT_SOURCE) return;
+    const text = event.text;
+    const sessionId = extractSessionId(eventCtx);
     if (text.startsWith(SKILL_COMMAND_PREFIX)) {
       // Mirror senpi's parse (see the ultrawork component): the skill name runs to the first space.
-      const spaceIndex = text.indexOf(" ")
+      const spaceIndex = text.indexOf(" ");
       const skill = (
-        spaceIndex === -1 ? text.slice(SKILL_COMMAND_PREFIX.length) : text.slice(SKILL_COMMAND_PREFIX.length, spaceIndex)
-      ).trim()
-      record(invokedBySession, sessionId, skill)
-      record(requestedBySession, sessionId, skill)
-      return
+        spaceIndex === -1
+          ? text.slice(SKILL_COMMAND_PREFIX.length)
+          : text.slice(SKILL_COMMAND_PREFIX.length, spaceIndex)
+      ).trim();
+      record(invokedBySession, sessionId, skill);
+      record(requestedBySession, sessionId, skill);
+      return;
     }
     // The expanded form of that same command: the user picked the skill, so it counts as both an
     // invocation (forbids channel) and a request (requires channel), keyed on the name attribute.
     for (const skill of expandedSkillBlockNames(text)) {
-      record(invokedBySession, sessionId, skill)
-      record(requestedBySession, sessionId, skill)
+      record(invokedBySession, sessionId, skill);
+      record(requestedBySession, sessionId, skill);
     }
-    const visible = stripInjectedBlocks(text)
+    const visible = stripInjectedBlocks(text);
     for (const [skill, pattern] of Object.entries(USER_REQUEST_PATTERNS)) {
-      if (pattern.test(visible)) record(requestedBySession, sessionId, skill)
+      if (pattern.test(visible)) record(requestedBySession, sessionId, skill);
     }
-    if (isOwnWordsPlanRequest(visible)) record(requestedBySession, sessionId, "ulw-plan")
-  })
+    if (isOwnWordsPlanRequest(visible)) {
+      record(requestedBySession, sessionId, "ulw-plan");
+    }
+  });
 
   pi.on("session_shutdown", (_payload, eventCtx) => {
-    const sessionId = extractSessionId(eventCtx)
-    if (sessionId === undefined) return
-    invokedBySession.delete(sessionId)
-    requestedBySession.delete(sessionId)
-    planTouchesBySession.delete(sessionId)
-  })
+    const sessionId = extractSessionId(eventCtx);
+    if (sessionId === undefined) return;
+    invokedBySession.delete(sessionId);
+    requestedBySession.delete(sessionId);
+    planTouchesBySession.delete(sessionId);
+  });
 
   return {
     stateFor: (sessionId) => ({
-      hasInvoked: (skill) => invokedBySession.get(sessionId)?.has(skill) ?? false,
-      hasUserRequested: (skill) => requestedBySession.get(sessionId)?.has(skill) ?? false,
-      hasPlanArtifact: () => (planTouchesBySession.get(sessionId)?.size ?? 0) > 0,
+      hasInvoked: (skill) =>
+        invokedBySession.get(sessionId)?.has(skill) ?? false,
+      hasUserRequested: (skill) =>
+        requestedBySession.get(sessionId)?.has(skill) ?? false,
+      hasPlanArtifact: () =>
+        (planTouchesBySession.get(sessionId)?.size ?? 0) > 0,
       planArtifactReferences: () => {
-        const touches = planTouchesBySession.get(sessionId)
-        if (touches === undefined) return []
+        const touches = planTouchesBySession.get(sessionId);
+        if (touches === undefined) return [];
         return [...touches.entries()]
-          .map(([path, touch]) => ({ path, count: touch.count, lastTouchedAt: touch.lastTouchedAt }))
-          .sort((a, b) => b.count - a.count || b.lastTouchedAt - a.lastTouchedAt)
+          .map(([path, touch]) => ({
+            path,
+            count: touch.count,
+            lastTouchedAt: touch.lastTouchedAt,
+          }))
+          .sort((a, b) =>
+            b.count - a.count || b.lastTouchedAt - a.lastTouchedAt
+          );
       },
     }),
-  }
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null
+  return typeof value === "object" && value !== null;
 }
 
 function extractSessionId(eventCtx: unknown): string | undefined {
-  if (!isRecord(eventCtx) || !isRecord(eventCtx["sessionManager"])) return undefined
-  const getSessionId = eventCtx["sessionManager"]["getSessionId"]
-  if (typeof getSessionId !== "function") return undefined
-  const id: unknown = getSessionId.call(eventCtx["sessionManager"])
-  return typeof id === "string" && id.length > 0 ? id : undefined
+  if (!isRecord(eventCtx) || !isRecord(eventCtx["sessionManager"])) {
+    return undefined;
+  }
+  const getSessionId = eventCtx["sessionManager"]["getSessionId"];
+  if (typeof getSessionId !== "function") return undefined;
+  const id: unknown = getSessionId.call(eventCtx["sessionManager"]);
+  return typeof id === "string" && id.length > 0 ? id : undefined;
 }
 
 type ToolResultEvent = {
-  readonly toolName: string
-  readonly path: string | undefined
-  readonly patchText: string | undefined
-  readonly isError: boolean
-}
+  readonly toolName: string;
+  readonly path: string | undefined;
+  readonly patchText: string | undefined;
+  readonly isError: boolean;
+};
 
 function asToolResultEvent(payload: unknown): ToolResultEvent | undefined {
-  if (!isRecord(payload) || payload["type"] !== "tool_result") return undefined
-  const toolName = payload["toolName"]
-  if (typeof toolName !== "string") return undefined
-  const input = payload["input"]
-  const path = isRecord(input) && typeof input["path"] === "string" ? input["path"] : undefined
-  const patchText = isRecord(input) && typeof input["input"] === "string" ? input["input"] : undefined
-  return { toolName, path, patchText, isError: payload["isError"] === true }
+  if (!isRecord(payload) || payload["type"] !== "tool_result") return undefined;
+  const toolName = payload["toolName"];
+  if (typeof toolName !== "string") return undefined;
+  const input = payload["input"];
+  const path = isRecord(input) && typeof input["path"] === "string"
+    ? input["path"]
+    : undefined;
+  const patchText = isRecord(input) && typeof input["input"] === "string"
+    ? input["input"]
+    : undefined;
+  return { toolName, path, patchText, isError: payload["isError"] === true };
 }
 
 // Returns the distinct normalized plan paths touched by one tool event: the single tool path for
@@ -207,43 +249,49 @@ function asToolResultEvent(payload: unknown): ToolResultEvent | undefined {
 // slashes but otherwise keep the observed path, so different worktree roots never collapse.
 function planArtifactPathsTouched(event: ToolResultEvent): readonly string[] {
   if (PLAN_ARTIFACT_PATH_TOOLS.has(event.toolName)) {
-    if (event.path === undefined || !PLAN_ARTIFACT_PATH_PATTERN.test(event.path)) return []
-    return [normalizePlanPath(event.path)]
+    if (
+      event.path === undefined || !PLAN_ARTIFACT_PATH_PATTERN.test(event.path)
+    ) return [];
+    return [normalizePlanPath(event.path)];
   }
   if (event.toolName === "apply_patch") {
-    if (event.patchText === undefined) return []
-    const matches = event.patchText.match(PLAN_ARTIFACT_PATCH_PATTERN_GLOBAL)
-    if (matches === null) return []
-    return [...new Set(matches.map(normalizePlanPath))]
+    if (event.patchText === undefined) return [];
+    const matches = event.patchText.match(PLAN_ARTIFACT_PATCH_PATTERN_GLOBAL);
+    if (matches === null) return [];
+    return [...new Set(matches.map(normalizePlanPath))];
   }
-  return []
+  return [];
 }
 
 function normalizePlanPath(path: string): string {
-  return path.replace(/\\/g, "/")
+  return path.replace(/\\/g, "/");
 }
 
 type InputEvent = {
-  readonly text: string
-  readonly source: string | undefined
-}
+  readonly text: string;
+  readonly source: string | undefined;
+};
 
 function asInputEvent(payload: unknown): InputEvent | undefined {
-  if (!isRecord(payload)) return undefined
-  const text = payload["text"]
-  if (typeof text !== "string") return undefined
-  const source = payload["source"]
-  return { text, source: typeof source === "string" ? source : undefined }
+  if (!isRecord(payload)) return undefined;
+  const text = payload["text"];
+  if (typeof text !== "string") return undefined;
+  const source = payload["source"];
+  return { text, source: typeof source === "string" ? source : undefined };
 }
 
 function stripInjectedBlocks(text: string): string {
-  let visible = text
-  for (const pattern of INJECTED_BLOCK_PATTERNS) visible = visible.replace(pattern, "")
-  for (const pattern of EXPANDED_SKILL_BLOCK_BODY_PATTERNS) visible = visible.replace(pattern, "")
-  return visible
+  let visible = text;
+  for (const pattern of INJECTED_BLOCK_PATTERNS) {
+    visible = visible.replace(pattern, "");
+  }
+  for (const pattern of EXPANDED_SKILL_BLOCK_BODY_PATTERNS) {
+    visible = visible.replace(pattern, "");
+  }
+  return visible;
 }
 
 function skillNameFromPath(path: string | undefined): string | undefined {
-  if (path === undefined) return undefined
-  return SKILL_MD_PATH_PATTERN.exec(path)?.[1]
+  if (path === undefined) return undefined;
+  return SKILL_MD_PATH_PATTERN.exec(path)?.[1];
 }

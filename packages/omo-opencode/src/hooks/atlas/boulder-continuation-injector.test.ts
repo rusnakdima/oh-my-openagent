@@ -1,25 +1,28 @@
-import { describe, test, expect, beforeEach, afterEach, mock } from "bun:test"
-import type { PluginInput } from "@opencode-ai/plugin"
-import { registerAgentName, _resetForTesting } from "../../features/claude-code-session-state"
-import { injectBoulderContinuation } from "./boulder-continuation-injector"
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import type { PluginInput } from "@opencode-ai/plugin";
+import {
+  _resetForTesting,
+  registerAgentName,
+} from "../../features/claude-code-session-state";
+import { injectBoulderContinuation } from "./boulder-continuation-injector";
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
 
 describe("injectBoulderContinuation", () => {
   beforeEach(() => {
     // given
-    _resetForTesting()
-  })
+    _resetForTesting();
+  });
 
   afterEach(() => {
     // then
-    _resetForTesting()
-  })
+    _resetForTesting();
+  });
 
   test("uses raw agent key for promptAsync to avoid HTTP header issues", async () => {
     // given
-    registerAgentName("atlas")
-    const promptAsyncMock = mock(async (_request: unknown) => undefined)
-    const messagesMock = mock(async () => ({ data: [] }))
+    registerAgentName("atlas");
+    const promptAsyncMock = mock(async (_request: unknown) => undefined);
+    const messagesMock = mock(async () => ({ data: [] }));
 
     const ctx = unsafeTestValue<PluginInput>({
       directory: "/tmp",
@@ -29,7 +32,7 @@ describe("injectBoulderContinuation", () => {
           promptAsync: promptAsyncMock,
         },
       },
-    })
+    });
 
     // when
     const result = await injectBoulderContinuation({
@@ -40,26 +43,29 @@ describe("injectBoulderContinuation", () => {
       total: 2,
       agent: "atlas",
       sessionState: { promptFailureCount: 0 },
-    })
+    });
 
     // then - uses raw agent key, not display name (to avoid HTTP header validation issues)
-    expect(result).toBe("injected")
-    expect(promptAsyncMock).toHaveBeenCalledTimes(1)
+    expect(result).toBe("injected");
+    expect(promptAsyncMock).toHaveBeenCalledTimes(1);
     expect(promptAsyncMock).toHaveBeenCalledWith(
       expect.objectContaining({
         body: expect.objectContaining({
           agent: "atlas",
         }),
       }),
-    )
-  })
+    );
+  });
 
   test("#given background tasks are running #when injector checks again #then it reports skipped background tasks without mutating failure count", async () => {
     // given
-    registerAgentName("atlas")
-    const promptAsyncMock = mock(async (_request: unknown) => undefined)
-    const messagesMock = mock(async () => ({ data: [] }))
-    const sessionState = { promptFailureCount: 2, lastContinuationInjectedAt: 123 }
+    registerAgentName("atlas");
+    const promptAsyncMock = mock(async (_request: unknown) => undefined);
+    const messagesMock = mock(async () => ({ data: [] }));
+    const sessionState = {
+      promptFailureCount: 2,
+      lastContinuationInjectedAt: 123,
+    };
 
     const ctx = unsafeTestValue<PluginInput>({
       directory: "/tmp",
@@ -69,7 +75,7 @@ describe("injectBoulderContinuation", () => {
           promptAsync: promptAsyncMock,
         },
       },
-    })
+    });
 
     // when
     const result = await injectBoulderContinuation({
@@ -79,25 +85,30 @@ describe("injectBoulderContinuation", () => {
       remaining: 1,
       total: 2,
       agent: "atlas",
-      backgroundManager: unsafeTestValue<Parameters<typeof injectBoulderContinuation>[0]["backgroundManager"]>({
+      backgroundManager: unsafeTestValue<
+        Parameters<typeof injectBoulderContinuation>[0]["backgroundManager"]
+      >({
         getTasksByParentSession: () => [{ status: "running" }],
       }),
       sessionState,
-    })
+    });
 
     // then
-    expect(result).toBe("skipped_background_tasks")
-    expect(promptAsyncMock).not.toHaveBeenCalled()
-    expect(sessionState.promptFailureCount).toBe(2)
-    expect(sessionState.lastContinuationInjectedAt).toBe(123)
-  })
+    expect(result).toBe("skipped_background_tasks");
+    expect(promptAsyncMock).not.toHaveBeenCalled();
+    expect(sessionState.promptFailureCount).toBe(2);
+    expect(sessionState.lastContinuationInjectedAt).toBe(123);
+  });
 
   test("#given a background task is still pending session creation #when injector checks again #then it still skips continuation", async () => {
     // given
-    registerAgentName("atlas")
-    const promptAsyncMock = mock(async (_request: unknown) => undefined)
-    const messagesMock = mock(async () => ({ data: [] }))
-    const sessionState = { promptFailureCount: 1, lastContinuationInjectedAt: 456 }
+    registerAgentName("atlas");
+    const promptAsyncMock = mock(async (_request: unknown) => undefined);
+    const messagesMock = mock(async () => ({ data: [] }));
+    const sessionState = {
+      promptFailureCount: 1,
+      lastContinuationInjectedAt: 456,
+    };
 
     const ctx = unsafeTestValue<PluginInput>({
       directory: "/tmp",
@@ -107,7 +118,7 @@ describe("injectBoulderContinuation", () => {
           promptAsync: promptAsyncMock,
         },
       },
-    })
+    });
 
     // when
     const result = await injectBoulderContinuation({
@@ -117,23 +128,25 @@ describe("injectBoulderContinuation", () => {
       remaining: 1,
       total: 2,
       agent: "atlas",
-      backgroundManager: unsafeTestValue<Parameters<typeof injectBoulderContinuation>[0]["backgroundManager"]>({
+      backgroundManager: unsafeTestValue<
+        Parameters<typeof injectBoulderContinuation>[0]["backgroundManager"]
+      >({
         getTasksByParentSession: () => [{ status: "pending" }],
       }),
       sessionState,
-    })
+    });
 
     // then
-    expect(result).toBe("skipped_background_tasks")
-    expect(promptAsyncMock).not.toHaveBeenCalled()
-    expect(sessionState.promptFailureCount).toBe(1)
-    expect(sessionState.lastContinuationInjectedAt).toBe(456)
-  })
+    expect(result).toBe("skipped_background_tasks");
+    expect(promptAsyncMock).not.toHaveBeenCalled();
+    expect(sessionState.promptFailureCount).toBe(1);
+    expect(sessionState.lastContinuationInjectedAt).toBe(456);
+  });
 
   test("#given the continuation agent is unavailable #when injector runs #then it reports skipped agent unavailable without prompting", async () => {
     // given
-    const promptAsyncMock = mock(async (_request: unknown) => undefined)
-    const messagesMock = mock(async () => ({ data: [] }))
+    const promptAsyncMock = mock(async (_request: unknown) => undefined);
+    const messagesMock = mock(async () => ({ data: [] }));
 
     const ctx = unsafeTestValue<PluginInput>({
       directory: "/tmp",
@@ -143,7 +156,7 @@ describe("injectBoulderContinuation", () => {
           promptAsync: promptAsyncMock,
         },
       },
-    })
+    });
 
     // when
     const result = await injectBoulderContinuation({
@@ -154,21 +167,21 @@ describe("injectBoulderContinuation", () => {
       total: 2,
       agent: "missing-agent",
       sessionState: { promptFailureCount: 0 },
-    })
+    });
 
     // then
-    expect(result).toBe("skipped_agent_unavailable")
-    expect(promptAsyncMock).not.toHaveBeenCalled()
-  })
+    expect(result).toBe("skipped_agent_unavailable");
+    expect(promptAsyncMock).not.toHaveBeenCalled();
+  });
 
   test("#given promptAsync may have accepted boulder continuation before EOF #when injector observes the failure #then it records the continuation as injected", async () => {
     // given
-    registerAgentName("atlas")
+    registerAgentName("atlas");
     const promptAsyncMock = mock(async (_request: unknown) => {
-      throw new Error("JSON Parse error: Unexpected EOF")
-    })
-    const messagesMock = mock(async () => ({ data: [] }))
-    const sessionState = { promptFailureCount: 2 }
+      throw new Error("JSON Parse error: Unexpected EOF");
+    });
+    const messagesMock = mock(async () => ({ data: [] }));
+    const sessionState = { promptFailureCount: 2 };
 
     const ctx = unsafeTestValue<PluginInput>({
       directory: "/tmp",
@@ -178,7 +191,7 @@ describe("injectBoulderContinuation", () => {
           promptAsync: promptAsyncMock,
         },
       },
-    })
+    });
 
     // when
     const result = await injectBoulderContinuation({
@@ -189,23 +202,23 @@ describe("injectBoulderContinuation", () => {
       total: 2,
       agent: "atlas",
       sessionState,
-    })
+    });
 
     // then
-    expect(result).toBe("injected")
-    expect(promptAsyncMock).toHaveBeenCalledTimes(1)
-    expect(sessionState.promptFailureCount).toBe(0)
-  })
+    expect(result).toBe("injected");
+    expect(promptAsyncMock).toHaveBeenCalledTimes(1);
+    expect(sessionState.promptFailureCount).toBe(0);
+  });
 
   test("#given prompt context lookup throws a non-Error #when injector catches it #then it preserves failed fallback behavior", async () => {
     // given
-    registerAgentName("atlas")
-    const nonErrorFailure = { reason: "sdk unavailable" }
-    const promptAsyncMock = mock(async (_request: unknown) => undefined)
+    registerAgentName("atlas");
+    const nonErrorFailure = { reason: "sdk unavailable" };
+    const promptAsyncMock = mock(async (_request: unknown) => undefined);
     const messagesMock = mock(async () => {
-      throw nonErrorFailure
-    })
-    const sessionState = { promptFailureCount: 2 }
+      throw nonErrorFailure;
+    });
+    const sessionState = { promptFailureCount: 2 };
 
     const ctx = unsafeTestValue<PluginInput>({
       directory: "/tmp",
@@ -215,7 +228,7 @@ describe("injectBoulderContinuation", () => {
           promptAsync: promptAsyncMock,
         },
       },
-    })
+    });
 
     // when
     const result = await injectBoulderContinuation({
@@ -226,37 +239,37 @@ describe("injectBoulderContinuation", () => {
       total: 2,
       agent: "atlas",
       sessionState,
-    })
+    });
 
     // then
-    expect(result).toBe("failed")
-    expect(promptAsyncMock).not.toHaveBeenCalled()
-    expect(sessionState.promptFailureCount).toBe(3)
-  })
+    expect(result).toBe("failed");
+    expect(promptAsyncMock).not.toHaveBeenCalled();
+    expect(sessionState.promptFailureCount).toBe(3);
+  });
 
   test("#given recent prompt context includes variant #when injecting boulder continuation #then promptAsync receives variant as a top-level field", async () => {
     // given
-    registerAgentName("atlas")
+    registerAgentName("atlas");
     const capturedRequests: Array<{
       body?: {
-        model?: { providerID: string; modelID: string }
-        variant?: string
-        noReply?: boolean
+        model?: { providerID: string; modelID: string };
+        variant?: string;
+        noReply?: boolean;
         parts?: Array<{
-          synthetic?: boolean
-          metadata?: Record<string, unknown>
-        }>
-      }
-    }> = []
+          synthetic?: boolean;
+          metadata?: Record<string, unknown>;
+        }>;
+      };
+    }> = [];
     const promptAsyncMock = mock(async (request: unknown) => {
-      capturedRequests.push(request as typeof capturedRequests[number])
-      return undefined
-    })
+      capturedRequests.push(request as typeof capturedRequests[number]);
+      return undefined;
+    });
     const recentModel = {
       providerID: "anthropic",
       modelID: "claude-sonnet-4-20250514",
       variant: "max",
-    }
+    };
     const messagesMock = mock(async () => ({
       data: [{
         id: "msg_1",
@@ -266,7 +279,7 @@ describe("injectBoulderContinuation", () => {
           time: { created: Date.now() },
         },
       }],
-    }))
+    }));
 
     const ctx = unsafeTestValue<PluginInput>({
       directory: "/tmp",
@@ -276,7 +289,7 @@ describe("injectBoulderContinuation", () => {
           promptAsync: promptAsyncMock,
         },
       },
-    })
+    });
 
     // when
     const result = await injectBoulderContinuation({
@@ -287,19 +300,19 @@ describe("injectBoulderContinuation", () => {
       total: 2,
       agent: "atlas",
       sessionState: { promptFailureCount: 0 },
-    })
+    });
 
     // then
-    expect(result).toBe("injected")
-    expect(capturedRequests).toHaveLength(1)
+    expect(result).toBe("injected");
+    expect(capturedRequests).toHaveLength(1);
     expect(capturedRequests[0]?.body?.model).toEqual({
       providerID: "anthropic",
       modelID: "claude-sonnet-4-20250514",
-    })
-    expect(capturedRequests[0]?.body?.variant).toBe("max")
-    expect(capturedRequests[0]?.body?.noReply).toBeUndefined()
-    const promptPart = capturedRequests[0]?.body?.parts?.[0]
-    expect(promptPart?.synthetic).toBe(true)
-    expect(promptPart?.metadata?.compaction_continue).toBe(true)
-  })
-})
+    });
+    expect(capturedRequests[0]?.body?.variant).toBe("max");
+    expect(capturedRequests[0]?.body?.noReply).toBeUndefined();
+    const promptPart = capturedRequests[0]?.body?.parts?.[0];
+    expect(promptPart?.synthetic).toBe(true);
+    expect(promptPart?.metadata?.compaction_continue).toBe(true);
+  });
+});

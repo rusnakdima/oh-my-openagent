@@ -17,4 +17,6 @@ export declare function getBinaryPath(pkg: string, platform?: string): string;
 
 export declare function getPackageBareName(packageName: string): string;
 
-export declare function resolvePlatformPackageBaseName(wrapperPackageName: string): string;
+export declare function resolvePlatformPackageBaseName(
+  wrapperPackageName: string,
+): string;

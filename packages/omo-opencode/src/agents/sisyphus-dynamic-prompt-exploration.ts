@@ -1,7 +1,9 @@
 import { buildAntiDuplicationSection } from "./dynamic-agent-prompt-builder";
 import type { SisyphusDynamicPromptSections } from "./sisyphus-dynamic-prompt-sections";
 
-export function renderExplorationSection(sections: SisyphusDynamicPromptSections): string {
+export function renderExplorationSection(
+  sections: SisyphusDynamicPromptSections,
+): string {
   return `## Phase 2A - Exploration & Research
 
 ${sections.toolSelection}

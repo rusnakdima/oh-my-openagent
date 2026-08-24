@@ -1,16 +1,22 @@
 # Error Handling
 
-Typed errors, wrap chains, `errors.Is` / `errors.As`, no panic in libraries, resource cleanup. Go errors look simple and are full of footguns. This document is the canonical set of moves.
+Typed errors, wrap chains, `errors.Is` / `errors.As`, no panic in libraries,
+resource cleanup. Go errors look simple and are full of footguns. This document
+is the canonical set of moves.
 
 ---
 
 ## The five rules
 
-1. **Every error is wrapped on the way up, with `%w`, with context.** Never `return err` from a non-trivial site.
-2. **Compare with `errors.Is`, not `==`.** Wrap chains break `==`. The `errorlint` linter forbids `==` on errors.
+1. **Every error is wrapped on the way up, with `%w`, with context.** Never
+   `return err` from a non-trivial site.
+2. **Compare with `errors.Is`, not `==`.** Wrap chains break `==`. The
+   `errorlint` linter forbids `==` on errors.
 3. **Cast with `errors.As`, not type assertion.** Same reason.
-4. **`panic` is reserved for programmer errors.** Library code never panics on user input or environment failures. Use `(T, error)`.
-5. **Resources released via `defer` immediately after acquisition.** No "I'll add it later".
+4. **`panic` is reserved for programmer errors.** Library code never panics on
+   user input or environment failures. Use `(T, error)`.
+5. **Resources released via `defer` immediately after acquisition.** No "I'll
+   add it later".
 
 ---
 
@@ -44,13 +50,15 @@ if errors.Is(err, domain.ErrInvalidEmail) {
 }
 ```
 
-`errors.Is` walks the wrap chain. `err == domain.ErrInvalidEmail` would have failed because `fmt.Errorf` wrapped it.
+`errors.Is` walks the wrap chain. `err == domain.ErrInvalidEmail` would have
+failed because `fmt.Errorf` wrapped it.
 
 ---
 
 ## Typed errors — when you need structured data
 
-When callers need fields off the error (the offending value, the failing field name, the upstream HTTP status):
+When callers need fields off the error (the offending value, the failing field
+name, the upstream HTTP status):
 
 ```go
 type ValidationError struct {
@@ -84,7 +92,8 @@ if errors.As(err, &vErr) {
 }
 ```
 
-**`errors.As` requires a non-nil pointer-to-pointer.** Almost always the type is `*ConcreteError`. Forgetting the leading `*` is the most common bug here.
+**`errors.As` requires a non-nil pointer-to-pointer.** Almost always the type is
+`*ConcreteError`. Forgetting the leading `*` is the most common bug here.
 
 ---
 
@@ -101,7 +110,8 @@ return fmt.Errorf("failed to save user: %v", err)
 return fmt.Errorf("save user %s: %w", userID, err)
 ```
 
-The `errorlint` linter catches `%v` where `%w` was meant. **Wrap once per layer**, with the minimum useful context:
+The `errorlint` linter catches `%v` where `%w` was meant. **Wrap once per
+layer**, with the minimum useful context:
 
 ```
 api/handler:  "create user request: %w"
@@ -109,7 +119,9 @@ api/handler:  "create user request: %w"
       domain: "email %q: %w"
 ```
 
-Each frame adds one fact, not a duplicate. The top-level error message reads as a path: `create user request: validate inputs: email "foo": domain: invalid email`.
+Each frame adds one fact, not a duplicate. The top-level error message reads as
+a path:
+`create user request: validate inputs: email "foo": domain: invalid email`.
 
 ### `errors.Join` — multiple errors at once
 
@@ -127,7 +139,8 @@ if len(errs) > 0 {
 }
 ```
 
-`errors.Is` still walks each joined error. Use when reporting batch validation, not for "wrap two unrelated errors".
+`errors.Is` still walks each joined error. Use when reporting batch validation,
+not for "wrap two unrelated errors".
 
 ---
 
@@ -136,12 +149,15 @@ if len(errs) > 0 {
 **Banned**:
 
 - Anywhere a `(T, error)` could be returned.
-- Inside HTTP handlers (gin's `Recovery` middleware catches them, but you've already lost the error context).
+- Inside HTTP handlers (gin's `Recovery` middleware catches them, but you've
+  already lost the error context).
 - Inside any goroutine that survives request lifetime.
 
 **Allowed** (with documentation):
 
-- Map literal init at package level: `var statusNames = map[Status]string{...}` followed by a `func init()` that panics if a const has no name. Catches the bug at startup, not runtime.
+- Map literal init at package level: `var statusNames = map[Status]string{...}`
+  followed by a `func init()` that panics if a const has no name. Catches the
+  bug at startup, not runtime.
 - The `must*` convention for genuinely unrecoverable startup:
   ```go
   func MustParseURL(s string) *url.URL {
@@ -152,9 +168,11 @@ if len(errs) > 0 {
   // Use only with literals known at compile time:
   var defaultAPI = MustParseURL("https://api.example.com")
   ```
-- `default:` case of an exhaustive sealed-interface switch — see `type-patterns.md`.
+- `default:` case of an exhaustive sealed-interface switch — see
+  `type-patterns.md`.
 
-The `revive` linter rule `error-return` will flag suspect panic sites; treat them as bugs.
+The `revive` linter rule `error-return` will flag suspect panic sites; treat
+them as bugs.
 
 ---
 
@@ -182,8 +200,10 @@ func writeReport(path string) (err error) {
 Key points:
 
 - `defer f.Close()` immediately after `os.Create` — never further down.
-- Named return `(err error)` so the deferred close can mutate it on close failure.
-- `bodyclose` linter catches missed `defer resp.Body.Close()` for HTTP responses.
+- Named return `(err error)` so the deferred close can mutate it on close
+  failure.
+- `bodyclose` linter catches missed `defer resp.Body.Close()` for HTTP
+  responses.
 - `sqlclosecheck` linter catches missed `defer rows.Close()` for SQL.
 
 ### `errors.Join` for multi-stage cleanup
@@ -200,7 +220,8 @@ func process(path string) (err error) {
 }
 ```
 
-When both the main operation AND `Close` can fail, `errors.Join` reports both without dropping either.
+When both the main operation AND `Close` can fail, `errors.Join` reports both
+without dropping either.
 
 ---
 
@@ -314,23 +335,26 @@ slog.ErrorContext(ctx, "save user failed",
 )
 ```
 
-**Log once, at the outermost frame.** Logging at every wrap site produces five log lines for one error.
+**Log once, at the outermost frame.** Logging at every wrap site produces five
+log lines for one error.
 
-The `sloglint` linter enforces `slog.Any("err", err)` over `slog.String("err", err.Error())` — the former preserves the chain when handlers walk the value.
+The `sloglint` linter enforces `slog.Any("err", err)` over
+`slog.String("err", err.Error())` — the former preserves the chain when handlers
+walk the value.
 
 ---
 
 ## Antipatterns
 
-| Bad | Why | Good |
-|---|---|---|
-| `_ = err` | Silent ignore | Handle, log, or wrap |
-| `if err != nil { return err }` chained 10 deep without wrap | No path info | Add one fact per layer: `fmt.Errorf("step: %w", err)` |
-| `panic(err)` in HTTP handlers | Loses error chain, hits gin Recovery | `httperr.Write(c, err)` |
-| `err.Error() == "some string"` | Brittle, breaks on wrap | Define a sentinel, use `errors.Is` |
-| `if err == sql.ErrNoRows` | Breaks under wrap | `errors.Is(err, sql.ErrNoRows)` |
-| `catch-all log.Fatal(err)` in library code | Crashes the caller's process | Return error, let main decide |
-| Returning a typed nil pointer wrapped in error interface | Classic "nil != nil" bug | Return explicit `nil` for the error |
+| Bad                                                         | Why                                  | Good                                                  |
+| ----------------------------------------------------------- | ------------------------------------ | ----------------------------------------------------- |
+| `_ = err`                                                   | Silent ignore                        | Handle, log, or wrap                                  |
+| `if err != nil { return err }` chained 10 deep without wrap | No path info                         | Add one fact per layer: `fmt.Errorf("step: %w", err)` |
+| `panic(err)` in HTTP handlers                               | Loses error chain, hits gin Recovery | `httperr.Write(c, err)`                               |
+| `err.Error() == "some string"`                              | Brittle, breaks on wrap              | Define a sentinel, use `errors.Is`                    |
+| `if err == sql.ErrNoRows`                                   | Breaks under wrap                    | `errors.Is(err, sql.ErrNoRows)`                       |
+| `catch-all log.Fatal(err)` in library code                  | Crashes the caller's process         | Return error, let main decide                         |
+| Returning a typed nil pointer wrapped in error interface    | Classic "nil != nil" bug             | Return explicit `nil` for the error                   |
 
 The last bug deserves its own example:
 
@@ -347,7 +371,8 @@ if err := bad(); err != nil {
 }
 ```
 
-Fix: return explicit `nil`, not a typed nil. The `nilnil` linter catches this in `(T, error)` returns.
+Fix: return explicit `nil`, not a typed nil. The `nilnil` linter catches this in
+`(T, error)` returns.
 
 ---
 

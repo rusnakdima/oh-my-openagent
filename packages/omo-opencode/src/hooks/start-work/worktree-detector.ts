@@ -1,40 +1,42 @@
-import { execFileSync } from "node:child_process"
-import { existsSync, realpathSync } from "node:fs"
-import { dirname, isAbsolute, resolve, win32 } from "node:path"
+import { execFileSync } from "node:child_process";
+import { existsSync, realpathSync } from "node:fs";
+import { dirname, isAbsolute, resolve, win32 } from "node:path";
 
 export type WorktreeEntry = {
-  path: string
-  branch: string | undefined
-  bare: boolean
-}
+  path: string;
+  branch: string | undefined;
+  bare: boolean;
+};
 
 function normalizePath(path: string): string {
-  const resolvedPath = process.platform !== "win32" && win32.isAbsolute(path) ? path : resolve(path)
+  const resolvedPath = process.platform !== "win32" && win32.isAbsolute(path)
+    ? path
+    : resolve(path);
   if (!existsSync(resolvedPath)) {
-    return resolvedPath
+    return resolvedPath;
   }
 
   try {
-    return realpathSync.native(resolvedPath)
+    return realpathSync.native(resolvedPath);
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
     try {
-      return realpathSync(resolvedPath)
+      return realpathSync(resolvedPath);
     } catch (fallbackError) {
       if (!(fallbackError instanceof Error)) {
-        throw fallbackError
+        throw fallbackError;
       }
-      return resolvedPath
+      return resolvedPath;
     }
   }
 }
 
 export function parseWorktreeListPorcelain(output: string): WorktreeEntry[] {
-  const lines = output.split("\n").map((line) => line.trim())
-  const entries: WorktreeEntry[] = []
-  let current: Partial<WorktreeEntry> | undefined
+  const lines = output.split("\n").map((line) => line.trim());
+  const entries: WorktreeEntry[] = [];
+  let current: Partial<WorktreeEntry> | undefined;
 
   for (const line of lines) {
     if (!line) {
@@ -43,23 +45,26 @@ export function parseWorktreeListPorcelain(output: string): WorktreeEntry[] {
           path: current.path,
           branch: current.branch,
           bare: current.bare ?? false,
-        })
+        });
       }
-      current = undefined
-      continue
+      current = undefined;
+      continue;
     }
 
     if (line.startsWith("worktree ")) {
-      current = { path: line.slice("worktree ".length).trim() }
-      continue
+      current = { path: line.slice("worktree ".length).trim() };
+      continue;
     }
 
-    if (!current) continue
+    if (!current) continue;
 
     if (line.startsWith("branch ")) {
-      current.branch = line.slice("branch ".length).trim().replace(/^refs\/heads\//, "")
+      current.branch = line.slice("branch ".length).trim().replace(
+        /^refs\/heads\//,
+        "",
+      );
     } else if (line === "bare") {
-      current.bare = true
+      current.bare = true;
     }
   }
 
@@ -68,10 +73,10 @@ export function parseWorktreeListPorcelain(output: string): WorktreeEntry[] {
       path: current.path,
       branch: current.branch,
       bare: current.bare ?? false,
-    })
+    });
   }
 
-  return entries
+  return entries;
 }
 
 export function listWorktrees(directory: string): WorktreeEntry[] {
@@ -81,13 +86,13 @@ export function listWorktrees(directory: string): WorktreeEntry[] {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
-    })
-    return parseWorktreeListPorcelain(output)
+    });
+    return parseWorktreeListPorcelain(output);
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
-    return []
+    return [];
   }
 }
 
@@ -98,13 +103,13 @@ export function detectWorktreePath(directory: string): string | null {
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
-    }).trim()
-    return normalizePath(worktreePath)
+    }).trim();
+    return normalizePath(worktreePath);
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
-    return null
+    return null;
   }
 }
 
@@ -118,35 +123,42 @@ export function detectWorktreePath(directory: string): string | null {
 export function resolveMainRepoRoot(worktreePath: string): string | null {
   try {
     // --show-superproject-working-tree returns empty if not in a worktree or no superproject.
-    const superResult = execFileSync("git", ["rev-parse", "--show-superproject-working-tree"], {
+    const superResult = execFileSync("git", [
+      "rev-parse",
+      "--show-superproject-working-tree",
+    ], {
       cwd: worktreePath,
       encoding: "utf-8",
       timeout: 5000,
       stdio: ["pipe", "pipe", "pipe"],
-    }).trim()
+    }).trim();
     if (superResult) {
-      return normalizePath(superResult)
+      return normalizePath(superResult);
     }
 
     // Fall back: git-common-dir points to .git (or ../.git), parent of that is the main repo root.
-    const commonResult = execFileSync("git", ["rev-parse", "--git-common-dir"], {
-      cwd: worktreePath,
-      encoding: "utf-8",
-      timeout: 5000,
-      stdio: ["pipe", "pipe", "pipe"],
-    }).trim()
-    if (!commonResult) return null
+    const commonResult = execFileSync(
+      "git",
+      ["rev-parse", "--git-common-dir"],
+      {
+        cwd: worktreePath,
+        encoding: "utf-8",
+        timeout: 5000,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    ).trim();
+    if (!commonResult) return null;
 
     // gitDir is either ".git" or an absolute path like "/path/to/repo/.git"
     if (isAbsolute(commonResult)) {
-      return dirname(commonResult)
+      return dirname(commonResult);
     }
     // Relative path like ".git" or "../.git"
-    return normalizePath(resolve(dirname(resolve(worktreePath, commonResult))))
+    return normalizePath(resolve(dirname(resolve(worktreePath, commonResult))));
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
-    return null
+    return null;
   }
 }

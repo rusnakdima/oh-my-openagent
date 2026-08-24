@@ -1,18 +1,18 @@
-import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide"
-import { detectShellType } from "../../shared/shell-env"
-import { log } from "../../shared/logger"
+import { spawnWithWindowsHide } from "../../shared/spawn-with-windows-hide";
+import { detectShellType } from "../../shared/shell-env";
+import { log } from "../../shared/logger";
 
 type OnCompleteHookDeps = {
-  spawnWithWindowsHide: typeof spawnWithWindowsHide
-  log: typeof log
-  platform?: NodeJS.Platform
-  env?: NodeJS.ProcessEnv
-}
+  spawnWithWindowsHide: typeof spawnWithWindowsHide;
+  log: typeof log;
+  platform?: NodeJS.Platform;
+  env?: NodeJS.ProcessEnv;
+};
 
 const defaultDeps: OnCompleteHookDeps = {
   spawnWithWindowsHide,
   log,
-}
+};
 
 async function readOutput(
   stream: ReadableStream<Uint8Array> | undefined,
@@ -20,17 +20,17 @@ async function readOutput(
   deps: Pick<OnCompleteHookDeps, "log"> = defaultDeps,
 ): Promise<string> {
   if (!stream) {
-    return ""
+    return "";
   }
 
   try {
-    return await new Response(stream).text()
+    return await new Response(stream).text();
   } catch (error) {
     deps.log("Failed to read on-complete hook output", {
       stream: streamName,
       error: error instanceof Error ? error.message : String(error),
-    })
-    return ""
+    });
+    return "";
   }
 }
 
@@ -39,43 +39,45 @@ function resolveHookShellCommand(
   platform: NodeJS.Platform,
   env: NodeJS.ProcessEnv,
 ): string[] {
-  const shellType = detectShellType(platform, env)
+  const shellType = detectShellType(platform, env);
 
   switch (shellType) {
     case "powershell": {
-      const powershellExecutable = platform === "win32" ? "powershell.exe" : "pwsh"
-      return [powershellExecutable, "-NoProfile", "-Command", command]
+      const powershellExecutable = platform === "win32"
+        ? "powershell.exe"
+        : "pwsh";
+      return [powershellExecutable, "-NoProfile", "-Command", command];
     }
     case "cmd":
-      return [env.ComSpec || "cmd.exe", "/d", "/s", "/c", command]
+      return [env.ComSpec || "cmd.exe", "/d", "/s", "/c", command];
     case "csh":
-      return ["csh", "-c", command]
+      return ["csh", "-c", command];
     case "unix":
     default:
-      return ["sh", "-c", command]
+      return ["sh", "-c", command];
   }
 }
 
 export async function executeOnCompleteHook(options: {
-  command: string
-  sessionId: string
-  exitCode: number
-  durationMs: number
-  messageCount: number
+  command: string;
+  sessionId: string;
+  exitCode: number;
+  durationMs: number;
+  messageCount: number;
 }, deps: OnCompleteHookDeps = defaultDeps): Promise<void> {
-  const { command, sessionId, exitCode, durationMs, messageCount } = options
+  const { command, sessionId, exitCode, durationMs, messageCount } = options;
 
-  const trimmedCommand = command.trim()
+  const trimmedCommand = command.trim();
   if (!trimmedCommand) {
-    return
+    return;
   }
 
-  deps.log("Running on-complete hook", { command: trimmedCommand })
+  deps.log("Running on-complete hook", { command: trimmedCommand });
 
   try {
-    const platform = deps.platform ?? process.platform
-    const env = deps.env ?? process.env
-    const shellCommand = resolveHookShellCommand(trimmedCommand, platform, env)
+    const platform = deps.platform ?? process.platform;
+    const env = deps.env ?? process.env;
+    const shellCommand = resolveHookShellCommand(trimmedCommand, platform, env);
     const proc = deps.spawnWithWindowsHide(shellCommand, {
       env: {
         ...env,
@@ -86,32 +88,38 @@ export async function executeOnCompleteHook(options: {
       },
       stdout: "pipe",
       stderr: "pipe",
-    })
+    });
 
     const [hookExitCode, stdout, stderr] = await Promise.all([
       proc.exited,
       readOutput(proc.stdout, "stdout", deps),
       readOutput(proc.stderr, "stderr", deps),
-    ])
+    ]);
 
     if (stdout.trim()) {
-      deps.log("On-complete hook stdout", { command: trimmedCommand, stdout: stdout.trim() })
+      deps.log("On-complete hook stdout", {
+        command: trimmedCommand,
+        stdout: stdout.trim(),
+      });
     }
 
     if (stderr.trim()) {
-      deps.log("On-complete hook stderr", { command: trimmedCommand, stderr: stderr.trim() })
+      deps.log("On-complete hook stderr", {
+        command: trimmedCommand,
+        stderr: stderr.trim(),
+      });
     }
 
     if (hookExitCode !== 0) {
       deps.log("On-complete hook exited with non-zero code", {
         command: trimmedCommand,
         exitCode: hookExitCode,
-      })
+      });
     }
   } catch (error) {
     deps.log("Failed to execute on-complete hook", {
       command: trimmedCommand,
       error: error instanceof Error ? error.message : String(error),
-    })
+    });
   }
 }

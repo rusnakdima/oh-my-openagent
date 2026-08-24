@@ -24,9 +24,13 @@ function schemaOf(name: string): Schema {
 }
 
 function propertyOf(name: string, property: string): Schema {
-  const properties = schemaOf(name).properties as Record<string, Schema> | undefined;
+  const properties = schemaOf(name).properties as
+    | Record<string, Schema>
+    | undefined;
   const value = properties?.[property];
-  if (value === undefined) throw new Error(`no property ${property} on ${name}`);
+  if (value === undefined) {
+    throw new Error(`no property ${property} on ${name}`);
+  }
   return value;
 }
 
@@ -44,7 +48,9 @@ describe("ast_grep descriptors: client-safe composition", () => {
         return;
       }
       if (typeof node !== "object" || node === null) return;
-      for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      for (
+        const [key, value] of Object.entries(node as Record<string, unknown>)
+      ) {
         if (COMPOSITION_KEYS.has(key)) offenders.push(`${trail}.${key}`);
         walk(value, `${trail}.${key}`);
       }
@@ -61,9 +67,15 @@ describe("ast_grep scan descriptor: rule-source exclusivity", () => {
     const schema = schemaOf("scan");
     expect(schema.oneOf).toBeUndefined();
     expect(schema.required).toEqual(["paths"]);
-    expect(String(propertyOf("scan", "ruleFile").description)).toContain("Mutually exclusive with inlineRules");
-    expect(String(propertyOf("scan", "inlineRules").description)).toContain("Mutually exclusive with ruleFile");
-    expect(String(SCAN_TOOL_DESCRIPTION)).toContain("Provide either ruleFile or inlineRules");
+    expect(String(propertyOf("scan", "ruleFile").description)).toContain(
+      "Mutually exclusive with inlineRules",
+    );
+    expect(String(propertyOf("scan", "inlineRules").description)).toContain(
+      "Mutually exclusive with ruleFile",
+    );
+    expect(String(SCAN_TOOL_DESCRIPTION)).toContain(
+      "Provide either ruleFile or inlineRules",
+    );
   });
 
   it("#given scan args with NO rule source #when parsed #then the parser rejects them", () => {
@@ -73,14 +85,23 @@ describe("ast_grep scan descriptor: rule-source exclusivity", () => {
   });
 
   it("#given scan args with BOTH rule sources #when parsed #then the parser rejects them", () => {
-    expect(() => scanInputSchema.parse({ paths: ["src"], ruleFile: "r.yml", inlineRules: "id: x" })).toThrow(
+    expect(() =>
+      scanInputSchema.parse({
+        paths: ["src"],
+        ruleFile: "r.yml",
+        inlineRules: "id: x",
+      })
+    ).toThrow(
       "Exactly one of ruleFile or inlineRules must be provided",
     );
   });
 
   it("#given scan args with exactly one rule source #when parsed #then the parser accepts them", () => {
-    expect(() => scanInputSchema.parse({ paths: ["src"], ruleFile: "r.yml" })).not.toThrow();
-    expect(() => scanInputSchema.parse({ paths: ["src"], inlineRules: "id: x" })).not.toThrow();
+    expect(() => scanInputSchema.parse({ paths: ["src"], ruleFile: "r.yml" }))
+      .not.toThrow();
+    expect(() =>
+      scanInputSchema.parse({ paths: ["src"], inlineRules: "id: x" })
+    ).not.toThrow();
   });
 });
 
@@ -94,8 +115,12 @@ describe("ast_grep descriptors: advertised size limits", () => {
   });
 
   it("#given the rewrite tool #when inspected #then pattern 16 KiB and rewrite 64 KiB BYTE budgets are published", () => {
-    expect(String(propertyOf("rewrite", "pattern").description)).toContain("16 KiB");
-    expect(String(propertyOf("rewrite", "pattern").description)).toContain("BYTES");
+    expect(String(propertyOf("rewrite", "pattern").description)).toContain(
+      "16 KiB",
+    );
+    expect(String(propertyOf("rewrite", "pattern").description)).toContain(
+      "BYTES",
+    );
     const rewrite = propertyOf("rewrite", "rewrite");
     expect(String(rewrite.description)).toContain("64 KiB");
     expect(String(rewrite.description)).toContain("BYTES");

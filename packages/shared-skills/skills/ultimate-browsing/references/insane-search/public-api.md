@@ -1,7 +1,7 @@
 # 공개 API 직접 호출
 
-> 인증 없이 구조화된 데이터를 반환하는 공개 API.
-> 웹 크롤링이 아니라 공식 API — 안정적이고 정확.
+> 인증 없이 구조화된 데이터를 반환하는 공개 API. 웹 크롤링이 아니라 공식 API —
+> 안정적이고 정확.
 
 ## Bluesky (AT Protocol)
 
@@ -20,7 +20,8 @@ Rate limit: ~3,000 req/hour
 
 ## Mastodon
 
-인스턴스별 상이. mastodon.social은 공개 타임라인 차단, hachyderm.io/fosstodon.org 등은 허용.
+인스턴스별 상이. mastodon.social은 공개 타임라인 차단,
+hachyderm.io/fosstodon.org 등은 허용.
 
 ```bash
 # 계정 조회
@@ -55,8 +56,8 @@ Rate limit: 비인증 300 req/day (IP당)
 curl -sL "http://export.arxiv.org/api/query?search_query=ti:{query}&max_results=5&sortBy=submittedDate&sortOrder=descending"
 ```
 
-**주의**: 3 req/second 제한. 요청 간 1초 sleep 필수.
-카테고리: cs.AI, cs.CL, cs.LG, cs.CV 등
+**주의**: 3 req/second 제한. 요청 간 1초 sleep 필수. 카테고리: cs.AI, cs.CL,
+cs.LG, cs.CV 등
 
 ## CrossRef (DOI / 피어리뷰 논문)
 
@@ -107,13 +108,13 @@ curl -sL "https://api.github.com/search/code?q={query}+language:python&per_page=
 
 ## Rate Limit 요약
 
-| API | 비인증 | 비고 |
-|-----|-------|------|
-| Bluesky | ~3K/hr | 검색 403 |
-| Mastodon | 인스턴스별 | |
-| Stack Exchange | 300/day | 인증 시 10K |
-| arXiv | 3/sec | sleep 필수 |
-| CrossRef | 50/sec | |
-| OpenLibrary | 무제한 | |
-| Wayback | 무제한 | |
-| GitHub REST | 60/hr | gh CLI 우선 |
+| API            | 비인증     | 비고        |
+| -------------- | ---------- | ----------- |
+| Bluesky        | ~3K/hr     | 검색 403    |
+| Mastodon       | 인스턴스별 |             |
+| Stack Exchange | 300/day    | 인증 시 10K |
+| arXiv          | 3/sec      | sleep 필수  |
+| CrossRef       | 50/sec     |             |
+| OpenLibrary    | 무제한     |             |
+| Wayback        | 무제한     |             |
+| GitHub REST    | 60/hr      | gh CLI 우선 |

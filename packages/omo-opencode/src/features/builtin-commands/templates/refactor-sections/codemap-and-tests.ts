@@ -1,4 +1,5 @@
-export const REFACTOR_CODEMAP_AND_TESTS = `# PHASE 2: BUILD CODEMAP (DEPENDENCY MAPPING)
+export const REFACTOR_CODEMAP_AND_TESTS =
+  `# PHASE 2: BUILD CODEMAP (DEPENDENCY MAPPING)
 
 **Mark phase-2 as in_progress.**
 
@@ -137,4 +138,4 @@ After each refactoring step:
 
 ---
 
-`
+`;

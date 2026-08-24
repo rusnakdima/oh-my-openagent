@@ -1,14 +1,17 @@
 /** Compatibility export surface for memory-usage consumers. */
 export {
   incrementMemoryUsage,
-  readMemoryUsageLedger,
-  memoryUsagePaths,
+  type MemoryUsageEntry,
   type MemoryUsageLedger,
   type MemoryUsageLedgerPath,
-  type MemoryUsageEntry,
-} from "./memory-usage-ledger"
-export { extractMemoryUsagePath, MemoryUsageTracker } from "./memory-usage-tracker"
+  memoryUsagePaths,
+  readMemoryUsageLedger,
+} from "./memory-usage-ledger";
 export {
-  registerMemoryUsage,
+  extractMemoryUsagePath,
+  MemoryUsageTracker,
+} from "./memory-usage-tracker";
+export {
   type MemoryUsageOptions,
-} from "./memory-usage-wiring"
+  registerMemoryUsage,
+} from "./memory-usage-wiring";

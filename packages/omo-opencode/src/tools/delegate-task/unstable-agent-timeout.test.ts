@@ -1,6 +1,6 @@
-declare const require: (name: string) => any
-const { describe, test, expect, beforeEach, afterEach } = require("bun:test")
-import { __setTimingConfig, __resetTimingConfig } from "./timing"
+declare const require: (name: string) => any;
+const { describe, test, expect, beforeEach, afterEach } = require("bun:test");
+import { __resetTimingConfig, __setTimingConfig } from "./timing";
 
 describe("executeUnstableAgentTask timeout handling", () => {
   beforeEach(() => {
@@ -10,21 +10,29 @@ describe("executeUnstableAgentTask timeout handling", () => {
       STABILITY_POLLS_REQUIRED: 1,
       WAIT_FOR_SESSION_TIMEOUT_MS: 100,
       WAIT_FOR_SESSION_INTERVAL_MS: 10,
-    })
-  })
+    });
+  });
 
   afterEach(() => {
-    __resetTimingConfig()
-  })
+    __resetTimingConfig();
+  });
 
   test("returns timeout status instead of success when monitored poll budget is exhausted", async () => {
     // #given
-    const { executeUnstableAgentTask } = require("./unstable-agent-task")
+    const { executeUnstableAgentTask } = require("./unstable-agent-task");
 
     const mockManager = {
-      launch: async () => ({ id: "task_001", sessionId: "ses_timeout", status: "running" }),
-      getTask: () => ({ id: "task_001", sessionId: "ses_timeout", status: "running" }),
-    }
+      launch: async () => ({
+        id: "task_001",
+        sessionId: "ses_timeout",
+        status: "running",
+      }),
+      getTask: () => ({
+        id: "task_001",
+        sessionId: "ses_timeout",
+        status: "running",
+      }),
+    };
 
     const mockClient = {
       session: {
@@ -32,13 +40,20 @@ describe("executeUnstableAgentTask timeout handling", () => {
         messages: async () => ({
           data: [
             {
-              info: { id: "msg_002", role: "assistant", time: { created: 2000 } },
-              parts: [{ type: "text", text: "This should not be treated as success" }],
+              info: {
+                id: "msg_002",
+                role: "assistant",
+                time: { created: 2000 },
+              },
+              parts: [{
+                type: "text",
+                text: "This should not be treated as success",
+              }],
             },
           ],
         }),
       },
-    }
+    };
 
     const args = {
       description: "timeout case",
@@ -47,7 +62,7 @@ describe("executeUnstableAgentTask timeout handling", () => {
       run_in_background: false,
       load_skills: [],
       command: undefined,
-    }
+    };
 
     // #when
     const result = await executeUnstableAgentTask(
@@ -71,11 +86,11 @@ describe("executeUnstableAgentTask timeout handling", () => {
       "test-agent",
       undefined,
       undefined,
-      "gpt-test"
-    )
+      "gpt-test",
+    );
 
     // #then
-    expect(result).toContain("TIMED OUT")
-    expect(result).not.toContain("SUPERVISED TASK COMPLETED SUCCESSFULLY")
-  })
-})
+    expect(result).toContain("TIMED OUT");
+    expect(result).not.toContain("SUPERVISED TASK COMPLETED SUCCESSFULLY");
+  });
+});

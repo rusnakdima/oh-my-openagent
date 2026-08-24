@@ -1,12 +1,16 @@
-import { describe, expect, it } from "bun:test"
-import type { HookDeps, RuntimeFallbackPluginInput } from "./types"
-import type { AutoRetryHelpers } from "./auto-retry"
-import { createFallbackState } from "./fallback-state"
+import { describe, expect, it } from "bun:test";
+import type { HookDeps, RuntimeFallbackPluginInput } from "./types";
+import type { AutoRetryHelpers } from "./auto-retry";
+import { createFallbackState } from "./fallback-state";
 
-type MessageUpdateHandlerModule = typeof import("./message-update-handler")
+type MessageUpdateHandlerModule = typeof import("./message-update-handler");
 
-async function importFreshMessageUpdateHandlerModule(): Promise<MessageUpdateHandlerModule> {
-  return import(`./message-update-handler?success-retry-key-${Date.now()}-${Math.random()}`)
+async function importFreshMessageUpdateHandlerModule(): Promise<
+  MessageUpdateHandlerModule
+> {
+  return import(
+    `./message-update-handler?success-retry-key-${Date.now()}-${Math.random()}`
+  );
 }
 
 function createContext(messagesResponse: unknown): RuntimeFallbackPluginInput {
@@ -22,7 +26,7 @@ function createContext(messagesResponse: unknown): RuntimeFallbackPluginInput {
       },
     },
     directory: "/test/dir",
-  }
+  };
 }
 
 function createDeps(messagesResponse: unknown): HookDeps {
@@ -45,40 +49,47 @@ function createDeps(messagesResponse: unknown): HookDeps {
     sessionAwaitingFallbackResult: new Set(),
     sessionFallbackTimeouts: new Map(),
     sessionStatusRetryKeys: new Map(),
-  }
+  };
 }
 
 function createHelpers(clearCalls: string[]): AutoRetryHelpers {
   return {
     abortSessionRequest: async () => {},
     clearSessionFallbackTimeout: (sessionID: string) => {
-      clearCalls.push(sessionID)
+      clearCalls.push(sessionID);
     },
     scheduleSessionFallbackTimeout: () => {},
     autoRetryWithFallback: async () => {},
     resolveAgentForSessionFromContext: async () => undefined,
     cleanupStaleSessions: () => {},
-  }
+  };
 }
 
 describe("createMessageUpdateHandler retry-key cleanup", () => {
   it("#given a visible assistant reply after the latest user turn #when a non-error assistant update arrives #then the retry dedupe key is cleared with the fallback watchdog", async () => {
     // given
-    const { createMessageUpdateHandler } = await importFreshMessageUpdateHandlerModule()
-    const sessionID = "session-visible-assistant"
-    const clearCalls: string[] = []
+    const { createMessageUpdateHandler } =
+      await importFreshMessageUpdateHandlerModule();
+    const sessionID = "session-visible-assistant";
+    const clearCalls: string[] = [];
     const deps = createDeps({
       data: [
-        { info: { role: "user" }, parts: [{ type: "text", text: "latest question" }] },
-        { info: { role: "assistant" }, parts: [{ type: "text", text: "visible answer" }] },
+        {
+          info: { role: "user" },
+          parts: [{ type: "text", text: "latest question" }],
+        },
+        {
+          info: { role: "assistant" },
+          parts: [{ type: "text", text: "visible answer" }],
+        },
       ],
-    })
-    const state = createFallbackState("google/gemini-2.5-pro")
-    state.pendingFallbackModel = "openai/gpt-5.4"
-    deps.sessionStates.set(sessionID, state)
-    deps.sessionAwaitingFallbackResult.add(sessionID)
-    deps.sessionStatusRetryKeys.set(sessionID, new Set(["retry:1"]))
-    const handler = createMessageUpdateHandler(deps, createHelpers(clearCalls))
+    });
+    const state = createFallbackState("google/gemini-2.5-pro");
+    state.pendingFallbackModel = "openai/gpt-5.4";
+    deps.sessionStates.set(sessionID, state);
+    deps.sessionAwaitingFallbackResult.add(sessionID);
+    deps.sessionStatusRetryKeys.set(sessionID, new Set(["retry:1"]));
+    const handler = createMessageUpdateHandler(deps, createHelpers(clearCalls));
 
     // when
     await handler({
@@ -87,12 +98,12 @@ describe("createMessageUpdateHandler retry-key cleanup", () => {
         role: "assistant",
         model: "openai/gpt-5.4",
       },
-    })
+    });
 
     // then
-    expect(deps.sessionAwaitingFallbackResult.has(sessionID)).toBe(false)
-    expect(deps.sessionStatusRetryKeys.has(sessionID)).toBe(false)
-    expect(state.pendingFallbackModel).toBe(undefined)
-    expect(clearCalls).toEqual([sessionID])
-  })
-})
+    expect(deps.sessionAwaitingFallbackResult.has(sessionID)).toBe(false);
+    expect(deps.sessionStatusRetryKeys.has(sessionID)).toBe(false);
+    expect(state.pendingFallbackModel).toBe(undefined);
+    expect(clearCalls).toEqual([sessionID]);
+  });
+});

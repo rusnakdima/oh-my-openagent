@@ -1,6 +1,9 @@
-import { createExtensionRuntime, type ResourceLoader } from "@code-yeongyu/senpi"
+import {
+  createExtensionRuntime,
+  type ResourceLoader,
+} from "@code-yeongyu/senpi";
 
-import { createMinimalSenpiResourceLoader } from "../../senpi/minimal-resource-loader"
+import { createMinimalSenpiResourceLoader } from "../../senpi/minimal-resource-loader";
 
 // CHILD EXTENSION SUPPRESSION.
 //
@@ -17,5 +20,7 @@ import { createMinimalSenpiResourceLoader } from "../../senpi/minimal-resource-l
 // inside children); the core read/bash/edit tools plus the injected customTools remain. Skills
 // and context per spec are still delivered through prompt injection.
 export function createChildResourceLoader(): ResourceLoader {
-  return createMinimalSenpiResourceLoader({ runtime: createExtensionRuntime() })
+  return createMinimalSenpiResourceLoader({
+    runtime: createExtensionRuntime(),
+  });
 }

@@ -21,7 +21,7 @@ export async function executeCompact(
   client: Client,
   directory: string,
   pluginConfig: OhMyOpenCodeConfig,
-  experimental?: ExperimentalConfig
+  experimental?: ExperimentalConfig,
 ): Promise<void> {
   if (autoCompactState.compactionInProgress.has(sessionID)) {
     await client.tui
@@ -41,17 +41,19 @@ export async function executeCompact(
 
   try {
     if (await isSessionActive(client, sessionID)) {
-      log("[auto-compact] delayed recovery skipped while session is still active", {
-        sessionID,
-      });
+      log(
+        "[auto-compact] delayed recovery skipped while session is still active",
+        {
+          sessionID,
+        },
+      );
       return;
     }
 
     const errorData = autoCompactState.errorDataBySession.get(sessionID);
     const truncateState = getOrCreateTruncateState(autoCompactState, sessionID);
 
-    const isOverLimit =
-      errorData?.currentTokens &&
+    const isOverLimit = errorData?.currentTokens &&
       errorData?.maxTokens &&
       errorData.currentTokens > errorData.maxTokens;
 
@@ -86,7 +88,7 @@ export async function executeCompact(
       pluginConfig,
       errorType: errorData?.errorType,
       messageIndex: errorData?.messageIndex,
-    })
+    });
   } finally {
     autoCompactState.compactionInProgress.delete(sessionID);
   }

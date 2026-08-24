@@ -44,7 +44,20 @@ jobs:
       fail-fast: false
       max-parallel: 11
       matrix:
-        platform: [darwin-arm64, darwin-x64, darwin-x64-baseline, linux-x64, linux-x64-baseline, linux-arm64, linux-x64-musl, linux-x64-musl-baseline, linux-arm64-musl, windows-x64, windows-x64-baseline, windows-arm64]
+        platform: [
+          darwin-arm64,
+          darwin-x64,
+          darwin-x64-baseline,
+          linux-x64,
+          linux-x64-baseline,
+          linux-arm64,
+          linux-x64-musl,
+          linux-x64-musl-baseline,
+          linux-arm64-musl,
+          windows-x64,
+          windows-x64-baseline,
+          windows-arm64,
+        ]
     steps:
       - uses: actions/checkout@v5
 
@@ -84,15 +97,15 @@ jobs:
         run: |
           PLATFORM_KEY="${{ matrix.platform }}"
           PLATFORM_KEY="${PLATFORM_KEY//-/_}"
-          
+
           # Check oh-my-opencode
           OC_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/oh-my-opencode-${{ matrix.platform }}/${VERSION}")
           # Check oh-my-openagent
           OA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/oh-my-openagent-${{ matrix.platform }}/${VERSION}")
-          
+
           echo "oh-my-opencode-${{ matrix.platform }}@${VERSION}: ${OC_STATUS}"
           echo "oh-my-openagent-${{ matrix.platform }}@${VERSION}: ${OA_STATUS}"
-          
+
           if [ "$OC_STATUS" = "200" ]; then
             echo "skip_opencode=true" >> "$GITHUB_OUTPUT"
             echo "✓ oh-my-opencode-${{ matrix.platform }}@${VERSION} already published"
@@ -100,7 +113,7 @@ jobs:
             echo "skip_opencode=false" >> "$GITHUB_OUTPUT"
             echo "→ oh-my-opencode-${{ matrix.platform }}@${VERSION} needs publishing"
           fi
-          
+
           if [ "$OA_STATUS" = "200" ]; then
             echo "skip_openagent=true" >> "$GITHUB_OUTPUT"
             echo "✓ oh-my-openagent-${{ matrix.platform }}@${VERSION} already published"
@@ -108,7 +121,7 @@ jobs:
             echo "skip_openagent=false" >> "$GITHUB_OUTPUT"
             echo "→ oh-my-openagent-${{ matrix.platform }}@${VERSION} needs publishing"
           fi
-          
+
           # Skip build only if BOTH are already published
           if [ "$OC_STATUS" = "200" ] && [ "$OA_STATUS" = "200" ]; then
             echo "skip=true" >> "$GITHUB_OUTPUT"
@@ -160,7 +173,7 @@ jobs:
           PLATFORM="${{ matrix.platform }}"
           PACKAGE_DIR="packages/oh-my-opencode-${PLATFORM}"
           cd "$PACKAGE_DIR"
-          
+
           if [[ "$PLATFORM" == windows-* ]]; then
             # Windows: use 7z (pre-installed on windows-latest)
             7z a -tzip ../../binary-${PLATFORM}.zip bin/ package.json
@@ -168,7 +181,7 @@ jobs:
             # Unix: use tar.gz
             tar -czvf ../../binary-${PLATFORM}.tar.gz bin/ package.json
           fi
-          
+
           cd ../..
           echo "Compressed artifact:"
           ls -lh binary-${PLATFORM}.*
@@ -209,7 +222,20 @@ jobs:
       # publish wall time versus the previous value of 2.
       max-parallel: 6
       matrix:
-        platform: [darwin-arm64, darwin-x64, darwin-x64-baseline, linux-x64, linux-x64-baseline, linux-arm64, linux-x64-musl, linux-x64-musl-baseline, linux-arm64-musl, windows-x64, windows-x64-baseline, windows-arm64]
+        platform: [
+          darwin-arm64,
+          darwin-x64,
+          darwin-x64-baseline,
+          linux-x64,
+          linux-x64-baseline,
+          linux-arm64,
+          linux-x64-musl,
+          linux-x64-musl-baseline,
+          linux-arm64-musl,
+          windows-x64,
+          windows-x64-baseline,
+          windows-arm64,
+        ]
     steps:
       - name: Validate release inputs
         id: validate
@@ -240,21 +266,21 @@ jobs:
         run: |
           OC_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/oh-my-opencode-${{ matrix.platform }}/${VERSION}")
           OA_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://registry.npmjs.org/oh-my-openagent-${{ matrix.platform }}/${VERSION}")
-          
+
           if [ "$OC_STATUS" = "200" ]; then
             echo "skip_opencode=true" >> "$GITHUB_OUTPUT"
             echo "✓ oh-my-opencode-${{ matrix.platform }}@${VERSION} already published"
           else
             echo "skip_opencode=false" >> "$GITHUB_OUTPUT"
           fi
-          
+
           if [ "$OA_STATUS" = "200" ]; then
             echo "skip_openagent=true" >> "$GITHUB_OUTPUT"
             echo "✓ oh-my-openagent-${{ matrix.platform }}@${VERSION} already published"
           else
             echo "skip_openagent=false" >> "$GITHUB_OUTPUT"
           fi
-          
+
           # Need artifact if either package needs publishing
           if [ "$OC_STATUS" = "200" ] && [ "$OA_STATUS" = "200" ]; then
             echo "skip_all=true" >> "$GITHUB_OUTPUT"
@@ -276,13 +302,13 @@ jobs:
           PLATFORM="${{ matrix.platform }}"
           PACKAGE_DIR="packages/oh-my-opencode-${PLATFORM}"
           mkdir -p "$PACKAGE_DIR"
-          
+
           if [[ "$PLATFORM" == windows-* ]]; then
             unzip binary-${PLATFORM}.zip -d "$PACKAGE_DIR/"
           else
             tar -xzvf binary-${PLATFORM}.tar.gz -C "$PACKAGE_DIR/"
           fi
-          
+
           echo "Extracted contents:"
           ls -la "$PACKAGE_DIR/"
           ls -la "$PACKAGE_DIR/bin/"

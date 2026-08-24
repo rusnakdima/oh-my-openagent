@@ -1,7 +1,7 @@
-import type { OmoAgentDef, OmoConfig } from "@oh-my-opencode/omo-config-core"
+import type { OmoAgentDef, OmoConfig } from "@oh-my-opencode/omo-config-core";
 
-import { normalizeToolRules } from "./tools"
-import type { AgentDefinition } from "./types"
+import { normalizeToolRules } from "./tools";
+import type { AgentDefinition } from "./types";
 
 /**
  * Bridge the already-loaded `omo.json` agents (the omo-config-core `OmoAgentDef` shape) onto senpi-task
@@ -12,16 +12,18 @@ import type { AgentDefinition } from "./types"
  * record; `AgentDefinition` carries an explicit `name`, camelCase keys, and last-match-wins tool rules.
  * This maps each field across, reusing the tool-rule normalizer, and omits any field the source omits.
  */
-export function mapOmoConfigAgents(config: OmoConfig): Readonly<Record<string, AgentDefinition>> {
-  const agents: Record<string, AgentDefinition> = {}
+export function mapOmoConfigAgents(
+  config: OmoConfig,
+): Readonly<Record<string, AgentDefinition>> {
+  const agents: Record<string, AgentDefinition> = {};
   for (const [name, def] of Object.entries(config.agents ?? {})) {
-    agents[name] = toAgentDefinition(name, def)
+    agents[name] = toAgentDefinition(name, def);
   }
-  return agents
+  return agents;
 }
 
 function toAgentDefinition(name: string, def: OmoAgentDef): AgentDefinition {
-  const tools = normalizeToolRules(def.tools)
+  const tools = normalizeToolRules(def.tools);
   return {
     name,
     ...(def.description === undefined ? {} : { description: def.description }),
@@ -29,15 +31,23 @@ function toAgentDefinition(name: string, def: OmoAgentDef): AgentDefinition {
     ...(def.model === undefined ? {} : { model: def.model }),
     ...(def.models === undefined ? {} : { models: def.models }),
     ...(def.variant === undefined ? {} : { variant: def.variant }),
-    ...(def.reasoning === undefined && def.reasoningEffort === undefined ? {} : { reasoningEffort: def.reasoning ?? def.reasoningEffort }),
+    ...(def.reasoning === undefined && def.reasoningEffort === undefined
+      ? {}
+      : { reasoningEffort: def.reasoning ?? def.reasoningEffort }),
     ...(def.temperature === undefined ? {} : { temperature: def.temperature }),
     ...(tools === undefined ? {} : { tools }),
     ...(def.disable === undefined ? {} : { disable: def.disable }),
     ...(def.background === undefined ? {} : { background: def.background }),
-    ...(def.execution_mode === undefined ? {} : { executionMode: def.execution_mode }),
-    ...(def.allowed_subagents === undefined ? {} : { allowedSubagents: def.allowed_subagents }),
-    ...(def.disallowed_tools === undefined ? {} : { disallowedTools: def.disallowed_tools }),
+    ...(def.execution_mode === undefined
+      ? {}
+      : { executionMode: def.execution_mode }),
+    ...(def.allowed_subagents === undefined
+      ? {}
+      : { allowedSubagents: def.allowed_subagents }),
+    ...(def.disallowed_tools === undefined
+      ? {}
+      : { disallowedTools: def.disallowed_tools }),
     ...(def.max_depth === undefined ? {} : { maxDepth: def.max_depth }),
     ...(def.max_turns === undefined ? {} : { maxTurns: def.max_turns }),
-  }
+  };
 }

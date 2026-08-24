@@ -1,11 +1,11 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { chooseMemoryLaunchRoute, MEMORY_WORKLOAD_PROFILES } from "./fork-cost"
+import { chooseMemoryLaunchRoute, MEMORY_WORKLOAD_PROFILES } from "./fork-cost";
 
-const KIMI = { input: 0.60, cacheRead: 0.15, output: 2.50 }
-const LUNA = { input: 0.25, cacheRead: 0.025, output: 2.00 }
-const OPUS = { input: 5.00, cacheRead: 0.50, output: 25.0 }
-const PARENT_P50 = 156_872
+const KIMI = { input: 0.60, cacheRead: 0.15, output: 2.50 };
+const LUNA = { input: 0.25, cacheRead: 0.025, output: 2.00 };
+const OPUS = { input: 5.00, cacheRead: 0.50, output: 25.0 };
+const PARENT_P50 = 156_872;
 
 describe("reflection launch route", () => {
   describe("#given a short job on a cheap-cache session model", () => {
@@ -18,13 +18,13 @@ describe("reflection launch route", () => {
         parentContextTokens: PARENT_P50,
         turns: MEMORY_WORKLOAD_PROFILES.reflection.turns,
         cacheHit: true,
-      })
+      });
 
       // then
-      expect(route.route).toBe("fork")
-      expect(route.model).toBe("openai/gpt-5.6-luna-fast")
-    })
-  })
+      expect(route.route).toBe("fork");
+      expect(route.model).toBe("openai/gpt-5.6-luna-fast");
+    });
+  });
 
   describe("#given a long job on an expensive session model", () => {
     test("#when routed #then quick wins", () => {
@@ -36,11 +36,11 @@ describe("reflection launch route", () => {
         parentContextTokens: PARENT_P50,
         turns: MEMORY_WORKLOAD_PROFILES.reflection.turns,
         cacheHit: true,
-      })
+      });
 
       // then
-      expect(route.route).toBe("quick")
-      expect(route.model).toBe("kimi/kimi-for-coding-highspeed")
-    })
-  })
-})
+      expect(route.route).toBe("quick");
+      expect(route.model).toBe("kimi/kimi-for-coding-highspeed");
+    });
+  });
+});

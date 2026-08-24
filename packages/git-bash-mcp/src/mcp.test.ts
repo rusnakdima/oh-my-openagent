@@ -103,7 +103,12 @@ describe("git_bash MCP", () => {
   });
 
   it("#given run call on simulated Windows #when handled #then uses resolved Git Bash with command payload", async () => {
-    const captured: { bashPath?: string; command?: string; cwd?: string; timeoutMs?: number } = {};
+    const captured: {
+      bashPath?: string;
+      command?: string;
+      cwd?: string;
+      timeoutMs?: number;
+    } = {};
     const runGitBash: RunGitBashCommand = async (input) => {
       captured.bashPath = input.bashPath;
       captured.command = input.command;
@@ -117,11 +122,20 @@ describe("git_bash MCP", () => {
         jsonrpc: "2.0",
         id: "run",
         method: "tools/call",
-        params: { name: "run", arguments: { command: "printf ok", cwd: "C:\\repo", timeout_ms: 5000 } },
+        params: {
+          name: "run",
+          arguments: {
+            command: "printf ok",
+            cwd: "C:\\repo",
+            timeout_ms: 5000,
+          },
+        },
       },
       {
         platform: "win32",
-        env: { OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe" },
+        env: {
+          OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe",
+        },
         exists: (path) => path === "C:\\Program Files\\Git\\bin\\bash.exe",
         where: () => [],
         runGitBash,
@@ -150,7 +164,9 @@ describe("git_bash MCP", () => {
       },
       {
         platform: "win32",
-        env: { OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe" },
+        env: {
+          OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe",
+        },
         exists: () => true,
         where: () => [],
         runGitBash: async () => {
@@ -166,84 +182,128 @@ describe("git_bash MCP", () => {
   });
 });
 
-function textFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): string {
+function textFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): string {
   const result = resultFromResponse(response);
   const content = result?.content;
   if (!Array.isArray(content)) return "";
   const first = content[0];
-  if (typeof first !== "object" || first === null || Array.isArray(first)) return "";
+  if (typeof first !== "object" || first === null || Array.isArray(first)) {
+    return "";
+  }
   const text = first.text;
   return typeof text === "string" ? text : "";
 }
 
-function whichBashPayloadFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): WhichBashPayload {
+function whichBashPayloadFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): WhichBashPayload {
   const payload = jsonObjectFromResponse(response);
   const { path, source } = payload;
   if (typeof path !== "string" || typeof source !== "string") {
-    throw new MalformedMcpPayloadError("Expected which_bash payload with string path and source");
+    throw new MalformedMcpPayloadError(
+      "Expected which_bash payload with string path and source",
+    );
   }
-  return { path, source, checkedPaths: stringArrayField(payload, "checkedPaths") };
-}
-
-function diagnosePayloadFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): DiagnosePayload {
-  const payload = jsonObjectFromResponse(response);
-  const { enabled, status, resolution } = payload;
-  if (typeof enabled !== "boolean" || typeof status !== "string") {
-    throw new MalformedMcpPayloadError("Expected diagnose payload with boolean enabled and string status");
-  }
-  const resolutionRecord = typeof resolution === "object" && resolution !== null && !Array.isArray(resolution)
-    ? Object.fromEntries(Object.entries(resolution))
-    : undefined;
   return {
-    enabled,
-    status,
-    resolution: resolutionRecord === undefined ? undefined : { checkedPaths: stringArrayField(resolutionRecord, "checkedPaths") },
+    path,
+    source,
+    checkedPaths: stringArrayField(payload, "checkedPaths"),
   };
 }
 
-function stringArrayField(record: Record<string, unknown>, key: string): readonly string[] | undefined {
-  const value = record[key];
-  if (!Array.isArray(value)) return undefined;
-  return value.every((entry): entry is string => typeof entry === "string") ? value : undefined;
+function diagnosePayloadFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): DiagnosePayload {
+  const payload = jsonObjectFromResponse(response);
+  const { enabled, status, resolution } = payload;
+  if (typeof enabled !== "boolean" || typeof status !== "string") {
+    throw new MalformedMcpPayloadError(
+      "Expected diagnose payload with boolean enabled and string status",
+    );
+  }
+  const resolutionRecord =
+    typeof resolution === "object" && resolution !== null &&
+      !Array.isArray(resolution)
+      ? Object.fromEntries(Object.entries(resolution))
+      : undefined;
+  return {
+    enabled,
+    status,
+    resolution: resolutionRecord === undefined
+      ? undefined
+      : { checkedPaths: stringArrayField(resolutionRecord, "checkedPaths") },
+  };
 }
 
-function runPayloadFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): RunPayload {
+function stringArrayField(
+  record: Record<string, unknown>,
+  key: string,
+): readonly string[] | undefined {
+  const value = record[key];
+  if (!Array.isArray(value)) return undefined;
+  return value.every((entry): entry is string => typeof entry === "string")
+    ? value
+    : undefined;
+}
+
+function runPayloadFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): RunPayload {
   const payload = jsonObjectFromResponse(response);
   const { stdout } = payload;
   if (typeof stdout !== "string") {
-    throw new MalformedMcpPayloadError("Expected run payload with string stdout");
+    throw new MalformedMcpPayloadError(
+      "Expected run payload with string stdout",
+    );
   }
   return { stdout };
 }
 
-function jsonObjectFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): Record<string, unknown> {
+function jsonObjectFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): Record<string, unknown> {
   const parsed: unknown = JSON.parse(textFromResponse(response));
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-    throw new MalformedMcpPayloadError("Expected MCP response text to contain a JSON object");
+    throw new MalformedMcpPayloadError(
+      "Expected MCP response text to contain a JSON object",
+    );
   }
   return Object.fromEntries(Object.entries(parsed));
 }
 
-function toolNamesFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): readonly string[] {
+function toolNamesFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): readonly string[] {
   const result = resultFromResponse(response);
   const tools = result?.tools;
   if (!Array.isArray(tools)) return [];
   return tools.flatMap((tool) => {
-    if (typeof tool !== "object" || tool === null || Array.isArray(tool)) return [];
+    if (typeof tool !== "object" || tool === null || Array.isArray(tool)) {
+      return [];
+    }
     return typeof tool.name === "string" ? [tool.name] : [];
   });
 }
 
-function isErrorFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): boolean | undefined {
+function isErrorFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): boolean | undefined {
   return booleanField(resultFromResponse(response), "isError");
 }
 
-function resultFromResponse(response: JsonRpcResponse | undefined): Record<string, unknown> | undefined {
+function resultFromResponse(
+  response: JsonRpcResponse | undefined,
+): Record<string, unknown> | undefined {
   if (response === undefined || "error" in response) return undefined;
   return response.result;
 }
 
-function booleanField(record: Record<string, unknown> | undefined, key: string): boolean | undefined {
+function booleanField(
+  record: Record<string, unknown> | undefined,
+  key: string,
+): boolean | undefined {
   const value = record?.[key];
   return typeof value === "boolean" ? value : undefined;
 }

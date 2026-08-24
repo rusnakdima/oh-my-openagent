@@ -1,4 +1,5 @@
-export const REFACTOR_VERIFICATION_AND_TOOLING = `# PHASE 6: FINAL VERIFICATION (REGRESSION CHECK)
+export const REFACTOR_VERIFICATION_AND_TOOLING =
+  `# PHASE 6: FINAL VERIFICATION (REGRESSION CHECK)
 
 **Mark phase-6 as in_progress.**
 
@@ -129,4 +130,4 @@ When you encounter deprecated methods/APIs during refactoring:
 <user-request>
 $ARGUMENTS
 </user-request>
-`
+`;

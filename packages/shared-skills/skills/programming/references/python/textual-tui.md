@@ -1,6 +1,7 @@
 # Textual TUI
 
-Textual builds rich, mouse-aware, scrollable, mobile-style TUIs on top of `rich`. Replaces curses, urwid, blessed.
+Textual builds rich, mouse-aware, scrollable, mobile-style TUIs on top of
+`rich`. Replaces curses, urwid, blessed.
 
 ## Install
 
@@ -65,7 +66,9 @@ uv run textual run --dev counter.py
 
 ## Reactive attributes
 
-Textual's `reactive()` descriptor turns a class attribute into something that watches assignments and re-renders automatically. Replaces the manual `query_one` + `update` dance.
+Textual's `reactive()` descriptor turns a class attribute into something that
+watches assignments and re-renders automatically. Replaces the manual
+`query_one` + `update` dance.
 
 ```python
 from textual.app import App, ComposeResult
@@ -89,11 +92,14 @@ class CounterApp(App[None]):
             self.query_one(CountWidget).count += 1
 ```
 
-`reactive()` triggers `render()` (or `watch_<attr>` and `validate_<attr>` callbacks if defined). Use `recompose=True` if you need to call `compose()` again on change.
+`reactive()` triggers `render()` (or `watch_<attr>` and `validate_<attr>`
+callbacks if defined). Use `recompose=True` if you need to call `compose()`
+again on change.
 
 ## Async work — workers
 
-NEVER block the event loop. For network/disk/CPU work, use `@work` (creates a worker) or `run_worker`.
+NEVER block the event loop. For network/disk/CPU work, use `@work` (creates a
+worker) or `run_worker`.
 
 ```python
 import httpx
@@ -117,9 +123,14 @@ class FetchApp(App[None]):
         self.fetch(event.value)
 ```
 
-`exclusive=True` cancels the previous worker if the user submits a new URL before the first finishes. Workers integrate with Textual's lifecycle - they're cancelled when the app exits.
+`exclusive=True` cancels the previous worker if the user submits a new URL
+before the first finishes. Workers integrate with Textual's lifecycle - they're
+cancelled when the app exits.
 
-`@work` is asyncio-flavoured under the hood. That is fine - it does not violate the no-asyncio rule because you are calling Textual's API, not importing asyncio yourself. Inside the worker body, use `httpx.AsyncClient` and other anyio-friendly libraries.
+`@work` is asyncio-flavoured under the hood. That is fine - it does not violate
+the no-asyncio rule because you are calling Textual's API, not importing asyncio
+yourself. Inside the worker body, use `httpx.AsyncClient` and other
+anyio-friendly libraries.
 
 ## Action handlers
 
@@ -140,26 +151,28 @@ class App(App):
         ...
 ```
 
-Bindings can also include the `priority=True` flag to fire before children get a chance.
+Bindings can also include the `priority=True` flag to fire before children get a
+chance.
 
 ## CSS
 
-Textual's CSS supports selectors, variables (`$primary`, `$boost`), animations. Inline via `CSS = "..."` or external via `CSS_PATH = "app.tcss"`.
+Textual's CSS supports selectors, variables (`$primary`, `$boost`), animations.
+Inline via `CSS = "..."` or external via `CSS_PATH = "app.tcss"`.
 
 ```css
 Screen {
-    background: $surface;
-    color: $text;
-    layout: vertical;
+  background: $surface;
+  color: $text;
+  layout: vertical;
 }
 
 #sidebar {
-    width: 30;
-    background: $boost;
+  width: 30;
+  background: $boost;
 }
 
 Button.danger {
-    background: $error;
+  background: $error;
 }
 ```
 
@@ -181,18 +194,20 @@ async def test_counter_increments() -> None:
         assert app.count == 2
 ```
 
-`pilot.click(selector)`, `pilot.press("q")`, `pilot.pause()` for waiting on the next frame.
+`pilot.click(selector)`, `pilot.press("q")`, `pilot.pause()` for waiting on the
+next frame.
 
 ## When NOT to use Textual
 
-| Need | Use |
-|---|---|
-| One-off CLI with structured output | typer + rich |
-| Progress bar in a script | rich.progress |
-| Tabular display of query results | rich.table |
-| Full-screen app with state, input, mouse | Textual |
+| Need                                     | Use           |
+| ---------------------------------------- | ------------- |
+| One-off CLI with structured output       | typer + rich  |
+| Progress bar in a script                 | rich.progress |
+| Tabular display of query results         | rich.table    |
+| Full-screen app with state, input, mouse | Textual       |
 
-A pretty CLI is not a TUI. Reach for Textual when the user expects to navigate a UI, not when you want colours.
+A pretty CLI is not a TUI. Reach for Textual when the user expects to navigate a
+UI, not when you want colours.
 
 ## Sources
 

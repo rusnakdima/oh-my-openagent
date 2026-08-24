@@ -1,45 +1,57 @@
-import type { OhMyOpenCodeConfig } from "../config"
+import type { OhMyOpenCodeConfig } from "../config";
 
-import { getSessionAgent, updateSessionAgent } from "../features/claude-code-session-state"
-import { detectSlashCommand, extractPromptText } from "../hooks/auto-slash-command/detector"
+import {
+  getSessionAgent,
+  updateSessionAgent,
+} from "../features/claude-code-session-state";
+import {
+  detectSlashCommand,
+  extractPromptText,
+} from "../hooks/auto-slash-command/detector";
 import {
   isRuntimeFallbackRetryTextParts,
   isSyntheticOrInternalOnlyTextParts,
   log,
-} from "../shared"
-import type { ChatMessagePart } from "./chat-message/types"
-import { applyGlobalModelToChatMessage } from "./chat-message/global-model-apply"
-import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override"
-import type { PluginContext } from "./types"
-import { handleGoalMessage } from "./chat-message/loop-commands"
-import { notifyWhenModelCacheIsMissing } from "./chat-message/model-cache-warning"
-import { recordSessionModel, getStoredMainSessionModel } from "./chat-message/session-model"
-import { runStartWorkHookIfApplicable } from "./chat-message/start-work-message"
-import { consumeNativeGoalCommandMarker } from "./command-execute-before"
-import { stopContinuation } from "./stop-continuation"
+} from "../shared";
+import type { ChatMessagePart } from "./chat-message/types";
+import { applyGlobalModelToChatMessage } from "./chat-message/global-model-apply";
+import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override";
+import type { PluginContext } from "./types";
+import { handleGoalMessage } from "./chat-message/loop-commands";
+import { notifyWhenModelCacheIsMissing } from "./chat-message/model-cache-warning";
+import {
+  getStoredMainSessionModel,
+  recordSessionModel,
+} from "./chat-message/session-model";
+import { runStartWorkHookIfApplicable } from "./chat-message/start-work-message";
+import { consumeNativeGoalCommandMarker } from "./command-execute-before";
+import { stopContinuation } from "./stop-continuation";
 import type {
   ChatMessageHandlerOutput,
   ChatMessageHooks,
   ChatMessageInput,
   FirstMessageVariantGate,
-} from "./chat-message/types"
+} from "./chat-message/types";
 
-export type { ChatMessageHandlerOutput, ChatMessageInput } from "./chat-message/types"
+export type {
+  ChatMessageHandlerOutput,
+  ChatMessageInput,
+} from "./chat-message/types";
 
 type PluginContextWithTui = {
   readonly client: {
     readonly tui: {
       readonly showToast: (input: {
         readonly body: {
-          readonly title: string
-          readonly message: string
-          readonly variant: "warning"
-          readonly duration: number
-        }
-      }) => Promise<unknown>
-    }
-  }
-}
+          readonly title: string;
+          readonly message: string;
+          readonly variant: "warning";
+          readonly duration: number;
+        };
+      }) => Promise<unknown>;
+    };
+  };
+};
 
 function isRuntimeFallbackEnabled(
   hooks: ChatMessageHooks,
@@ -51,94 +63,96 @@ function isRuntimeFallbackEnabled(
     (typeof pluginConfig.runtime_fallback === "boolean"
       ? pluginConfig.runtime_fallback
       : (pluginConfig.runtime_fallback?.enabled ?? false))
-  )
+  );
 }
 
 async function runChatMessageHooks(args: {
-  readonly input: ChatMessageInput
-  readonly output: ChatMessageHandlerOutput
-  readonly hooks: ChatMessageHooks
-  readonly pluginConfig: OhMyOpenCodeConfig
-  readonly runtimeFallbackEnabled: boolean
+  readonly input: ChatMessageInput;
+  readonly output: ChatMessageHandlerOutput;
+  readonly hooks: ChatMessageHooks;
+  readonly pluginConfig: OhMyOpenCodeConfig;
+  readonly runtimeFallbackEnabled: boolean;
 }): Promise<void> {
-  const { input, output, hooks, pluginConfig, runtimeFallbackEnabled } = args
+  const { input, output, hooks, pluginConfig, runtimeFallbackEnabled } = args;
   if (!runtimeFallbackEnabled) {
-    await hooks.modelFallback?.["chat.message"]?.(input, output)
+    await hooks.modelFallback?.["chat.message"]?.(input, output);
   }
-  recordSessionModel(input, output, pluginConfig)
-  await hooks.stopContinuationGuard?.["chat.message"]?.(input)
-  await hooks.backgroundNotificationHook?.["chat.message"]?.(input, output)
-  await hooks.runtimeFallback?.["chat.message"]?.(input, output)
-  await hooks.imageProxy?.["chat.message"]?.(input, output)
-  await hooks.keywordDetector?.["chat.message"]?.(input, output)
-  await hooks.thinkMode?.["chat.message"]?.(input, output)
-  await hooks.claudeCodeHooks?.["chat.message"]?.(input, output)
-  await hooks.autoSlashCommand?.["chat.message"]?.(input, output)
-  await hooks.noSisyphusGpt?.["chat.message"]?.(input, output)
-  await hooks.noHephaestusNonGpt?.["chat.message"]?.(input, output)
-  await hooks.hephaestusAgentsMdInjector?.["chat.message"]?.(input, output)
-  await hooks.openspecSession?.["chat.message"]?.(input, output)
+  recordSessionModel(input, output, pluginConfig);
+  await hooks.stopContinuationGuard?.["chat.message"]?.(input);
+  await hooks.backgroundNotificationHook?.["chat.message"]?.(input, output);
+  await hooks.runtimeFallback?.["chat.message"]?.(input, output);
+  await hooks.imageProxy?.["chat.message"]?.(input, output);
+  await hooks.keywordDetector?.["chat.message"]?.(input, output);
+  await hooks.thinkMode?.["chat.message"]?.(input, output);
+  await hooks.claudeCodeHooks?.["chat.message"]?.(input, output);
+  await hooks.autoSlashCommand?.["chat.message"]?.(input, output);
+  await hooks.noSisyphusGpt?.["chat.message"]?.(input, output);
+  await hooks.noHephaestusNonGpt?.["chat.message"]?.(input, output);
+  await hooks.hephaestusAgentsMdInjector?.["chat.message"]?.(input, output);
+  await hooks.openspecSession?.["chat.message"]?.(input, output);
 }
 
 export function createChatMessageHandler(args: {
-  ctx: PluginContext
-  pluginConfig: OhMyOpenCodeConfig
-  firstMessageVariantGate: FirstMessageVariantGate
-  hooks: ChatMessageHooks
+  ctx: PluginContext;
+  pluginConfig: OhMyOpenCodeConfig;
+  firstMessageVariantGate: FirstMessageVariantGate;
+  hooks: ChatMessageHooks;
 }): (
   input: ChatMessageInput,
-  output: ChatMessageHandlerOutput
+  output: ChatMessageHandlerOutput,
 ) => Promise<void> {
-  const { ctx, pluginConfig, firstMessageVariantGate, hooks } = args
-  const pluginContext = ctx as PluginContextWithTui
-  const runtimeFallbackEnabled = isRuntimeFallbackEnabled(hooks, pluginConfig)
+  const { ctx, pluginConfig, firstMessageVariantGate, hooks } = args;
+  const pluginContext = ctx as PluginContextWithTui;
+  const runtimeFallbackEnabled = isRuntimeFallbackEnabled(hooks, pluginConfig);
 
   return async (
     input: ChatMessageInput,
     output: ChatMessageHandlerOutput,
   ): Promise<void> => {
-    const nativeGoalCommand = consumeNativeGoalCommandMarker(output.parts)
+    const nativeGoalCommand = consumeNativeGoalCommandMarker(output.parts);
     if (isSyntheticOrInternalOnlyTextParts(output.parts)) {
       if (isRuntimeFallbackRetryTextParts(output.parts)) {
-        await hooks.runtimeFallback?.["chat.message"]?.(input, output)
+        await hooks.runtimeFallback?.["chat.message"]?.(input, output);
       }
       log("[chat-message] Skipping synthetic/internal-only message", {
         sessionID: input.sessionID,
-      })
-      return
+      });
+      return;
     }
 
     if (input.agent) {
-      updateSessionAgent(input.sessionID, input.agent)
+      updateSessionAgent(input.sessionID, input.agent);
     }
 
-    const slashCommand = detectSlashCommand(extractPromptText(output.parts))
+    const slashCommand = detectSlashCommand(extractPromptText(output.parts));
     if (slashCommand?.command === "stop-continuation") {
       stopContinuation({
         directory: ctx.directory,
         hooks,
         sessionID: input.sessionID,
-      })
+      });
     }
 
-    const isFirstMessage = firstMessageVariantGate.shouldOverride(input.sessionID)
+    const isFirstMessage = firstMessageVariantGate.shouldOverride(
+      input.sessionID,
+    );
     if (isFirstMessage) {
-      firstMessageVariantGate.markApplied(input.sessionID)
+      firstMessageVariantGate.markApplied(input.sessionID);
     }
 
     const storedMainSessionModel = getStoredMainSessionModel(
       input,
       pluginConfig,
       isFirstMessage,
-    )
+    );
     if (storedMainSessionModel) {
-      output.message.model = storedMainSessionModel
+      output.message.model = storedMainSessionModel;
     }
 
     // Apply the user's global model pick to every OMO agent mode for this call.
     // Runs BEFORE the hook chain so later error-recovery overrides
     // (runtime-fallback, model-fallback) still win during fallbacks.
-    applyGlobalModelToChatMessage(input, output, pluginConfig)
+    applyGlobalModelToChatMessage(input, output, pluginConfig);
 
     await runChatMessageHooks({
       input,
@@ -146,31 +160,45 @@ export function createChatMessageHandler(args: {
       hooks,
       pluginConfig,
       runtimeFallbackEnabled,
-    })
+    });
 
     // #4710: Detect @plan reference that resolved to a plan file — suggest switching to Prometheus
     {
-      const currentAgent = getSessionAgent(input.sessionID)
+      const currentAgent = getSessionAgent(input.sessionID);
       if (!currentAgent || currentAgent === "sisyphus") {
-        const promptText = extractPromptText(output.parts)
+        const promptText = extractPromptText(output.parts);
         if (/\.omo\/plans\/[\w-]+\.md/i.test(promptText)) {
-          const tui = pluginContext.client.tui
-          if (typeof (tui as { showToast?: unknown }).showToast === "function") {
-            ;(tui as { showToast: (input: { body: { title: string; message: string; variant: string; duration: number } }) => Promise<unknown> }).showToast({
+          const tui = pluginContext.client.tui;
+          if (
+            typeof (tui as { showToast?: unknown }).showToast === "function"
+          ) {
+            (tui as {
+              showToast: (
+                input: {
+                  body: {
+                    title: string;
+                    message: string;
+                    variant: string;
+                    duration: number;
+                  };
+                },
+              ) => Promise<unknown>;
+            }).showToast({
               body: {
                 title: "Plan detected",
-                message: "For plan work, consider switching to Prometheus first: Tab agent selector → Prometheus, then ask for the plan.",
+                message:
+                  "For plan work, consider switching to Prometheus first: Tab agent selector → Prometheus, then ask for the plan.",
                 variant: "warning",
                 duration: 5000,
               },
-            }).catch(() => {})
+            }).catch(() => {});
           }
         }
       }
     }
 
-    await runStartWorkHookIfApplicable(hooks, input, output)
-    notifyWhenModelCacheIsMissing(pluginContext.client.tui)
+    await runStartWorkHookIfApplicable(hooks, input, output);
+    notifyWhenModelCacheIsMissing(pluginContext.client.tui);
     handleGoalMessage({
       hooks,
       input,
@@ -178,7 +206,7 @@ export function createChatMessageHandler(args: {
       isFirstMessage,
       pluginConfig,
       nativeGoalCommand,
-    })
+    });
     await applyUltraworkModelOverrideOnMessage(
       pluginConfig,
       input.agent,
@@ -186,6 +214,6 @@ export function createChatMessageHandler(args: {
       pluginContext.client.tui,
       input.sessionID,
       pluginContext.client,
-    )
-  }
+    );
+  };
 }

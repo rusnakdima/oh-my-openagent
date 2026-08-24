@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 /**
  * Help JSON schema for the `sandbox` surface.
@@ -8,7 +8,9 @@ export const SandboxConfigSchema = z
   .object({
     enabled: z.boolean().describe("Whether sandbox is enabled"),
     timeout: z.number().describe("Default execution timeout in seconds"),
-    memory: z.string().nullable().optional().describe("Memory limit (e.g., '512MB')"),
+    memory: z.string().nullable().optional().describe(
+      "Memory limit (e.g., '512MB')",
+    ),
     network: z.boolean().describe("Whether network access is allowed"),
     filesystem: z.object({
       read: z.array(z.string()).describe("Readable paths"),
@@ -16,7 +18,7 @@ export const SandboxConfigSchema = z
       tempDir: z.string().describe("Sandbox temporary directory"),
     }).describe("Filesystem access rules"),
   })
-  .meta({ ref: "SandboxConfig" })
+  .meta({ ref: "SandboxConfig" });
 
 export const SandboxExecutionSchema = z
   .object({
@@ -28,7 +30,7 @@ export const SandboxExecutionSchema = z
     duration: z.number().describe("Execution duration in ms"),
     sandboxed: z.boolean().describe("Whether execution was sandboxed"),
   })
-  .meta({ ref: "SandboxExecution" })
+  .meta({ ref: "SandboxExecution" });
 
 export const SandboxStatusSchema = z
   .object({
@@ -38,16 +40,18 @@ export const SandboxStatusSchema = z
     executionsActive: z.number().describe("Currently active executions"),
     config: SandboxConfigSchema.describe("Sandbox configuration"),
   })
-  .meta({ ref: "SandboxStatus" })
+  .meta({ ref: "SandboxStatus" });
 
 export const SandboxResultSchema = z
   .object({
     status: SandboxStatusSchema.describe("Sandbox runtime status"),
-    recentExecutions: z.array(SandboxExecutionSchema).optional().describe("Recent execution records"),
+    recentExecutions: z.array(SandboxExecutionSchema).optional().describe(
+      "Recent execution records",
+    ),
   })
-  .meta({ ref: "SandboxResult" })
+  .meta({ ref: "SandboxResult" });
 
-export type SandboxConfig = z.infer<typeof SandboxConfigSchema>
-export type SandboxExecution = z.infer<typeof SandboxExecutionSchema>
-export type SandboxStatus = z.infer<typeof SandboxStatusSchema>
-export type SandboxResult = z.infer<typeof SandboxResultSchema>
+export type SandboxConfig = z.infer<typeof SandboxConfigSchema>;
+export type SandboxExecution = z.infer<typeof SandboxExecutionSchema>;
+export type SandboxStatus = z.infer<typeof SandboxStatusSchema>;
+export type SandboxResult = z.infer<typeof SandboxResultSchema>;

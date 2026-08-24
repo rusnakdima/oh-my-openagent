@@ -1,30 +1,30 @@
-import color from "picocolors"
-import { validatePluginConfig } from "../config/validate"
-import { getMainSessions } from "../tools/session-manager/storage"
+import color from "picocolors";
+import { validatePluginConfig } from "../config/validate";
+import { getMainSessions } from "../tools/session-manager/storage";
 
 export interface HealthDashboardData {
-  timestamp: string
-  configValid: boolean
-  configPath: string | null
-  teamModeEnabled: boolean
-  telemetryEnabled: boolean
-  sessionCount: number
+  timestamp: string;
+  configValid: boolean;
+  configPath: string | null;
+  teamModeEnabled: boolean;
+  telemetryEnabled: boolean;
+  sessionCount: number;
 }
 
 async function buildHealthData(): Promise<HealthDashboardData> {
-  const timestamp = new Date().toISOString()
+  const timestamp = new Date().toISOString();
 
   // Config validity
-  const validation = validatePluginConfig(process.cwd())
-  const configValid = validation.valid
-  const configPath = validation.path ?? null
-  const pluginConfig = validation.config
-  const teamModeEnabled = pluginConfig?.team_mode?.enabled ?? false
-  const telemetryEnabled = pluginConfig?.telemetry ?? false
+  const validation = validatePluginConfig(process.cwd());
+  const configValid = validation.valid;
+  const configPath = validation.path ?? null;
+  const pluginConfig = validation.config;
+  const teamModeEnabled = pluginConfig?.team_mode?.enabled ?? false;
+  const telemetryEnabled = pluginConfig?.telemetry ?? false;
 
   // Session count
-  const sessions = await getMainSessions({})
-  const sessionCount = sessions.length
+  const sessions = await getMainSessions({});
+  const sessionCount = sessions.length;
 
   return {
     timestamp,
@@ -33,17 +33,31 @@ async function buildHealthData(): Promise<HealthDashboardData> {
     teamModeEnabled,
     telemetryEnabled,
     sessionCount,
-  }
+  };
 }
 
 function formatTextOutput(data: HealthDashboardData): void {
-  console.log(color.bold(color.cyan("=== Plugin Health ===")))
-  console.log()
-  console.log(`${color.bold("Timestamp:")} ${data.timestamp}`)
-  console.log(`${color.bold("Config:")} ${data.configValid ? color.green("valid") : color.red("invalid")} ${data.configPath ? `(${data.configPath})` : ""}`)
-  console.log(`${color.bold("Team Mode:")} ${data.teamModeEnabled ? color.green("enabled") : color.yellow("disabled")}`)
-  console.log(`${color.bold("Telemetry:")} ${data.telemetryEnabled ? color.green("enabled") : color.yellow("disabled")}`)
-  console.log(`${color.bold("Sessions:")} ${color.yellow(data.sessionCount.toString())}`)
+  console.log(color.bold(color.cyan("=== Plugin Health ===")));
+  console.log();
+  console.log(`${color.bold("Timestamp:")} ${data.timestamp}`);
+  console.log(
+    `${color.bold("Config:")} ${
+      data.configValid ? color.green("valid") : color.red("invalid")
+    } ${data.configPath ? `(${data.configPath})` : ""}`,
+  );
+  console.log(
+    `${color.bold("Team Mode:")} ${
+      data.teamModeEnabled ? color.green("enabled") : color.yellow("disabled")
+    }`,
+  );
+  console.log(
+    `${color.bold("Telemetry:")} ${
+      data.telemetryEnabled ? color.green("enabled") : color.yellow("disabled")
+    }`,
+  );
+  console.log(
+    `${color.bold("Sessions:")} ${color.yellow(data.sessionCount.toString())}`,
+  );
 }
 
 function formatJsonOutput(data: HealthDashboardData): void {
@@ -60,30 +74,38 @@ function formatJsonOutput(data: HealthDashboardData): void {
       null,
       2,
     ),
-  )
+  );
 }
 
-export async function runHealthDashboard(options: { json?: boolean }): Promise<number> {
+export async function runHealthDashboard(
+  options: { json?: boolean },
+): Promise<number> {
   try {
-    const data = await buildHealthData()
+    const data = await buildHealthData();
 
     if (options.json) {
-      formatJsonOutput(data)
+      formatJsonOutput(data);
     } else {
-      formatTextOutput(data)
+      formatTextOutput(data);
     }
 
-    return 0
+    return 0;
   } catch (error) {
     if (options.json) {
       console.error(
         JSON.stringify({
           error: error instanceof Error ? error.message : String(error),
         }),
-      )
+      );
     } else {
-      console.error(color.red(`Error running health dashboard: ${error instanceof Error ? error.message : String(error)}`))
+      console.error(
+        color.red(
+          `Error running health dashboard: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        ),
+      );
     }
-    return 1
+    return 1;
   }
 }

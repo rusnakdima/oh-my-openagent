@@ -1,14 +1,20 @@
 # Zero-Cost Safety — Zig Ergonomics in Rust
 
-Rust already owns memory safety. This reference adds the patterns that give you Zig's *ergonomic* safety — explicit allocation control, compile-time computation, zero-hidden-cost APIs, bit-level layout, and deterministic cleanup — without leaving the Rust toolchain.
+Rust already owns memory safety. This reference adds the patterns that give you
+Zig's _ergonomic_ safety — explicit allocation control, compile-time
+computation, zero-hidden-cost APIs, bit-level layout, and deterministic cleanup
+— without leaving the Rust toolchain.
 
-**When to load this file:** arena, allocator, bumpalo, const fn, const generics, comptime, zero-alloc, no-alloc, slice-based API, `#[repr]`, packed struct, bitfield, scopeguard, errdefer, RAII cleanup, Zig-like patterns.
+**When to load this file:** arena, allocator, bumpalo, const fn, const generics,
+comptime, zero-alloc, no-alloc, slice-based API, `#[repr]`, packed struct,
+bitfield, scopeguard, errdefer, RAII cleanup, Zig-like patterns.
 
 ---
 
 ## 1. Explicit Allocators — Arena Pattern
 
-Zig passes `allocator: Allocator` to every function. Rust's stable equivalent: arena crates that make allocation scope visible and bulk-freeable.
+Zig passes `allocator: Allocator` to every function. Rust's stable equivalent:
+arena crates that make allocation scope visible and bulk-freeable.
 
 ### bumpalo — The Default Arena
 
@@ -29,7 +35,8 @@ let tokens = parse_tokens(&arena, b"...");
 drop(arena); // all arena memory freed, zero individual deallocations
 ```
 
-**When to use:** parsers, compilers, game frame allocators, request-scoped web handlers, any hot loop where individual `Box`/`Vec` alloc+free overhead matters.
+**When to use:** parsers, compilers, game frame allocators, request-scoped web
+handlers, any hot loop where individual `Box`/`Vec` alloc+free overhead matters.
 
 ### typed-arena — Homogeneous Arena
 
@@ -43,7 +50,8 @@ let root = node_arena.alloc(AstNode { kind: 0, children: vec![] });
 // All nodes share arena lifetime. No individual free.
 ```
 
-**When to use:** tree/graph structures where all nodes have the same type and same lifetime.
+**When to use:** tree/graph structures where all nodes have the same type and
+same lifetime.
 
 ### allocator_api (nightly) — Full Zig Parity
 
@@ -59,7 +67,8 @@ struct CountingAlloc { inner: Global, count: AtomicUsize }
 unsafe impl Allocator for CountingAlloc { /* ... */ }
 ```
 
-**When to use:** when you need allocator-generic data structures on nightly. For stable code, prefer `bumpalo` directly.
+**When to use:** when you need allocator-generic data structures on nightly. For
+stable code, prefer `bumpalo` directly.
 
 ### Decision Tree
 
@@ -84,7 +93,8 @@ tinyvec = { version = "1", features = ["alloc"] }
 
 ## 2. Compile-Time Computation — const fn, const generics, proc macros
 
-Zig's `comptime` runs arbitrary code at compile time. Rust splits this across three mechanisms.
+Zig's `comptime` runs arbitrary code at compile time. Rust splits this across
+three mechanisms.
 
 ### const fn — Compile-Time Pure Functions
 
@@ -111,7 +121,9 @@ const LOOKUP: [u8; 256] = {
 };
 ```
 
-**Stable since Rust 1.82:** `const fn` supports `match`, loops, `if`, references, mutable locals — nearly full Rust. Use `const { }` blocks (Rust 1.79+) for inline compile-time assertions.
+**Stable since Rust 1.82:** `const fn` supports `match`, loops, `if`,
+references, mutable locals — nearly full Rust. Use `const { }` blocks (Rust
+1.79+) for inline compile-time assertions.
 
 ```rust
 fn process<const N: usize>(data: &[u8; N]) {
@@ -148,7 +160,8 @@ let large: Buffer<1024> = Buffer::new();
 
 ### proc macros — Code Generation (Zig comptime type creation)
 
-When `const fn` is not enough (generating struct fields, impl blocks, or derive logic), proc macros fill the gap.
+When `const fn` is not enough (generating struct fields, impl blocks, or derive
+logic), proc macros fill the gap.
 
 ```rust
 // In a proc-macro crate:
@@ -183,7 +196,8 @@ Need typenum-level arithmetic?       → typenum / generic-array (rare)
 
 ## 3. Zero-Allocation API Design — No Hidden Costs
 
-Zig's philosophy: no operator overloading, no hidden allocation, every cost visible. Rust achieves this with discipline.
+Zig's philosophy: no operator overloading, no hidden allocation, every cost
+visible. Rust achieves this with discipline.
 
 ### Slice-Based APIs — Caller Owns Memory
 
@@ -260,7 +274,8 @@ use alloc::vec::Vec;      // explicit: I chose to allocate
 use alloc::string::String; // explicit: I chose to allocate
 ```
 
-Even in `std` code, the *mindset* applies: prefer `&[T]` over `Vec<T>` in function signatures, `&str` over `String`, `&Path` over `PathBuf`.
+Even in `std` code, the _mindset_ applies: prefer `&[T]` over `Vec<T>` in
+function signatures, `&str` over `String`, `&Path` over `PathBuf`.
 
 ### Clippy Lints for Hidden Allocations
 
@@ -278,7 +293,8 @@ vec_init_then_push = "warn"         # Vec::new() + push instead of vec![]
 
 ## 4. Bit-Level Layout — repr, Packed Structs, Bitfields
 
-Zig: `packed struct` with bit-level field control. Rust matches with `#[repr]` attributes and bitfield crates.
+Zig: `packed struct` with bit-level field control. Rust matches with `#[repr]`
+attributes and bitfield crates.
 
 ### #[repr(C)] — Guaranteed C-Compatible Layout
 
@@ -403,7 +419,8 @@ bytemuck = { version = "1", features = ["derive"] }  # alternative to zerocopy
 
 ## 5. Scope Guards — errdefer / Deterministic Cleanup
 
-Zig's `errdefer` runs cleanup only on error paths. Rust's `Drop` always runs, but `scopeguard` gives fine-grained control.
+Zig's `errdefer` runs cleanup only on error paths. Rust's `Drop` always runs,
+but `scopeguard` gives fine-grained control.
 
 ### scopeguard — The errdefer Equivalent
 
@@ -471,7 +488,8 @@ let tmp = TempFile::new("/tmp/scratch.dat")?;
 
 ### The errdefer Pattern — Defuse on Success
 
-The key insight from Zig's `errdefer`: you want cleanup on error but NOT on success. In Rust:
+The key insight from Zig's `errdefer`: you want cleanup on error but NOT on
+success. In Rust:
 
 ```rust
 use scopeguard::ScopeGuard;
@@ -504,24 +522,35 @@ tempfile = "3"  # idiomatic RAII temp files/dirs
 
 ## Summary: Zig Advantage → Rust Pattern
 
-| Zig Feature | Rust Equivalent | Difficulty | Reference |
-|---|---|---|---|
-| Explicit allocator passing | `bumpalo` / `typed-arena` / `allocator_api` | Easy | §1 |
-| `comptime` value computation | `const fn` + `const { }` blocks | Easy | §2 |
-| `comptime` type generation | proc macros (derive / attribute) | Medium | §2 |
-| No hidden allocations | `#![no_std]` / slice-based APIs / `Cow` | Style choice | §3 |
-| `packed struct` / bitfields | `#[repr(C, packed)]` / `bitfield` / `zerocopy` | Easy | §4 |
-| `errdefer` | `scopeguard::guard` + defuse on success | Easy | §5 |
-| `defer` | `scopeguard::defer!` / `Drop` | Easy | §5 |
+| Zig Feature                  | Rust Equivalent                                | Difficulty   | Reference |
+| ---------------------------- | ---------------------------------------------- | ------------ | --------- |
+| Explicit allocator passing   | `bumpalo` / `typed-arena` / `allocator_api`    | Easy         | §1        |
+| `comptime` value computation | `const fn` + `const { }` blocks                | Easy         | §2        |
+| `comptime` type generation   | proc macros (derive / attribute)               | Medium       | §2        |
+| No hidden allocations        | `#![no_std]` / slice-based APIs / `Cow`        | Style choice | §3        |
+| `packed struct` / bitfields  | `#[repr(C, packed)]` / `bitfield` / `zerocopy` | Easy         | §4        |
+| `errdefer`                   | `scopeguard::guard` + defuse on success        | Easy         | §5        |
+| `defer`                      | `scopeguard::defer!` / `Drop`                  | Easy         | §5        |
 
-All achievable within Rust's single toolchain. You get Zig's explicitness **plus** the borrow checker, lifetime analysis, trait bounds, and `miri`. The combination is strictly more powerful than either alone.
+All achievable within Rust's single toolchain. You get Zig's explicitness
+**plus** the borrow checker, lifetime analysis, trait bounds, and `miri`. The
+combination is strictly more powerful than either alone.
 
 ## When NOT to Use These Patterns
 
-- **Arena allocation** overkill for simple CLI tools that allocate once and exit.
-- **Zero-alloc APIs** hurt readability when the function naturally produces owned data. Don't force `&mut [u8]` output buffers on a function that logically returns `String`.
-- **`#[repr(packed)]`** only for wire formats and FFI. Never for regular domain types.
-- **Scope guards** unnecessary when `Drop` on the value itself handles cleanup (e.g., `tempfile::NamedTempFile` already does this).
-- **`const fn`** everything? No — only when the value is genuinely needed at compile time or the function is trivially const-eligible. Don't contort logic just to be const.
+- **Arena allocation** overkill for simple CLI tools that allocate once and
+  exit.
+- **Zero-alloc APIs** hurt readability when the function naturally produces
+  owned data. Don't force `&mut [u8]` output buffers on a function that
+  logically returns `String`.
+- **`#[repr(packed)]`** only for wire formats and FFI. Never for regular domain
+  types.
+- **Scope guards** unnecessary when `Drop` on the value itself handles cleanup
+  (e.g., `tempfile::NamedTempFile` already does this).
+- **`const fn`** everything? No — only when the value is genuinely needed at
+  compile time or the function is trivially const-eligible. Don't contort logic
+  just to be const.
 
-The goal is **visible costs and explicit control**, not asceticism. Use `String` and `Vec` freely when they're the right tool. Reach for these patterns when allocation behavior matters for correctness or performance.
+The goal is **visible costs and explicit control**, not asceticism. Use `String`
+and `Vec` freely when they're the right tool. Reach for these patterns when
+allocation behavior matters for correctness or performance.

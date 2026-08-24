@@ -1,25 +1,29 @@
-import type { OmoConfig } from "@oh-my-opencode/omo-config-core"
+import type { OmoConfig } from "@oh-my-opencode/omo-config-core";
 import {
-  resolveAgent,
-  resolveCategory,
   type AgentDefinition,
   type ChildPlanner,
   type PlanResolution,
+  resolveAgent,
+  resolveCategory,
   type ResolvedAgentResult,
   type SenpiModelPort,
   type SenpiModelRegistryPort,
-} from "@oh-my-opencode/senpi-task"
+} from "@oh-my-opencode/senpi-task";
 
-type ResolvedPlan = Extract<PlanResolution, { readonly kind: "resolved" }>["plan"]
-type ResolvedModelMetadata = NonNullable<ResolvedPlan["resolved_model"]>
+type ResolvedPlan = Extract<
+  PlanResolution,
+  { readonly kind: "resolved" }
+>["plan"];
+type ResolvedModelMetadata = NonNullable<ResolvedPlan["resolved_model"]>;
 
 // The live senpi model registry surface the planner needs. ExtensionContext.modelRegistry satisfies
 // it structurally; a fake with getAvailable/find satisfies it in tests.
-export type TaskModelRegistry = SenpiModelRegistryPort<SenpiModelPort>
+export type TaskModelRegistry = SenpiModelRegistryPort<SenpiModelPort>;
 
-export type ResolveModelRegistry = () => TaskModelRegistry | undefined
+export type ResolveModelRegistry = () => TaskModelRegistry | undefined;
 
-const NO_REGISTRY_MESSAGE = "No senpi model registry is available yet to resolve a task model."
+const NO_REGISTRY_MESSAGE =
+  "No senpi model registry is available yet to resolve a task model.";
 
 // The category-and-agent resolving ChildPlanner the manager consumes. Resolution order:
 // 1. a subagent_type naming a known agent wins: an explicit `model` keeps the headless explicit
@@ -32,7 +36,7 @@ export function createTaskChildPlanner(
   agents: Readonly<Record<string, AgentDefinition>>,
   resolveRegistry: ResolveModelRegistry,
 ): ChildPlanner {
-  const availableAgents = listAvailableAgents(agents)
+  const availableAgents = listAvailableAgents(agents);
   return (spec): PlanResolution => {
     if (spec.subagent_type !== undefined) {
       const agentResolution = resolveAgentTarget(
@@ -41,37 +45,45 @@ export function createTaskChildPlanner(
         agents,
         resolveRegistry,
         Object.hasOwn(omoConfig.agents ?? {}, spec.subagent_type),
-      )
-      if (agentResolution !== undefined) return agentResolution
+      );
+      if (agentResolution !== undefined) return agentResolution;
     }
 
     if (spec.model !== undefined && spec.model.length > 0) {
-      const resolvedModel = explicitModelMetadata(spec.model)
+      const resolvedModel = explicitModelMetadata(spec.model);
       return {
         kind: "resolved",
         plan: {
           model: spec.model,
-          ...(resolvedModel !== undefined ? { resolved_model: resolvedModel } : {}),
+          ...(resolvedModel !== undefined
+            ? { resolved_model: resolvedModel }
+            : {}),
         },
-      }
+      };
     }
 
-    const categoryName = spec.category ?? spec.subagent_type
+    const categoryName = spec.category ?? spec.subagent_type;
     if (categoryName === undefined) {
-      return { kind: "error", error: { code: "invalid_target", message: "A task requires a category, subagent_type, or model." } }
+      return {
+        kind: "error",
+        error: {
+          code: "invalid_target",
+          message: "A task requires a category, subagent_type, or model.",
+        },
+      };
     }
 
-    const registry = resolveRegistry()
+    const registry = resolveRegistry();
     if (registry === undefined) {
       return {
         kind: "error",
         error: { code: "model_unavailable", message: NO_REGISTRY_MESSAGE },
-      }
+      };
     }
 
-    const resolution = resolveCategory(categoryName, omoConfig, registry)
-    return toPlanResolution(categoryName, resolution, availableAgents)
-  }
+    const resolution = resolveCategory(categoryName, omoConfig, registry);
+    return toPlanResolution(categoryName, resolution, availableAgents);
+  };
 }
 
 // Agent-first target handling. Unknown and disabled names may retain category fallback, but a known
@@ -83,9 +95,13 @@ function resolveAgentTarget(
   resolveRegistry: ResolveModelRegistry,
   hasExplicitUserConfig: boolean,
 ): PlanResolution | undefined {
-  const definition = Object.hasOwn(agents, agentName) ? agents[agentName] : undefined
+  const definition = Object.hasOwn(agents, agentName)
+    ? agents[agentName]
+    : undefined;
   if (definition?.disable === true) {
-    if (explicitModel === undefined || explicitModel.length === 0) return undefined
+    if (explicitModel === undefined || explicitModel.length === 0) {
+      return undefined;
+    }
     return {
       kind: "error",
       error: {
@@ -93,41 +109,59 @@ function resolveAgentTarget(
         message: `Target "${agentName}" not found.`,
         availableAgents: listAvailableAgents(agents),
       },
-    }
+    };
   }
 
   if (explicitModel !== undefined && explicitModel.length > 0) {
-    const resolution = resolveAgent(agentName, agents, undefined, { modelOverride: explicitModel, hasExplicitUserConfig })
-    if (resolution.kind !== "resolved") return undefined
-    return { kind: "resolved", plan: toAgentPlan(resolution, explicitModelMetadata(explicitModel)) }
+    const resolution = resolveAgent(agentName, agents, undefined, {
+      modelOverride: explicitModel,
+      hasExplicitUserConfig,
+    });
+    if (resolution.kind !== "resolved") return undefined;
+    return {
+      kind: "resolved",
+      plan: toAgentPlan(resolution, explicitModelMetadata(explicitModel)),
+    };
   }
 
-  const registry = resolveRegistry()
-  const resolution = resolveAgent(agentName, agents, registry, { hasExplicitUserConfig })
+  const registry = resolveRegistry();
+  const resolution = resolveAgent(agentName, agents, registry, {
+    hasExplicitUserConfig,
+  });
   if (resolution.kind === "resolved") {
-    return { kind: "resolved", plan: toAgentPlan(resolution, undefined) }
+    return { kind: "resolved", plan: toAgentPlan(resolution, undefined) };
   }
   if (resolution.kind === "model_unavailable") {
     if (registry === undefined) {
-      return { kind: "error", error: { code: "model_unavailable", message: NO_REGISTRY_MESSAGE } }
+      return {
+        kind: "error",
+        error: { code: "model_unavailable", message: NO_REGISTRY_MESSAGE },
+      };
     }
     return {
       kind: "error",
       error: {
         code: "model_unavailable",
-        message: `No available model for agent "${agentName}" (attempted ${resolution.attemptedModel ?? "none"}).`,
+        message: `No available model for agent "${agentName}" (attempted ${
+          resolution.attemptedModel ?? "none"
+        }).`,
         availableAgents: resolution.availableAgents,
       },
-    }
+    };
   }
-  return undefined
+  return undefined;
 }
 
-function toAgentPlan(resolution: ResolvedAgentResult, explicitModel: ResolvedModelMetadata | undefined): ResolvedPlan {
-  const resolvedModel = resolution.resolved_model ?? explicitModel
+function toAgentPlan(
+  resolution: ResolvedAgentResult,
+  explicitModel: ResolvedModelMetadata | undefined,
+): ResolvedPlan {
+  const resolvedModel = resolution.resolved_model ?? explicitModel;
   // Identical precedence to the category path below: reasoning outranks reasoningEffort outranks
   // variant, and whichever is chosen becomes the child's thinking level through asSenpiThinkingLevel.
-  const appliedVariant = resolution.resolved_model?.reasoning ?? resolution.resolved_model?.reasoning_effort ?? resolution.resolved_model?.variant
+  const appliedVariant = resolution.resolved_model?.reasoning ??
+    resolution.resolved_model?.reasoning_effort ??
+    resolution.resolved_model?.variant;
   return {
     model: resolution.model,
     ...(resolution.requested_model !== undefined
@@ -139,19 +173,31 @@ function toAgentPlan(resolution: ResolvedAgentResult, explicitModel: ResolvedMod
     ...(resolvedModel !== undefined ? { resolved_model: resolvedModel } : {}),
     ...(appliedVariant !== undefined ? { variant: appliedVariant } : {}),
     agentType: resolution.agentType,
-    ...(resolution.instructions !== undefined ? { instructions: resolution.instructions } : {}),
-    ...(resolution.toolAllowlist !== undefined ? { toolAllowlist: resolution.toolAllowlist } : {}),
-    ...(resolution.agentExecutionMode !== undefined ? { agentExecutionMode: resolution.agentExecutionMode } : {}),
-    ...(resolution.allowedSubagents !== undefined ? { allowedSubagents: resolution.allowedSubagents } : {}),
-    ...(resolution.maxDepth !== undefined ? { maxDepth: resolution.maxDepth } : {}),
-  }
+    ...(resolution.instructions !== undefined
+      ? { instructions: resolution.instructions }
+      : {}),
+    ...(resolution.toolAllowlist !== undefined
+      ? { toolAllowlist: resolution.toolAllowlist }
+      : {}),
+    ...(resolution.agentExecutionMode !== undefined
+      ? { agentExecutionMode: resolution.agentExecutionMode }
+      : {}),
+    ...(resolution.allowedSubagents !== undefined
+      ? { allowedSubagents: resolution.allowedSubagents }
+      : {}),
+    ...(resolution.maxDepth !== undefined
+      ? { maxDepth: resolution.maxDepth }
+      : {}),
+  };
 }
 
-function listAvailableAgents(agents: Readonly<Record<string, AgentDefinition>>): readonly string[] {
+function listAvailableAgents(
+  agents: Readonly<Record<string, AgentDefinition>>,
+): readonly string[] {
   return Object.entries(agents)
     .filter(([, definition]) => definition.disable !== true)
     .map(([name]) => name)
-    .sort()
+    .sort();
 }
 
 function toPlanResolution(
@@ -160,7 +206,8 @@ function toPlanResolution(
   availableAgents: readonly string[],
 ): PlanResolution {
   if (resolution.kind === "resolved") {
-    const appliedVariant = resolution.spec.reasoning ?? resolution.spec.reasoningEffort ?? resolution.spec.variant
+    const appliedVariant = resolution.spec.reasoning ??
+      resolution.spec.reasoningEffort ?? resolution.spec.variant;
     return {
       kind: "resolved",
       plan: {
@@ -175,22 +222,34 @@ function toPlanResolution(
           source: "category",
           provider: resolution.spec.provider,
           model_id: resolution.spec.modelId,
-          display: resolution.spec.displayName ?? `${resolution.spec.provider}/${resolution.spec.modelId}`,
-          ...(resolution.spec.variant !== undefined ? { variant: resolution.spec.variant } : {}),
-          ...(resolution.spec.reasoningEffort !== undefined ? { reasoning_effort: resolution.spec.reasoningEffort } : {}),
-          ...(resolution.spec.reasoning !== undefined ? { reasoning: resolution.spec.reasoning } : {}),
+          display: resolution.spec.displayName ??
+            `${resolution.spec.provider}/${resolution.spec.modelId}`,
+          ...(resolution.spec.variant !== undefined
+            ? { variant: resolution.spec.variant }
+            : {}),
+          ...(resolution.spec.reasoningEffort !== undefined
+            ? { reasoning_effort: resolution.spec.reasoningEffort }
+            : {}),
+          ...(resolution.spec.reasoning !== undefined
+            ? { reasoning: resolution.spec.reasoning }
+            : {}),
         },
         ...(appliedVariant !== undefined ? { variant: appliedVariant } : {}),
         category: resolution.category,
-        ...(resolution.spec.prompt_append !== undefined && { promptAppend: resolution.spec.prompt_append }),
+        ...(resolution.spec.prompt_append !== undefined &&
+          { promptAppend: resolution.spec.prompt_append }),
       },
-    }
+    };
   }
   if (resolution.kind === "disabled") {
     return {
       kind: "error",
-      error: { code: "category_disabled", message: resolution.reason, availableCategories: resolution.availableCategories },
-    }
+      error: {
+        code: "category_disabled",
+        message: resolution.reason,
+        availableCategories: resolution.availableCategories,
+      },
+    };
   }
   if (resolution.kind === "not_found") {
     return {
@@ -201,31 +260,37 @@ function toPlanResolution(
         availableAgents,
         availableCategories: resolution.availableCategories,
       },
-    }
+    };
   }
   return {
     kind: "error",
     error: {
       code: "model_unavailable",
-      message: `No available model for category "${categoryName}" (attempted ${resolution.attemptedModel ?? "none"}).`,
+      message: `No available model for category "${categoryName}" (attempted ${
+        resolution.attemptedModel ?? "none"
+      }).`,
       availableCategories: resolution.availableCategories,
       // Dead-chain detail rides the error so the warning layer can surface it without re-resolving.
       category: categoryName,
-      ...(resolution.attempted_chain !== undefined && { attempted_chain: resolution.attempted_chain }),
-      ...(resolution.missing_providers !== undefined && { missing_providers: resolution.missing_providers }),
+      ...(resolution.attempted_chain !== undefined &&
+        { attempted_chain: resolution.attempted_chain }),
+      ...(resolution.missing_providers !== undefined &&
+        { missing_providers: resolution.missing_providers }),
     },
-  }
+  };
 }
 
-function explicitModelMetadata(model: string): ResolvedModelMetadata | undefined {
-  const separatorIndex = model.indexOf("/")
+function explicitModelMetadata(
+  model: string,
+): ResolvedModelMetadata | undefined {
+  const separatorIndex = model.indexOf("/");
   if (separatorIndex <= 0 || separatorIndex === model.length - 1) {
-    return undefined
+    return undefined;
   }
   return {
     source: "explicit",
     provider: model.slice(0, separatorIndex),
     model_id: model.slice(separatorIndex + 1),
     display: model,
-  }
+  };
 }

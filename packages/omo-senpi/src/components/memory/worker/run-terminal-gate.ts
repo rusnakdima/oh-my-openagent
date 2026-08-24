@@ -1,18 +1,18 @@
-import { join } from "node:path"
+import { join } from "node:path";
 
 import {
-  createLockRecord,
-  withLock,
   type AcquireLockOptions,
+  createLockRecord,
   type LockRecord,
-} from "@oh-my-opencode/memory-core"
+  withLock,
+} from "@oh-my-opencode/memory-core";
 
 type TerminalLock = <T>(
   lockPath: string,
   record: LockRecord,
   operation: () => Promise<T>,
   options: AcquireLockOptions,
-) => Promise<T>
+) => Promise<T>;
 
 export async function withRunTerminalGate<T>(
   runDir: string,
@@ -21,8 +21,8 @@ export async function withRunTerminalGate<T>(
   lock: TerminalLock = withLock,
   createRecord: typeof createLockRecord = createLockRecord,
 ): Promise<T> {
-  const record = await createRecord("reflection-finalize", { runId })
+  const record = await createRecord("reflection-finalize", { runId });
   return lock(join(runDir, "terminalization.lock"), record, operation, {
     waitTimeoutMs: Number.POSITIVE_INFINITY,
-  })
+  });
 }

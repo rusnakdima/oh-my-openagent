@@ -5,7 +5,7 @@ import type {
   TaskRecordStore,
   TaskStatus,
   TaskTransition,
-} from "@oh-my-opencode/senpi-task"
+} from "@oh-my-opencode/senpi-task";
 
 const TERMINAL_STATUSES: ReadonlySet<TaskStatus> = new Set([
   "completed",
@@ -13,13 +13,13 @@ const TERMINAL_STATUSES: ReadonlySet<TaskStatus> = new Set([
   "cancelled",
   "interrupted",
   "lost",
-])
+]);
 
 export interface CompletionBridgeDeps {
-  readonly notifier: CompletionNotifier
-  readonly parentState: () => ParentState
-  readonly wasBackground: (taskId: string) => boolean
-  readonly onTerminal?: (record: TaskRecord) => void
+  readonly notifier: CompletionNotifier;
+  readonly parentState: () => ParentState;
+  readonly wasBackground: (taskId: string) => boolean;
+  readonly onTerminal?: (record: TaskRecord) => void;
 }
 
 /**
@@ -28,7 +28,10 @@ export interface CompletionBridgeDeps {
  * for that record. Only `transition` is intercepted - `replace` (how the notifier persists
  * notified_epoch) is passed straight through, so there is no notify -> persist -> notify recursion.
  */
-export function createCompletionObservingStore(backing: TaskRecordStore, deps: CompletionBridgeDeps): TaskRecordStore {
+export function createCompletionObservingStore(
+  backing: TaskRecordStore,
+  deps: CompletionBridgeDeps,
+): TaskRecordStore {
   return {
     stateDir: backing.stateDir,
     save: (record) => backing.save(record),
@@ -39,28 +42,35 @@ export function createCompletionObservingStore(backing: TaskRecordStore, deps: C
     appendEvent: (taskId, event) => backing.appendEvent(taskId, event),
     remove: (taskId) => backing.remove(taskId),
     transition: (taskId, transition) => {
-      const result = backing.transition(taskId, transition)
+      const result = backing.transition(taskId, transition);
       if (isTerminalApplied(result.applied, result.record.status, transition)) {
         deps.notifier.notifyTerminal({
           record: result.record,
           parentState: deps.parentState(),
           runInBackground: deps.wasBackground(taskId),
-        })
-        deps.onTerminal?.(result.record)
+        });
+        deps.onTerminal?.(result.record);
       }
-      return result
+      return result;
     },
     // TTL expunge is not a terminal transition - forward the two-phase store surface untouched so
     // lifecycle.cleanupExpiredRecords works through the wrapper (no notify on tombstone/expunge).
-    tombstoneIfExpired: (taskId, shouldRetain) => backing.tombstoneIfExpired(taskId, shouldRetain),
+    tombstoneIfExpired: (taskId, shouldRetain) =>
+      backing.tombstoneIfExpired(taskId, shouldRetain),
     completeExpunge: (taskId) => backing.completeExpunge(taskId),
     listExpunging: () => backing.listExpunging(),
-  }
+  };
 }
 
-function isTerminalApplied(applied: boolean, status: TaskStatus, transition: TaskTransition): boolean {
+function isTerminalApplied(
+  applied: boolean,
+  status: TaskStatus,
+  transition: TaskTransition,
+): boolean {
   // Residency bookkeeping transitions (evict/dispose/...) also touch terminal records but must not
   // re-notify; only the status-reaching transitions count.
-  const statusChanging = transition.type === "complete" || transition.type === "fail" || transition.type === "cancel" || transition.type === "interrupt" || transition.type === "lose"
-  return applied && statusChanging && TERMINAL_STATUSES.has(status)
+  const statusChanging = transition.type === "complete" ||
+    transition.type === "fail" || transition.type === "cancel" ||
+    transition.type === "interrupt" || transition.type === "lose";
+  return applied && statusChanging && TERMINAL_STATUSES.has(status);
 }

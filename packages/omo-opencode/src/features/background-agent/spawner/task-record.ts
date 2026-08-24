@@ -1,6 +1,10 @@
-import type { BackgroundTask, LaunchInput } from "../types"
+import type { BackgroundTask, LaunchInput } from "../types";
 
-export function buildTaskRecord(input: LaunchInput, id: string, queuedAt: Date): BackgroundTask {
+export function buildTaskRecord(
+  input: LaunchInput,
+  id: string,
+  queuedAt: Date,
+): BackgroundTask {
   return {
     id,
     status: "pending",
@@ -21,5 +25,5 @@ export function buildTaskRecord(input: LaunchInput, id: string, queuedAt: Date):
     category: input.category,
     isUnstableAgent: input.isUnstableAgent,
     onSessionCreated: input.onSessionCreated,
-  }
+  };
 }

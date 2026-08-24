@@ -1,4 +1,4 @@
-import { join } from "node:path"
+import { join } from "node:path";
 
 /**
  * Senpi-native skills authored directly against the omo-senpi tool surface (not ported from Codex or
@@ -21,7 +21,7 @@ import { join } from "node:path"
  * @returns {{ sources: SkillSource[], names: Set<string> }}
  */
 export function createNativeSkillSources(repoRoot) {
-  const nativeSkillsRoot = join(repoRoot, "omo-senpi", "skills")
+  const nativeSkillsRoot = join(repoRoot, "omo-senpi", "skills");
 
   /** @type {SkillSource[]} */
   const sources = [
@@ -64,9 +64,9 @@ export function createNativeSkillSources(repoRoot) {
       name: "ulw-research",
       source: join(nativeSkillsRoot, "ulw-research"),
     },
-  ]
+  ];
 
-  const names = new Set(sources.map(({ name }) => name))
+  const names = new Set(sources.map(({ name }) => name));
 
-  return { sources, names }
+  return { sources, names };
 }

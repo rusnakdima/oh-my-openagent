@@ -1,36 +1,36 @@
-import { isRecord } from "@oh-my-opencode/utils"
-import type { TeamModeConfig } from "../config"
-import { log } from "../logger"
-import type { TeamSessionContext } from "../session-client"
-import { ackMessages } from "../team-mailbox/ack"
-import { reclaimStaleReservations } from "../team-mailbox/reservation"
-import type { RuntimeStateMember } from "../types"
-import { transitionRuntimeState } from "./store"
-
-
+import { isRecord } from "@oh-my-opencode/utils";
+import type { TeamModeConfig } from "../config";
+import { log } from "../logger";
+import type { TeamSessionContext } from "../session-client";
+import { ackMessages } from "../team-mailbox/ack";
+import { reclaimStaleReservations } from "../team-mailbox/reservation";
+import type { RuntimeStateMember } from "../types";
+import { transitionRuntimeState } from "./store";
 
 function getMessagesData(response: unknown): unknown[] {
   if (isRecord(response) && Array.isArray(response.data)) {
-    return response.data
+    return response.data;
   }
 
-  return Array.isArray(response) ? response : []
+  return Array.isArray(response) ? response : [];
 }
 
 function valueContainsMessageId(value: unknown, messageId: string): boolean {
   if (typeof value === "string") {
-    return value.includes(messageId)
+    return value.includes(messageId);
   }
 
   if (Array.isArray(value)) {
-    return value.some((entry) => valueContainsMessageId(entry, messageId))
+    return value.some((entry) => valueContainsMessageId(entry, messageId));
   }
 
   if (isRecord(value)) {
-    return Object.values(value).some((entry) => valueContainsMessageId(entry, messageId))
+    return Object.values(value).some((entry) =>
+      valueContainsMessageId(entry, messageId)
+    );
   }
 
-  return false
+  return false;
 }
 
 async function findAcceptedReclaimedMessageIds(
@@ -39,25 +39,29 @@ async function findAcceptedReclaimedMessageIds(
   messageIds: readonly string[],
 ): Promise<string[]> {
   if (messageIds.length === 0 || member.sessionId === undefined) {
-    return []
+    return [];
   }
 
   try {
-    const messagesLoader = ctx.client.session.messages
+    const messagesLoader = ctx.client.session.messages;
     if (messagesLoader === undefined) {
-      return []
+      return [];
     }
-    const response = await messagesLoader({ path: { id: member.sessionId } })
-    const messages = getMessagesData(response)
-    return messageIds.filter((messageId) => messages.some((message) => valueContainsMessageId(message, messageId)))
+    const response = await messagesLoader({ path: { id: member.sessionId } });
+    const messages = getMessagesData(response);
+    return messageIds.filter((messageId) =>
+      messages.some((message) => valueContainsMessageId(message, messageId))
+    );
   } catch (historyError) {
     log("team mailbox reclaimed reservation history check failed", {
       event: "team-mailbox-reclaim-history-check-failed",
       member: member.name,
       sessionID: member.sessionId,
-      error: historyError instanceof Error ? historyError.message : String(historyError),
-    })
-    return []
+      error: historyError instanceof Error
+        ? historyError.message
+        : String(historyError),
+    });
+    return [];
   }
 }
 
@@ -69,26 +73,31 @@ async function reconcileReclaimedReservations(
   config: TeamModeConfig,
 ): Promise<void> {
   if (reclaimedMessageIds.length === 0) {
-    return
+    return;
   }
 
-  const acceptedMessageIds = await findAcceptedReclaimedMessageIds(ctx, member, reclaimedMessageIds)
+  const acceptedMessageIds = await findAcceptedReclaimedMessageIds(
+    ctx,
+    member,
+    reclaimedMessageIds,
+  );
   if (acceptedMessageIds.length > 0) {
-    await ackMessages(teamRunId, member.name, acceptedMessageIds, config)
+    await ackMessages(teamRunId, member.name, acceptedMessageIds, config);
   }
 
-  const reclaimedMessageIdSet = new Set(reclaimedMessageIds)
+  const reclaimedMessageIdSet = new Set(reclaimedMessageIds);
   await transitionRuntimeState(teamRunId, (currentRuntimeState) => ({
     ...currentRuntimeState,
     members: currentRuntimeState.members.map((currentMember) => (
       currentMember.name === member.name
         ? {
           ...currentMember,
-          pendingInjectedMessageIds: currentMember.pendingInjectedMessageIds.filter((messageId) => !reclaimedMessageIdSet.has(messageId)),
+          pendingInjectedMessageIds: currentMember.pendingInjectedMessageIds
+            .filter((messageId) => !reclaimedMessageIdSet.has(messageId)),
         }
         : currentMember
     )),
-  }), config)
+  }), config);
 }
 
 export async function reconcileStaleReservationsForMember(
@@ -103,6 +112,12 @@ export async function reconcileStaleReservationsForMember(
     member.name,
     config,
     staleReservationTtlMs,
-  )
-  await reconcileReclaimedReservations(ctx, teamRunId, member, reclaimedMessageIds, config)
+  );
+  await reconcileReclaimedReservations(
+    ctx,
+    teamRunId,
+    member,
+    reclaimedMessageIds,
+    config,
+  );
 }

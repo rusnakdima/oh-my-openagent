@@ -5,7 +5,12 @@ import type { RunGitBashCommand } from "./runner";
 describe("git_bash MCP timeout resolution", () => {
   it("#given inherited default timeout and workdir #when run omits timeout #then runner receives the inherited timeout", async () => {
     // given
-    const captured: { bashPath?: string; command?: string; cwd?: string; timeoutMs?: number } = {};
+    const captured: {
+      bashPath?: string;
+      command?: string;
+      cwd?: string;
+      timeoutMs?: number;
+    } = {};
     const runGitBash: RunGitBashCommand = async (input) => {
       captured.bashPath = input.bashPath;
       captured.command = input.command;
@@ -20,11 +25,16 @@ describe("git_bash MCP timeout resolution", () => {
         jsonrpc: "2.0",
         id: "run",
         method: "tools/call",
-        params: { name: "run", arguments: { command: "printf ok", workdir: "C:\\repo" } },
+        params: {
+          name: "run",
+          arguments: { command: "printf ok", workdir: "C:\\repo" },
+        },
       },
       {
         platform: "win32",
-        env: { OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe" },
+        env: {
+          OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe",
+        },
         exists: (path) => path === "C:\\Program Files\\Git\\bin\\bash.exe",
         where: () => [],
         runGitBash,
@@ -52,11 +62,16 @@ describe("git_bash MCP timeout resolution", () => {
         jsonrpc: "2.0",
         id: "run",
         method: "tools/call",
-        params: { name: "run", arguments: { command: "printf ok", timeout: 7000 } },
+        params: {
+          name: "run",
+          arguments: { command: "printf ok", timeout: 7000 },
+        },
       },
       {
         platform: "win32",
-        env: { OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe" },
+        env: {
+          OMO_CODEX_GIT_BASH_PATH: "C:\\Program Files\\Git\\bin\\bash.exe",
+        },
         exists: (path) => path === "C:\\Program Files\\Git\\bin\\bash.exe",
         where: () => [],
         runGitBash: async (input) => {
@@ -105,13 +120,17 @@ describe("git_bash MCP timeout resolution", () => {
   });
 });
 
-function isErrorFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): boolean | undefined {
+function isErrorFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): boolean | undefined {
   const result = resultFromResponse(response);
   const value = result?.isError;
   return typeof value === "boolean" ? value : undefined;
 }
 
-function resultFromResponse(response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>): Record<string, unknown> | undefined {
+function resultFromResponse(
+  response: Awaited<ReturnType<typeof handleGitBashMcpRequest>>,
+): Record<string, unknown> | undefined {
   if (response === undefined || "error" in response) return undefined;
   return response.result;
 }

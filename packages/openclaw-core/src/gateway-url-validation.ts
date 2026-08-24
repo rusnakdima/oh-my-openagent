@@ -1,7 +1,7 @@
 export function validateGatewayUrl(url: string): boolean {
   try {
-    const parsed = new URL(url)
-    if (parsed.protocol === "https:") return true
+    const parsed = new URL(url);
+    if (parsed.protocol === "https:") return true;
     if (
       parsed.protocol === "http:" &&
       (parsed.hostname === "localhost" ||
@@ -9,13 +9,13 @@ export function validateGatewayUrl(url: string): boolean {
         parsed.hostname === "::1" ||
         parsed.hostname === "[::1]")
     ) {
-      return true
+      return true;
     }
-    return false
+    return false;
   } catch (error) {
     if (!(error instanceof TypeError)) {
-      throw error
+      throw error;
     }
-    return false
+    return false;
   }
 }

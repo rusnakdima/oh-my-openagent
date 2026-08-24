@@ -1,17 +1,25 @@
 # codex-rules
 
-Codex plugin that injects local project rule files into model context through lifecycle hooks.
+Codex plugin that injects local project rule files into model context through
+lifecycle hooks.
 
 It ports the `pi-rules` rule injector to Codex:
 
-- `SessionStart` and `UserPromptSubmit` load static project instructions once per session.
-- `PostToolUse` watches Codex `apply_patch` by default, then injects matching file-specific rules as additional context.
-- `PostCompact` clears the per-session injection cache after manual or automatic compaction so relevant rules can be reintroduced into the compacted conversation.
-- Session-level deduplication prevents the same rule from being repeated after it has been injected.
+- `SessionStart` and `UserPromptSubmit` load static project instructions once
+  per session.
+- `PostToolUse` watches Codex `apply_patch` by default, then injects matching
+  file-specific rules as additional context.
+- `PostCompact` clears the per-session injection cache after manual or automatic
+  compaction so relevant rules can be reintroduced into the compacted
+  conversation.
+- Session-level deduplication prevents the same rule from being repeated after
+  it has been injected.
 
-`PostToolUse` output is context-only: it emits `hookSpecificOutput.additionalContext` and does not rewrite tool output.
+`PostToolUse` output is context-only: it emits
+`hookSpecificOutput.additionalContext` and does not rewrite tool output.
 
-The runtime has no npm production dependencies, so a clean Codex marketplace copy can run without a follow-up `npm install`.
+The runtime has no npm production dependencies, so a clean Codex marketplace
+copy can run without a follow-up `npm install`.
 
 ## Rule Sources
 
@@ -24,7 +32,14 @@ Project-level sources:
 - `.github/instructions/**/*.md`
 - `.github/copilot-instructions.md`
 
-User-home sources are also supported by the ported engine when available. `AGENTS.md` is not part of `auto` source selection because Codex already loads it as native project instructions, so re-injecting it through hooks duplicates context; opt into it explicitly with `CODEX_RULES_ENABLED_SOURCES` if you need hook-level migration behavior. Claude user-home sources (`~/.claude/rules`, `~/.claude/CLAUDE.md`) are also excluded from `auto` because they usually contain Claude Code runtime instructions rather than Codex rules; opt into them explicitly when you want that migration behavior.
+User-home sources are also supported by the ported engine when available.
+`AGENTS.md` is not part of `auto` source selection because Codex already loads
+it as native project instructions, so re-injecting it through hooks duplicates
+context; opt into it explicitly with `CODEX_RULES_ENABLED_SOURCES` if you need
+hook-level migration behavior. Claude user-home sources (`~/.claude/rules`,
+`~/.claude/CLAUDE.md`) are also excluded from `auto` because they usually
+contain Claude Code runtime instructions rather than Codex rules; opt into them
+explicitly when you want that migration behavior.
 
 Markdown rule files may use frontmatter such as:
 
@@ -67,15 +82,16 @@ enabled = true
 
 Use `CODEX_RULES_*` environment variables:
 
-| Variable | Values | Default |
-| --- | --- | --- |
-| `CODEX_RULES_DISABLED` | `1`, `true`, `yes`, `on` | unset |
-| `CODEX_RULES_MODE` | `both`, `static`, `dynamic`, `off` | `both` |
-| `CODEX_RULES_MAX_RULE_CHARS` | positive integer | `12000` |
-| `CODEX_RULES_MAX_RESULT_CHARS` | positive integer | `40000` |
-| `CODEX_RULES_ENABLED_SOURCES` | comma-separated source names or `auto` | `auto` (excludes `AGENTS.md`, `~/.claude/rules`, `~/.claude/CLAUDE.md`) |
+| Variable                       | Values                                 | Default                                                                 |
+| ------------------------------ | -------------------------------------- | ----------------------------------------------------------------------- |
+| `CODEX_RULES_DISABLED`         | `1`, `true`, `yes`, `on`               | unset                                                                   |
+| `CODEX_RULES_MODE`             | `both`, `static`, `dynamic`, `off`     | `both`                                                                  |
+| `CODEX_RULES_MAX_RULE_CHARS`   | positive integer                       | `12000`                                                                 |
+| `CODEX_RULES_MAX_RESULT_CHARS` | positive integer                       | `40000`                                                                 |
+| `CODEX_RULES_ENABLED_SOURCES`  | comma-separated source names or `auto` | `auto` (excludes `AGENTS.md`, `~/.claude/rules`, `~/.claude/CLAUDE.md`) |
 
-For migration from `pi-rules`, equivalent `PI_RULES_*` variables are accepted as fallbacks.
+For migration from `pi-rules`, equivalent `PI_RULES_*` variables are accepted as
+fallbacks.
 
 ## Debugging
 
@@ -85,9 +101,15 @@ Enable hook phase timing with `NODE_DEBUG=codex-rules`:
 NODE_DEBUG=codex-rules node dist/cli.js hook post-tool-use < fixture.json
 ```
 
-Debug lines go to stderr and hook JSON stays on stdout. The log includes `PostToolUse` phases such as `extract`, `fingerprint`, `load`, `persist`, elapsed `ms`, target counts, pending counts, rule counts, and output bytes. It does not log rule bodies or tool response contents.
+Debug lines go to stderr and hook JSON stays on stdout. The log includes
+`PostToolUse` phases such as `extract`, `fingerprint`, `load`, `persist`,
+elapsed `ms`, target counts, pending counts, rule counts, and output bytes. It
+does not log rule bodies or tool response contents.
 
-The default `PostToolUse` hook matcher is intentionally strict: it matches only Codex's canonical `apply_patch` hook tool name. Read tools, MCP filesystem tools, shell commands, and Claude-style `Write`/`Edit` aliases are not registered by default.
+The default `PostToolUse` hook matcher is intentionally strict: it matches only
+Codex's canonical `apply_patch` hook tool name. Read tools, MCP filesystem
+tools, shell commands, and Claude-style `Write`/`Edit` aliases are not
+registered by default.
 
 ## Development
 
@@ -105,7 +127,8 @@ Performance smoke test:
 npm run bench
 ```
 
-Benchmark timings depend on the local machine. Use the relative counters and repeat-output checks when comparing runs.
+Benchmark timings depend on the local machine. Use the relative counters and
+repeat-output checks when comparing runs.
 
 Hook smoke test:
 
@@ -117,7 +140,9 @@ printf '%s\n' '{"session_id":"s","transcript_path":null,"cwd":"/path/to/project"
 
 ## Privacy
 
-`codex-rules` runs locally. It reads local rule files and Codex hook payloads, writes per-session deduplication state under the Codex plugin data directory, and does not make network requests.
+`codex-rules` runs locally. It reads local rule files and Codex hook payloads,
+writes per-session deduplication state under the Codex plugin data directory,
+and does not make network requests.
 
 ## License
 

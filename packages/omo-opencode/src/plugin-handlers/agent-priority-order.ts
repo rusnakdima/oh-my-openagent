@@ -1,4 +1,7 @@
-import { DEFAULT_AGENT_ORDER, resolveAgentOrderDisplayNames } from "../shared/agent-ordering"
+import {
+  DEFAULT_AGENT_ORDER,
+  resolveAgentOrderDisplayNames,
+} from "../shared/agent-ordering";
 
 /**
  * Default source of truth for core agent ordering.
@@ -10,37 +13,37 @@ import { DEFAULT_AGENT_ORDER, resolveAgentOrderDisplayNames } from "../shared/ag
  *
  * See: src/plugin-handlers/AGENTS.md for architectural context.
  */
-export const CANONICAL_CORE_AGENT_ORDER = DEFAULT_AGENT_ORDER
+export const CANONICAL_CORE_AGENT_ORDER = DEFAULT_AGENT_ORDER;
 
 function injectOrderField(agentConfig: unknown, order: number): unknown {
   if (typeof agentConfig === "object" && agentConfig !== null) {
-    return { ...agentConfig, order }
+    return { ...agentConfig, order };
   }
-  return agentConfig
+  return agentConfig;
 }
 
 export function reorderAgentsByPriority(
   agents: Record<string, unknown>,
   agentOrder?: readonly string[],
 ): Record<string, unknown> {
-  const ordered: Record<string, unknown> = {}
-  const seen = new Set<string>()
-  const orderedDisplayNames = resolveAgentOrderDisplayNames(agentOrder)
+  const ordered: Record<string, unknown> = {};
+  const seen = new Set<string>();
+  const orderedDisplayNames = resolveAgentOrderDisplayNames(agentOrder);
 
   for (const [index, displayName] of orderedDisplayNames.entries()) {
     if (Object.prototype.hasOwnProperty.call(agents, displayName)) {
-      ordered[displayName] = injectOrderField(agents[displayName], index + 1)
-      seen.add(displayName)
+      ordered[displayName] = injectOrderField(agents[displayName], index + 1);
+      seen.add(displayName);
     }
   }
 
   const nonCoreKeys = Object.keys(agents)
     .filter((key) => !seen.has(key))
-    .sort((a, b) => a.localeCompare(b))
+    .sort((a, b) => a.localeCompare(b));
 
   for (const key of nonCoreKeys) {
-    ordered[key] = agents[key]
+    ordered[key] = agents[key];
   }
 
-  return ordered
+  return ordered;
 }

@@ -1,70 +1,82 @@
 /// <reference types="bun-types" />
-import { afterEach, describe, expect, spyOn, test } from "bun:test"
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 
-import { createEventHandler } from "./event"
-import { createChatMessageHandler } from "./chat-message"
-import { _resetForTesting, setMainSession } from "../features/claude-code-session-state"
-import { createModelFallbackHook, clearPendingModelFallback } from "../hooks/model-fallback/hook"
-import * as connectedProvidersCache from "../shared/connected-providers-cache"
+import { createEventHandler } from "./event";
+import { createChatMessageHandler } from "./chat-message";
+import {
+  _resetForTesting,
+  setMainSession,
+} from "../features/claude-code-session-state";
+import {
+  clearPendingModelFallback,
+  createModelFallbackHook,
+} from "../hooks/model-fallback/hook";
+import * as connectedProvidersCache from "../shared/connected-providers-cache";
 import {
   releaseAllPromptAsyncReservationsForTesting,
   releasePromptAsyncReservation,
-} from "../hooks/shared/prompt-async-gate"
-import { unsafeTestValue } from "../../../../test-support/unsafe-test-value"
-import { setSessionModel } from "../shared/session-model-state"
+} from "../hooks/shared/prompt-async-gate";
+import { unsafeTestValue } from "../../../../test-support/unsafe-test-value";
+import { setSessionModel } from "../shared/session-model-state";
 
-type EventInput = { event: { type: string; properties?: unknown } }
-type EventHandlerInput = Parameters<ReturnType<typeof createEventHandler>>[0]
+type EventInput = { event: { type: string; properties?: unknown } };
+type EventHandlerInput = Parameters<ReturnType<typeof createEventHandler>>[0];
 type ChatMessageOutput = {
-  message: Record<string, unknown>
-  parts: Array<{ type: string; text?: string }>
-}
+  message: Record<string, unknown>;
+  parts: Array<{ type: string; text?: string }>;
+};
 
 function asEventHandlerInput(input: EventInput): EventHandlerInput {
-  return unsafeTestValue<EventHandlerInput>(input)
+  return unsafeTestValue<EventHandlerInput>(input);
 }
 
-let readConnectedProvidersCacheSpy: { mockRestore: () => void } | undefined
-let readProviderModelsCacheSpy: { mockRestore: () => void } | undefined
+let readConnectedProvidersCacheSpy: { mockRestore: () => void } | undefined;
+let readProviderModelsCacheSpy: { mockRestore: () => void } | undefined;
 
 function setupConnectedProviderCacheMocks(): void {
-  readConnectedProvidersCacheSpy = spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(null)
-  readProviderModelsCacheSpy = spyOn(connectedProvidersCache, "readProviderModelsCache").mockReturnValue(null)
+  readConnectedProvidersCacheSpy = spyOn(
+    connectedProvidersCache,
+    "readConnectedProvidersCache",
+  ).mockReturnValue(null);
+  readProviderModelsCacheSpy = spyOn(
+    connectedProvidersCache,
+    "readProviderModelsCache",
+  ).mockReturnValue(null);
 }
 
 describe("createEventHandler - model fallback", () => {
   const createHandler = (args?: {
-    hooks?: unknown
-    pluginConfig?: unknown
-    abort?: (input: { path: { id: string } }) => Promise<unknown>
-    promptAsync?: (input: { path: { id: string } }) => Promise<unknown>
+    hooks?: unknown;
+    pluginConfig?: unknown;
+    abort?: (input: { path: { id: string } }) => Promise<unknown>;
+    promptAsync?: (input: { path: { id: string } }) => Promise<unknown>;
   }) => {
-    setupConnectedProviderCacheMocks()
-    const abortCalls: string[] = []
-    const promptCalls: string[] = []
-    const promptAsyncCalls: string[] = []
+    setupConnectedProviderCacheMocks();
+    const abortCalls: string[] = [];
+    const promptCalls: string[] = [];
+    const promptAsyncCalls: string[] = [];
 
     const sessionClient = {
       abort: async ({ path }: { path: { id: string } }) => {
-        abortCalls.push(path.id)
+        abortCalls.push(path.id);
         if (args?.abort) {
-          return args.abort({ path })
+          return args.abort({ path });
         }
-        return {}
+        return {};
       },
       prompt: async ({ path }: { path: { id: string } }) => {
-        promptCalls.push(path.id)
-        return {}
+        promptCalls.push(path.id);
+        return {};
       },
       ...(args?.promptAsync
         ? {
-            promptAsync: async (input: { path: { id: string } }) => {
-              promptAsyncCalls.push(input.path.id)
-              return args.promptAsync?.(input)
-            },
-          }
+          promptAsync: async (input: { path: { id: string } }) => {
+            promptAsyncCalls.push(input.path.id);
+            return args.promptAsync?.(input);
+          },
+        }
         : {}),
-    }
+    };
 
     const eventHandler = createEventHandler({
       ctx: unsafeTestValue({
@@ -73,7 +85,7 @@ describe("createEventHandler - model fallback", () => {
           session: sessionClient,
         },
       }),
-      pluginConfig: unsafeTestValue((args?.pluginConfig ?? {})),
+      pluginConfig: unsafeTestValue(args?.pluginConfig ?? {}),
       firstMessageVariantGate: {
         markSessionCreated: () => {},
         clear: () => {},
@@ -88,13 +100,16 @@ describe("createEventHandler - model fallback", () => {
         },
       }),
       hooks: unsafeTestValue(args?.hooks ?? {}),
-    })
-    const handler = (input: EventInput): Promise<void> => eventHandler(asEventHandlerInput(input))
+    });
+    const handler = (input: EventInput): Promise<void> =>
+      eventHandler(asEventHandlerInput(input));
 
-    return { handler, abortCalls, promptCalls, promptAsyncCalls }
-  }
+    return { handler, abortCalls, promptCalls, promptAsyncCalls };
+  };
 
-  const createChatFallbackMessageHandler = (modelFallback: ReturnType<typeof createModelFallbackHook>) =>
+  const createChatFallbackMessageHandler = (
+    modelFallback: ReturnType<typeof createModelFallbackHook>,
+  ) =>
     createChatMessageHandler({
       ctx: unsafeTestValue({
         client: {
@@ -117,22 +132,24 @@ describe("createEventHandler - model fallback", () => {
         startWork: null,
         ralphLoop: null,
       }),
-    })
+    });
 
   afterEach(() => {
-    readConnectedProvidersCacheSpy?.mockRestore()
-    readProviderModelsCacheSpy?.mockRestore()
-    readConnectedProvidersCacheSpy = undefined
-    readProviderModelsCacheSpy = undefined
-    _resetForTesting()
-    releaseAllPromptAsyncReservationsForTesting()
-  })
+    readConnectedProvidersCacheSpy?.mockRestore();
+    readProviderModelsCacheSpy?.mockRestore();
+    readConnectedProvidersCacheSpy = undefined;
+    readProviderModelsCacheSpy = undefined;
+    _resetForTesting();
+    releaseAllPromptAsyncReservationsForTesting();
+  });
 
   test("triggers retry prompt for assistant message.updated APIError payloads (headless resume)", async () => {
     //#given
-    const sessionID = "ses_message_updated_fallback"
-    const modelFallback = createModelFallbackHook()
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
+    const sessionID = "ses_message_updated_fallback";
+    const modelFallback = createModelFallbackHook();
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
 
     //#when
     await handler({
@@ -148,7 +165,7 @@ describe("createEventHandler - model fallback", () => {
               name: "APIError",
               data: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -159,23 +176,30 @@ describe("createEventHandler - model fallback", () => {
             agent: "Sisyphus - Ultraworker",
             path: { cwd: "/tmp", root: "/tmp" },
             cost: 0,
-            tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+            tokens: {
+              input: 0,
+              output: 0,
+              reasoning: 0,
+              cache: { read: 0, write: 0 },
+            },
           },
         },
       },
-    })
+    });
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
-  })
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
+  });
 
   test("#given message.updated omits model metadata after Opus 5 fails #when fallback applies #then it skips Opus 5 and advances to Kimi", async () => {
     //#given
-    const sessionID = "ses_message_updated_missing_model_opus5"
-    const modelFallback = createModelFallbackHook()
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
-    const chatMessageHandler = createChatFallbackMessageHandler(modelFallback)
+    const sessionID = "ses_message_updated_missing_model_opus5";
+    const modelFallback = createModelFallbackHook();
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
+    const chatMessageHandler = createChatFallbackMessageHandler(modelFallback);
 
     //#when
     await handler({
@@ -198,9 +222,9 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
-    const output: ChatMessageOutput = { message: {}, parts: [] }
+    const output: ChatMessageOutput = { message: {}, parts: [] };
     await chatMessageHandler(
       {
         sessionID,
@@ -208,28 +232,28 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "anthropic", modelID: "claude-opus-5" },
       },
       output,
-    )
+    );
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
     expect(output.message["model"]).toEqual({
       providerID: "opencode-go",
       modelID: "kimi-k3",
-    })
-    expect(output.message["variant"]).toBeUndefined()
-  })
+    });
+    expect(output.message["variant"]).toBeUndefined();
+  });
 
   test("#given model-fallback promptAsync may have been accepted before EOF #when the same assistant error repeats after the gate hold #then fallback continue is not duplicated", async () => {
     //#given
-    const sessionID = "ses_message_updated_fallback_eof"
-    const modelFallback = createModelFallbackHook()
+    const sessionID = "ses_message_updated_fallback_eof";
+    const modelFallback = createModelFallbackHook();
     const { handler, abortCalls, promptAsyncCalls } = createHandler({
       hooks: { modelFallback },
       promptAsync: async () => {
-        throw new Error("JSON Parse error: Unexpected EOF")
+        throw new Error("JSON Parse error: Unexpected EOF");
       },
-    })
+    });
     const input: EventInput = {
       event: {
         type: "message.updated",
@@ -243,7 +267,7 @@ describe("createEventHandler - model fallback", () => {
               name: "APIError",
               data: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -255,27 +279,33 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    }
+    };
 
     //#when
-    await handler(input)
-    const released = releasePromptAsyncReservation(sessionID, "test:simulate-expired-hold", {
-      reservedBy: "model-fallback:message.updated",
-    })
-    await handler(input)
+    await handler(input);
+    const released = releasePromptAsyncReservation(
+      sessionID,
+      "test:simulate-expired-hold",
+      {
+        reservedBy: "model-fallback:message.updated",
+      },
+    );
+    await handler(input);
 
     //#then
-    expect(released).toBe(true)
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptAsyncCalls).toEqual([sessionID])
-  })
+    expect(released).toBe(true);
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptAsyncCalls).toEqual([sessionID]);
+  });
 
   test("triggers retry prompt for nested model error payloads", async () => {
     //#given
-    const sessionID = "ses_main_fallback_nested"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
+    const sessionID = "ses_main_fallback_nested";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
 
     //#when
     await handler({
@@ -288,58 +318,58 @@ describe("createEventHandler - model fallback", () => {
             data: {
               error: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
               },
             },
           },
         },
       },
-    })
+    });
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
-  })
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
+  });
 
   test("does not dispatch duplicate fallback continuations when error events overlap", async () => {
     //#given
-    const sessionID = "ses_model_fallback_concurrent_events"
-    setMainSession(sessionID)
-    let releasePromptAsync: (() => void) | undefined
+    const sessionID = "ses_model_fallback_concurrent_events";
+    setMainSession(sessionID);
+    let releasePromptAsync: (() => void) | undefined;
     const promptAsyncBlocked = new Promise<void>((resolve) => {
-      releasePromptAsync = resolve
-    })
-    let firstPromptAsyncStartedResolve: (() => void) | undefined
+      releasePromptAsync = resolve;
+    });
+    let firstPromptAsyncStartedResolve: (() => void) | undefined;
     const firstPromptAsyncStarted = new Promise<void>((resolve) => {
-      firstPromptAsyncStartedResolve = resolve
-    })
-    let pendingFallbackArms = 0
+      firstPromptAsyncStartedResolve = resolve;
+    });
+    let pendingFallbackArms = 0;
     const modelFallback = unsafeTestValue({
       setSessionFallbackChain: () => {},
       setPendingModelFallback: () => {
-        pendingFallbackArms += 1
-        return true
+        pendingFallbackArms += 1;
+        return true;
       },
-    })
+    });
     const { handler, abortCalls, promptAsyncCalls } = createHandler({
       hooks: { modelFallback },
       promptAsync: async () => {
         if (promptAsyncCalls.length === 1) {
-          firstPromptAsyncStartedResolve?.()
+          firstPromptAsyncStartedResolve?.();
         }
-        await promptAsyncBlocked
-        return {}
+        await promptAsyncBlocked;
+        return {};
       },
-    })
+    });
 
     const assistantError = {
       name: "APIError",
       data: {
         message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+          'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
-    }
+    };
 
     //#when
     const messageUpdated = handler({
@@ -357,8 +387,8 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
-    await firstPromptAsyncStarted
+    });
+    await firstPromptAsyncStarted;
     const sessionError = handler({
       event: {
         type: "session.error",
@@ -369,42 +399,42 @@ describe("createEventHandler - model fallback", () => {
           error: assistantError,
         },
       },
-    })
+    });
 
-    releasePromptAsync?.()
-    await Promise.all([messageUpdated, sessionError])
+    releasePromptAsync?.();
+    await Promise.all([messageUpdated, sessionError]);
 
     //#then
-    expect(pendingFallbackArms).toBe(1)
-    expect(promptAsyncCalls).toEqual([sessionID])
-    expect(abortCalls).toEqual([sessionID])
-  })
+    expect(pendingFallbackArms).toBe(1);
+    expect(promptAsyncCalls).toEqual([sessionID]);
+    expect(abortCalls).toEqual([sessionID]);
+  });
 
   test("does not dispatch duplicate fallback continuations when session.error omits provider after dispatch", async () => {
     //#given
-    const sessionID = "ses_model_fallback_providerless_duplicate"
-    setMainSession(sessionID)
-    let pendingFallbackArms = 0
+    const sessionID = "ses_model_fallback_providerless_duplicate";
+    setMainSession(sessionID);
+    let pendingFallbackArms = 0;
     const modelFallback = unsafeTestValue({
       setSessionFallbackChain: () => {},
       setPendingModelFallback: () => {
-        pendingFallbackArms += 1
-        return true
+        pendingFallbackArms += 1;
+        return true;
       },
-    })
+    });
     const { handler, abortCalls, promptAsyncCalls } = createHandler({
       hooks: { modelFallback },
       promptAsync: async () => ({}),
-    })
+    });
 
     const assistantError = {
       name: "APIError",
       data: {
         message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+          'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
-    }
+    };
 
     await handler({
       event: {
@@ -421,7 +451,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#when - same failed model arrives without provider metadata after first dispatch resolved
     await handler({
@@ -432,41 +462,41 @@ describe("createEventHandler - model fallback", () => {
           error: assistantError,
         },
       },
-    })
+    });
 
     //#then
-    expect(pendingFallbackArms).toBe(1)
-    expect(promptAsyncCalls).toEqual([sessionID])
-    expect(abortCalls).toEqual([sessionID])
-  })
+    expect(pendingFallbackArms).toBe(1);
+    expect(promptAsyncCalls).toEqual([sessionID]);
+    expect(abortCalls).toEqual([sessionID]);
+  });
 
   test("#given abort fails before model-fallback continuation #when fallback handles assistant error #then it does not inject another prompt", async () => {
     //#given
-    const sessionID = "ses_model_fallback_abort_failure"
-    setMainSession(sessionID)
-    let pendingFallbackArms = 0
+    const sessionID = "ses_model_fallback_abort_failure";
+    setMainSession(sessionID);
+    let pendingFallbackArms = 0;
     const modelFallback = unsafeTestValue({
       setSessionFallbackChain: () => {},
       setPendingModelFallback: () => {
-        pendingFallbackArms += 1
-        return true
+        pendingFallbackArms += 1;
+        return true;
       },
-    })
+    });
     const { handler, abortCalls, promptAsyncCalls } = createHandler({
       hooks: { modelFallback },
       abort: async () => {
-        throw new Error("abort transport failed")
+        throw new Error("abort transport failed");
       },
       promptAsync: async () => ({}),
-    })
+    });
     const assistantError = {
       name: "APIError",
       data: {
         message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+          'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
-    }
+    };
 
     //#when
     await handler({
@@ -484,39 +514,39 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#then
-    expect(pendingFallbackArms).toBe(1)
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptAsyncCalls).toEqual([])
-  })
+    expect(pendingFallbackArms).toBe(1);
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptAsyncCalls).toEqual([]);
+  });
 
   test("does not collapse fallback continuations for different providers with the same model id", async () => {
     //#given
-    const sessionID = "ses_model_fallback_same_model_different_provider"
-    setMainSession(sessionID)
-    let pendingFallbackArms = 0
+    const sessionID = "ses_model_fallback_same_model_different_provider";
+    setMainSession(sessionID);
+    let pendingFallbackArms = 0;
     const modelFallback = unsafeTestValue({
       setSessionFallbackChain: () => {},
       setPendingModelFallback: () => {
-        pendingFallbackArms += 1
-        return true
+        pendingFallbackArms += 1;
+        return true;
       },
-    })
+    });
     const { handler, abortCalls, promptAsyncCalls } = createHandler({
       hooks: { modelFallback },
       promptAsync: async () => ({}),
-    })
+    });
 
     const assistantError = {
       name: "APIError",
       data: {
         message:
-          "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+          'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
         isRetryable: true,
       },
-    }
+    };
 
     await handler({
       event: {
@@ -533,7 +563,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#when - a distinct provider reports the same normalized model id before idle cleanup
     await handler({
@@ -546,22 +576,24 @@ describe("createEventHandler - model fallback", () => {
           error: assistantError,
         },
       },
-    })
+    });
 
     //#then
-    expect(pendingFallbackArms).toBe(2)
-    expect(promptAsyncCalls).toEqual([sessionID, sessionID])
-    expect(abortCalls).toEqual([sessionID, sessionID])
-  })
+    expect(pendingFallbackArms).toBe(2);
+    expect(promptAsyncCalls).toEqual([sessionID, sessionID]);
+    expect(abortCalls).toEqual([sessionID, sessionID]);
+  });
 
   test("triggers retry prompt on session.status retry events and applies fallback", async () => {
     //#given
-    const sessionID = "ses_status_retry_fallback"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
+    const sessionID = "ses_status_retry_fallback";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
 
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
 
     const chatMessageHandler = createChatMessageHandler({
       ctx: unsafeTestValue({
@@ -585,7 +617,7 @@ describe("createEventHandler - model fallback", () => {
         startWork: null,
         ralphLoop: null,
       }),
-    })
+    });
 
     await handler({
       event: {
@@ -604,7 +636,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#when
     await handler({
@@ -616,14 +648,14 @@ describe("createEventHandler - model fallback", () => {
             type: "retry",
             attempt: 1,
             message:
-              "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+              'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
             next: 1234,
           },
         },
       },
-    })
+    });
 
-    const output: ChatMessageOutput = { message: {}, parts: [] }
+    const output: ChatMessageOutput = { message: {}, parts: [] };
     await chatMessageHandler(
       {
         sessionID,
@@ -631,28 +663,33 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "anthropic", modelID: "claude-opus-4-8-thinking" },
       },
       output,
-    )
+    );
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
     expect(output.message["model"]).toMatchObject({
       providerID: "anthropic",
       modelID: "claude-opus-5",
-    })
-    expect(output.message["variant"]).toBe("max")
-  })
+    });
+    expect(output.message["variant"]).toBe("max");
+  });
 
   test("#given session.status retry omits model metadata after Opus 5 was selected #when fallback applies #then it skips Opus 5 and advances to Kimi", async () => {
     //#given
-    const sessionID = "ses_status_missing_model_opus5"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
-    const chatMessageHandler = createChatFallbackMessageHandler(modelFallback)
+    const sessionID = "ses_status_missing_model_opus5";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
+    const chatMessageHandler = createChatFallbackMessageHandler(modelFallback);
 
-    setSessionModel(sessionID, { providerID: "anthropic", modelID: "claude-opus-5" })
+    setSessionModel(sessionID, {
+      providerID: "anthropic",
+      modelID: "claude-opus-5",
+    });
 
     //#when
     await handler({
@@ -668,9 +705,9 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
-    const output: ChatMessageOutput = { message: {}, parts: [] }
+    const output: ChatMessageOutput = { message: {}, parts: [] };
     await chatMessageHandler(
       {
         sessionID,
@@ -678,25 +715,27 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "anthropic", modelID: "claude-opus-5" },
       },
       output,
-    )
+    );
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
     expect(output.message["model"]).toEqual({
       providerID: "opencode-go",
       modelID: "kimi-k3",
-    })
-    expect(output.message["variant"]).toBeUndefined()
-  })
+    });
+    expect(output.message["variant"]).toBeUndefined();
+  });
 
   test("does not spam abort/prompt when session.status retry countdown updates", async () => {
     //#given
-    const sessionID = "ses_status_retry_dedup"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
+    const sessionID = "ses_status_retry_dedup";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
 
     await handler({
       event: {
@@ -712,7 +751,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#when
     await handler({
@@ -729,7 +768,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
     await handler({
       event: {
         type: "session.status",
@@ -744,20 +783,22 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
-  })
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
+  });
 
   test("re-handles the same retry key after session recovers through session.idle", async () => {
     //#given
-    const sessionID = "ses_status_retry_real_idle_reset"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
+    const sessionID = "ses_status_retry_real_idle_reset";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
     const chatMessageHandler = createChatMessageHandler({
       ctx: unsafeTestValue({
         client: {
@@ -780,7 +821,7 @@ describe("createEventHandler - model fallback", () => {
         startWork: null,
         ralphLoop: null,
       }),
-    })
+    });
     const retryStatus = {
       type: "session.status",
       properties: {
@@ -793,7 +834,7 @@ describe("createEventHandler - model fallback", () => {
           next: 300,
         },
       },
-    }
+    };
 
     await handler({
       event: {
@@ -809,10 +850,10 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#when
-    await handler({ event: retryStatus })
+    await handler({ event: retryStatus });
     await chatMessageHandler(
       {
         sessionID,
@@ -820,13 +861,13 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "anthropic", modelID: "claude-opus-4-8-thinking" },
       },
       { message: {}, parts: [] },
-    )
+    );
     await handler({
       event: {
         type: "session.idle",
         properties: { sessionID },
       },
-    })
+    });
     await handler({
       event: {
         type: "message.updated",
@@ -841,7 +882,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
     await handler({
       event: {
         ...retryStatus,
@@ -854,20 +895,22 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#then
-    expect(abortCalls).toEqual([sessionID, sessionID])
-    expect(promptCalls).toEqual([sessionID, sessionID])
-  })
+    expect(abortCalls).toEqual([sessionID, sessionID]);
+    expect(promptCalls).toEqual([sessionID, sessionID]);
+  });
 
   test("does not leave stale pending fallback when a providerless duplicate arrives after fallback was applied", async () => {
     //#given
-    const sessionID = "ses_model_fallback_duplicate_surface"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
+    const sessionID = "ses_model_fallback_duplicate_surface";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
     const chatMessageHandler = createChatMessageHandler({
       ctx: unsafeTestValue({
         client: {
@@ -890,7 +933,7 @@ describe("createEventHandler - model fallback", () => {
         startWork: null,
         ralphLoop: null,
       }),
-    })
+    });
 
     await handler({
       event: {
@@ -904,7 +947,7 @@ describe("createEventHandler - model fallback", () => {
               name: "APIError",
               data: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -914,9 +957,9 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
-    const output: ChatMessageOutput = { message: {}, parts: [] }
+    const output: ChatMessageOutput = { message: {}, parts: [] };
     await chatMessageHandler(
       {
         sessionID,
@@ -924,7 +967,7 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "anthropic", modelID: "claude-opus-4-8-thinking" },
       },
       output,
-    )
+    );
 
     //#when - same failed model arrives again without provider metadata after fallback was applied
     await handler({
@@ -937,15 +980,15 @@ describe("createEventHandler - model fallback", () => {
             data: {
               error: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
               },
             },
           },
         },
       },
-    })
+    });
 
-    const staleOutput: ChatMessageOutput = { message: {}, parts: [] }
+    const staleOutput: ChatMessageOutput = { message: {}, parts: [] };
     await chatMessageHandler(
       {
         sessionID,
@@ -953,29 +996,29 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "opencode-go", modelID: "kimi-k2.6" },
       },
       staleOutput,
-    )
+    );
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
-    expect(modelFallback.hasPendingModelFallback(sessionID)).toBe(false)
-    expect(staleOutput.message["model"]).toBeUndefined()
-  })
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
+    expect(modelFallback.hasPendingModelFallback(sessionID)).toBe(false);
+    expect(staleOutput.message["model"]).toBeUndefined();
+  });
 
   test("does not trigger model-fallback from session.status when runtime_fallback is enabled", async () => {
     //#given
-    const sessionID = "ses_status_retry_runtime_enabled"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
+    const sessionID = "ses_status_retry_runtime_enabled";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
     const runtimeFallback = {
       event: async () => {},
       "chat.message": async () => {},
-    }
+    };
     const { handler, abortCalls, promptCalls } = createHandler({
       hooks: { modelFallback, runtimeFallback },
       pluginConfig: { runtime_fallback: { enabled: true } },
-    })
+    });
 
     await handler({
       event: {
@@ -991,7 +1034,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#when
     await handler({
@@ -1008,28 +1051,31 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#then
-    expect(abortCalls).toEqual([])
-    expect(promptCalls).toEqual([])
-  })
+    expect(abortCalls).toEqual([]);
+    expect(promptCalls).toEqual([]);
+  });
 
   test("prefers user-configured fallback_models over hardcoded chain on session.status retry", async () => {
     //#given
-    const sessionID = "ses_status_retry_user_fallback"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
+    const sessionID = "ses_status_retry_user_fallback";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
     const pluginConfig = {
       agents: {
         sisyphus: {
           fallback_models: ["quotio/gpt-5.5", "quotio/kimi-k2.5"],
         },
       },
-    }
+    };
 
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback }, pluginConfig })
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+      pluginConfig,
+    });
 
     const chatMessageHandler = createChatMessageHandler({
       ctx: unsafeTestValue({
@@ -1053,7 +1099,7 @@ describe("createEventHandler - model fallback", () => {
         startWork: null,
         ralphLoop: null,
       }),
-    })
+    });
 
     await handler({
       event: {
@@ -1072,7 +1118,7 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
     //#when
     await handler({
@@ -1089,9 +1135,9 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
-    const output: ChatMessageOutput = { message: {}, parts: [] }
+    const output: ChatMessageOutput = { message: {}, parts: [] };
     await chatMessageHandler(
       {
         sessionID,
@@ -1099,41 +1145,41 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "quotio", modelID: "claude-opus-4-8" },
       },
       output,
-    )
+    );
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
     expect(output.message["model"]).toEqual({
       providerID: "quotio",
       modelID: "gpt-5.5",
-    })
-    expect(output.message["variant"]).toBeUndefined()
-  })
+    });
+    expect(output.message["variant"]).toBeUndefined();
+  });
 
   test("advances main-session fallback chain across repeated session.error retries end-to-end", async () => {
     //#given
-    const abortCalls: string[] = []
-    const promptCalls: string[] = []
-    const toastCalls: string[] = []
-    const sessionID = "ses_main_fallback_chain"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
+    const abortCalls: string[] = [];
+    const promptCalls: string[] = [];
+    const toastCalls: string[] = [];
+    const sessionID = "ses_main_fallback_chain";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
 
-    setupConnectedProviderCacheMocks()
+    setupConnectedProviderCacheMocks();
     const eventHandler = createEventHandler({
       ctx: unsafeTestValue({
         directory: "/tmp",
         client: {
           session: {
             abort: async ({ path }: { path: { id: string } }) => {
-              abortCalls.push(path.id)
-              return {}
+              abortCalls.push(path.id);
+              return {};
             },
             prompt: async ({ path }: { path: { id: string } }) => {
-              promptCalls.push(path.id)
-              return {}
+              promptCalls.push(path.id);
+              return {};
             },
           },
         },
@@ -1155,15 +1201,15 @@ describe("createEventHandler - model fallback", () => {
       hooks: unsafeTestValue({
         modelFallback,
       }),
-    })
+    });
 
     const chatMessageHandler = createChatMessageHandler({
       ctx: unsafeTestValue({
         client: {
           tui: {
             showToast: async ({ body }: { body: { title?: string } }) => {
-              if (body?.title) toastCalls.push(body.title)
-              return {}
+              if (body?.title) toastCalls.push(body.title);
+              return {};
             },
           },
         },
@@ -1182,7 +1228,7 @@ describe("createEventHandler - model fallback", () => {
         startWork: null,
         ralphLoop: null,
       }),
-    })
+    });
 
     const triggerRetryCycle = async (providerID: string, modelID: string) => {
       await eventHandler(asEventHandlerInput({
@@ -1203,53 +1249,70 @@ describe("createEventHandler - model fallback", () => {
             },
           },
         },
-      }))
+      }));
 
-      const output: ChatMessageOutput = { message: {}, parts: [] }
+      const output: ChatMessageOutput = { message: {}, parts: [] };
       await chatMessageHandler(
         {
           sessionID,
           agent: "sisyphus",
-          model: { providerID: "anthropic", modelID: "claude-opus-4-8-thinking" },
+          model: {
+            providerID: "anthropic",
+            modelID: "claude-opus-4-8-thinking",
+          },
         },
         output,
-      )
-      return output
-    }
+      );
+      return output;
+    };
 
     //#when - first retry cycle
-    const first = await triggerRetryCycle("anthropic", "claude-opus-4-8-thinking")
+    const first = await triggerRetryCycle(
+      "anthropic",
+      "claude-opus-4-8-thinking",
+    );
 
     //#then - first Opus 5 fallback entry is applied to the legacy Opus 4.8 input
-    expect(first.message["model"]).toMatchObject({ providerID: "anthropic", modelID: "claude-opus-5" })
-    expect(first.message["variant"]).toBe("max")
+    expect(first.message["model"]).toMatchObject({
+      providerID: "anthropic",
+      modelID: "claude-opus-5",
+    });
+    expect(first.message["variant"]).toBe("max");
 
     //#when - second retry cycle
-    const second = await triggerRetryCycle("opencode-go", "kimi-k3")
+    const second = await triggerRetryCycle("opencode-go", "kimi-k3");
 
     //#then - restored Sol entry applied after the consolidated Kimi rung
-    expect(second.message["model"]).toMatchObject({ providerID: "openai", modelID: "gpt-5.6-sol" })
-    expect(second.message["variant"]).toBe("medium")
+    expect(second.message["model"]).toMatchObject({
+      providerID: "openai",
+      modelID: "gpt-5.6-sol",
+    });
+    expect(second.message["variant"]).toBe("medium");
 
     //#when - third retry cycle
-    const third = await triggerRetryCycle("openai", "gpt-5.6-sol")
+    const third = await triggerRetryCycle("openai", "gpt-5.6-sol");
 
     //#then - fallback continues to GLM after the restored Sol rung
-    expect(third.message["model"]).toMatchObject({ providerID: "zai-coding-plan", modelID: "glm-5.2" })
-    expect(third.message["variant"]).toBeUndefined()
-    expect(abortCalls).toEqual([sessionID, sessionID, sessionID])
-    expect(promptCalls).toEqual([sessionID, sessionID, sessionID])
-    expect(toastCalls.length).toBeGreaterThanOrEqual(0)
-  })
+    expect(third.message["model"]).toMatchObject({
+      providerID: "zai-coding-plan",
+      modelID: "glm-5.2",
+    });
+    expect(third.message["variant"]).toBeUndefined();
+    expect(abortCalls).toEqual([sessionID, sessionID, sessionID]);
+    expect(promptCalls).toEqual([sessionID, sessionID, sessionID]);
+    expect(toastCalls.length).toBeGreaterThanOrEqual(0);
+  });
 
   test("#given session.error omits model metadata after Opus 5 fails #when fallback applies #then it skips Opus 5 and advances to Kimi", async () => {
     //#given
-    const sessionID = "ses_error_missing_model_opus5"
-    setMainSession(sessionID)
-    const modelFallback = createModelFallbackHook()
-    clearPendingModelFallback(modelFallback, sessionID)
-    const { handler, abortCalls, promptCalls } = createHandler({ hooks: { modelFallback } })
-    const chatMessageHandler = createChatFallbackMessageHandler(modelFallback)
+    const sessionID = "ses_error_missing_model_opus5";
+    setMainSession(sessionID);
+    const modelFallback = createModelFallbackHook();
+    clearPendingModelFallback(modelFallback, sessionID);
+    const { handler, abortCalls, promptCalls } = createHandler({
+      hooks: { modelFallback },
+    });
+    const chatMessageHandler = createChatFallbackMessageHandler(modelFallback);
 
     //#when
     await handler({
@@ -1268,9 +1331,9 @@ describe("createEventHandler - model fallback", () => {
           },
         },
       },
-    })
+    });
 
-    const output: ChatMessageOutput = { message: {}, parts: [] }
+    const output: ChatMessageOutput = { message: {}, parts: [] };
     await chatMessageHandler(
       {
         sessionID,
@@ -1278,23 +1341,23 @@ describe("createEventHandler - model fallback", () => {
         model: { providerID: "anthropic", modelID: "claude-opus-5" },
       },
       output,
-    )
+    );
 
     //#then
-    expect(abortCalls).toEqual([sessionID])
-    expect(promptCalls).toEqual([sessionID])
+    expect(abortCalls).toEqual([sessionID]);
+    expect(promptCalls).toEqual([sessionID]);
     expect(output.message["model"]).toEqual({
       providerID: "opencode-go",
       modelID: "kimi-k3",
-    })
-    expect(output.message["variant"]).toBeUndefined()
-  })
+    });
+    expect(output.message["variant"]).toBeUndefined();
+  });
 
   test("does not trigger model-fallback retry when modelFallback hook is not provided (disabled by default)", async () => {
     //#given
-    const sessionID = "ses_disabled_by_default"
-    setMainSession(sessionID)
-    const { handler, abortCalls, promptCalls } = createHandler()
+    const sessionID = "ses_disabled_by_default";
+    setMainSession(sessionID);
+    const { handler, abortCalls, promptCalls } = createHandler();
 
     //#when - message.updated with assistant error
     await handler({
@@ -1310,7 +1373,7 @@ describe("createEventHandler - model fallback", () => {
               name: "APIError",
               data: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
                 isRetryable: true,
               },
             },
@@ -1320,11 +1383,16 @@ describe("createEventHandler - model fallback", () => {
             agent: "Sisyphus - Ultraworker",
             path: { cwd: "/tmp", root: "/tmp" },
             cost: 0,
-            tokens: { input: 0, output: 0, reasoning: 0, cache: { read: 0, write: 0 } },
+            tokens: {
+              input: 0,
+              output: 0,
+              reasoning: 0,
+              cache: { read: 0, write: 0 },
+            },
           },
         },
       },
-    })
+    });
 
     //#when - session.error with retryable error
     await handler({
@@ -1337,16 +1405,16 @@ describe("createEventHandler - model fallback", () => {
             data: {
               error: {
                 message:
-                  "Bad Gateway: {\"error\":{\"message\":\"unknown provider for model claude-opus-4-8-thinking\"}}",
+                  'Bad Gateway: {"error":{"message":"unknown provider for model claude-opus-4-8-thinking"}}',
               },
             },
           },
         },
       },
-    })
+    });
 
     //#then - no abort or prompt calls should have been made
-    expect(abortCalls).toEqual([])
-    expect(promptCalls).toEqual([])
-  })
-})
+    expect(abortCalls).toEqual([]);
+    expect(promptCalls).toEqual([]);
+  });
+});

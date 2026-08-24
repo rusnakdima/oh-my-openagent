@@ -1,4 +1,4 @@
-import fs from "node:fs"
+import fs from "node:fs";
 
 export function completedUsage() {
   return {
@@ -6,7 +6,7 @@ export function completedUsage() {
     output_tokens: 5,
     input_tokens_details: { cached_tokens: 0 },
     output_tokens_details: { reasoning_tokens: 0 },
-  }
+  };
 }
 
 export function sendSse(res, events) {
@@ -14,21 +14,25 @@ export function sendSse(res, events) {
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-cache",
     connection: "keep-alive",
-  })
+  });
   for (const event of events) {
-    res.write(`data: ${JSON.stringify(event)}\n\n`)
+    res.write(`data: ${JSON.stringify(event)}\n\n`);
   }
-  res.write("data: [DONE]\n\n")
-  res.end()
+  res.write("data: [DONE]\n\n");
+  res.end();
 }
 
 export function textEvents(callCount, text) {
-  const id = `resp_${callCount}`
-  const item = `msg_${callCount}`
+  const id = `resp_${callCount}`;
+  const item = `msg_${callCount}`;
   return [
     {
       type: "response.created",
-      response: { id, created_at: Math.floor(Date.now() / 1000), model: "gpt-fake" },
+      response: {
+        id,
+        created_at: Math.floor(Date.now() / 1000),
+        model: "gpt-fake",
+      },
     },
     {
       type: "response.output_item.added",
@@ -50,17 +54,21 @@ export function textEvents(callCount, text) {
       type: "response.completed",
       response: { usage: completedUsage() },
     },
-  ]
+  ];
 }
 
 export function toolCallEvents(callCount, name, callId, argsObj) {
-  const id = `resp_${callCount}`
-  const fcId = `fc_${callCount}`
-  const argsStr = JSON.stringify(argsObj)
+  const id = `resp_${callCount}`;
+  const fcId = `fc_${callCount}`;
+  const argsStr = JSON.stringify(argsObj);
   return [
     {
       type: "response.created",
-      response: { id, created_at: Math.floor(Date.now() / 1000), model: "gpt-fake" },
+      response: {
+        id,
+        created_at: Math.floor(Date.now() / 1000),
+        model: "gpt-fake",
+      },
     },
     {
       type: "response.output_item.added",
@@ -95,12 +103,12 @@ export function toolCallEvents(callCount, name, callId, argsObj) {
       type: "response.completed",
       response: { usage: completedUsage() },
     },
-  ]
+  ];
 }
 
 export function appendLog(logFile, line) {
   try {
-    fs.appendFileSync(logFile, line)
+    fs.appendFileSync(logFile, line);
   } catch {
   }
 }

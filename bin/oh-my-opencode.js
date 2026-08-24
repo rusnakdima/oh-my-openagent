@@ -8,9 +8,9 @@ import { createRequire } from "node:module";
 import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
-  getPlatformPackageCandidates,
   getBinaryPath,
   getPackageBareName,
+  getPlatformPackageCandidates,
   resolvePlatformPackageBaseName,
 } from "./platform.js";
 
@@ -24,7 +24,7 @@ function getLibcFamily() {
   if (process.platform !== "linux") {
     return undefined; // Not needed on non-Linux
   }
-  
+
   try {
     const detectLibc = require("detect-libc");
     return detectLibc.familySync();
@@ -84,7 +84,9 @@ function getPackageBaseName() {
 
 function getWrapperPackageName() {
   try {
-    const packageJson = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    const packageJson = JSON.parse(
+      readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+    );
     return packageJson.name || "oh-my-opencode";
   } catch {
     return "oh-my-opencode";
@@ -109,14 +111,21 @@ function readInstallerCommand(args) {
 }
 
 function maybeRunLazyCodexNodeInstaller(invocationName) {
-  if (invocationName !== "lazycodex" && invocationName !== "lazycodex-ai") return false;
+  if (invocationName !== "lazycodex" && invocationName !== "lazycodex-ai") {
+    return false;
+  }
   const command = readInstallerCommand(process.argv.slice(2));
   if (command !== "update" && command !== "uninstall") return false;
 
-  const installerPath = fileURLToPath(new URL("../packages/omo-codex/scripts/install-local.mjs", import.meta.url));
+  const installerPath = fileURLToPath(
+    new URL("../packages/omo-codex/scripts/install-local.mjs", import.meta.url),
+  );
   if (!existsSync(installerPath)) return false;
 
-  const result = spawnSync(process.execPath, [installerPath, ...process.argv.slice(2)], {
+  const result = spawnSync(process.execPath, [
+    installerPath,
+    ...process.argv.slice(2),
+  ], {
     stdio: "inherit",
     env: {
       ...process.env,
@@ -160,7 +169,7 @@ function main() {
 
   const packageBaseName = resolvePlatformPackageBaseName(wrapperPackageName);
   const avx2Supported = supportsAvx2();
-  
+
   let packageCandidates;
   try {
     packageCandidates = getPlatformPackageCandidates({
@@ -187,8 +196,14 @@ function main() {
 
   if (resolvedBinaries.length === 0) {
     console.error(`\noh-my-opencode: Platform binary not installed.`);
-    console.error(`\nYour platform: ${platform}-${arch}${libcFamily === "musl" ? "-musl" : ""}`);
-    console.error(`Expected packages (in order): ${packageCandidates.join(", ")}`);
+    console.error(
+      `\nYour platform: ${platform}-${arch}${
+        libcFamily === "musl" ? "-musl" : ""
+      }`,
+    );
+    console.error(
+      `Expected packages (in order): ${packageCandidates.join(", ")}`,
+    );
     console.error(`\nTo fix, run:`);
     console.error(`  npm install ${packageCandidates[0]}\n`);
     process.exit(1);
@@ -203,7 +218,10 @@ function main() {
   for (let index = 0; index < resolvedBinaries.length; index += 1) {
     const currentBinary = resolvedBinaries[index];
     const hasFallback = index < resolvedBinaries.length - 1;
-    const result = spawnSync(process.execPath, [currentBinary.binPath, ...process.argv.slice(2)], {
+    const result = spawnSync(process.execPath, [
+      currentBinary.binPath,
+      ...process.argv.slice(2),
+    ], {
       stdio: "inherit",
       env: childEnv,
     });

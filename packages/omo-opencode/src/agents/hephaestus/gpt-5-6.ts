@@ -1,23 +1,23 @@
-import { GPT_APPLY_PATCH_GUIDANCE } from "../gpt-apply-patch-guard"
+import { GPT_APPLY_PATCH_GUIDANCE } from "../gpt-apply-patch-guard";
 import type {
   AvailableAgent,
-  AvailableTool,
-  AvailableSkill,
   AvailableCategory,
-} from "../dynamic-agent-prompt-builder"
+  AvailableSkill,
+  AvailableTool,
+} from "../dynamic-agent-prompt-builder";
 import {
   buildCategorySkillsDelegationGuide,
   buildDelegationTable,
-  buildOracleSection,
   buildFrontendGuidanceSection,
-} from "../dynamic-agent-prompt-builder"
+  buildOracleSection,
+} from "../dynamic-agent-prompt-builder";
 
 function buildTaskSystemGuide(useTaskSystem: boolean): string {
   if (useTaskSystem) {
-    return `Create tasks for any non-trivial work (2+ steps, uncertain scope, multiple items). Call \`task_create\` with atomic steps before starting. Mark exactly one item \`in_progress\` at a time via \`task_update\`. Mark items \`completed\` immediately when done; never batch. Update the task list when scope shifts.`
+    return `Create tasks for any non-trivial work (2+ steps, uncertain scope, multiple items). Call \`task_create\` with atomic steps before starting. Mark exactly one item \`in_progress\` at a time via \`task_update\`. Mark items \`completed\` immediately when done; never batch. Update the task list when scope shifts.`;
   }
 
-  return `Create todos for any non-trivial work (2+ steps, uncertain scope, multiple items). Call \`todowrite\` with atomic steps before starting. Mark exactly one item \`in_progress\` at a time. Mark items \`completed\` immediately when done; never batch. Update the todo list when scope shifts.`
+  return `Create todos for any non-trivial work (2+ steps, uncertain scope, multiple items). Call \`todowrite\` with atomic steps before starting. Mark exactly one item \`in_progress\` at a time. Mark items \`completed\` immediately when done; never batch. Update the todo list when scope shifts.`;
 }
 
 // GPT-5.6 prompt doctrine (references/gpt-5.6.md): shorter outcome-first prompts
@@ -25,7 +25,8 @@ function buildTaskSystemGuide(useTaskSystem: boolean): string {
 // may substitute a shorter artifact for the requested one), so writing rules
 // are expressed as prioritization; intent keyword maps are dropped in favor of
 // one decision rule; ALWAYS/NEVER is reserved for true invariants.
-const HEPHAESTUS_GPT_5_6_TEMPLATE = `You are Hephaestus, an autonomous deep worker based on GPT-5.6. You and the user share one workspace. You receive goals, not step-by-step instructions, and execute them end-to-end.
+const HEPHAESTUS_GPT_5_6_TEMPLATE =
+  `You are Hephaestus, an autonomous deep worker based on GPT-5.6. You and the user share one workspace. You receive goals, not step-by-step instructions, and execute them end-to-end.
 
 ID contract: background task IDs (\`bg_...\`) use \`background_output(task_id="bg_...")\`; continuation IDs (\`ses_...\`) use \`task(task_id="ses_...")\`.
 
@@ -173,7 +174,7 @@ Write the final message and stop only when Success Criteria are all true. Until 
 # Task Tracking
 
 {{ taskSystemGuide }}
-`
+`;
 
 export function buildGpt56HephaestusPrompt(
   availableAgents: AvailableAgent[],
@@ -182,23 +183,23 @@ export function buildGpt56HephaestusPrompt(
   availableCategories: AvailableCategory[] = [],
   useTaskSystem = false,
 ): string {
-  const taskSystemGuide = buildTaskSystemGuide(useTaskSystem)
+  const taskSystemGuide = buildTaskSystemGuide(useTaskSystem);
   const categorySkillsGuide = buildCategorySkillsDelegationGuide(
     availableCategories,
     availableSkills,
-  )
+  );
   const delegationTable = buildDelegationTable(
     availableAgents.filter((agent) =>
-      ["explore", "librarian", "oracle"].includes(agent.name),
+      ["explore", "librarian", "oracle"].includes(agent.name)
     ),
-  )
-  const oracleSection = buildOracleSection(availableAgents)
-  const frontendGuidance = buildFrontendGuidanceSection(availableCategories)
+  );
+  const oracleSection = buildOracleSection(availableAgents);
+  const frontendGuidance = buildFrontendGuidanceSection(availableCategories);
 
   return HEPHAESTUS_GPT_5_6_TEMPLATE
     .replace("{{ taskSystemGuide }}", taskSystemGuide)
     .replace("{{ categorySkillsGuide }}", categorySkillsGuide)
     .replace("{{ delegationTable }}", delegationTable)
     .replace("{{ oracleSection }}", oracleSection)
-    .replace("{{ frontendGuidance }}", frontendGuidance)
+    .replace("{{ frontendGuidance }}", frontendGuidance);
 }

@@ -67,7 +67,7 @@ export async function executeHookCommand(
     }
   }
 
-  return new Promise(resolve => {
+  return new Promise((resolve) => {
     let settled = false;
     let timedOut = false;
     let killTimer: ReturnType<typeof setTimeout> | null = null;
@@ -76,7 +76,11 @@ export async function executeHookCommand(
 
     // Keys that are always set from normalized sources and must not be
     // overwritten by ambient process.env values during the allowlist merge.
-    const PROTECTED_ENV_KEYS = new Set(["HOME", "CLAUDE_PROJECT_DIR", "CLAUDE_PLUGIN_ROOT"]);
+    const PROTECTED_ENV_KEYS = new Set([
+      "HOME",
+      "CLAUDE_PROJECT_DIR",
+      "CLAUDE_PLUGIN_ROOT",
+    ]);
 
     let env: Record<string, string | undefined>;
     if (options?.allowedEnvVars) {
@@ -129,7 +133,7 @@ export async function executeHookCommand(
       resolve(result);
     };
 
-    proc.on("close", code => {
+    proc.on("close", (code) => {
       if (timedOut) {
         appendTimeoutNotice();
         settle({
@@ -146,7 +150,7 @@ export async function executeHookCommand(
       });
     });
 
-    proc.on("error", err => {
+    proc.on("error", (err) => {
       settle({ exitCode: 1, stderr: err.message });
     });
 
@@ -235,7 +239,10 @@ export async function executeHookCommand(
     }, timeoutMs);
 
     // Don't let the timeout timer keep the process alive
-    if (timeoutTimer && typeof timeoutTimer === "object" && "unref" in timeoutTimer) {
+    if (
+      timeoutTimer && typeof timeoutTimer === "object" &&
+      "unref" in timeoutTimer
+    ) {
       timeoutTimer.unref();
     }
   });

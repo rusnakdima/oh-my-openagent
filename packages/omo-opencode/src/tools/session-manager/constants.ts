@@ -1,10 +1,16 @@
-import { join } from "node:path"
-import { getClaudeConfigDir } from "../../shared"
+import { join } from "node:path";
+import { getClaudeConfigDir } from "../../shared";
 
-export { OPENCODE_STORAGE, MESSAGE_STORAGE, PART_STORAGE, SESSION_STORAGE } from "../../shared"
-export const TODO_DIR = join(getClaudeConfigDir(), "todos")
-export const TRANSCRIPT_DIR = join(getClaudeConfigDir(), "transcripts")
-export const SESSION_LIST_DESCRIPTION = `List all OpenCode sessions with optional filtering.
+export {
+  MESSAGE_STORAGE,
+  OPENCODE_STORAGE,
+  PART_STORAGE,
+  SESSION_STORAGE,
+} from "../../shared";
+export const TODO_DIR = join(getClaudeConfigDir(), "todos");
+export const TRANSCRIPT_DIR = join(getClaudeConfigDir(), "transcripts");
+export const SESSION_LIST_DESCRIPTION =
+  `List all OpenCode sessions with optional filtering.
 
 Returns a list of available session IDs with metadata including message count, date range, and agents used.
 
@@ -17,9 +23,10 @@ Example output:
 | Session ID | Messages | First | Last | Agents |
 |------------|----------|-------|------|--------|
 | ses_abc123 | 45 | 2025-12-20 | 2025-12-24 | build, oracle |
-| ses_def456 | 12 | 2025-12-19 | 2025-12-19 | build |`
+| ses_def456 | 12 | 2025-12-19 | 2025-12-19 | build |`;
 
-export const SESSION_READ_DESCRIPTION = `Read messages and history from an OpenCode session.
+export const SESSION_READ_DESCRIPTION =
+  `Read messages and history from an OpenCode session.
 
 Returns a formatted view of session messages with role, timestamp, and content. Optionally includes todos and transcript data.
 
@@ -38,9 +45,10 @@ Date Range: 2025-12-20 to 2025-12-24
 Hello, can you help me with...
 
 [Message 2] assistant (2025-12-20 10:30:15)
-Of course! Let me help you with...`
+Of course! Let me help you with...`;
 
-export const SESSION_SEARCH_DESCRIPTION = `Search for content within OpenCode session messages.
+export const SESSION_SEARCH_DESCRIPTION =
+  `Search for content within OpenCode session messages.
 
 Performs full-text search across session messages and returns matching excerpts with context.
 
@@ -60,9 +68,10 @@ Found 3 matches across 2 sessions:
 ...I'll create a **session manager** with full search...
 
 [ses_def456] Message msg_012 (user)
-...use the **session manager** to find...`
+...use the **session manager** to find...`;
 
-export const SESSION_INFO_DESCRIPTION = `Get metadata and statistics about an OpenCode session.
+export const SESSION_INFO_DESCRIPTION =
+  `Get metadata and statistics about an OpenCode session.
 
 Returns detailed information about a session including message count, date range, agents used, and available data sources.
 
@@ -76,9 +85,10 @@ Date Range: 2025-12-20 10:30:00 to 2025-12-24 15:45:30
 Duration: 4 days, 5 hours
 Agents Used: build, oracle, librarian
 Has Todos: Yes (12 items, 8 completed)
-Has Transcript: Yes (234 entries)`
+Has Transcript: Yes (234 entries)`;
 
-export const SESSION_DELETE_DESCRIPTION = `Delete an OpenCode session and all associated data.
+export const SESSION_DELETE_DESCRIPTION =
+  `Delete an OpenCode session and all associated data.
 
 Removes session messages, parts, todos, and transcript. This operation cannot be undone.
 
@@ -88,9 +98,10 @@ Arguments:
 
 Example:
 session_delete(session_id="ses_abc123", confirm=true)
-Successfully deleted session ses_abc123`
+Successfully deleted session ses_abc123`;
 
-export const SESSION_TAG_DESCRIPTION = `Add, remove, or replace tags on an OpenCode session.
+export const SESSION_TAG_DESCRIPTION =
+  `Add, remove, or replace tags on an OpenCode session.
 
 Modifies the tags array in session metadata. For FILE-based sessions, reads and writes the session JSON file. For SDK-based sessions, calls the updateMetadata API.
 
@@ -101,9 +112,10 @@ Arguments:
 
 Example:
 session_tag(session_id="ses_abc123", tags=["feature-x", "urgent"], action="add")
-Added tags to session ses_abc123: feature-x, urgent`
+Added tags to session ses_abc123: feature-x, urgent`;
 
-export const SESSION_BRANCH_DESCRIPTION = `Create a new branch session from an existing session.
+export const SESSION_BRANCH_DESCRIPTION =
+  `Create a new branch session from an existing session.
 
 Creates a child session with the specified parent, inheriting context. The new session starts empty but links to its parent for context retrieval.
 
@@ -114,11 +126,12 @@ Arguments:
 
 Example:
 session_branch(session_id="ses_abc123", title="Feature branch", tags=["feature-x"])
-Created branch session: ses_newbranch123`
+Created branch session: ses_newbranch123`;
 
-export const TOOL_NAME_PREFIX = "session_"
+export const TOOL_NAME_PREFIX = "session_";
 
-export const SESSION_MODEL_INFO_DESCRIPTION = `Show the current session model state and per-agent/category effective models.
+export const SESSION_MODEL_INFO_DESCRIPTION =
+  `Show the current session model state and per-agent/category effective models.
 
 Use this diagnostic tool to verify:
 - Whether a TUI-selected model is stored in the current session
@@ -145,4 +158,4 @@ session_model_info()
   Categories:
     ultrabrain         → anthropic/claude-sonnet-5  ← OVERRIDE APPLIED
     deep               → anthropic/claude-sonnet-5  ← OVERRIDE APPLIED
-    ...`
+    ...`;

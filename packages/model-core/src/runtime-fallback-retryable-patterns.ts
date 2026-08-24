@@ -26,4 +26,4 @@ export const RUNTIME_FALLBACK_RETRYABLE_ERROR_PATTERNS = [
   /暂时不可用/,
   /服务不可用/,
   /请稍后重试/,
-] as const
+] as const;

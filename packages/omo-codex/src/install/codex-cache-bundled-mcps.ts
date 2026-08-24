@@ -1,13 +1,13 @@
-import { isPlainRecord } from "./codex-cache-fs"
-import { cp, mkdir, readFile, stat } from "node:fs/promises"
-import { dirname, join, resolve } from "node:path"
+import { isPlainRecord } from "./codex-cache-fs";
+import { cp, mkdir, readFile, stat } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
 
 interface BundledMcpRuntime {
-  readonly label: string
-  readonly sourceArg: string
-  readonly sourceDistFromPlugin: string
-  readonly destinationArg: string
-  readonly destinationDistFromPlugin: string
+  readonly label: string;
+  readonly sourceArg: string;
+  readonly sourceDistFromPlugin: string;
+  readonly destinationArg: string;
+  readonly destinationDistFromPlugin: string;
 }
 
 const BUNDLED_MCP_RUNTIMES = [
@@ -25,22 +25,33 @@ const BUNDLED_MCP_RUNTIMES = [
     destinationArg: "./components/lsp-daemon/dist/cli.js",
     destinationDistFromPlugin: "components/lsp-daemon/dist",
   },
-] as const satisfies readonly BundledMcpRuntime[]
+] as const satisfies readonly BundledMcpRuntime[];
 
 export async function copyBundledMcpRuntimeDists(input: {
-  readonly pluginRoot: string
-  readonly sourceRoot: string
+  readonly pluginRoot: string;
+  readonly sourceRoot: string;
 }): Promise<void> {
-  const sourceArgs = await readSourceMcpArgs(join(input.sourceRoot, ".mcp.json"))
+  const sourceArgs = await readSourceMcpArgs(
+    join(input.sourceRoot, ".mcp.json"),
+  );
   for (const runtime of BUNDLED_MCP_RUNTIMES) {
-    if (!sourceArgs.has(runtime.sourceArg)) continue
-    await copyBundledMcpRuntimeDist(input.pluginRoot, input.sourceRoot, runtime)
+    if (!sourceArgs.has(runtime.sourceArg)) continue;
+    await copyBundledMcpRuntimeDist(
+      input.pluginRoot,
+      input.sourceRoot,
+      runtime,
+    );
   }
 }
 
-export function resolveBundledMcpRuntimeArg(pluginRoot: string, arg: string): string | null {
-  const runtime = BUNDLED_MCP_RUNTIMES.find((candidate) => candidate.sourceArg === arg)
-  return runtime ? join(pluginRoot, runtime.destinationArg) : null
+export function resolveBundledMcpRuntimeArg(
+  pluginRoot: string,
+  arg: string,
+): string | null {
+  const runtime = BUNDLED_MCP_RUNTIMES.find((candidate) =>
+    candidate.sourceArg === arg
+  );
+  return runtime ? join(pluginRoot, runtime.destinationArg) : null;
 }
 
 async function copyBundledMcpRuntimeDist(
@@ -48,40 +59,40 @@ async function copyBundledMcpRuntimeDist(
   sourceRoot: string,
   runtime: BundledMcpRuntime,
 ): Promise<void> {
-  const sourcePath = resolve(sourceRoot, runtime.sourceDistFromPlugin)
+  const sourcePath = resolve(sourceRoot, runtime.sourceDistFromPlugin);
   if (!(await isDirectory(sourcePath))) {
-    throw new Error(`missing built ${runtime.label} dist at ${sourcePath}`)
+    throw new Error(`missing built ${runtime.label} dist at ${sourcePath}`);
   }
-  const destinationPath = join(pluginRoot, runtime.destinationDistFromPlugin)
-  await mkdir(dirname(destinationPath), { recursive: true })
-  await cp(sourcePath, destinationPath, { recursive: true })
+  const destinationPath = join(pluginRoot, runtime.destinationDistFromPlugin);
+  await mkdir(dirname(destinationPath), { recursive: true });
+  await cp(sourcePath, destinationPath, { recursive: true });
 }
 
 async function readSourceMcpArgs(path: string): Promise<ReadonlySet<string>> {
-  let parsed: unknown
+  let parsed: unknown;
   try {
-    parsed = JSON.parse(await readFile(path, "utf8"))
+    parsed = JSON.parse(await readFile(path, "utf8"));
   } catch (error) {
-    if (error instanceof Error) return new Set()
-    return new Set()
+    if (error instanceof Error) return new Set();
+    return new Set();
   }
 
-  const args = new Set<string>()
-  if (!isPlainRecord(parsed) || !isPlainRecord(parsed.mcpServers)) return args
+  const args = new Set<string>();
+  if (!isPlainRecord(parsed) || !isPlainRecord(parsed.mcpServers)) return args;
   for (const server of Object.values(parsed.mcpServers)) {
-    if (!isPlainRecord(server) || !Array.isArray(server.args)) continue
+    if (!isPlainRecord(server) || !Array.isArray(server.args)) continue;
     for (const arg of server.args) {
-      if (typeof arg === "string") args.add(arg)
+      if (typeof arg === "string") args.add(arg);
     }
   }
-  return args
+  return args;
 }
 
 async function isDirectory(path: string): Promise<boolean> {
   try {
-    return (await stat(path)).isDirectory()
+    return (await stat(path)).isDirectory();
   } catch (error) {
-    if (error instanceof Error) return false
-    return false
+    if (error instanceof Error) return false;
+    return false;
   }
 }

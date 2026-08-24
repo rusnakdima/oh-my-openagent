@@ -1,7 +1,7 @@
-import type { LoadedSkill } from "../features/opencode-skill-loader/types"
-import type { PluginContext } from "./types"
+import type { LoadedSkill } from "../features/opencode-skill-loader/types";
+import type { PluginContext } from "./types";
 
-export type RuntimeHostSkills = { paths?: string[]; urls?: string[] }
+export type RuntimeHostSkills = { paths?: string[]; urls?: string[] };
 
 /**
  * Read `skills` from opencode's merged runtime config via the plugin client.
@@ -19,15 +19,15 @@ export async function readRuntimeHostSkills(
   client: PluginContext["client"],
 ): Promise<RuntimeHostSkills | undefined> {
   try {
-    const result = await client.config.get()
-    const skills = (result as { data?: { skills?: unknown } }).data?.skills
+    const result = await client.config.get();
+    const skills = (result as { data?: { skills?: unknown } }).data?.skills;
     if (skills && typeof skills === "object") {
-      return skills as RuntimeHostSkills
+      return skills as RuntimeHostSkills;
     }
   } catch {
     // Fall back to base skills in the caller.
   }
-  return undefined
+  return undefined;
 }
 
 /**
@@ -42,25 +42,29 @@ export async function readRuntimeHostSkills(
  * skills are returned unchanged.
  */
 export function createRuntimeSkillsResolver(args: {
-  baseSkills: LoadedSkill[]
-  readRuntimeHostSkills: () => Promise<RuntimeHostSkills | undefined>
-  buildMergedSkills: (hostSkills: RuntimeHostSkills) => Promise<LoadedSkill[]>
+  baseSkills: LoadedSkill[];
+  readRuntimeHostSkills: () => Promise<RuntimeHostSkills | undefined>;
+  buildMergedSkills: (hostSkills: RuntimeHostSkills) => Promise<LoadedSkill[]>;
 }): () => Promise<LoadedSkill[]> {
-  const { baseSkills, readRuntimeHostSkills: readHostSkills, buildMergedSkills } = args
-  let inflight: Promise<LoadedSkill[]> | undefined
+  const {
+    baseSkills,
+    readRuntimeHostSkills: readHostSkills,
+    buildMergedSkills,
+  } = args;
+  let inflight: Promise<LoadedSkill[]> | undefined;
 
   const resolve = async (): Promise<LoadedSkill[]> => {
-    const hostSkills = await readHostSkills()
-    if (!hostSkills) return baseSkills
+    const hostSkills = await readHostSkills();
+    if (!hostSkills) return baseSkills;
     try {
-      return await buildMergedSkills(hostSkills)
+      return await buildMergedSkills(hostSkills);
     } catch {
-      return baseSkills
+      return baseSkills;
     }
-  }
+  };
 
   return () => {
-    if (!inflight) inflight = resolve()
-    return inflight
-  }
+    if (!inflight) inflight = resolve();
+    return inflight;
+  };
 }

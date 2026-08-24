@@ -1,26 +1,32 @@
-import { spawnSync } from "node:child_process"
+import { spawnSync } from "node:child_process";
 
 export type ConsoleAttachment = {
-  readonly attached: boolean
-  readonly errorCode: number
-  readonly windowHandle: number
-  readonly windowVisible: boolean
-}
+  readonly attached: boolean;
+  readonly errorCode: number;
+  readonly windowHandle: number;
+  readonly windowVisible: boolean;
+};
 
 export function mainWindowHandle(pid: number): number {
-  const source = `$p = Get-Process -Id ${pid} -ErrorAction Stop; [Console]::Out.Write([int64]$p.MainWindowHandle)`
-  const result = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", source], {
+  const source =
+    `$p = Get-Process -Id ${pid} -ErrorAction Stop; [Console]::Out.Write([int64]$p.MainWindowHandle)`;
+  const result = spawnSync("powershell.exe", [
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    source,
+  ], {
     encoding: "utf8",
     windowsHide: true,
-  })
+  });
   if (result.status !== 0) {
-    throw new Error(`MainWindowHandle probe failed: ${result.stderr.trim()}`)
+    throw new Error(`MainWindowHandle probe failed: ${result.stderr.trim()}`);
   }
-  const handle = Number.parseInt(result.stdout.trim(), 10)
+  const handle = Number.parseInt(result.stdout.trim(), 10);
   if (!Number.isSafeInteger(handle)) {
-    throw new Error(`MainWindowHandle was not an integer: ${result.stdout}`)
+    throw new Error(`MainWindowHandle was not an integer: ${result.stdout}`);
   }
-  return handle
+  return handle;
 }
 
 export function consoleAttachment(pid: number): ConsoleAttachment {
@@ -42,15 +48,20 @@ export function consoleAttachment(pid: number): ConsoleAttachment {
     "$windowVisible = [OmoConsoleProbe]::IsWindowVisible($windowHandle)",
     "[Console]::Out.Write((@{ attached = $attached; errorCode = $errorCode; windowHandle = [int64]$windowHandle; windowVisible = $windowVisible } | ConvertTo-Json -Compress))",
     "if ($attached) { [OmoConsoleProbe]::FreeConsole() | Out-Null }",
-  ].join("\n")
-  const result = spawnSync("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", source], {
+  ].join("\n");
+  const result = spawnSync("powershell.exe", [
+    "-NoProfile",
+    "-NonInteractive",
+    "-Command",
+    source,
+  ], {
     encoding: "utf8",
     windowsHide: true,
-  })
+  });
   if (result.status !== 0) {
-    throw new Error(`console attachment probe failed: ${result.stderr.trim()}`)
+    throw new Error(`console attachment probe failed: ${result.stderr.trim()}`);
   }
-  const payload: unknown = JSON.parse(result.stdout.trim())
+  const payload: unknown = JSON.parse(result.stdout.trim());
   if (
     typeof payload !== "object" ||
     payload === null ||
@@ -63,12 +74,14 @@ export function consoleAttachment(pid: number): ConsoleAttachment {
     !("windowVisible" in payload) ||
     typeof payload.windowVisible !== "boolean"
   ) {
-    throw new Error(`console attachment probe returned invalid JSON: ${result.stdout}`)
+    throw new Error(
+      `console attachment probe returned invalid JSON: ${result.stdout}`,
+    );
   }
   return {
     attached: payload.attached,
     errorCode: payload.errorCode,
     windowHandle: payload.windowHandle,
     windowVisible: payload.windowVisible,
-  }
+  };
 }

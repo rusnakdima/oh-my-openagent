@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const RuntimeFallbackConfigSchema = z.object({
   /** Enable runtime fallback (default: false) */
@@ -16,6 +16,6 @@ export const RuntimeFallbackConfigSchema = z.object({
   /** Show toast notification when switching to fallback model (default: true) */
   notify_on_fallback: z.boolean().optional(),
   restore_primary_after_cooldown: z.boolean().optional(),
-})
+});
 
-export type RuntimeFallbackConfig = z.infer<typeof RuntimeFallbackConfigSchema>
+export type RuntimeFallbackConfig = z.infer<typeof RuntimeFallbackConfigSchema>;

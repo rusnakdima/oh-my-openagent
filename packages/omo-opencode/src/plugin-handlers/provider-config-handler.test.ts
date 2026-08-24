@@ -1,28 +1,31 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test"
-import { applyProviderConfig } from "./provider-config-handler"
-import { createModelCacheState } from "../plugin-state"
-import { clearVisionCapableModelsCache, readVisionCapableModelsCache } from "../shared/vision-capable-models-cache"
-import * as imageCapabilityCache from "../shared/vision-capable-models-cache"
+import { describe, expect, test } from "bun:test";
+import { applyProviderConfig } from "./provider-config-handler";
+import { createModelCacheState } from "../plugin-state";
+import {
+  clearVisionCapableModelsCache,
+  readVisionCapableModelsCache,
+} from "../shared/vision-capable-models-cache";
+import * as imageCapabilityCache from "../shared/vision-capable-models-cache";
 
 function readTextOnlyModelsForTest(): Array<{
-  providerID: string
-  modelID: string
+  providerID: string;
+  modelID: string;
 }> {
   const candidate: unknown = Reflect.get(
     imageCapabilityCache,
     "readTextOnlyModelsCache",
-  )
-  expect(typeof candidate).toBe("function")
-  if (typeof candidate !== "function") return []
-  return candidate()
+  );
+  expect(typeof candidate).toBe("function");
+  if (typeof candidate !== "function") return [];
+  return candidate();
 }
 
 describe("applyProviderConfig", () => {
   test("clears stale model context limits when provider config changes", () => {
     // given
-    const modelCacheState = createModelCacheState()
+    const modelCacheState = createModelCacheState();
     applyProviderConfig({
       config: {
         provider: {
@@ -36,7 +39,7 @@ describe("applyProviderConfig", () => {
         },
       },
       modelCacheState,
-    })
+    });
 
     // when
     applyProviderConfig({
@@ -52,20 +55,21 @@ describe("applyProviderConfig", () => {
         },
       },
       modelCacheState,
-    })
+    });
 
     // then
-    expect(Array.from(modelCacheState.modelContextLimitsCache.entries())).toEqual([
-      ["google/gemini-2.5-pro", 1048576],
-    ])
-  })
+    expect(Array.from(modelCacheState.modelContextLimitsCache.entries()))
+      .toEqual([
+        ["google/gemini-2.5-pro", 1048576],
+      ]);
+  });
 
   test("caches vision-capable models from modalities and capabilities", () => {
     // given
-    const modelCacheState = createModelCacheState()
-    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache
+    const modelCacheState = createModelCacheState();
+    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache;
     if (!visionCapableModelsCache) {
-      throw new Error("visionCapableModelsCache should be initialized")
+      throw new Error("visionCapableModelsCache should be initialized");
     }
     const config = {
       provider: {
@@ -95,28 +99,28 @@ describe("applyProviderConfig", () => {
           },
         },
       },
-    } satisfies Record<string, unknown>
+    } satisfies Record<string, unknown>;
 
     // when
-    applyProviderConfig({ config, modelCacheState })
+    applyProviderConfig({ config, modelCacheState });
 
     // then
     expect(Array.from(visionCapableModelsCache.keys())).toEqual([
       "rundao/public/qwen3.5-397b",
       "google/gemini-3-flash",
-    ])
+    ]);
     expect(readVisionCapableModelsCache()).toEqual([
       { providerID: "rundao", modelID: "public/qwen3.5-397b" },
       { providerID: "google", modelID: "gemini-3-flash" },
-    ])
-  })
+    ]);
+  });
 
   test("trusts user-configured multimodal-looker model even when provider config omits modalities", () => {
     // given - user configures glm-5.1 as multimodal-looker but provider model entry has no modalities/capabilities
-    const modelCacheState = createModelCacheState()
-    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache
+    const modelCacheState = createModelCacheState();
+    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache;
     if (!visionCapableModelsCache) {
-      throw new Error("visionCapableModelsCache should be initialized")
+      throw new Error("visionCapableModelsCache should be initialized");
     }
     const config = {
       provider: {
@@ -128,27 +132,27 @@ describe("applyProviderConfig", () => {
           },
         },
       },
-    } satisfies Record<string, unknown>
+    } satisfies Record<string, unknown>;
 
     // when
     applyProviderConfig({
       config,
       modelCacheState,
       trustedVisionCapableModels: ["zhipuai-coding-plan/glm-5.1"],
-    })
+    });
 
     // then - trusted model is in cache even though provider config did not declare image support
     expect(Array.from(visionCapableModelsCache.keys())).toEqual([
       "zhipuai-coding-plan/glm-5.1",
-    ])
+    ]);
     expect(readVisionCapableModelsCache()).toEqual([
       { providerID: "zhipuai-coding-plan", modelID: "glm-5.1" },
-    ])
-  })
+    ]);
+  });
 
   test("records models with explicit text-only input modalities", () => {
     // given
-    const modelCacheState = createModelCacheState()
+    const modelCacheState = createModelCacheState();
     const config = {
       provider: {
         openai: {
@@ -159,23 +163,23 @@ describe("applyProviderConfig", () => {
           },
         },
       },
-    } satisfies Record<string, unknown>
+    } satisfies Record<string, unknown>;
 
     // when
-    applyProviderConfig({ config, modelCacheState })
+    applyProviderConfig({ config, modelCacheState });
 
     // then
     expect(readTextOnlyModelsForTest()).toEqual([
       { providerID: "openai", modelID: "text-fake" },
-    ])
-  })
+    ]);
+  });
 
   test("does not duplicate a trusted model already discovered via provider modalities", () => {
     // given
-    const modelCacheState = createModelCacheState()
-    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache
+    const modelCacheState = createModelCacheState();
+    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache;
     if (!visionCapableModelsCache) {
-      throw new Error("visionCapableModelsCache should be initialized")
+      throw new Error("visionCapableModelsCache should be initialized");
     }
     const config = {
       provider: {
@@ -187,62 +191,66 @@ describe("applyProviderConfig", () => {
           },
         },
       },
-    } satisfies Record<string, unknown>
+    } satisfies Record<string, unknown>;
 
     // when
     applyProviderConfig({
       config,
       modelCacheState,
       trustedVisionCapableModels: ["google/gemini-3-flash"],
-    })
+    });
 
     // then
     expect(Array.from(visionCapableModelsCache.keys())).toEqual([
       "google/gemini-3-flash",
-    ])
-  })
+    ]);
+  });
 
   test("ignores malformed trusted vision-capable model strings", () => {
     // given - entries missing provider or model are skipped silently
-    const modelCacheState = createModelCacheState()
-    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache
+    const modelCacheState = createModelCacheState();
+    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache;
     if (!visionCapableModelsCache) {
-      throw new Error("visionCapableModelsCache should be initialized")
+      throw new Error("visionCapableModelsCache should be initialized");
     }
 
     // when
     applyProviderConfig({
       config: { provider: {} },
       modelCacheState,
-      trustedVisionCapableModels: ["no-slash", "/missing-provider", "provider-only/"],
-    })
+      trustedVisionCapableModels: [
+        "no-slash",
+        "/missing-provider",
+        "provider-only/",
+      ],
+    });
 
     // then
-    expect(visionCapableModelsCache.size).toBe(0)
-  })
+    expect(visionCapableModelsCache.size).toBe(0);
+  });
 
   test("clears stale vision-capable models when provider config changes", () => {
     // given
-    const modelCacheState = createModelCacheState()
-    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache
+    const modelCacheState = createModelCacheState();
+    const visionCapableModelsCache = modelCacheState.visionCapableModelsCache;
     if (!visionCapableModelsCache) {
-      throw new Error("visionCapableModelsCache should be initialized")
+      throw new Error("visionCapableModelsCache should be initialized");
     }
     visionCapableModelsCache.set("stale/old-model", {
       providerID: "stale",
       modelID: "old-model",
-    })
+    });
 
     // when
     applyProviderConfig({
       config: { provider: {} },
       modelCacheState,
-    })
+    });
 
     // then
-    expect(visionCapableModelsCache.size).toBe(0)
-    expect(readVisionCapableModelsCache()).toEqual([])
-  })
-})
+    expect(visionCapableModelsCache.size).toBe(0);
+    expect(readVisionCapableModelsCache()).toEqual([]);
+  });
+});
 
-clearVisionCapableModelsCache()
+clearVisionCapableModelsCache();

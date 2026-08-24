@@ -75,3 +75,4 @@ $marker
 packages/omo-opencode/$marker
 .agents/skills/opencode-qa/scripts/.omo/
 .agents/skills/opencode-qa/scripts/parent-wake-log.jsonl
+.omo/

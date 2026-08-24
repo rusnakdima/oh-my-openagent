@@ -1,4 +1,4 @@
-import type { Goal } from "./types"
+import type { Goal } from "./types";
 
 export function buildContinuationPrompt(goal: Goal): string {
   return [
@@ -31,7 +31,7 @@ export function buildContinuationPrompt(goal: Goal): string {
     "",
     // #5120: Trivial-objective shortcut — tell the model to exit if the goal needs no work.
     'Trivial-objective shortcut: if the objective above is a single, direct response that requires no file edits, no tool calls, and no further work (e.g. "output X", "say Y", "explain Z", a factual answer, or a one-line computation), then the work is already done. Call update_goal with status "complete" and respond to the user with the answer directly. Do not produce a status block, a todo list, or further planning for objectives that needed no planning or tools.',
-  ].join("\n")
+  ].join("\n");
 }
 
 export function buildResumePrompt(goal: Goal): string {
@@ -43,9 +43,12 @@ export function buildResumePrompt(goal: Goal): string {
     "</untrusted_objective>",
     "",
     "Continue working toward this objective. Do not repeat work already done.",
-  ].join("\n")
+  ].join("\n");
 }
 
 function escapeXmlText(value: string): string {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(
+    ">",
+    "&gt;",
+  );
 }

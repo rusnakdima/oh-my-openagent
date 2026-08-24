@@ -87,7 +87,9 @@ exhaustive_enums = "warn"      # public enums should consider #[non_exhaustive]
 exhaustive_structs = "warn"
 ```
 
-The `priority = -1` trick: group-level levels are weak; specific lints below them win. This lets us deny `unwrap_used` while still allowing `pedantic` group warnings instead of denies.
+The `priority = -1` trick: group-level levels are weak; specific lints below
+them win. This lets us deny `unwrap_used` while still allowing `pedantic` group
+warnings instead of denies.
 
 ## `Cargo.toml` — release profile
 
@@ -148,7 +150,9 @@ use_try_shorthand = true
 unstable_features = false
 ```
 
-Most options come from stable rustfmt. `imports_granularity` and `group_imports` are nightly-only but ignored cleanly on stable; CI runs `cargo +nightly fmt --check` for the import grouping.
+Most options come from stable rustfmt. `imports_granularity` and `group_imports`
+are nightly-only but ignored cleanly on stable; CI runs
+`cargo +nightly fmt --check` for the import grouping.
 
 ## `clippy.toml`
 

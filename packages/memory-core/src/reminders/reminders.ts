@@ -115,23 +115,28 @@ function renderDirtyReminder(snapshot: RepoStatusSnapshot): string {
     `  - ${listing}`,
     "",
     "Commit these memory changes when appropriate. Do not run `git push` " +
-      "for MemFS sync; the harness pushes clean committed memory changes " +
-      "automatically for remote MemFS agents after turns.",
+    "for MemFS sync; the harness pushes clean committed memory changes " +
+    "automatically for remote MemFS agents after turns.",
   ].join("\n");
 }
 
 /** Render the conflict-state reminder text with resolution guidance. */
 function renderConflictReminder(snapshot: RepoStatusSnapshot): string {
   const op = snapshot.conflictState;
-  const opLabel =
-    op === "merge"
-      ? "merge in progress"
-      : op === "rebase"
-        ? "rebase in progress"
-        : "unmerged files";
+  const opLabel = op === "merge"
+    ? "merge in progress"
+    : op === "rebase"
+    ? "rebase in progress"
+    : "unmerged files";
   const unmergedPaths = snapshot.dirtyPaths;
   const pathsLine = unmergedPaths.length > 0
-    ? `\n\nConflicted file(s):\n  - ${unmergedPaths.slice(0, 20).join("\n  - ")}${unmergedPaths.length > 20 ? `\n  - ...and ${unmergedPaths.length - 20} more` : ""}`
+    ? `\n\nConflicted file(s):\n  - ${
+      unmergedPaths.slice(0, 20).join("\n  - ")
+    }${
+      unmergedPaths.length > 20
+        ? `\n  - ...and ${unmergedPaths.length - 20} more`
+        : ""
+    }`
     : "";
   return [
     "MEMORY GIT CONFLICT: The memory repository needs manual conflict resolution.",
@@ -140,10 +145,10 @@ function renderConflictReminder(snapshot: RepoStatusSnapshot): string {
     pathsLine,
     "",
     "Resolve the conflicts in the memory repository, stage the resolved " +
-      "files, and complete the " +
-      (op === "rebase" ? "rebase" : "merge") +
-      ". The harness will retry remote push after a future turn when the " +
-      "repo is clean.",
+    "files, and complete the " +
+    (op === "rebase" ? "rebase" : "merge") +
+    ". The harness will retry remote push after a future turn when the " +
+    "repo is clean.",
   ].join("\n");
 }
 
@@ -160,8 +165,8 @@ function renderPushFailedReminder(snapshot: RepoStatusSnapshot): string {
     `Reason: ${reason}.${aheadLine}`,
     "",
     "Inspect the memory repository and resolve any local git issue. The " +
-      "harness will retry remote push after a future turn when the repo is " +
-      "clean.",
+    "harness will retry remote push after a future turn when the repo is " +
+    "clean.",
   ].join("\n");
 }
 

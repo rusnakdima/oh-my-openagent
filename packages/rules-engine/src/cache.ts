@@ -1,4 +1,10 @@
-import type { AgentsMdCache, DirectoryScanEntry, RuleFileCandidate, RuleScanCache, RuleScanCacheStats } from "./types";
+import type {
+  AgentsMdCache,
+  DirectoryScanEntry,
+  RuleFileCandidate,
+  RuleScanCache,
+  RuleScanCacheStats,
+} from "./types";
 
 export function createRuleScanCache(): RuleScanCache {
   const candidateCache = new Map<string, readonly RuleFileCandidate[]>();
@@ -8,7 +14,10 @@ export function createRuleScanCache(): RuleScanCache {
     set: (key, value) => candidateCache.set(key, value),
     getDirScan: (dir) => directoryCache.get(dir),
     setDirScan: (dir, entries) => directoryCache.set(dir, entries),
-    stats: (): RuleScanCacheStats => ({ candidateEntries: candidateCache.size, directoryEntries: directoryCache.size }),
+    stats: (): RuleScanCacheStats => ({
+      candidateEntries: candidateCache.size,
+      directoryEntries: directoryCache.size,
+    }),
     clear: () => {
       candidateCache.clear();
       directoryCache.clear();

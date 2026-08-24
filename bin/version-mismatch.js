@@ -34,7 +34,9 @@ function normalizeVersion(version) {
  * @param {string} input.platformPackage
  * @returns {{ mainVersion: string, platformVersion: string, platformPackage: string } | null}
  */
-export function detectPlatformBinaryMismatch({ mainVersion, platformVersion, platformPackage }) {
+export function detectPlatformBinaryMismatch(
+  { mainVersion, platformVersion, platformPackage },
+) {
   if (!mainVersion || !platformVersion) {
     return null;
   }

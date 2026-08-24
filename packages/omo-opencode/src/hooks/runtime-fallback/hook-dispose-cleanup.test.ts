@@ -1,7 +1,7 @@
-import { describe, expect, it } from "bun:test"
-import type { RuntimeFallbackPluginInput } from "./types"
-import { createRuntimeFallbackHook } from "./hook"
-import { SessionCategoryRegistry } from "../../shared/session-category-registry"
+import { describe, expect, it } from "bun:test";
+import type { RuntimeFallbackPluginInput } from "./types";
+import { createRuntimeFallbackHook } from "./hook";
+import { SessionCategoryRegistry } from "../../shared/session-category-registry";
 
 function createContext(promptCalls: unknown[]): RuntimeFallbackPluginInput {
   return {
@@ -9,11 +9,14 @@ function createContext(promptCalls: unknown[]): RuntimeFallbackPluginInput {
       session: {
         abort: async () => ({}),
         messages: async () => ({
-          data: [{ info: { role: "user" }, parts: [{ type: "text", text: "retry this" }] }],
+          data: [{
+            info: { role: "user" },
+            parts: [{ type: "text", text: "retry this" }],
+          }],
         }),
         promptAsync: async (args: unknown) => {
-          promptCalls.push(args)
-          return {}
+          promptCalls.push(args);
+          return {};
         },
       },
       tui: {
@@ -21,14 +24,14 @@ function createContext(promptCalls: unknown[]): RuntimeFallbackPluginInput {
       },
     },
     directory: "/test/dir",
-  }
+  };
 }
 
 describe("createRuntimeFallbackHook dispose retry-key cleanup", () => {
   it("#given a session.status retry key #when dispose() is called #then the same retry event is not deduplicated afterward", async () => {
     // given
-    const promptCalls: unknown[] = []
-    const sessionID = "session-dispose-retry-key"
+    const promptCalls: unknown[] = [];
+    const sessionID = "session-dispose-retry-key";
     const hook = createRuntimeFallbackHook(createContext(promptCalls), {
       config: {
         enabled: true,
@@ -37,7 +40,7 @@ describe("createRuntimeFallbackHook dispose retry-key cleanup", () => {
         cooldown_seconds: 60,
         timeout_seconds: 30,
         notify_on_fallback: false,
-      restore_primary_after_cooldown: false,
+        restore_primary_after_cooldown: false,
       },
       pluginConfig: {
         categories: {
@@ -46,15 +49,17 @@ describe("createRuntimeFallbackHook dispose retry-key cleanup", () => {
           },
         },
       },
-    })
-    SessionCategoryRegistry.register(sessionID, "test")
+    });
+    SessionCategoryRegistry.register(sessionID, "test");
 
     await hook.event({
       event: {
         type: "session.created",
-        properties: { info: { id: sessionID, model: "quotio/claude-opus-4-7" } },
+        properties: {
+          info: { id: sessionID, model: "quotio/claude-opus-4-7" },
+        },
       },
-    })
+    });
 
     const retryEvent = {
       event: {
@@ -64,26 +69,29 @@ describe("createRuntimeFallbackHook dispose retry-key cleanup", () => {
           status: {
             type: "retry",
             attempt: 1,
-            message: "All credentials for model claude-opus-4-7 are cooling down [retrying in 7m 56s attempt #1]",
+            message:
+              "All credentials for model claude-opus-4-7 are cooling down [retrying in 7m 56s attempt #1]",
           },
         },
       },
-    }
+    };
 
-    await hook.event(retryEvent)
-    expect(promptCalls).toHaveLength(1)
+    await hook.event(retryEvent);
+    expect(promptCalls).toHaveLength(1);
 
     // when
-    hook.dispose?.()
+    hook.dispose?.();
     await hook.event({
       event: {
         type: "session.created",
-        properties: { info: { id: sessionID, model: "quotio/claude-opus-4-7" } },
+        properties: {
+          info: { id: sessionID, model: "quotio/claude-opus-4-7" },
+        },
       },
-    })
-    await hook.event(retryEvent)
+    });
+    await hook.event(retryEvent);
 
     // then
-    expect(promptCalls).toHaveLength(2)
-  })
-})
+    expect(promptCalls).toHaveLength(2);
+  });
+});

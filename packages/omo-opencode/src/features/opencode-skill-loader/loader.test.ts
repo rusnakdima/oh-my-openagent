@@ -1,35 +1,39 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { mkdirSync, mkdtempSync, writeFileSync, rmSync } from "fs"
-import { join } from "path"
-import { tmpdir } from "os"
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
 
 // mkdtempSync, never a clock-derived name: consecutive Date.now() calls in one process
 // return the same millisecond, so sibling suites sharing this prefix collided on one
 // directory and each teardown removed the other's live fixture. On Windows, removing an
 // in-use tree blocks until the hook budget expires ("a beforeEach/afterEach hook timed out").
-let TEST_DIR = ""
-let SKILLS_DIR = ""
+let TEST_DIR = "";
+let SKILLS_DIR = "";
 
-function createTestSkill(name: string, content: string, mcpJson?: object): string {
-  const skillDir = join(SKILLS_DIR, name)
-  mkdirSync(skillDir, { recursive: true })
-  const skillPath = join(skillDir, "SKILL.md")
-  writeFileSync(skillPath, content)
+function createTestSkill(
+  name: string,
+  content: string,
+  mcpJson?: object,
+): string {
+  const skillDir = join(SKILLS_DIR, name);
+  mkdirSync(skillDir, { recursive: true });
+  const skillPath = join(skillDir, "SKILL.md");
+  writeFileSync(skillPath, content);
   if (mcpJson) {
-    writeFileSync(join(skillDir, "mcp.json"), JSON.stringify(mcpJson, null, 2))
+    writeFileSync(join(skillDir, "mcp.json"), JSON.stringify(mcpJson, null, 2));
   }
-  return skillDir
+  return skillDir;
 }
 
 describe("skill loader MCP parsing", () => {
   beforeEach(() => {
-    TEST_DIR = mkdtempSync(join(tmpdir(), "skill-loader-test-"))
-    SKILLS_DIR = join(TEST_DIR, ".opencode", "skills")
-  })
+    TEST_DIR = mkdtempSync(join(tmpdir(), "skill-loader-test-"));
+    SKILLS_DIR = join(TEST_DIR, ".opencode", "skills");
+  });
 
   afterEach(() => {
-    rmSync(TEST_DIR, { recursive: true, force: true })
-  })
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  });
 
   describe("parseSkillMcpConfig", () => {
     it("parses skill with nested MCP config", async () => {
@@ -49,34 +53,34 @@ mcp:
     args: [-y, "@anthropic-ai/mcp-server-memory"]
 ---
 This is the skill body.
-`
-      createTestSkill("test-mcp-skill", skillContent)
+`;
+      createTestSkill("test-mcp-skill", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "test-skill")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "test-skill");
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.mcpConfig).toBeDefined()
-        expect(skill?.mcpConfig?.sqlite).toBeDefined()
-        expect(skill?.mcpConfig?.sqlite?.command).toBe("uvx")
+        expect(skill).toBeDefined();
+        expect(skill?.mcpConfig).toBeDefined();
+        expect(skill?.mcpConfig?.sqlite).toBeDefined();
+        expect(skill?.mcpConfig?.sqlite?.command).toBe("uvx");
         expect(skill?.mcpConfig?.sqlite?.args).toEqual([
           "mcp-server-sqlite",
           "--db-path",
-          "./data.db"
-        ])
-        expect(skill?.mcpConfig?.memory).toBeDefined()
-        expect(skill?.mcpConfig?.memory?.command).toBe("npx")
+          "./data.db",
+        ]);
+        expect(skill?.mcpConfig?.memory).toBeDefined();
+        expect(skill?.mcpConfig?.memory?.command).toBe("npx");
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("returns undefined mcpConfig for skill without MCP", async () => {
       // given
@@ -85,25 +89,25 @@ name: simple-skill
 description: A simple skill without MCP
 ---
 This is a simple skill.
-`
-      createTestSkill("simple-skill", skillContent)
+`;
+      createTestSkill("simple-skill", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "simple-skill")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "simple-skill");
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.mcpConfig).toBeUndefined()
+        expect(skill).toBeDefined();
+        expect(skill?.mcpConfig).toBeUndefined();
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("preserves env var placeholders without expansion", async () => {
       // given
@@ -118,25 +122,29 @@ mcp:
       DB_PATH: "\${HOME}/data.db"
 ---
 Skill with env vars.
-`
-      createTestSkill("env-skill", skillContent)
+`;
+      createTestSkill("env-skill", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "env-skill")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "env-skill");
 
         // then
-        expect(skill?.mcpConfig?.["api-server"]?.env?.API_KEY).toBe("${API_KEY}")
-        expect(skill?.mcpConfig?.["api-server"]?.env?.DB_PATH).toBe("${HOME}/data.db")
+        expect(skill?.mcpConfig?.["api-server"]?.env?.API_KEY).toBe(
+          "${API_KEY}",
+        );
+        expect(skill?.mcpConfig?.["api-server"]?.env?.DB_PATH).toBe(
+          "${HOME}/data.db",
+        );
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("handles malformed YAML gracefully", async () => {
       // given - malformed YAML causes entire frontmatter to fail parsing
@@ -145,26 +153,26 @@ name: bad-yaml
 mcp: [this is not valid yaml for mcp
 ---
 Skill body.
-`
-      createTestSkill("bad-yaml-skill", skillContent)
+`;
+      createTestSkill("bad-yaml-skill", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
         // then - when YAML fails, skill uses directory name as fallback
-        const skill = skills.find(s => s.name === "bad-yaml-skill")
+        const skill = skills.find((s) => s.name === "bad-yaml-skill");
 
-        expect(skill).toBeDefined()
-        expect(skill?.mcpConfig).toBeUndefined()
+        expect(skill).toBeDefined();
+        expect(skill?.mcpConfig).toBeUndefined();
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
-  })
+    });
+  });
 
   describe("mcp.json file loading (AmpCode compat)", () => {
     it("loads MCP config from mcp.json with mcpServers format", async () => {
@@ -174,36 +182,38 @@ name: ampcode-skill
 description: Skill with mcp.json
 ---
 Skill body.
-`
+`;
       const mcpJson = {
         mcpServers: {
           playwright: {
             command: "npx",
-            args: ["@playwright/mcp@latest"]
-          }
-        }
-      }
-      createTestSkill("ampcode-skill", skillContent, mcpJson)
+            args: ["@playwright/mcp@latest"],
+          },
+        },
+      };
+      createTestSkill("ampcode-skill", skillContent, mcpJson);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "ampcode-skill")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "ampcode-skill");
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.mcpConfig).toBeDefined()
-        expect(skill?.mcpConfig?.playwright).toBeDefined()
-        expect(skill?.mcpConfig?.playwright?.command).toBe("npx")
-        expect(skill?.mcpConfig?.playwright?.args).toEqual(["@playwright/mcp@latest"])
+        expect(skill).toBeDefined();
+        expect(skill?.mcpConfig).toBeDefined();
+        expect(skill?.mcpConfig?.playwright).toBeDefined();
+        expect(skill?.mcpConfig?.playwright?.command).toBe("npx");
+        expect(skill?.mcpConfig?.playwright?.args).toEqual([
+          "@playwright/mcp@latest",
+        ]);
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("mcp.json takes priority over YAML frontmatter", async () => {
       // given
@@ -215,33 +225,33 @@ mcp:
     args: [yaml-arg]
 ---
 Skill body.
-`
+`;
       const mcpJson = {
         mcpServers: {
           "from-json": {
             command: "json-cmd",
-            args: ["json-arg"]
-          }
-        }
-      }
-      createTestSkill("priority-skill", skillContent, mcpJson)
+            args: ["json-arg"],
+          },
+        },
+      };
+      createTestSkill("priority-skill", skillContent, mcpJson);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "priority-skill")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "priority-skill");
 
         // then - mcp.json should take priority
-        expect(skill?.mcpConfig?.["from-json"]).toBeDefined()
-        expect(skill?.mcpConfig?.["from-yaml"]).toBeUndefined()
+        expect(skill?.mcpConfig?.["from-json"]).toBeDefined();
+        expect(skill?.mcpConfig?.["from-yaml"]).toBeUndefined();
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("supports direct format without mcpServers wrapper", async () => {
       // given
@@ -249,32 +259,32 @@ Skill body.
 name: direct-format
 ---
 Skill body.
-`
+`;
       const mcpJson = {
         sqlite: {
           command: "uvx",
-          args: ["mcp-server-sqlite"]
-        }
-      }
-      createTestSkill("direct-format", skillContent, mcpJson)
+          args: ["mcp-server-sqlite"],
+        },
+      };
+      createTestSkill("direct-format", skillContent, mcpJson);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "direct-format")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "direct-format");
 
         // then
-        expect(skill?.mcpConfig?.sqlite).toBeDefined()
-        expect(skill?.mcpConfig?.sqlite?.command).toBe("uvx")
+        expect(skill?.mcpConfig?.sqlite).toBeDefined();
+        expect(skill?.mcpConfig?.sqlite?.command).toBe("uvx");
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-      })
-  })
+    });
+  });
 
   describe("allowed-tools parsing", () => {
     it("parses space-separated allowed-tools string", async () => {
@@ -285,25 +295,25 @@ description: Skill with space-separated allowed-tools
 allowed-tools: Read Write Edit Bash
 ---
 Skill body.
-`
-      createTestSkill("space-separated-tools", skillContent)
+`;
+      createTestSkill("space-separated-tools", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "space-separated-tools")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "space-separated-tools");
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.allowedTools).toEqual(["Read", "Write", "Edit", "Bash"])
+        expect(skill).toBeDefined();
+        expect(skill?.allowedTools).toEqual(["Read", "Write", "Edit", "Bash"]);
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("parses YAML inline array allowed-tools", async () => {
       // given
@@ -313,25 +323,25 @@ description: Skill with YAML inline array allowed-tools
 allowed-tools: [Read, Write, Edit, Bash]
 ---
 Skill body.
-`
-      createTestSkill("yaml-inline-array", skillContent)
+`;
+      createTestSkill("yaml-inline-array", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "yaml-inline-array")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "yaml-inline-array");
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.allowedTools).toEqual(["Read", "Write", "Edit", "Bash"])
+        expect(skill).toBeDefined();
+        expect(skill?.allowedTools).toEqual(["Read", "Write", "Edit", "Bash"]);
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("parses YAML multi-line array allowed-tools", async () => {
       // given
@@ -345,25 +355,25 @@ allowed-tools:
   - Bash
 ---
 Skill body.
-`
-      createTestSkill("yaml-multiline-array", skillContent)
+`;
+      createTestSkill("yaml-multiline-array", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "yaml-multiline-array")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "yaml-multiline-array");
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.allowedTools).toEqual(["Read", "Write", "Edit", "Bash"])
+        expect(skill).toBeDefined();
+        expect(skill?.allowedTools).toEqual(["Read", "Write", "Edit", "Bash"]);
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("returns undefined for skill without allowed-tools", async () => {
       // given
@@ -372,45 +382,51 @@ name: no-allowed-tools
 description: Skill without allowed-tools field
 ---
 Skill body.
-`
-      createTestSkill("no-allowed-tools", skillContent)
+`;
+      createTestSkill("no-allowed-tools", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
-        const skill = skills.find(s => s.name === "no-allowed-tools")
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
+        const skill = skills.find((s) => s.name === "no-allowed-tools");
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.allowedTools).toBeUndefined()
+        expect(skill).toBeDefined();
+        expect(skill?.allowedTools).toBeUndefined();
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
-  })
+    });
+  });
 
   describe("deduplication", () => {
     it("deduplicates skills by name across scopes, keeping higher priority (opencode-project > opencode > project)", async () => {
-      const originalCwd = process.cwd()
-      const originalOpenCodeConfigDir = process.env.OPENCODE_CONFIG_DIR
-      const originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR
+      const originalCwd = process.cwd();
+      const originalOpenCodeConfigDir = process.env.OPENCODE_CONFIG_DIR;
+      const originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 
       // given: same skill name in multiple scopes
-      const opencodeProjectSkillsDir = join(TEST_DIR, ".opencode", "skills")
-      const opencodeConfigDir = join(TEST_DIR, "opencode-global")
-      const opencodeGlobalSkillsDir = join(opencodeConfigDir, "skills")
-      const projectClaudeSkillsDir = join(TEST_DIR, ".claude", "skills")
+      const opencodeProjectSkillsDir = join(TEST_DIR, ".opencode", "skills");
+      const opencodeConfigDir = join(TEST_DIR, "opencode-global");
+      const opencodeGlobalSkillsDir = join(opencodeConfigDir, "skills");
+      const projectClaudeSkillsDir = join(TEST_DIR, ".claude", "skills");
 
-      process.env.OPENCODE_CONFIG_DIR = opencodeConfigDir
-      process.env.CLAUDE_CONFIG_DIR = join(TEST_DIR, "claude-user")
+      process.env.OPENCODE_CONFIG_DIR = opencodeConfigDir;
+      process.env.CLAUDE_CONFIG_DIR = join(TEST_DIR, "claude-user");
 
-      mkdirSync(join(opencodeProjectSkillsDir, "duplicate-skill"), { recursive: true })
-      mkdirSync(join(opencodeGlobalSkillsDir, "duplicate-skill"), { recursive: true })
-      mkdirSync(join(projectClaudeSkillsDir, "duplicate-skill"), { recursive: true })
+      mkdirSync(join(opencodeProjectSkillsDir, "duplicate-skill"), {
+        recursive: true,
+      });
+      mkdirSync(join(opencodeGlobalSkillsDir, "duplicate-skill"), {
+        recursive: true,
+      });
+      mkdirSync(join(projectClaudeSkillsDir, "duplicate-skill"), {
+        recursive: true,
+      });
 
       writeFileSync(
         join(opencodeProjectSkillsDir, "duplicate-skill", "SKILL.md"),
@@ -419,8 +435,8 @@ name: duplicate-skill
 description: From opencode-project (highest priority)
 ---
 opencode-project body.
-`
-      )
+`,
+      );
 
       writeFileSync(
         join(opencodeGlobalSkillsDir, "duplicate-skill", "SKILL.md"),
@@ -429,8 +445,8 @@ name: duplicate-skill
 description: From opencode-global (middle priority)
 ---
 opencode-global body.
-`
-      )
+`,
+      );
 
       writeFileSync(
         join(projectClaudeSkillsDir, "duplicate-skill", "SKILL.md"),
@@ -439,50 +455,56 @@ name: duplicate-skill
 description: From claude project (lowest priority among these)
 ---
 claude project body.
-`
-      )
+`,
+      );
 
       // when
-      const { discoverSkills } = await import("./loader")
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills()
-        const duplicates = skills.filter(s => s.name === "duplicate-skill")
+        const skills = await discoverSkills();
+        const duplicates = skills.filter((s) => s.name === "duplicate-skill");
 
         // then
-        expect(duplicates).toHaveLength(1)
-        expect(duplicates[0]?.scope).toBe("opencode-project")
-        expect(duplicates[0]?.definition.description).toContain("opencode-project")
+        expect(duplicates).toHaveLength(1);
+        expect(duplicates[0]?.scope).toBe("opencode-project");
+        expect(duplicates[0]?.definition.description).toContain(
+          "opencode-project",
+        );
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
         if (originalOpenCodeConfigDir === undefined) {
-          delete process.env.OPENCODE_CONFIG_DIR
+          delete process.env.OPENCODE_CONFIG_DIR;
         } else {
-          process.env.OPENCODE_CONFIG_DIR = originalOpenCodeConfigDir
+          process.env.OPENCODE_CONFIG_DIR = originalOpenCodeConfigDir;
         }
         if (originalClaudeConfigDir === undefined) {
-          delete process.env.CLAUDE_CONFIG_DIR
+          delete process.env.CLAUDE_CONFIG_DIR;
         } else {
-          process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir
+          process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir;
         }
       }
-    })
+    });
 
     it("prioritizes OpenCode global skills over legacy Claude project skills", async () => {
-      const originalCwd = process.cwd()
-      const originalOpenCodeConfigDir = process.env.OPENCODE_CONFIG_DIR
-      const originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR
+      const originalCwd = process.cwd();
+      const originalOpenCodeConfigDir = process.env.OPENCODE_CONFIG_DIR;
+      const originalClaudeConfigDir = process.env.CLAUDE_CONFIG_DIR;
 
-      const opencodeConfigDir = join(TEST_DIR, "opencode-global")
-      const opencodeGlobalSkillsDir = join(opencodeConfigDir, "skills")
-      const projectClaudeSkillsDir = join(TEST_DIR, ".claude", "skills")
+      const opencodeConfigDir = join(TEST_DIR, "opencode-global");
+      const opencodeGlobalSkillsDir = join(opencodeConfigDir, "skills");
+      const projectClaudeSkillsDir = join(TEST_DIR, ".claude", "skills");
 
-      process.env.OPENCODE_CONFIG_DIR = opencodeConfigDir
-      process.env.CLAUDE_CONFIG_DIR = join(TEST_DIR, "claude-user")
+      process.env.OPENCODE_CONFIG_DIR = opencodeConfigDir;
+      process.env.CLAUDE_CONFIG_DIR = join(TEST_DIR, "claude-user");
 
-      mkdirSync(join(opencodeGlobalSkillsDir, "global-over-project"), { recursive: true })
-      mkdirSync(join(projectClaudeSkillsDir, "global-over-project"), { recursive: true })
+      mkdirSync(join(opencodeGlobalSkillsDir, "global-over-project"), {
+        recursive: true,
+      });
+      mkdirSync(join(projectClaudeSkillsDir, "global-over-project"), {
+        recursive: true,
+      });
 
       writeFileSync(
         join(opencodeGlobalSkillsDir, "global-over-project", "SKILL.md"),
@@ -491,8 +513,8 @@ name: global-over-project
 description: From opencode-global (should win)
 ---
 opencode-global body.
-`
-      )
+`,
+      );
 
       writeFileSync(
         join(projectClaudeSkillsDir, "global-over-project", "SKILL.md"),
@@ -501,39 +523,39 @@ name: global-over-project
 description: From claude project (should lose)
 ---
 claude project body.
-`
-      )
+`,
+      );
 
-      const { discoverSkills } = await import("./loader")
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills()
-        const matches = skills.filter(s => s.name === "global-over-project")
+        const skills = await discoverSkills();
+        const matches = skills.filter((s) => s.name === "global-over-project");
 
-        expect(matches).toHaveLength(1)
-        expect(matches[0]?.scope).toBe("opencode")
-        expect(matches[0]?.definition.description).toContain("opencode-global")
+        expect(matches).toHaveLength(1);
+        expect(matches[0]?.scope).toBe("opencode");
+        expect(matches[0]?.definition.description).toContain("opencode-global");
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
         if (originalOpenCodeConfigDir === undefined) {
-          delete process.env.OPENCODE_CONFIG_DIR
+          delete process.env.OPENCODE_CONFIG_DIR;
         } else {
-          process.env.OPENCODE_CONFIG_DIR = originalOpenCodeConfigDir
+          process.env.OPENCODE_CONFIG_DIR = originalOpenCodeConfigDir;
         }
         if (originalClaudeConfigDir === undefined) {
-          delete process.env.CLAUDE_CONFIG_DIR
+          delete process.env.CLAUDE_CONFIG_DIR;
         } else {
-          process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir
+          process.env.CLAUDE_CONFIG_DIR = originalClaudeConfigDir;
         }
       }
-    })
+    });
 
     it("returns no duplicates from discoverSkills", async () => {
-      const originalCwd = process.cwd()
-      const originalOpenCodeConfigDir = process.env.OPENCODE_CONFIG_DIR
+      const originalCwd = process.cwd();
+      const originalOpenCodeConfigDir = process.env.OPENCODE_CONFIG_DIR;
 
-      process.env.OPENCODE_CONFIG_DIR = join(TEST_DIR, "opencode-global")
+      process.env.OPENCODE_CONFIG_DIR = join(TEST_DIR, "opencode-global");
 
       // given
       const skillContent = `---
@@ -541,30 +563,30 @@ name: unique-test-skill
 description: A unique skill for dedup test
 ---
 Skill body.
-`
-      createTestSkill("unique-test-skill", skillContent)
+`;
+      createTestSkill("unique-test-skill", skillContent);
 
       // when
-      const { discoverSkills } = await import("./loader")
-      process.chdir(TEST_DIR)
+      const { discoverSkills } = await import("./loader");
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverSkills({ includeClaudeCodePaths: false })
+        const skills = await discoverSkills({ includeClaudeCodePaths: false });
 
         // then
-        const names = skills.map(s => s.name)
-        const uniqueNames = [...new Set(names)]
-        expect(names.length).toBe(uniqueNames.length)
+        const names = skills.map((s) => s.name);
+        const uniqueNames = [...new Set(names)];
+        expect(names.length).toBe(uniqueNames.length);
       } finally {
-        process.chdir(originalCwd)
-         if (originalOpenCodeConfigDir === undefined) {
-          delete process.env.OPENCODE_CONFIG_DIR
+        process.chdir(originalCwd);
+        if (originalOpenCodeConfigDir === undefined) {
+          delete process.env.OPENCODE_CONFIG_DIR;
         } else {
-          process.env.OPENCODE_CONFIG_DIR = originalOpenCodeConfigDir
+          process.env.OPENCODE_CONFIG_DIR = originalOpenCodeConfigDir;
         }
       }
-    })
-  })
+    });
+  });
 
   describe("agents skills discovery (.agents/skills/)", () => {
     it("#given a skill in .agents/skills/ #when discoverProjectAgentsSkills is called #then it discovers the skill", async () => {
@@ -574,29 +596,31 @@ name: agent-project-skill
 description: A skill from project .agents/skills directory
 ---
 Skill body.
-`
-      const agentsProjectSkillsDir = join(TEST_DIR, ".agents", "skills")
-      const skillDir = join(agentsProjectSkillsDir, "agent-project-skill")
-      mkdirSync(skillDir, { recursive: true })
-      writeFileSync(join(skillDir, "SKILL.md"), skillContent)
+`;
+      const agentsProjectSkillsDir = join(TEST_DIR, ".agents", "skills");
+      const skillDir = join(agentsProjectSkillsDir, "agent-project-skill");
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, "SKILL.md"), skillContent);
 
       //#when
-      const { discoverProjectAgentsSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverProjectAgentsSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverProjectAgentsSkills()
-        const skill = skills.find(s => s.name === "agent-project-skill")
+        const skills = await discoverProjectAgentsSkills();
+        const skill = skills.find((s) => s.name === "agent-project-skill");
 
         //#then
-        expect(skill).toBeDefined()
-        expect(skill?.scope).toBe("project")
-        expect(skill?.definition.description).toContain("A skill from project .agents/skills directory")
+        expect(skill).toBeDefined();
+        expect(skill?.scope).toBe("project");
+        expect(skill?.definition.description).toContain(
+          "A skill from project .agents/skills directory",
+        );
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("#given a skill in .agents/skills/ #when discoverProjectAgentsSkills is called with directory #then it discovers the skill", async () => {
       //#given
@@ -605,21 +629,21 @@ name: agent-dir-skill
 description: A skill via explicit directory param
 ---
 Skill body.
-`
-      const agentsProjectSkillsDir = join(TEST_DIR, ".agents", "skills")
-      const skillDir = join(agentsProjectSkillsDir, "agent-dir-skill")
-      mkdirSync(skillDir, { recursive: true })
-      writeFileSync(join(skillDir, "SKILL.md"), skillContent)
+`;
+      const agentsProjectSkillsDir = join(TEST_DIR, ".agents", "skills");
+      const skillDir = join(agentsProjectSkillsDir, "agent-dir-skill");
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, "SKILL.md"), skillContent);
 
       //#when
-      const { discoverProjectAgentsSkills } = await import("./loader")
-      const skills = await discoverProjectAgentsSkills(TEST_DIR)
-      const skill = skills.find(s => s.name === "agent-dir-skill")
+      const { discoverProjectAgentsSkills } = await import("./loader");
+      const skills = await discoverProjectAgentsSkills(TEST_DIR);
+      const skill = skills.find((s) => s.name === "agent-dir-skill");
 
       //#then
-      expect(skill).toBeDefined()
-      expect(skill?.scope).toBe("project")
-    })
+      expect(skill).toBeDefined();
+      expect(skill?.scope).toBe("project");
+    });
 
     it("#given a skill in ancestor .agents/skills/ #when discoverProjectAgentsSkills is called from child directory #then it discovers the ancestor skill", async () => {
       // given
@@ -628,25 +652,27 @@ name: ancestor-agent-skill
 description: A skill from ancestor .agents/skills directory
 ---
 Skill body.
-`
-      const projectDir = join(TEST_DIR, "project")
-      const childDir = join(projectDir, "apps", "worker")
-      const agentsProjectSkillsDir = join(projectDir, ".agents", "skills")
-      const skillDir = join(agentsProjectSkillsDir, "ancestor-agent-skill")
-      mkdirSync(childDir, { recursive: true })
-      mkdirSync(skillDir, { recursive: true })
-      writeFileSync(join(skillDir, "SKILL.md"), skillContent)
+`;
+      const projectDir = join(TEST_DIR, "project");
+      const childDir = join(projectDir, "apps", "worker");
+      const agentsProjectSkillsDir = join(projectDir, ".agents", "skills");
+      const skillDir = join(agentsProjectSkillsDir, "ancestor-agent-skill");
+      mkdirSync(childDir, { recursive: true });
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(join(skillDir, "SKILL.md"), skillContent);
 
       // when
-      const { discoverProjectAgentsSkills } = await import("./loader")
-      const skills = await discoverProjectAgentsSkills(childDir)
-      const skill = skills.find((candidate) => candidate.name === "ancestor-agent-skill")
+      const { discoverProjectAgentsSkills } = await import("./loader");
+      const skills = await discoverProjectAgentsSkills(childDir);
+      const skill = skills.find((candidate) =>
+        candidate.name === "ancestor-agent-skill"
+      );
 
       // then
-      expect(skill).toBeDefined()
-      expect(skill?.scope).toBe("project")
-    })
-  })
+      expect(skill).toBeDefined();
+      expect(skill?.scope).toBe("project");
+    });
+  });
 
   describe("opencode project skill discovery", () => {
     it("#given a skill in ancestor .opencode/skills/ #when discoverOpencodeProjectSkills is called from child directory #then it discovers the ancestor skill", async () => {
@@ -656,23 +682,30 @@ name: ancestor-opencode-skill
 description: A skill from ancestor .opencode/skills directory
 ---
 Skill body.
-`
-      const projectDir = join(TEST_DIR, "project")
-      const childDir = join(projectDir, "packages", "cli")
-      const skillsDir = join(projectDir, ".opencode", "skills", "ancestor-opencode-skill")
-      mkdirSync(childDir, { recursive: true })
-      mkdirSync(skillsDir, { recursive: true })
-      writeFileSync(join(skillsDir, "SKILL.md"), skillContent)
+`;
+      const projectDir = join(TEST_DIR, "project");
+      const childDir = join(projectDir, "packages", "cli");
+      const skillsDir = join(
+        projectDir,
+        ".opencode",
+        "skills",
+        "ancestor-opencode-skill",
+      );
+      mkdirSync(childDir, { recursive: true });
+      mkdirSync(skillsDir, { recursive: true });
+      writeFileSync(join(skillsDir, "SKILL.md"), skillContent);
 
       // when
-      const { discoverOpencodeProjectSkills } = await import("./loader")
-      const skills = await discoverOpencodeProjectSkills(childDir)
-      const skill = skills.find((candidate) => candidate.name === "ancestor-opencode-skill")
+      const { discoverOpencodeProjectSkills } = await import("./loader");
+      const skills = await discoverOpencodeProjectSkills(childDir);
+      const skill = skills.find((candidate) =>
+        candidate.name === "ancestor-opencode-skill"
+      );
 
       // then
-      expect(skill).toBeDefined()
-      expect(skill?.scope).toBe("opencode-project")
-    })
+      expect(skill).toBeDefined();
+      expect(skill?.scope).toBe("opencode-project");
+    });
 
     it("#given a skill in .opencode/skill/ #when discoverOpencodeProjectSkills is called #then it discovers the singular alias directory", async () => {
       // given
@@ -681,33 +714,35 @@ name: singular-opencode-skill
 description: A skill from .opencode/skill directory
 ---
 Skill body.
-`
+`;
       const singularSkillDir = join(
         TEST_DIR,
         ".opencode",
         "skill",
         "singular-opencode-skill",
-      )
-      mkdirSync(singularSkillDir, { recursive: true })
-      writeFileSync(join(singularSkillDir, "SKILL.md"), skillContent)
+      );
+      mkdirSync(singularSkillDir, { recursive: true });
+      writeFileSync(join(singularSkillDir, "SKILL.md"), skillContent);
 
       // when
-      const { discoverOpencodeProjectSkills } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { discoverOpencodeProjectSkills } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skills = await discoverOpencodeProjectSkills()
-        const skill = skills.find((candidate) => candidate.name === "singular-opencode-skill")
+        const skills = await discoverOpencodeProjectSkills();
+        const skill = skills.find((candidate) =>
+          candidate.name === "singular-opencode-skill"
+        );
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.scope).toBe("opencode-project")
+        expect(skill).toBeDefined();
+        expect(skill?.scope).toBe("opencode-project");
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
-  })
+    });
+  });
 
   describe("getSkillByName", () => {
     it("#given a discoverable skill #when getSkillByName is called with the exact full name #then it returns the skill", async () => {
@@ -717,24 +752,26 @@ name: my-exact-skill
 description: A skill resolvable by exact name
 ---
 Body.
-`
-      createTestSkill("my-exact-skill", skillContent)
+`;
+      createTestSkill("my-exact-skill", skillContent);
 
       // when
-      const { getSkillByName } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { getSkillByName } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skill = await getSkillByName("my-exact-skill", { includeClaudeCodePaths: false })
+        const skill = await getSkillByName("my-exact-skill", {
+          includeClaudeCodePaths: false,
+        });
 
         // then
-        expect(skill).toBeDefined()
-        expect(skill?.name).toBe("my-exact-skill")
+        expect(skill).toBeDefined();
+        expect(skill?.name).toBe("my-exact-skill");
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("#given a namespaced skill #when getSkillByName is called with its unique short name #then it returns the skill", async () => {
       // given - a namespaced skill that is the unique short-name match
@@ -743,24 +780,26 @@ name: toolkit/systematic-debugging
 description: Namespaced skill the agent should be able to load by short name
 ---
 Body.
-`
-      createTestSkill("systematic-debugging", skillContent)
+`;
+      createTestSkill("systematic-debugging", skillContent);
 
       // when
-      const { getSkillByName } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { getSkillByName } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skill = await getSkillByName("systematic-debugging", { includeClaudeCodePaths: false })
+        const skill = await getSkillByName("systematic-debugging", {
+          includeClaudeCodePaths: false,
+        });
 
         // then - the short-name lookup must succeed, mirroring matchSkillByName semantics
-        expect(skill).toBeDefined()
-        expect(skill?.name).toBe("toolkit/systematic-debugging")
+        expect(skill).toBeDefined();
+        expect(skill?.name).toBe("toolkit/systematic-debugging");
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
+    });
 
     it("#given two namespaced skills sharing a short name #when getSkillByName is called with that short name #then it returns undefined (ambiguous)", async () => {
       // given - two skills under different namespaces with the same short name
@@ -769,29 +808,31 @@ name: alpha/duplicated
 description: Skill A
 ---
 Body A.
-`
+`;
       const skillB = `---
 name: beta/duplicated
 description: Skill B
 ---
 Body B.
-`
-      createTestSkill("alpha-duplicated", skillA)
-      createTestSkill("beta-duplicated", skillB)
+`;
+      createTestSkill("alpha-duplicated", skillA);
+      createTestSkill("beta-duplicated", skillB);
 
       // when
-      const { getSkillByName } = await import("./loader")
-      const originalCwd = process.cwd()
-      process.chdir(TEST_DIR)
+      const { getSkillByName } = await import("./loader");
+      const originalCwd = process.cwd();
+      process.chdir(TEST_DIR);
 
       try {
-        const skill = await getSkillByName("duplicated", { includeClaudeCodePaths: false })
+        const skill = await getSkillByName("duplicated", {
+          includeClaudeCodePaths: false,
+        });
 
         // then - ambiguous short-name match must NOT resolve, matching matchSkillByName behavior
-        expect(skill).toBeUndefined()
+        expect(skill).toBeUndefined();
       } finally {
-        process.chdir(originalCwd)
+        process.chdir(originalCwd);
       }
-    })
-  })
-})
+    });
+  });
+});

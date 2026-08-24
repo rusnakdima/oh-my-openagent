@@ -1,95 +1,108 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, it } from "bun:test"
-import { Buffer } from "node:buffer"
-import { createConnection } from "node:net"
-import { startCallbackServer, type CallbackServer, type CallbackServerTimer, type CallbackServerTimerHandle } from "./callback-server"
+import { describe, expect, it } from "bun:test";
+import { Buffer } from "node:buffer";
+import { createConnection } from "node:net";
+import {
+  type CallbackServer,
+  type CallbackServerTimer,
+  type CallbackServerTimerHandle,
+  startCallbackServer,
+} from "./callback-server";
 
-const HOSTNAME = "127.0.0.1"
-const CALLBACK_SERVER_TEST_TIMEOUT_MS = process.platform === "win32" ? 15_000 : 5_000
+const HOSTNAME = "127.0.0.1";
+const CALLBACK_SERVER_TEST_TIMEOUT_MS = process.platform === "win32"
+  ? 15_000
+  : 5_000;
 
 type ScheduledCallback = {
-  readonly callback: () => void
-  readonly delayMs: number
-}
+  readonly callback: () => void;
+  readonly delayMs: number;
+};
 
 function createControllableTimer(): {
-  readonly runTimersAtOrAfter: (minimumDelayMs: number) => void
-  readonly timer: CallbackServerTimer
+  readonly runTimersAtOrAfter: (minimumDelayMs: number) => void;
+  readonly timer: CallbackServerTimer;
 } {
-  const scheduled = new Map<CallbackServerTimerHandle, ScheduledCallback>()
+  const scheduled = new Map<CallbackServerTimerHandle, ScheduledCallback>();
 
   return {
     runTimersAtOrAfter: (minimumDelayMs) => {
-      for (const [handle, scheduledCallback] of Array.from(scheduled.entries())) {
+      for (
+        const [handle, scheduledCallback] of Array.from(scheduled.entries())
+      ) {
         if (scheduledCallback.delayMs < minimumDelayMs) {
-          continue
+          continue;
         }
-        scheduled.delete(handle)
-        scheduledCallback.callback()
+        scheduled.delete(handle);
+        scheduledCallback.callback();
       }
     },
     timer: {
       setTimeout: (callback, delayMs) => {
-        const handle = globalThis.setTimeout(() => undefined, delayMs)
-        globalThis.clearTimeout(handle)
-        scheduled.set(handle, { callback, delayMs })
-        return handle
+        const handle = globalThis.setTimeout(() => undefined, delayMs);
+        globalThis.clearTimeout(handle);
+        scheduled.set(handle, { callback, delayMs });
+        return handle;
       },
       clearTimeout: (handle) => {
-        scheduled.delete(handle)
-        globalThis.clearTimeout(handle)
+        scheduled.delete(handle);
+        globalThis.clearTimeout(handle);
       },
     },
-  }
+  };
 }
 
 function request(url: string): Promise<Response> {
   return new Promise((resolve, reject) => {
-    const target = new URL(url)
-    const port = Number.parseInt(target.port, 10)
-    const chunks: Buffer[] = []
-    let settled = false
+    const target = new URL(url);
+    const port = Number.parseInt(target.port, 10);
+    const chunks: Buffer[] = [];
+    let settled = false;
 
     const finishWithError = (error: Error): void => {
       if (settled) {
-        return
+        return;
       }
-      settled = true
-      socket.destroy()
-      reject(error)
-    }
+      settled = true;
+      socket.destroy();
+      reject(error);
+    };
 
     const finishWithResponse = (): void => {
       if (settled) {
-        return
+        return;
       }
-      settled = true
+      settled = true;
 
-      const rawResponse = Buffer.concat(chunks)
-      const headerEnd = rawResponse.indexOf("\r\n\r\n")
+      const rawResponse = Buffer.concat(chunks);
+      const headerEnd = rawResponse.indexOf("\r\n\r\n");
       if (headerEnd < 0) {
-        reject(new Error("HTTP response did not include headers"))
-        return
+        reject(new Error("HTTP response did not include headers"));
+        return;
       }
 
-      const headerText = rawResponse.subarray(0, headerEnd).toString("utf8")
-      const [statusLine, ...headerLines] = headerText.split("\r\n")
-      const status = Number.parseInt(statusLine?.split(" ")[1] ?? "", 10)
+      const headerText = rawResponse.subarray(0, headerEnd).toString("utf8");
+      const [statusLine, ...headerLines] = headerText.split("\r\n");
+      const status = Number.parseInt(statusLine?.split(" ")[1] ?? "", 10);
       if (!Number.isFinite(status)) {
-        reject(new Error(`HTTP response had invalid status line: ${statusLine ?? ""}`))
-        return
+        reject(
+          new Error(
+            `HTTP response had invalid status line: ${statusLine ?? ""}`,
+          ),
+        );
+        return;
       }
 
-      const headers = new Headers()
+      const headers = new Headers();
       for (const headerLine of headerLines) {
-        const separatorIndex = headerLine.indexOf(":")
+        const separatorIndex = headerLine.indexOf(":");
         if (separatorIndex < 0) {
-          continue
+          continue;
         }
-        const name = headerLine.slice(0, separatorIndex).trim()
-        const value = headerLine.slice(separatorIndex + 1).trim()
-        headers.append(name, value)
+        const name = headerLine.slice(0, separatorIndex).trim();
+        const value = headerLine.slice(separatorIndex + 1).trim();
+        headers.append(name, value);
       }
 
       resolve(
@@ -97,211 +110,237 @@ function request(url: string): Promise<Response> {
           status,
           headers,
         }),
-      )
-    }
+      );
+    };
 
     const socket = createConnection({ host: target.hostname, port }, () => {
       socket.write(
         `GET ${target.pathname}${target.search} HTTP/1.1\r\nHost: ${target.host}\r\nConnection: close\r\n\r\n`,
-      )
-    })
+      );
+    });
 
     socket.on("data", (chunk: Buffer) => {
-      chunks.push(chunk)
-    })
-    socket.once("end", finishWithResponse)
+      chunks.push(chunk);
+    });
+    socket.once("end", finishWithResponse);
     socket.once("close", () => {
       if (settled) {
-        return
+        return;
       }
       if (chunks.length > 0) {
-        finishWithResponse()
-        return
+        finishWithResponse();
+        return;
       }
-      finishWithError(new Error(`HTTP connection closed before response for ${url}`))
-    })
-    socket.once("error", finishWithError)
+      finishWithError(
+        new Error(`HTTP connection closed before response for ${url}`),
+      );
+    });
+    socket.once("error", finishWithError);
     socket.setTimeout(1_000, () => {
-      finishWithError(new Error(`HTTP request timed out for ${url}`))
-    })
-  })
+      finishWithError(new Error(`HTTP request timed out for ${url}`));
+    });
+  });
 }
 
 describe("startCallbackServer", () => {
   async function close(server: CallbackServer): Promise<void> {
-    await server.close()
+    await server.close();
   }
 
   it("starts server and returns port", async () => {
-    const server = await startCallbackServer(0)
+    const server = await startCallbackServer(0);
 
     try {
-      expect(server.port).toBeGreaterThan(0)
-      expect(typeof server.waitForCallback).toBe("function")
-      expect(typeof server.close).toBe("function")
+      expect(server.port).toBeGreaterThan(0);
+      expect(typeof server.waitForCallback).toBe("function");
+      expect(typeof server.close).toBe("function");
     } finally {
-      await close(server)
+      await close(server);
     }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
+  }, CALLBACK_SERVER_TEST_TIMEOUT_MS);
 
   it("resolves callback with code and state from query params", async () => {
-    const server = await startCallbackServer(0)
+    const server = await startCallbackServer(0);
 
     try {
-      const callbackUrl = `http://${HOSTNAME}:${server.port}/oauth/callback?code=test-code&state=test-state`
+      const callbackUrl =
+        `http://${HOSTNAME}:${server.port}/oauth/callback?code=test-code&state=test-state`;
       const [result, response] = await Promise.all([
         server.waitForCallback(),
         request(callbackUrl),
-      ])
+      ]);
 
-      expect(result).toEqual({ code: "test-code", state: "test-state" })
-      expect(response.status).toBe(200)
-      const html = await response.text()
-      expect(html).toContain("Authorization successful")
+      expect(result).toEqual({ code: "test-code", state: "test-state" });
+      expect(response.status).toBe(200);
+      const html = await response.text();
+      expect(html).toContain("Authorization successful");
     } finally {
-      await close(server)
+      await close(server);
     }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
+  }, CALLBACK_SERVER_TEST_TIMEOUT_MS);
 
   it("returns 404 for non-callback routes", async () => {
-    const server = await startCallbackServer(0)
+    const server = await startCallbackServer(0);
 
     try {
-      const response = await request(`http://${HOSTNAME}:${server.port}/other`)
+      const response = await request(`http://${HOSTNAME}:${server.port}/other`);
 
-      expect(response.status).toBe(404)
+      expect(response.status).toBe(404);
     } finally {
-      await close(server)
+      await close(server);
     }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
+  }, CALLBACK_SERVER_TEST_TIMEOUT_MS);
 
   it("keeps non-callback routes separate from OAuth callbacks", async () => {
-    const server = await startCallbackServer(0)
+    const server = await startCallbackServer(0);
 
     try {
-      const readyResponse = await request(`http://${HOSTNAME}:${server.port}/__omo_oauth_startup_probe__`)
-      expect(readyResponse.status).toBe(404)
+      const readyResponse = await request(
+        `http://${HOSTNAME}:${server.port}/__omo_oauth_startup_probe__`,
+      );
+      expect(readyResponse.status).toBe(404);
 
-      const callbackUrl = `http://${HOSTNAME}:${server.port}/oauth/callback?code=after-ready&state=still-waiting`
+      const callbackUrl =
+        `http://${HOSTNAME}:${server.port}/oauth/callback?code=after-ready&state=still-waiting`;
       const [result, response] = await Promise.all([
         server.waitForCallback(),
         request(callbackUrl),
-      ])
+      ]);
 
-      expect(result).toEqual({ code: "after-ready", state: "still-waiting" })
-      expect(response.status).toBe(200)
+      expect(result).toEqual({ code: "after-ready", state: "still-waiting" });
+      expect(response.status).toBe(200);
     } finally {
-      await close(server)
+      await close(server);
     }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
+  }, CALLBACK_SERVER_TEST_TIMEOUT_MS);
 
   it("#given injected callback timer #when OAuth lifetime expires #then callback rejects without global timer patches", async () => {
-    const { runTimersAtOrAfter, timer } = createControllableTimer()
-    const server = await startCallbackServer(0, { timer })
+    const { runTimersAtOrAfter, timer } = createControllableTimer();
+    const server = await startCallbackServer(0, { timer });
 
     try {
-      const callbackRejection = server.waitForCallback().catch((error: Error) => error)
+      const callbackRejection = server.waitForCallback().catch((error: Error) =>
+        error
+      );
 
-      runTimersAtOrAfter(60_000)
+      runTimersAtOrAfter(60_000);
 
-      const error = await callbackRejection
-      expect(error).toBeInstanceOf(Error)
+      const error = await callbackRejection;
+      expect(error).toBeInstanceOf(Error);
       if (!(error instanceof Error)) {
-        throw new Error("Expected callback timeout to reject with an Error")
+        throw new Error("Expected callback timeout to reject with an Error");
       }
-      expect(error.message).toContain("timed out")
+      expect(error.message).toContain("timed out");
     } finally {
-      await close(server)
+      await close(server);
     }
-  })
+  });
 
   it("returns 400 and rejects when code is missing", async () => {
-    const server = await startCallbackServer(0)
+    const server = await startCallbackServer(0);
 
     try {
-      const callbackRejection = server.waitForCallback().catch((error: Error) => error)
-      const response = await request(`http://${HOSTNAME}:${server.port}/oauth/callback?state=s`)
+      const callbackRejection = server.waitForCallback().catch((error: Error) =>
+        error
+      );
+      const response = await request(
+        `http://${HOSTNAME}:${server.port}/oauth/callback?state=s`,
+      );
 
-      expect(response.status).toBe(400)
-      const error = await callbackRejection
-      expect(error).toBeInstanceOf(Error)
+      expect(response.status).toBe(400);
+      const error = await callbackRejection;
+      expect(error).toBeInstanceOf(Error);
       if (!(error instanceof Error)) {
-        throw new Error("Expected callback rejection to be an Error")
+        throw new Error("Expected callback rejection to be an Error");
       }
-      expect(error.message).toContain("missing code or state")
+      expect(error.message).toContain("missing code or state");
     } finally {
-      await close(server)
+      await close(server);
     }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
+  }, CALLBACK_SERVER_TEST_TIMEOUT_MS);
 
   it("returns 400 and rejects when state is missing", async () => {
-    const server = await startCallbackServer(0)
+    const server = await startCallbackServer(0);
 
     try {
-      const callbackRejection = server.waitForCallback().catch((error: Error) => error)
-      const response = await request(`http://${HOSTNAME}:${server.port}/oauth/callback?code=c`)
+      const callbackRejection = server.waitForCallback().catch((error: Error) =>
+        error
+      );
+      const response = await request(
+        `http://${HOSTNAME}:${server.port}/oauth/callback?code=c`,
+      );
 
-      expect(response.status).toBe(400)
-      const error = await callbackRejection
-      expect(error).toBeInstanceOf(Error)
+      expect(response.status).toBe(400);
+      const error = await callbackRejection;
+      expect(error).toBeInstanceOf(Error);
       if (!(error instanceof Error)) {
-        throw new Error("Expected callback rejection to be an Error")
+        throw new Error("Expected callback rejection to be an Error");
       }
-      expect(error.message).toContain("missing code or state")
+      expect(error.message).toContain("missing code or state");
     } finally {
-      await close(server)
+      await close(server);
     }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
+  }, CALLBACK_SERVER_TEST_TIMEOUT_MS);
 
   it("close stops the server immediately", async () => {
-    const server = await startCallbackServer(0)
-    const port = server.port
+    const server = await startCallbackServer(0);
+    const port = server.port;
 
-    await server.close()
+    await server.close();
 
     try {
-      await request(`http://${HOSTNAME}:${port}/oauth/callback?code=c&state=s`)
-      expect.unreachable("request should fail after close")
+      await request(`http://${HOSTNAME}:${port}/oauth/callback?code=c&state=s`);
+      expect.unreachable("request should fail after close");
     } catch (error) {
-      expect(error).toBeInstanceOf(Error)
+      expect(error).toBeInstanceOf(Error);
       if (!(error instanceof Error)) {
-        throw new Error("Expected request after close to fail with an Error")
+        throw new Error("Expected request after close to fail with an Error");
       }
     }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
+  }, CALLBACK_SERVER_TEST_TIMEOUT_MS);
 
-  it("close resolves after the underlying server releases its port", async () => {
-    const firstServer = await startCallbackServer(0)
-    const port = firstServer.port
+  it(
+    "close resolves after the underlying server releases its port",
+    async () => {
+      const firstServer = await startCallbackServer(0);
+      const port = firstServer.port;
 
-    const closeResult = firstServer.close()
-    expect(closeResult).toBeInstanceOf(Promise)
-    await closeResult
+      const closeResult = firstServer.close();
+      expect(closeResult).toBeInstanceOf(Promise);
+      await closeResult;
 
-    const secondServer = await startCallbackServer(port)
-    try {
-      expect(secondServer.port).toBe(port)
-      const response = await request(`http://${HOSTNAME}:${port}/other`)
-      expect(response.status).toBe(404)
-    } finally {
-      await close(secondServer)
-    }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
-
-  it("#given default callback port is occupied #when starting callback server #then it binds a fallback port", async () => {
-    const occupiedDefaultPort = await startCallbackServer(19877)
-
-    try {
-      const fallbackServer = await startCallbackServer()
+      const secondServer = await startCallbackServer(port);
       try {
-        expect(fallbackServer.port).toBeGreaterThan(19877)
-        const response = await request(`http://${HOSTNAME}:${fallbackServer.port}/other`)
-        expect(response.status).toBe(404)
+        expect(secondServer.port).toBe(port);
+        const response = await request(`http://${HOSTNAME}:${port}/other`);
+        expect(response.status).toBe(404);
       } finally {
-        await close(fallbackServer)
+        await close(secondServer);
       }
-    } finally {
-      await close(occupiedDefaultPort)
-    }
-  }, CALLBACK_SERVER_TEST_TIMEOUT_MS)
-})
+    },
+    CALLBACK_SERVER_TEST_TIMEOUT_MS,
+  );
+
+  it(
+    "#given default callback port is occupied #when starting callback server #then it binds a fallback port",
+    async () => {
+      const occupiedDefaultPort = await startCallbackServer(19877);
+
+      try {
+        const fallbackServer = await startCallbackServer();
+        try {
+          expect(fallbackServer.port).toBeGreaterThan(19877);
+          const response = await request(
+            `http://${HOSTNAME}:${fallbackServer.port}/other`,
+          );
+          expect(response.status).toBe(404);
+        } finally {
+          await close(fallbackServer);
+        }
+      } finally {
+        await close(occupiedDefaultPort);
+      }
+    },
+    CALLBACK_SERVER_TEST_TIMEOUT_MS,
+  );
+});

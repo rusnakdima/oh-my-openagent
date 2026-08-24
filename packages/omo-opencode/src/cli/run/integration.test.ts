@@ -1,26 +1,42 @@
-import { describe, it, expect, mock, spyOn, beforeEach, afterEach } from "bun:test"
-import type { RunResult } from "./types"
-import { createJsonOutputManager } from "./json-output"
-import { resolveSession } from "./session-resolver"
-import { executeOnCompleteHook } from "./on-complete-hook"
-import * as spawnWithWindowsHideModule from "../../shared/spawn-with-windows-hide"
-import type { OpencodeClient } from "./types"
-import { createServerConnectionWithDeps, type ServerConnectionDeps, type ServerConnectionOptions } from "./server-connection"
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
+import type { RunResult } from "./types";
+import { createJsonOutputManager } from "./json-output";
+import { resolveSession } from "./session-resolver";
+import { executeOnCompleteHook } from "./on-complete-hook";
+import * as spawnWithWindowsHideModule from "../../shared/spawn-with-windows-hide";
+import type { OpencodeClient } from "./types";
+import {
+  createServerConnectionWithDeps,
+  type ServerConnectionDeps,
+  type ServerConnectionOptions,
+} from "./server-connection";
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
 
-type TestClient = { session: Record<string, unknown> }
-const mockServerClose = mock(() => {})
+type TestClient = { session: Record<string, unknown> };
+const mockServerClose = mock(() => {});
 const mockCreateOpencode = mock(() =>
   Promise.resolve({
     client: { session: {} },
     server: { url: "http://127.0.0.1:9999", close: mockServerClose },
   })
-)
-const mockCreateOpencodeClient = mock(() => ({ session: {} }))
-const mockIsPortAvailable = mock(() => Promise.resolve(true))
-const mockGetAvailableServerPort = mock(() => Promise.resolve({ port: 9999, wasAutoSelected: false }))
-const mockWithWorkingOpencodePath = mock((startServer: () => Promise<unknown>) => startServer())
-const mockInjectServerAuthIntoClient = mock(() => {})
+);
+const mockCreateOpencodeClient = mock(() => ({ session: {} }));
+const mockIsPortAvailable = mock(() => Promise.resolve(true));
+const mockGetAvailableServerPort = mock(() =>
+  Promise.resolve({ port: 9999, wasAutoSelected: false })
+);
+const mockWithWorkingOpencodePath = mock((
+  startServer: () => Promise<unknown>,
+) => startServer());
+const mockInjectServerAuthIntoClient = mock(() => {});
 
 function createDeps(): ServerConnectionDeps<TestClient> {
   return {
@@ -30,40 +46,40 @@ function createDeps(): ServerConnectionDeps<TestClient> {
     getAvailableServerPort: mockGetAvailableServerPort,
     withWorkingOpencodePath: mockWithWorkingOpencodePath,
     injectServerAuthIntoClient: mockInjectServerAuthIntoClient,
-  }
+  };
 }
 
 async function createServerConnection(options: ServerConnectionOptions) {
-  return await createServerConnectionWithDeps(options, createDeps())
+  return await createServerConnectionWithDeps(options, createDeps());
 }
 
 interface MockWriteStream {
-  write: (chunk: string) => boolean
-  writes: string[]
+  write: (chunk: string) => boolean;
+  writes: string[];
 }
 
 function createMockWriteStream(): MockWriteStream {
-  const writes: string[] = []
+  const writes: string[] = [];
   return {
     writes,
     write: function (this: MockWriteStream, chunk: string): boolean {
-      this.writes.push(chunk)
-      return true
+      this.writes.push(chunk);
+      return true;
     },
-  }
+  };
 }
 
 function requireWrite(stream: MockWriteStream, index: number): string {
-  const value = stream.writes[index]
-  expect(value).toBeDefined()
+  const value = stream.writes[index];
+  expect(value).toBeDefined();
   if (value === undefined) {
-    throw new Error(`Expected write at index ${index}`)
+    throw new Error(`Expected write at index ${index}`);
   }
-  return value
+  return value;
 }
 
 const createMockClient = (
-  getResult?: { error?: unknown; data?: { id: string } }
+  getResult?: { error?: unknown; data?: { id: string } },
 ): OpencodeClient => (unsafeTestValue<OpencodeClient>({
   session: {
     get: mock((opts: { path: { id: string } }) =>
@@ -71,140 +87,155 @@ const createMockClient = (
     ),
     create: mock(() => Promise.resolve({ data: { id: "new-session-id" } })),
   },
-}))
+}));
 
 describe("integration: --json mode", () => {
   it("emits valid RunResult JSON to stdout", () => {
     // given
-    const mockStdout = createMockWriteStream()
-    const mockStderr = createMockWriteStream()
+    const mockStdout = createMockWriteStream();
+    const mockStderr = createMockWriteStream();
     const result: RunResult = {
       sessionId: "test-session",
       success: true,
       durationMs: 1234,
       messageCount: 42,
       summary: "Test summary",
-    }
+    };
     const manager = createJsonOutputManager({
       stdout: unsafeTestValue<NodeJS.WriteStream>(mockStdout),
       stderr: unsafeTestValue<NodeJS.WriteStream>(mockStderr),
-    })
+    });
 
     // when
-    manager.emitResult(result)
+    manager.emitResult(result);
 
     // then
-    expect(mockStdout.writes).toHaveLength(1)
-    const emitted = requireWrite(mockStdout, 0)
-    expect(() => JSON.parse(emitted)).not.toThrow()
-    const parsed = JSON.parse(emitted) as RunResult
-    expect(parsed.sessionId).toBe("test-session")
-    expect(parsed.success).toBe(true)
-    expect(parsed.durationMs).toBe(1234)
-    expect(parsed.messageCount).toBe(42)
-    expect(parsed.summary).toBe("Test summary")
-  })
+    expect(mockStdout.writes).toHaveLength(1);
+    const emitted = requireWrite(mockStdout, 0);
+    expect(() => JSON.parse(emitted)).not.toThrow();
+    const parsed = JSON.parse(emitted) as RunResult;
+    expect(parsed.sessionId).toBe("test-session");
+    expect(parsed.success).toBe(true);
+    expect(parsed.durationMs).toBe(1234);
+    expect(parsed.messageCount).toBe(42);
+    expect(parsed.summary).toBe("Test summary");
+  });
 
   it("redirects stdout to stderr when active", () => {
     // given
-    spyOn(console, "log").mockImplementation(() => {})
-    const mockStdout = createMockWriteStream()
-    const mockStderr = createMockWriteStream()
+    spyOn(console, "log").mockImplementation(() => {});
+    const mockStdout = createMockWriteStream();
+    const mockStderr = createMockWriteStream();
     const manager = createJsonOutputManager({
       stdout: unsafeTestValue<NodeJS.WriteStream>(mockStdout),
       stderr: unsafeTestValue<NodeJS.WriteStream>(mockStderr),
-    })
-    manager.redirectToStderr()
+    });
+    manager.redirectToStderr();
 
     // when
-    mockStdout.write("should go to stderr")
+    mockStdout.write("should go to stderr");
 
     // then
-    expect(mockStdout.writes).toHaveLength(0)
-    expect(mockStderr.writes).toEqual(["should go to stderr"])
-  })
-})
+    expect(mockStdout.writes).toHaveLength(0);
+    expect(mockStderr.writes).toEqual(["should go to stderr"]);
+  });
+});
 
 describe("integration: --session-id", () => {
   beforeEach(() => {
-    spyOn(console, "log").mockImplementation(() => {})
-    spyOn(console, "error").mockImplementation(() => {})
-  })
+    spyOn(console, "log").mockImplementation(() => {});
+    spyOn(console, "error").mockImplementation(() => {});
+  });
 
   it("resolves provided session ID without creating new session", async () => {
     // given
-    const sessionId = "existing-session-id"
-    const mockClient = createMockClient({ data: { id: sessionId } })
+    const sessionId = "existing-session-id";
+    const mockClient = createMockClient({ data: { id: sessionId } });
 
     // when
-    const result = await resolveSession({ client: mockClient, sessionId, directory: "/test" })
+    const result = await resolveSession({
+      client: mockClient,
+      sessionId,
+      directory: "/test",
+    });
 
     // then
-    expect(result).toBe(sessionId)
+    expect(result).toBe(sessionId);
     expect(mockClient.session.get).toHaveBeenCalledWith({
       path: { id: sessionId },
       query: { directory: "/test" },
-    })
-    expect(mockClient.session.create).not.toHaveBeenCalled()
-  })
+    });
+    expect(mockClient.session.create).not.toHaveBeenCalled();
+  });
 
   it("throws when session does not exist", async () => {
     // given
-    const sessionId = "non-existent-session-id"
-    const mockClient = createMockClient({ error: { message: "Session not found" } })
+    const sessionId = "non-existent-session-id";
+    const mockClient = createMockClient({
+      error: { message: "Session not found" },
+    });
 
     // when
-    const result = resolveSession({ client: mockClient, sessionId, directory: "/test" })
+    const result = resolveSession({
+      client: mockClient,
+      sessionId,
+      directory: "/test",
+    });
 
     // then
-    expect(result).rejects.toThrow(`Session not found: ${sessionId}`)
+    expect(result).rejects.toThrow(`Session not found: ${sessionId}`);
     expect(mockClient.session.get).toHaveBeenCalledWith({
       path: { id: sessionId },
       query: { directory: "/test" },
-    })
-    expect(mockClient.session.create).not.toHaveBeenCalled()
-  })
-})
+    });
+    expect(mockClient.session.create).not.toHaveBeenCalled();
+  });
+});
 
 describe("integration: --on-complete", () => {
-  let spawnSpy: ReturnType<typeof spyOn>
-  let originalPlatform: NodeJS.Platform
-  let originalEnv: Record<string, string | undefined>
+  let spawnSpy: ReturnType<typeof spyOn>;
+  let originalPlatform: NodeJS.Platform;
+  let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
-    originalPlatform = process.platform
+    originalPlatform = process.platform;
     originalEnv = {
       SHELL: process.env.SHELL,
       PSModulePath: process.env.PSModulePath,
-    }
-    spyOn(console, "error").mockImplementation(() => {})
-    spawnSpy = spyOn(spawnWithWindowsHideModule, "spawnWithWindowsHide").mockReturnValue({
-      exited: Promise.resolve(0),
-      exitCode: 0,
-      stdout: undefined,
-      stderr: undefined,
-      kill: () => {},
-    } satisfies ReturnType<typeof spawnWithWindowsHideModule.spawnWithWindowsHide>)
-  })
+    };
+    spyOn(console, "error").mockImplementation(() => {});
+    spawnSpy = spyOn(spawnWithWindowsHideModule, "spawnWithWindowsHide")
+      .mockReturnValue(
+        {
+          exited: Promise.resolve(0),
+          exitCode: 0,
+          stdout: undefined,
+          stderr: undefined,
+          kill: () => {},
+        } satisfies ReturnType<
+          typeof spawnWithWindowsHideModule.spawnWithWindowsHide
+        >,
+      );
+  });
 
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform })
+    Object.defineProperty(process, "platform", { value: originalPlatform });
     for (const [key, value] of Object.entries(originalEnv)) {
       if (value !== undefined) {
-        process.env[key] = value
+        process.env[key] = value;
       } else {
-        delete process.env[key]
+        delete process.env[key];
       }
     }
-    spawnSpy.mockRestore()
-  })
+    spawnSpy.mockRestore();
+  });
 
   it("passes all 4 env vars as strings to spawned process", async () => {
     // given
-    Object.defineProperty(process, "platform", { value: "linux" })
-    process.env.SHELL = "/bin/bash"
-    delete process.env.PSModulePath
-    spawnSpy.mockClear()
+    Object.defineProperty(process, "platform", { value: "linux" });
+    process.env.SHELL = "/bin/bash";
+    delete process.env.PSModulePath;
+    spawnSpy.mockClear();
 
     // when
     await executeOnCompleteHook({
@@ -216,81 +247,88 @@ describe("integration: --on-complete", () => {
     }, {
       spawnWithWindowsHide: spawnWithWindowsHideModule.spawnWithWindowsHide,
       log: () => {},
-    })
+    });
 
     // then
-    expect(spawnSpy).toHaveBeenCalledTimes(1)
-    const [_, options] = spawnSpy.mock.calls[0] as Parameters<typeof spawnWithWindowsHideModule.spawnWithWindowsHide>
-    expect(options?.env?.SESSION_ID).toBe("session-123")
-    expect(options?.env?.EXIT_CODE).toBe("0")
-    expect(options?.env?.DURATION_MS).toBe("5000")
-    expect(options?.env?.MESSAGE_COUNT).toBe("10")
-    expect(options?.env?.SESSION_ID).toBeTypeOf("string")
-    expect(options?.env?.EXIT_CODE).toBeTypeOf("string")
-    expect(options?.env?.DURATION_MS).toBeTypeOf("string")
-    expect(options?.env?.MESSAGE_COUNT).toBeTypeOf("string")
-  })
-})
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+    const [_, options] = spawnSpy.mock.calls[0] as Parameters<
+      typeof spawnWithWindowsHideModule.spawnWithWindowsHide
+    >;
+    expect(options?.env?.SESSION_ID).toBe("session-123");
+    expect(options?.env?.EXIT_CODE).toBe("0");
+    expect(options?.env?.DURATION_MS).toBe("5000");
+    expect(options?.env?.MESSAGE_COUNT).toBe("10");
+    expect(options?.env?.SESSION_ID).toBeTypeOf("string");
+    expect(options?.env?.EXIT_CODE).toBeTypeOf("string");
+    expect(options?.env?.DURATION_MS).toBeTypeOf("string");
+    expect(options?.env?.MESSAGE_COUNT).toBeTypeOf("string");
+  });
+});
 
 describe("integration: option combinations", () => {
-  let mockStdout: MockWriteStream
-  let mockStderr: MockWriteStream
-  let spawnSpy: ReturnType<typeof spyOn>
-  let originalPlatform: NodeJS.Platform
-  let originalEnv: Record<string, string | undefined>
+  let mockStdout: MockWriteStream;
+  let mockStderr: MockWriteStream;
+  let spawnSpy: ReturnType<typeof spyOn>;
+  let originalPlatform: NodeJS.Platform;
+  let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
-    originalPlatform = process.platform
+    originalPlatform = process.platform;
     originalEnv = {
       SHELL: process.env.SHELL,
       PSModulePath: process.env.PSModulePath,
-    }
-    spyOn(console, "log").mockImplementation(() => {})
-    spyOn(console, "error").mockImplementation(() => {})
-    mockStdout = createMockWriteStream()
-    mockStderr = createMockWriteStream()
-    spawnSpy = spyOn(spawnWithWindowsHideModule, "spawnWithWindowsHide").mockReturnValue({
-      exited: Promise.resolve(0),
-      exitCode: 0,
-      stdout: undefined,
-      stderr: undefined,
-      kill: () => {},
-    } satisfies ReturnType<typeof spawnWithWindowsHideModule.spawnWithWindowsHide>)
-  })
+    };
+    spyOn(console, "log").mockImplementation(() => {});
+    spyOn(console, "error").mockImplementation(() => {});
+    mockStdout = createMockWriteStream();
+    mockStderr = createMockWriteStream();
+    spawnSpy = spyOn(spawnWithWindowsHideModule, "spawnWithWindowsHide")
+      .mockReturnValue(
+        {
+          exited: Promise.resolve(0),
+          exitCode: 0,
+          stdout: undefined,
+          stderr: undefined,
+          kill: () => {},
+        } satisfies ReturnType<
+          typeof spawnWithWindowsHideModule.spawnWithWindowsHide
+        >,
+      );
+  });
 
   afterEach(() => {
-    Object.defineProperty(process, "platform", { value: originalPlatform })
+    Object.defineProperty(process, "platform", { value: originalPlatform });
     for (const [key, value] of Object.entries(originalEnv)) {
       if (value !== undefined) {
-        process.env[key] = value
+        process.env[key] = value;
       } else {
-        delete process.env[key]
+        delete process.env[key];
       }
     }
-    spawnSpy?.mockRestore?.()
-  })
+    spawnSpy?.mockRestore?.();
+  });
 
   it("json output and on-complete hook can both execute", async () => {
     // given - json manager active + on-complete hook ready
-    Object.defineProperty(process, "platform", { value: "linux" })
-    process.env.SHELL = "/bin/bash"
-    delete process.env.PSModulePath
+    Object.defineProperty(process, "platform", { value: "linux" });
+    process.env.SHELL = "/bin/bash";
+    delete process.env.PSModulePath;
     const result: RunResult = {
       sessionId: "session-123",
       success: true,
       durationMs: 5000,
       messageCount: 10,
       summary: "Test completed",
-    }
+    };
     const jsonManager = createJsonOutputManager({
       stdout: unsafeTestValue<NodeJS.WriteStream>(mockStdout),
       stderr: unsafeTestValue<NodeJS.WriteStream>(mockStderr),
-    })
-    jsonManager.redirectToStderr()
-    spawnSpy.mockClear()
+    });
+    jsonManager.redirectToStderr();
+    spawnSpy.mockClear();
 
     // when - both are invoked sequentially (as runner would)
-    jsonManager.emitResult(result)
+    jsonManager.emitResult(result);
     await executeOnCompleteHook({
       command: "echo done",
       sessionId: result.sessionId,
@@ -300,70 +338,76 @@ describe("integration: option combinations", () => {
     }, {
       spawnWithWindowsHide: spawnWithWindowsHideModule.spawnWithWindowsHide,
       log: () => {},
-    })
+    });
 
     // then - json emits result AND on-complete hook runs
-    expect(mockStdout.writes).toHaveLength(1)
-    const emitted = requireWrite(mockStdout, 0)
-    expect(() => JSON.parse(emitted)).not.toThrow()
-    expect(spawnSpy).toHaveBeenCalledTimes(1)
-    const [args] = spawnSpy.mock.calls[0] as Parameters<typeof spawnWithWindowsHideModule.spawnWithWindowsHide>
-    expect(args).toEqual(["sh", "-c", "echo done"])
-    const [_, options] = spawnSpy.mock.calls[0] as Parameters<typeof spawnWithWindowsHideModule.spawnWithWindowsHide>
-    expect(options?.env?.SESSION_ID).toBe("session-123")
-    expect(options?.env?.EXIT_CODE).toBe("0")
-    expect(options?.env?.DURATION_MS).toBe("5000")
-    expect(options?.env?.MESSAGE_COUNT).toBe("10")
-  })
-})
+    expect(mockStdout.writes).toHaveLength(1);
+    const emitted = requireWrite(mockStdout, 0);
+    expect(() => JSON.parse(emitted)).not.toThrow();
+    expect(spawnSpy).toHaveBeenCalledTimes(1);
+    const [args] = spawnSpy.mock.calls[0] as Parameters<
+      typeof spawnWithWindowsHideModule.spawnWithWindowsHide
+    >;
+    expect(args).toEqual(["sh", "-c", "echo done"]);
+    const [_, options] = spawnSpy.mock.calls[0] as Parameters<
+      typeof spawnWithWindowsHideModule.spawnWithWindowsHide
+    >;
+    expect(options?.env?.SESSION_ID).toBe("session-123");
+    expect(options?.env?.EXIT_CODE).toBe("0");
+    expect(options?.env?.DURATION_MS).toBe("5000");
+    expect(options?.env?.MESSAGE_COUNT).toBe("10");
+  });
+});
 
 describe("integration: server connection", () => {
-  let consoleSpy: ReturnType<typeof spyOn>
+  let consoleSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    consoleSpy = spyOn(console, "log").mockImplementation(() => {})
-    mockCreateOpencode.mockClear()
-    mockCreateOpencodeClient.mockClear()
-    mockServerClose.mockClear()
-    mockIsPortAvailable.mockClear()
-    mockGetAvailableServerPort.mockClear()
-    mockWithWorkingOpencodePath.mockClear()
-    mockInjectServerAuthIntoClient.mockClear()
-  })
+    consoleSpy = spyOn(console, "log").mockImplementation(() => {});
+    mockCreateOpencode.mockClear();
+    mockCreateOpencodeClient.mockClear();
+    mockServerClose.mockClear();
+    mockIsPortAvailable.mockClear();
+    mockGetAvailableServerPort.mockClear();
+    mockWithWorkingOpencodePath.mockClear();
+    mockInjectServerAuthIntoClient.mockClear();
+  });
 
   afterEach(() => {
-    consoleSpy.mockRestore()
-  })
+    consoleSpy.mockRestore();
+  });
 
   it("attach mode creates client with no-op cleanup", async () => {
     // given
-    const signal = new AbortController().signal
-    const attachUrl = "http://localhost:8080"
+    const signal = new AbortController().signal;
+    const attachUrl = "http://localhost:8080";
 
     // when
-    const result = await createServerConnection({ attach: attachUrl, signal })
+    const result = await createServerConnection({ attach: attachUrl, signal });
 
     // then
-    expect(result.client).toBeDefined()
-    expect(result.cleanup).toBeDefined()
-    expect(mockCreateOpencodeClient).toHaveBeenCalledWith({ baseUrl: attachUrl })
-    result.cleanup()
-    expect(mockServerClose).not.toHaveBeenCalled()
-  })
+    expect(result.client).toBeDefined();
+    expect(result.cleanup).toBeDefined();
+    expect(mockCreateOpencodeClient).toHaveBeenCalledWith({
+      baseUrl: attachUrl,
+    });
+    result.cleanup();
+    expect(mockServerClose).not.toHaveBeenCalled();
+  });
 
   it("port with available port starts server", async () => {
     // given
-    const signal = new AbortController().signal
-    const port = 9999
+    const signal = new AbortController().signal;
+    const port = 9999;
 
     // when
-    const result = await createServerConnection({ port, signal })
+    const result = await createServerConnection({ port, signal });
 
     // then
-    expect(result.client).toBeDefined()
-    expect(result.cleanup).toBeDefined()
-    expect(mockCreateOpencode).toHaveBeenCalled()
-    result.cleanup()
-    expect(mockServerClose).toHaveBeenCalled()
-  })
-})
+    expect(result.client).toBeDefined();
+    expect(result.cleanup).toBeDefined();
+    expect(mockCreateOpencode).toHaveBeenCalled();
+    result.cleanup();
+    expect(mockServerClose).toHaveBeenCalled();
+  });
+});

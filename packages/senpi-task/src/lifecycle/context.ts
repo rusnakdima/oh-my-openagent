@@ -1,25 +1,30 @@
-import type { OmoTaskSettings } from "@oh-my-opencode/omo-config-core"
-import { log } from "@oh-my-opencode/utils"
+import type { OmoTaskSettings } from "@oh-my-opencode/omo-config-core";
+import { log } from "@oh-my-opencode/utils";
 
-import type { TaskRecordStore } from "../store"
-import { injectedLifecycleReattachPorts } from "./port"
-import type { LifecycleDeps, LifecycleReattachPorts, ProcessSignaller, ResidencyRegistry } from "./port"
-import type { BatchAdmissionOptions } from "./residency"
+import type { TaskRecordStore } from "../store";
+import { injectedLifecycleReattachPorts } from "./port";
+import type {
+  LifecycleDeps,
+  LifecycleReattachPorts,
+  ProcessSignaller,
+  ResidencyRegistry,
+} from "./port";
+import type { BatchAdmissionOptions } from "./residency";
 
-const DEFAULT_ORPHAN_KILL_DELAY_MS = 5_000
+const DEFAULT_ORPHAN_KILL_DELAY_MS = 5_000;
 
 export type LifecycleContext = {
-  readonly store: TaskRecordStore
-  readonly registry: ResidencyRegistry
-  readonly config: OmoTaskSettings
-  readonly now: () => number
-  readonly signaller: ProcessSignaller
-  readonly orphanKillDelayMs: number
-  readonly hostPid: number
-  readonly dequeuePending: (taskId: string) => void
-  readonly reattachPorts: LifecycleReattachPorts | undefined
-  readonly reconcileAdmission: BatchAdmissionOptions
-}
+  readonly store: TaskRecordStore;
+  readonly registry: ResidencyRegistry;
+  readonly config: OmoTaskSettings;
+  readonly now: () => number;
+  readonly signaller: ProcessSignaller;
+  readonly orphanKillDelayMs: number;
+  readonly hostPid: number;
+  readonly dequeuePending: (taskId: string) => void;
+  readonly reattachPorts: LifecycleReattachPorts | undefined;
+  readonly reconcileAdmission: BatchAdmissionOptions;
+};
 
 // The sole default OS-process signaller: process.kill lives here (audited-in via src/lifecycle) so
 // no other module needs to reach for it. Signal 0 probes existence; EPERM means the pid exists but
@@ -27,20 +32,24 @@ export type LifecycleContext = {
 export const defaultSignaller: ProcessSignaller = {
   isAlive(pid) {
     try {
-      process.kill(pid, 0)
-      return true
+      process.kill(pid, 0);
+      return true;
     } catch (error) {
-      return (error as NodeJS.ErrnoException).code === "EPERM"
+      return (error as NodeJS.ErrnoException).code === "EPERM";
     }
   },
   signal(pid, signal) {
     try {
-      process.kill(pid, signal)
+      process.kill(pid, signal);
     } catch (error) {
-      log("senpi-task orphan signal skipped", { pid, signal, error: String(error) })
+      log("senpi-task orphan signal skipped", {
+        pid,
+        signal,
+        error: String(error),
+      });
     }
   },
-}
+};
 
 export function resolveContext(deps: LifecycleDeps): LifecycleContext {
   return {
@@ -54,15 +63,21 @@ export function resolveContext(deps: LifecycleDeps): LifecycleContext {
     dequeuePending: deps.dequeuePending ?? (() => {}),
     reattachPorts: injectedLifecycleReattachPorts(deps),
     reconcileAdmission: deps.reconcileAdmission ?? {},
-  }
+  };
 }
 
 export function nowIso(context: LifecycleContext): string {
-  return new Date(context.now()).toISOString()
+  return new Date(context.now()).toISOString();
 }
 
-export const TERMINAL_STATUSES = new Set(["completed", "error", "cancelled", "interrupted", "lost"])
+export const TERMINAL_STATUSES = new Set([
+  "completed",
+  "error",
+  "cancelled",
+  "interrupted",
+  "lost",
+]);
 
 export function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

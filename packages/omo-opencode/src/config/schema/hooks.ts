@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const HookNameSchema = z.enum([
   "todo-continuation-enforcer",
@@ -71,6 +71,6 @@ export const HookNameSchema = z.enum([
   "openspec-session",
   "worktree-isolation",
   "worktree-cleanup",
-])
+]);
 
-export type HookName = z.infer<typeof HookNameSchema>
+export type HookName = z.infer<typeof HookNameSchema>;

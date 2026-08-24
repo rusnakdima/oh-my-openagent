@@ -1,7 +1,14 @@
-import type { MonitorCounters, OutputBatch } from "./types"
+import type { MonitorCounters, OutputBatch } from "./types";
 
 export function formatMonitorBatch(
-  record: { id: string; label: string; command: string; status: string; exitCode?: number; signal?: string },
+  record: {
+    id: string;
+    label: string;
+    command: string;
+    status: string;
+    exitCode?: number;
+    signal?: string;
+  },
   batch: OutputBatch,
   counters: MonitorCounters,
 ): string {
@@ -16,23 +23,25 @@ export function formatMonitorBatch(
     ...formatOutputLines(batch),
     "",
     formatStatus(record, batch),
-  ]
+  ];
 
   if (counters.droppedMatched > 0 || counters.droppedUnmatched > 0) {
     lines.push(
       `dropped: ${counters.droppedMatched} matched, ${counters.droppedUnmatched} unmatched (${counters.bytesDropped} bytes)`,
-    )
+    );
   }
 
-  lines.push("[END OMO MONITOR OUTPUT]")
+  lines.push("[END OMO MONITOR OUTPUT]");
 
-  return lines.join("\n")
+  return lines.join("\n");
 }
 
 function formatOutputLines(batch: OutputBatch): string[] {
   return batch.lines.flatMap((line) =>
-    line.text.split(/\r?\n/).map((textLine) => `[${line.stream} seq=${line.seq}] ${textLine}`),
-  )
+    line.text.split(/\r?\n/).map((textLine) =>
+      `[${line.stream} seq=${line.seq}] ${textLine}`
+    )
+  );
 }
 
 function formatStatus(
@@ -40,16 +49,16 @@ function formatStatus(
   batch: OutputBatch,
 ): string {
   if (batch.stillRunning) {
-    return "Status: running"
+    return "Status: running";
   }
 
   if (record.signal !== undefined) {
-    return `Status: exited (signal=${record.signal})`
+    return `Status: exited (signal=${record.signal})`;
   }
 
   if (record.exitCode !== undefined) {
-    return `Status: exited (code=${record.exitCode})`
+    return `Status: exited (code=${record.exitCode})`;
   }
 
-  return "Status: exited"
+  return "Status: exited";
 }

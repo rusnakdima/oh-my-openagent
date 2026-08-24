@@ -1,19 +1,22 @@
 # RPC — Connect-Go (default) + grpc-go (fallback) + protovalidate
 
-`connectrpc/connect-go` is the default. It is wire-compatible with gRPC, also speaks Connect protocol + gRPC-Web from browsers, and uses ordinary `net/http` so middleware (logging, auth, tracing) composes the same way as REST. Reach for raw `grpc-go` only when you need a gRPC-specific feature Connect lacks.
+`connectrpc/connect-go` is the default. It is wire-compatible with gRPC, also
+speaks Connect protocol + gRPC-Web from browsers, and uses ordinary `net/http`
+so middleware (logging, auth, tracing) composes the same way as REST. Reach for
+raw `grpc-go` only when you need a gRPC-specific feature Connect lacks.
 
 ---
 
 ## When Connect vs grpc-go
 
-| Need | Use |
-|---|---|
-| Standard unary + server-streaming + client-streaming | **Connect** |
-| Browser client without `grpc-web` proxy | **Connect** (native gRPC-Web support) |
-| HTTP/1.1 fallback for hostile networks | **Connect** (gRPC requires HTTP/2 end-to-end) |
-| Server reflection for `grpcurl` | grpc-go (Connect has reflection too, but ecosystem smaller) |
-| Bidirectional streaming with frame-level control | grpc-go |
-| Strict gRPC environment (Envoy with gRPC filters, Istio strict mode) | grpc-go |
+| Need                                                                 | Use                                                         |
+| -------------------------------------------------------------------- | ----------------------------------------------------------- |
+| Standard unary + server-streaming + client-streaming                 | **Connect**                                                 |
+| Browser client without `grpc-web` proxy                              | **Connect** (native gRPC-Web support)                       |
+| HTTP/1.1 fallback for hostile networks                               | **Connect** (gRPC requires HTTP/2 end-to-end)               |
+| Server reflection for `grpcurl`                                      | grpc-go (Connect has reflection too, but ecosystem smaller) |
+| Bidirectional streaming with frame-level control                     | grpc-go                                                     |
+| Strict gRPC environment (Envoy with gRPC filters, Istio strict mode) | grpc-go                                                     |
 
 **Default**: Connect. The default has been correct since 2024.
 
@@ -28,7 +31,9 @@ go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
 go install github.com/bufbuild/protovalidate/cmd/protoc-gen-go-vtproto@latest
 ```
 
-Buf replaces `protoc` for everything: linting, breaking-change detection, codegen, formatting. The `protoc` toolchain is dead-letter walking — every modern proto project uses Buf.
+Buf replaces `protoc` for everything: linting, breaking-change detection,
+codegen, formatting. The `protoc` toolchain is dead-letter walking — every
+modern proto project uses Buf.
 
 ---
 
@@ -52,7 +57,8 @@ gen/
       auth.connect.go
 ```
 
-**`gen/` is committed.** Generated code is part of the API contract; CI proves it is up-to-date.
+**`gen/` is committed.** Generated code is part of the API contract; CI proves
+it is up-to-date.
 
 ---
 
@@ -94,7 +100,8 @@ plugins:
       - paths=source_relative
 ```
 
-The `buf.build/...` plugin URIs use Buf's hosted remote registry — no local plugin installation needed.
+The `buf.build/...` plugin URIs use Buf's hosted remote registry — no local
+plugin installation needed.
 
 ## Taskfile target
 
@@ -110,7 +117,8 @@ gen:proto:
     - buf.gen.yaml
 ```
 
-Run `task gen:proto` after editing any `.proto`. CI runs `buf generate` then `git diff --exit-code` to catch stale generated code.
+Run `task gen:proto` after editing any `.proto`. CI runs `buf generate` then
+`git diff --exit-code` to catch stale generated code.
 
 ---
 
@@ -156,7 +164,9 @@ message User {
 }
 ```
 
-`protovalidate` replaces the abandoned `protoc-gen-validate` — it is the official Buf-backed successor as of 2024, supported by Connect's interceptor pipeline.
+`protovalidate` replaces the abandoned `protoc-gen-validate` — it is the
+official Buf-backed successor as of 2024, supported by Connect's interceptor
+pipeline.
 
 ---
 
@@ -224,7 +234,8 @@ func main() {
 }
 ```
 
-The handler is **just an `http.Handler`** — mount it in the same `http.ServeMux` as your REST routes if you want one binary serving both.
+The handler is **just an `http.Handler`** — mount it in the same `http.ServeMux`
+as your REST routes if you want one binary serving both.
 
 ---
 
@@ -279,7 +290,8 @@ func loggingInterceptor() connect.UnaryInterceptorFunc {
 }
 ```
 
-For streaming, implement the full `connect.Interceptor` (`WrapStreamingClient`, `WrapStreamingHandler`). Pattern is identical.
+For streaming, implement the full `connect.Interceptor` (`WrapStreamingClient`,
+`WrapStreamingHandler`). Pattern is identical.
 
 ---
 
@@ -354,15 +366,22 @@ myservicev1.RegisterUserServiceServer(srv, &userServer{})
 _ = srv.Serve(lis)
 ```
 
-The codegen is from `protoc-gen-go-grpc` (different binary from `protoc-gen-connect-go`). You can codegen **both** in the same `buf.gen.yaml` and switch by importing the right package. Most teams pick one.
+The codegen is from `protoc-gen-go-grpc` (different binary from
+`protoc-gen-connect-go`). You can codegen **both** in the same `buf.gen.yaml`
+and switch by importing the right package. Most teams pick one.
 
 ---
 
 ## When NOT to use RPC at all
 
-If your callers are all browsers, mobile apps, third-party developers, or the long tail of "things humans curl": **stay with REST + OpenAPI**. RPC's overhead is justified for service-to-service inside a single org. Outside that boundary, JSON over HTTP wins on debuggability.
+If your callers are all browsers, mobile apps, third-party developers, or the
+long tail of "things humans curl": **stay with REST + OpenAPI**. RPC's overhead
+is justified for service-to-service inside a single org. Outside that boundary,
+JSON over HTTP wins on debuggability.
 
-`oapi-codegen/oapi-codegen/v2` generates Go server stubs and clients from OpenAPI 3 — the REST equivalent of what Connect does for proto. Same parse-don't-validate boundary discipline, different wire format.
+`oapi-codegen/oapi-codegen/v2` generates Go server stubs and clients from
+OpenAPI 3 — the REST equivalent of what Connect does for proto. Same
+parse-don't-validate boundary discipline, different wire format.
 
 ---
 

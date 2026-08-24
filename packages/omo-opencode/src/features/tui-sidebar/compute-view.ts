@@ -1,4 +1,4 @@
-import { assertNever } from "./state-types"
+import { assertNever } from "./state-types";
 import type {
   AgentsState,
   ConfigState,
@@ -7,15 +7,15 @@ import type {
   LoopState,
   RosterState,
   SidebarView,
-} from "./state-types"
+} from "./state-types";
 
 export type ComputeViewSections = {
-  readonly config: ConfigState
-  readonly roster: RosterState
-  readonly agents: AgentsState
-  readonly jobs: JobBoardState
-  readonly loop: LoopState
-}
+  readonly config: ConfigState;
+  readonly roster: RosterState;
+  readonly agents: AgentsState;
+  readonly jobs: JobBoardState;
+  readonly loop: LoopState;
+};
 
 export function computeView(sections: ComputeViewSections): SidebarView {
   if (isActive(sections)) {
@@ -24,15 +24,17 @@ export function computeView(sections: ComputeViewSections): SidebarView {
       loop: sections.loop,
       agents: sections.agents,
       jobs: sections.jobs,
-      configBanner: sections.config.kind === "invalid" ? { kind: "invalid" } : { kind: "none" },
-    }
+      configBanner: sections.config.kind === "invalid"
+        ? { kind: "invalid" }
+        : { kind: "none" },
+    };
   }
 
   if (sections.config.kind === "invalid") {
-    return { kind: "broken", messages: sections.config.messages }
+    return { kind: "broken", messages: sections.config.messages };
   }
 
-  return { kind: "idle", roster: sections.roster }
+  return { kind: "idle", roster: sections.roster };
 }
 
 export function viewKey(view: SidebarView): string {
@@ -44,69 +46,91 @@ export function viewKey(view: SidebarView): string {
         agentsKeyParts(view.agents),
         jobsKeyParts(view.jobs),
         ["configBanner", view.configBanner.kind],
-      ])
+      ]);
     case "broken":
-      return stableKey(["broken", [...view.messages]])
+      return stableKey(["broken", [...view.messages]]);
     case "idle":
-      return stableKey(["idle", rosterKeyParts(view.roster)])
+      return stableKey(["idle", rosterKeyParts(view.roster)]);
     default:
-      return assertNever(view)
+      return assertNever(view);
   }
 }
 
 function isActive(sections: ComputeViewSections): boolean {
-  return sections.agents.kind === "list" || sections.jobs.kind === "list" || sections.loop.kind === "live"
+  return sections.agents.kind === "list" || sections.jobs.kind === "list" ||
+    sections.loop.kind === "live";
 }
 
 function stableKey(parts: readonly unknown[]): string {
-  return JSON.stringify(parts)
+  return JSON.stringify(parts);
 }
 
 function rosterKeyParts(roster: RosterState): readonly unknown[] {
   switch (roster.kind) {
     case "empty":
-      return ["roster", "empty"]
+      return ["roster", "empty"];
     case "rows":
-      return ["roster", "rows", roster.rows.map((row) => [row.label, row.mode, row.model, row.effectiveModel, row.hasOverride, row.isGlobal])]
+      return [
+        "roster",
+        "rows",
+        roster.rows.map((
+          row,
+        ) => [
+          row.label,
+          row.mode,
+          row.model,
+          row.effectiveModel,
+          row.hasOverride,
+          row.isGlobal,
+        ]),
+      ];
     default:
-      return assertNever(roster)
+      return assertNever(roster);
   }
 }
 
 function agentsKeyParts(agents: AgentsState): readonly unknown[] {
   switch (agents.kind) {
     case "none":
-      return ["agents", "none"]
+      return ["agents", "none"];
     case "list":
-      return ["agents", "list", agents.agents.map((agent) => [agent.name, agent.status, agent.mode, agent.model])]
+      return [
+        "agents",
+        "list",
+        agents.agents.map((
+          agent,
+        ) => [agent.name, agent.status, agent.mode, agent.model]),
+      ];
     default:
-      return assertNever(agents)
+      return assertNever(agents);
   }
 }
 
 function jobsKeyParts(jobs: JobBoardState): readonly unknown[] {
   switch (jobs.kind) {
     case "none":
-      return ["jobs", "none"]
+      return ["jobs", "none"];
     case "list":
       return [
         "jobs",
         "list",
-        jobs.jobs.map((job) => [job.title, job.status, job.toolCalls, job.lastTool]),
-      ]
+        jobs.jobs.map((
+          job,
+        ) => [job.title, job.status, job.toolCalls, job.lastTool]),
+      ];
     default:
-      return assertNever(jobs)
+      return assertNever(jobs);
   }
 }
 
 function loopKeyParts(loop: LoopState): readonly unknown[] {
   switch (loop.kind) {
     case "none":
-      return ["loop", "none"]
+      return ["loop", "none"];
     case "live":
-      return ["loop", "live", liveLoopKeyParts(loop)]
+      return ["loop", "live", liveLoopKeyParts(loop)];
     default:
-      return assertNever(loop)
+      return assertNever(loop);
   }
 }
 
@@ -119,5 +143,5 @@ function liveLoopKeyParts(loop: LoopLive): readonly unknown[] {
     loop.pending,
     loop.blocked,
     loop.activeGoal,
-  ]
+  ];
 }

@@ -1,5 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
@@ -49,7 +55,10 @@ describe("processFilePathForAgentsInjection", () => {
     writeFileSync(join(rootDirectory, "AGENTS.md"), rootAgents);
     writeFileSync(join(srcDirectory, "AGENTS.md"), srcAgents);
     writeFileSync(join(nestedDirectory, "AGENTS.md"), nestedAgents);
-    writeFileSync(join(nestedDirectory, "button.ts"), "export const button = true;\n");
+    writeFileSync(
+      join(nestedDirectory, "button.ts"),
+      "export const button = true;\n",
+    );
 
     const output = {
       title: "read result",
@@ -59,8 +68,7 @@ describe("processFilePathForAgentsInjection", () => {
 
     const srcAgentsPath = realpathSync(join(srcDirectory, "AGENTS.md"));
     const nestedAgentsPath = realpathSync(join(nestedDirectory, "AGENTS.md"));
-    const expectedOutput =
-      "base output" +
+    const expectedOutput = "base output" +
       `\n\n[Directory Context: ${srcAgentsPath}]\n${srcAgents}` +
       `\n\n[Directory Context: ${nestedAgentsPath}]\n${nestedAgents}`;
 
@@ -83,11 +91,17 @@ describe("processFilePathForAgentsInjection", () => {
   it("#given absolute file path outside root #when injecting AGENTS.md #then outside context is ignored", async () => {
     // given
     rootDirectory = join(tmpdir(), `agents-md-core-injector-${randomUUID()}`);
-    const outsideRoot = join(tmpdir(), `agents-md-core-outside-${randomUUID()}`);
+    const outsideRoot = join(
+      tmpdir(),
+      `agents-md-core-outside-${randomUUID()}`,
+    );
     mkdirSync(rootDirectory, { recursive: true });
     mkdirSync(outsideRoot, { recursive: true });
     writeFileSync(join(outsideRoot, "AGENTS.md"), "# outside");
-    writeFileSync(join(outsideRoot, "secret.ts"), "export const secret = true;\n");
+    writeFileSync(
+      join(outsideRoot, "secret.ts"),
+      "export const secret = true;\n",
+    );
 
     const output = {
       title: "read result",
@@ -113,12 +127,21 @@ describe("processFilePathForAgentsInjection", () => {
   it("#given symlinked file path escapes root #when injecting AGENTS.md #then outside context is ignored", async () => {
     // given
     rootDirectory = join(tmpdir(), `agents-md-core-injector-${randomUUID()}`);
-    const outsideRoot = join(tmpdir(), `agents-md-core-outside-${randomUUID()}`);
+    const outsideRoot = join(
+      tmpdir(),
+      `agents-md-core-outside-${randomUUID()}`,
+    );
     mkdirSync(rootDirectory, { recursive: true });
     mkdirSync(outsideRoot, { recursive: true });
     writeFileSync(join(outsideRoot, "AGENTS.md"), "# outside symlink");
-    writeFileSync(join(outsideRoot, "secret.ts"), "export const secret = true;\n");
-    symlinkSync(join(outsideRoot, "secret.ts"), join(rootDirectory, "linked-secret.ts"));
+    writeFileSync(
+      join(outsideRoot, "secret.ts"),
+      "export const secret = true;\n",
+    );
+    symlinkSync(
+      join(outsideRoot, "secret.ts"),
+      join(rootDirectory, "linked-secret.ts"),
+    );
 
     const output = {
       title: "read result",

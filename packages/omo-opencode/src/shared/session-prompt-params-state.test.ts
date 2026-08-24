@@ -1,20 +1,20 @@
-import { afterEach, describe, expect, test } from "bun:test"
+import { afterEach, describe, expect, test } from "bun:test";
 
 import {
   clearAllSessionPromptParams,
   clearSessionPromptParams,
   getSessionPromptParams,
   setSessionPromptParams,
-} from "./session-prompt-params-state"
+} from "./session-prompt-params-state";
 
 describe("session-prompt-params-state", () => {
   afterEach(() => {
-    clearAllSessionPromptParams()
-  })
+    clearAllSessionPromptParams();
+  });
 
   test("stores and returns prompt params by session", () => {
     //#given
-    const sessionID = "ses_prompt_params"
+    const sessionID = "ses_prompt_params";
     const params = {
       temperature: 0.4,
       topP: 0.7,
@@ -22,44 +22,44 @@ describe("session-prompt-params-state", () => {
       options: {
         reasoningEffort: "high",
       },
-    }
+    };
 
     //#when
-    setSessionPromptParams(sessionID, params)
+    setSessionPromptParams(sessionID, params);
 
     //#then
-    expect(getSessionPromptParams(sessionID)).toEqual(params)
-  })
+    expect(getSessionPromptParams(sessionID)).toEqual(params);
+  });
 
   test("returns copies so callers cannot mutate stored state", () => {
     //#given
-    const sessionID = "ses_prompt_params_copy"
+    const sessionID = "ses_prompt_params_copy";
     setSessionPromptParams(sessionID, {
       temperature: 0.2,
       options: { reasoningEffort: "medium" },
-    })
+    });
 
     //#when
-    const result = getSessionPromptParams(sessionID)!
-    result.temperature = 0.9
-    result.options!.reasoningEffort = "max"
+    const result = getSessionPromptParams(sessionID)!;
+    result.temperature = 0.9;
+    result.options!.reasoningEffort = "max";
 
     //#then
     expect(getSessionPromptParams(sessionID)).toEqual({
       temperature: 0.2,
       options: { reasoningEffort: "medium" },
-    })
-  })
+    });
+  });
 
   test("clears a single session", () => {
     //#given
-    const sessionID = "ses_prompt_params_clear"
-    setSessionPromptParams(sessionID, { topP: 0.5 })
+    const sessionID = "ses_prompt_params_clear";
+    setSessionPromptParams(sessionID, { topP: 0.5 });
 
     //#when
-    clearSessionPromptParams(sessionID)
+    clearSessionPromptParams(sessionID);
 
     //#then
-    expect(getSessionPromptParams(sessionID)).toBeUndefined()
-  })
-})
+    expect(getSessionPromptParams(sessionID)).toBeUndefined();
+  });
+});

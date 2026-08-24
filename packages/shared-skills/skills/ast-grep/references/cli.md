@@ -1,8 +1,10 @@
 # CLI reference — `sg` / `ast-grep`
 
-Compact reference for the underlying `sg` binary that the helper wraps. Use this when the helper isn't enough or when you want to invoke `sg` directly.
+Compact reference for the underlying `sg` binary that the helper wraps. Use this
+when the helper isn't enough or when you want to invoke `sg` directly.
 
-> **Binary name on Linux**: prefer `ast-grep` over `sg` because `sg` collides with `setgroups` from `util-linux`.
+> **Binary name on Linux**: prefer `ast-grep` over `sg` because `sg` collides
+> with `setgroups` from `util-linux`.
 
 ---
 
@@ -14,29 +16,30 @@ The default subcommand. `sg -p 'foo'` is shorthand for `sg run -p 'foo'`.
 sg run [OPTIONS] --pattern <PATTERN> [PATHS...]
 ```
 
-| Flag | Purpose |
-|---|---|
-| `-p, --pattern <P>` | AST pattern to match. **Always single-quote** in shell to prevent `$VAR` expansion. |
-| `-r, --rewrite <R>` | Replacement pattern. Used with `-U` to apply. |
-| `-l, --lang <LANG>` | Language. Inferred from path extension if omitted. |
-| `--selector <KIND>` | When the pattern is ambiguous, extract only this AST kind. |
-| `--strictness <S>` | `cst` \| `smart` (default) \| `ast` \| `relaxed` \| `signature` |
-| `--debug-query[=<F>]` | Print parsed pattern. F: `pattern` \| `ast` \| `cst` \| `sexp` |
-| `--stdin` | Read code from stdin instead of files. Lang must be set. |
-| `--globs <G>` | Include/exclude glob (repeatable; prefix `!` to exclude). |
-| `--follow` | Follow symlinks. |
-| `--no-ignore <T>` | Disable a class of ignore: `hidden`, `dot`, `exclude`, `global`, `parent`, `vcs`. |
-| `-i, --interactive` | Step through matches and confirm each rewrite. |
-| `-U, --update-all` | Apply all rewrites without confirmation. **Mutually exclusive with `--json`** (silently). |
-| `--json[=<S>]` | Emit JSON. S: `pretty` \| `stream` \| `compact` (compact is best for piping). |
-| `--color <W>` | `auto` \| `always` \| `ansi` \| `never` |
-| `--inspect <G>` | Detail level: `nothing` \| `summary` \| `entity` |
-| `-A, -B, -C <N>` | Context lines after / before / around each match. |
-| `-j, --threads <N>` | Thread count (default: heuristic; `0` = auto). |
+| Flag                  | Purpose                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| `-p, --pattern <P>`   | AST pattern to match. **Always single-quote** in shell to prevent `$VAR` expansion.       |
+| `-r, --rewrite <R>`   | Replacement pattern. Used with `-U` to apply.                                             |
+| `-l, --lang <LANG>`   | Language. Inferred from path extension if omitted.                                        |
+| `--selector <KIND>`   | When the pattern is ambiguous, extract only this AST kind.                                |
+| `--strictness <S>`    | `cst` \| `smart` (default) \| `ast` \| `relaxed` \| `signature`                           |
+| `--debug-query[=<F>]` | Print parsed pattern. F: `pattern` \| `ast` \| `cst` \| `sexp`                            |
+| `--stdin`             | Read code from stdin instead of files. Lang must be set.                                  |
+| `--globs <G>`         | Include/exclude glob (repeatable; prefix `!` to exclude).                                 |
+| `--follow`            | Follow symlinks.                                                                          |
+| `--no-ignore <T>`     | Disable a class of ignore: `hidden`, `dot`, `exclude`, `global`, `parent`, `vcs`.         |
+| `-i, --interactive`   | Step through matches and confirm each rewrite.                                            |
+| `-U, --update-all`    | Apply all rewrites without confirmation. **Mutually exclusive with `--json`** (silently). |
+| `--json[=<S>]`        | Emit JSON. S: `pretty` \| `stream` \| `compact` (compact is best for piping).             |
+| `--color <W>`         | `auto` \| `always` \| `ansi` \| `never`                                                   |
+| `--inspect <G>`       | Detail level: `nothing` \| `summary` \| `entity`                                          |
+| `-A, -B, -C <N>`      | Context lines after / before / around each match.                                         |
+| `-j, --threads <N>`   | Thread count (default: heuristic; `0` = auto).                                            |
 
 ### `--update-all` + `--json` — the trap
 
-`sg` silently ignores `--update-all` when `--json` is set. To preview AND apply, run **two passes**:
+`sg` silently ignores `--update-all` when `--json` is set. To preview AND apply,
+run **two passes**:
 
 ```bash
 # Pass 1: preview
@@ -77,25 +80,26 @@ sg run -p 'def $F($$$):' --lang py --debug-query=ast --stdin <<< 'def foo(): pas
 
 ## `sg scan` — YAML rule scanner
 
-Run a configuration of YAML rules across files. Used for project-wide lints and codemods.
+Run a configuration of YAML rules across files. Used for project-wide lints and
+codemods.
 
 ```bash
 sg scan [OPTIONS] [PATHS...]
 ```
 
-| Flag | Purpose |
-|---|---|
-| `-c, --config <C>` | Path to `sgconfig.yml` (default: walk up from cwd looking for one). |
-| `-r, --rule <F>` | Run a **single** rule file. Mutually exclusive with `--config`. |
-| `--inline-rules <Y>` | Pass YAML rule text inline. Use `---` to separate multiple rules. |
-| `--filter <RE>` | Only run rules whose `id` matches this regex. |
-| `--include-metadata` | Include rule `metadata` field in JSON output. |
-| `-U, --update-all` | Apply fixes from `fix:` automatically. |
-| `--report-style <S>` | `rich` \| `medium` \| `short` |
-| `--format <F>` | `github` \| `sarif` (CI-friendly outputs). |
-| `--error[=ID]`, `--warning[=ID]`, `--info[=ID]`, `--hint[=ID]`, `--off[=ID]` | Promote/demote severity. |
-| `-i, --interactive` | Confirm each fix interactively. |
-| `--json[=<S>]` | JSON output. |
+| Flag                                                                         | Purpose                                                             |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `-c, --config <C>`                                                           | Path to `sgconfig.yml` (default: walk up from cwd looking for one). |
+| `-r, --rule <F>`                                                             | Run a **single** rule file. Mutually exclusive with `--config`.     |
+| `--inline-rules <Y>`                                                         | Pass YAML rule text inline. Use `---` to separate multiple rules.   |
+| `--filter <RE>`                                                              | Only run rules whose `id` matches this regex.                       |
+| `--include-metadata`                                                         | Include rule `metadata` field in JSON output.                       |
+| `-U, --update-all`                                                           | Apply fixes from `fix:` automatically.                              |
+| `--report-style <S>`                                                         | `rich` \| `medium` \| `short`                                       |
+| `--format <F>`                                                               | `github` \| `sarif` (CI-friendly outputs).                          |
+| `--error[=ID]`, `--warning[=ID]`, `--info[=ID]`, `--hint[=ID]`, `--off[=ID]` | Promote/demote severity.                                            |
+| `-i, --interactive`                                                          | Confirm each fix interactively.                                     |
+| `--json[=<S>]`                                                               | JSON output.                                                        |
 
 ### Examples
 
@@ -131,16 +135,16 @@ sg scan --format sarif src/ > sarif.json
 sg test [OPTIONS]
 ```
 
-| Flag | Purpose |
-|---|---|
-| `-c, --config <C>` | Path to `sgconfig.yml`. |
-| `-t, --test-dir <D>` | Test directory. |
-| `--snapshot-dir <D>` | Snapshot directory (default: `__snapshots__`). |
-| `--skip-snapshot-tests` | Validate test code parses; don't compare snapshots. |
-| `-U, --update-all` | Update all changed snapshots. |
-| `-f, --filter <G>` | Filter test cases by glob on rule id. |
-| `--include-off` | Include rules with severity `off`. |
-| `-i, --interactive` | Step through changed snapshots and accept/reject each. |
+| Flag                    | Purpose                                                |
+| ----------------------- | ------------------------------------------------------ |
+| `-c, --config <C>`      | Path to `sgconfig.yml`.                                |
+| `-t, --test-dir <D>`    | Test directory.                                        |
+| `--snapshot-dir <D>`    | Snapshot directory (default: `__snapshots__`).         |
+| `--skip-snapshot-tests` | Validate test code parses; don't compare snapshots.    |
+| `-U, --update-all`      | Update all changed snapshots.                          |
+| `-f, --filter <G>`      | Filter test cases by glob on rule id.                  |
+| `--include-off`         | Include rules with severity `off`.                     |
+| `-i, --interactive`     | Step through changed snapshots and accept/reject each. |
 
 A test directory looks like:
 
@@ -160,12 +164,12 @@ __snapshots__/
 sg new <COMMAND> [NAME] [OPTIONS]
 ```
 
-| Subcommand | Creates |
-|---|---|
-| `project` | `sgconfig.yml`, `rules/`, `utils/`, `__snapshots__/` directory tree |
-| `rule` | A new YAML rule file in the first `ruleDirs` entry |
-| `test` | A new test file in `testConfigs[0].testDir` |
-| `util` | A new utility rule in the first `utilDirs` entry |
+| Subcommand | Creates                                                             |
+| ---------- | ------------------------------------------------------------------- |
+| `project`  | `sgconfig.yml`, `rules/`, `utils/`, `__snapshots__/` directory tree |
+| `rule`     | A new YAML rule file in the first `ruleDirs` entry                  |
+| `test`     | A new test file in `testConfigs[0].testDir`                         |
+| `util`     | A new utility rule in the first `utilDirs` entry                    |
 
 ```bash
 # New project in current dir
@@ -186,7 +190,9 @@ sg new test no-console --yes
 sg lsp -c sgconfig.yml
 ```
 
-Speak LSP over stdin/stdout. Configure your editor (VS Code extension, Neovim `nvim-lspconfig`, Helix `languages.toml`) to spawn this command for live diagnostics.
+Speak LSP over stdin/stdout. Configure your editor (VS Code extension, Neovim
+`nvim-lspconfig`, Helix `languages.toml`) to spawn this command for live
+diagnostics.
 
 ---
 
@@ -226,6 +232,7 @@ sg scan --format github src/ || exit 1
 
 ## See also
 
-- `references/yaml-rules.md` — rule schema (`pattern`, `kind`, `regex`, `inside`, `has`, `all`, `any`, `not`, `matches`, `transform`, `fix`).
+- `references/yaml-rules.md` — rule schema (`pattern`, `kind`, `regex`,
+  `inside`, `has`, `all`, `any`, `not`, `matches`, `transform`, `fix`).
 - `references/sgconfig.md` — project configuration.
 - Official: <https://ast-grep.github.io/reference/cli.html>

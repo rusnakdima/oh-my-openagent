@@ -1,32 +1,39 @@
-import type { AgentConfig } from "@opencode-ai/sdk"
-import type { AgentOverrides } from "../types"
-import type { CategoriesConfig, CategoryConfig } from "../../config/schema"
-import type { AvailableAgent, AvailableCategory, AvailableSkill } from "../dynamic-agent-prompt-builder"
-import { AGENT_MODEL_REQUIREMENTS, isAnyFallbackModelAvailable } from "../../shared"
-import { log } from "../../shared/logger"
-import { applyEnvironmentContext } from "./environment-context"
-import { applyOverrides } from "./agent-overrides"
-import { applyModelResolution } from "./model-resolution"
-import { createSisyphusAgent } from "../sisyphus"
-import { applyFrontierToolSchemaPermission } from "../frontier-tool-schema-guard"
-import { setSisyphusRuntimePromptContext } from "../sisyphus-runtime-prompt-reconciler"
+import type { AgentConfig } from "@opencode-ai/sdk";
+import type { AgentOverrides } from "../types";
+import type { CategoriesConfig, CategoryConfig } from "../../config/schema";
+import type {
+  AvailableAgent,
+  AvailableCategory,
+  AvailableSkill,
+} from "../dynamic-agent-prompt-builder";
+import {
+  AGENT_MODEL_REQUIREMENTS,
+  isAnyFallbackModelAvailable,
+} from "../../shared";
+import { log } from "../../shared/logger";
+import { applyEnvironmentContext } from "./environment-context";
+import { applyOverrides } from "./agent-overrides";
+import { applyModelResolution } from "./model-resolution";
+import { createSisyphusAgent } from "../sisyphus";
+import { applyFrontierToolSchemaPermission } from "../frontier-tool-schema-guard";
+import { setSisyphusRuntimePromptContext } from "../sisyphus-runtime-prompt-reconciler";
 
 export function maybeCreateSisyphusConfig(input: {
-  disabledAgents: string[]
-  agentOverrides: AgentOverrides
-  uiSelectedModel?: string
-  availableModels: Set<string>
-  systemDefaultModel?: string
-  defaultModel?: string
-  isFirstRunNoCache: boolean
-  availableAgents: AvailableAgent[]
-  availableSkills: AvailableSkill[]
-  availableCategories: AvailableCategory[]
-  mergedCategories: Record<string, CategoryConfig>
-  directory?: string
-  userCategories?: CategoriesConfig
-  useTaskSystem: boolean
-  disableOmoEnv?: boolean
+  disabledAgents: string[];
+  agentOverrides: AgentOverrides;
+  uiSelectedModel?: string;
+  availableModels: Set<string>;
+  systemDefaultModel?: string;
+  defaultModel?: string;
+  isFirstRunNoCache: boolean;
+  availableAgents: AvailableAgent[];
+  availableSkills: AvailableSkill[];
+  availableCategories: AvailableCategory[];
+  mergedCategories: Record<string, CategoryConfig>;
+  directory?: string;
+  userCategories?: CategoriesConfig;
+  useTaskSystem: boolean;
+  disableOmoEnv?: boolean;
 }): AgentConfig | undefined {
   const {
     disabledAgents,
@@ -43,42 +50,58 @@ export function maybeCreateSisyphusConfig(input: {
     directory,
     useTaskSystem,
     disableOmoEnv = false,
-  } = input
+  } = input;
 
-  const sisyphusOverride = agentOverrides["sisyphus"]
-  const sisyphusRequirement = AGENT_MODEL_REQUIREMENTS["sisyphus"]
-  const hasSisyphusExplicitConfig = sisyphusOverride !== undefined
+  const sisyphusOverride = agentOverrides["sisyphus"];
+  const sisyphusRequirement = AGENT_MODEL_REQUIREMENTS["sisyphus"];
+  const hasSisyphusExplicitConfig = sisyphusOverride !== undefined;
   const meetsSisyphusAnyModelRequirement =
     !sisyphusRequirement?.requiresAnyModel ||
     hasSisyphusExplicitConfig ||
     isFirstRunNoCache ||
-    isAnyFallbackModelAvailable(sisyphusRequirement.fallbackChain, availableModels)
+    isAnyFallbackModelAvailable(
+      sisyphusRequirement.fallbackChain,
+      availableModels,
+    );
 
-  if (!disabledAgents.includes("sisyphus") && !meetsSisyphusAnyModelRequirement) {
-    log("[agent-registration] Agent skipped: no model in fallback chain is available", {
-      agent: "sisyphus",
-    })
+  if (
+    !disabledAgents.includes("sisyphus") && !meetsSisyphusAnyModelRequirement
+  ) {
+    log(
+      "[agent-registration] Agent skipped: no model in fallback chain is available",
+      {
+        agent: "sisyphus",
+      },
+    );
   }
-  if (disabledAgents.includes("sisyphus") || !meetsSisyphusAnyModelRequirement) return undefined
+  if (
+    disabledAgents.includes("sisyphus") || !meetsSisyphusAnyModelRequirement
+  ) return undefined;
 
   let sisyphusResolution = applyModelResolution({
-    uiSelectedModel: sisyphusOverride?.model !== undefined ? undefined : uiSelectedModel,
+    uiSelectedModel: sisyphusOverride?.model !== undefined
+      ? undefined
+      : uiSelectedModel,
     userModel: sisyphusOverride?.model ?? defaultModel,
     requirement: sisyphusRequirement,
     availableModels,
     systemDefaultModel,
-  })
+  });
 
   // No fallback to hardcoded chain when model_fallback_enabled is false — provider default wins.
 
   if (!sisyphusResolution) {
-    log("[agent-registration] Agent skipped: model resolution returned no result", {
-      agent: "sisyphus",
-      configuredModel: sisyphusOverride?.model,
-    })
-    return undefined
+    log(
+      "[agent-registration] Agent skipped: model resolution returned no result",
+      {
+        agent: "sisyphus",
+        configuredModel: sisyphusOverride?.model,
+      },
+    );
+    return undefined;
   }
-  const { model: sisyphusModel, variant: sisyphusResolvedVariant } = sisyphusResolution
+  const { model: sisyphusModel, variant: sisyphusResolvedVariant } =
+    sisyphusResolution;
 
   let sisyphusConfig = createSisyphusAgent(
     sisyphusModel,
@@ -86,26 +109,32 @@ export function maybeCreateSisyphusConfig(input: {
     undefined,
     availableSkills,
     availableCategories,
-    useTaskSystem
-  )
+    useTaskSystem,
+  );
 
   if (sisyphusResolvedVariant) {
-    sisyphusConfig = { ...sisyphusConfig, variant: sisyphusResolvedVariant }
+    sisyphusConfig = { ...sisyphusConfig, variant: sisyphusResolvedVariant };
   }
 
-  sisyphusConfig = applyOverrides(sisyphusConfig, sisyphusOverride, mergedCategories, directory)
+  sisyphusConfig = applyOverrides(
+    sisyphusConfig,
+    sisyphusOverride,
+    mergedCategories,
+    directory,
+  );
 
-  const resolvedModel = sisyphusConfig.model ?? ""
+  const resolvedModel = sisyphusConfig.model ?? "";
   sisyphusConfig.permission = applyFrontierToolSchemaPermission(
     sisyphusConfig.permission,
     resolvedModel,
     sisyphusOverride?.permission,
-    (sisyphusOverride as { tools?: Record<string, boolean> } | undefined)?.tools
-  )
+    (sisyphusOverride as { tools?: Record<string, boolean> } | undefined)
+      ?.tools,
+  );
 
   sisyphusConfig = applyEnvironmentContext(sisyphusConfig, directory, {
     disableOmoEnv,
-  })
+  });
 
   // The body above is baked from the *configured* model. If the user switches to
   // a different model in the TUI, the system-transform hook rebuilds the
@@ -120,13 +149,18 @@ export function maybeCreateSisyphusConfig(input: {
         undefined,
         availableSkills,
         availableCategories,
-        useTaskSystem
-      )
-      rebuilt = applyOverrides(rebuilt, sisyphusOverride, mergedCategories, directory)
-      rebuilt = applyEnvironmentContext(rebuilt, directory, { disableOmoEnv })
-      return rebuilt.prompt ?? ""
+        useTaskSystem,
+      );
+      rebuilt = applyOverrides(
+        rebuilt,
+        sisyphusOverride,
+        mergedCategories,
+        directory,
+      );
+      rebuilt = applyEnvironmentContext(rebuilt, directory, { disableOmoEnv });
+      return rebuilt.prompt ?? "";
     },
-  })
+  });
 
-  return sisyphusConfig
+  return sisyphusConfig;
 }

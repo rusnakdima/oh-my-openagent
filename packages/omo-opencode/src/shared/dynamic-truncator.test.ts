@@ -1,36 +1,36 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, it, afterEach } from "bun:test"
+import { afterEach, describe, expect, it } from "bun:test";
 
 import {
   _setContextWindowUsageFetchTimeoutMsForTesting,
   getContextWindowUsage,
   invalidateContextWindowUsageCache,
-} from "./dynamic-truncator"
+} from "./dynamic-truncator";
 
-const ANTHROPIC_CONTEXT_ENV_KEY = "ANTHROPIC_1M_CONTEXT"
-const VERTEX_CONTEXT_ENV_KEY = "VERTEX_ANTHROPIC_1M_CONTEXT"
+const ANTHROPIC_CONTEXT_ENV_KEY = "ANTHROPIC_1M_CONTEXT";
+const VERTEX_CONTEXT_ENV_KEY = "VERTEX_ANTHROPIC_1M_CONTEXT";
 
-const originalAnthropicContextEnv = process.env[ANTHROPIC_CONTEXT_ENV_KEY]
-const originalVertexContextEnv = process.env[VERTEX_CONTEXT_ENV_KEY]
+const originalAnthropicContextEnv = process.env[ANTHROPIC_CONTEXT_ENV_KEY];
+const originalVertexContextEnv = process.env[VERTEX_CONTEXT_ENV_KEY];
 
 function resetContextLimitEnv(): void {
   if (originalAnthropicContextEnv === undefined) {
-    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
+    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY];
   } else {
-    process.env[ANTHROPIC_CONTEXT_ENV_KEY] = originalAnthropicContextEnv
+    process.env[ANTHROPIC_CONTEXT_ENV_KEY] = originalAnthropicContextEnv;
   }
 
   if (originalVertexContextEnv === undefined) {
-    delete process.env[VERTEX_CONTEXT_ENV_KEY]
+    delete process.env[VERTEX_CONTEXT_ENV_KEY];
   } else {
-    process.env[VERTEX_CONTEXT_ENV_KEY] = originalVertexContextEnv
+    process.env[VERTEX_CONTEXT_ENV_KEY] = originalVertexContextEnv;
   }
 }
 
 function createContextUsageMockContext(
   inputTokens: number,
-  options?: { providerID?: string; modelID?: string; cacheRead?: number }
+  options?: { providerID?: string; modelID?: string; cacheRead?: number },
 ) {
   return {
     client: {
@@ -54,17 +54,17 @@ function createContextUsageMockContext(
         }),
       },
     },
-  }
+  };
 }
 
 function createCountingContextUsageMockContext(inputTokens: number) {
-  let messagesCalls = 0
+  let messagesCalls = 0;
   return {
     ctx: {
       client: {
         session: {
           messages: async () => {
-            messagesCalls += 1
+            messagesCalls += 1;
             return {
               data: [
                 {
@@ -81,59 +81,63 @@ function createCountingContextUsageMockContext(inputTokens: number) {
                   },
                 },
               ],
-            }
+            };
           },
         },
       },
     },
     getMessagesCalls: () => messagesCalls,
-  }
+  };
 }
 
 describe("getContextWindowUsage", () => {
   afterEach(() => {
-    resetContextLimitEnv()
-    _setContextWindowUsageFetchTimeoutMsForTesting(undefined)
-  })
+    resetContextLimitEnv();
+    _setContextWindowUsageFetchTimeoutMsForTesting(undefined);
+  });
 
   describe("#given client.session.messages never settles", () => {
     describe("#when getContextWindowUsage is called with a fast fetch timeout", () => {
       it("#then returns null instead of hanging forever", async () => {
         // given
-        _setContextWindowUsageFetchTimeoutMsForTesting(50)
+        _setContextWindowUsageFetchTimeoutMsForTesting(50);
         const ctx = {
           client: {
             session: {
               messages: () => new Promise<never>(() => {}),
             },
           },
-        }
+        };
 
         // when
-        const start = Date.now()
-        const usage = await getContextWindowUsage(ctx as never, "ses_hang_messages", {
-          anthropicContext1MEnabled: false,
-        })
-        const elapsed = Date.now() - start
+        const start = Date.now();
+        const usage = await getContextWindowUsage(
+          ctx as never,
+          "ses_hang_messages",
+          {
+            anthropicContext1MEnabled: false,
+          },
+        );
+        const elapsed = Date.now() - start;
 
         // then
-        expect(usage).toBeNull()
-        expect(elapsed).toBeLessThan(2000)
-      })
+        expect(usage).toBeNull();
+        expect(elapsed).toBeLessThan(2000);
+      });
 
       it("#then a parallel concurrent caller also resolves to null instead of hanging on the cached promise", async () => {
         // given
-        _setContextWindowUsageFetchTimeoutMsForTesting(50)
+        _setContextWindowUsageFetchTimeoutMsForTesting(50);
         const ctx = {
           client: {
             session: {
               messages: () => new Promise<never>(() => {}),
             },
           },
-        }
+        };
 
         // when
-        const start = Date.now()
+        const start = Date.now();
         const [first, second] = await Promise.all([
           getContextWindowUsage(ctx as never, "ses_hang_messages_parallel", {
             anthropicContext1MEnabled: false,
@@ -141,27 +145,27 @@ describe("getContextWindowUsage", () => {
           getContextWindowUsage(ctx as never, "ses_hang_messages_parallel", {
             anthropicContext1MEnabled: false,
           }),
-        ])
-        const elapsed = Date.now() - start
+        ]);
+        const elapsed = Date.now() - start;
 
         // then
-        expect(first).toBeNull()
-        expect(second).toBeNull()
-        expect(elapsed).toBeLessThan(2000)
-      })
+        expect(first).toBeNull();
+        expect(second).toBeNull();
+        expect(elapsed).toBeLessThan(2000);
+      });
 
       it("#then a follow-up call after invalidation retries fresh instead of being poisoned by the timeout", async () => {
         // given
-        _setContextWindowUsageFetchTimeoutMsForTesting(50)
-        let messagesCalls = 0
-        let shouldHang = true
+        _setContextWindowUsageFetchTimeoutMsForTesting(50);
+        let messagesCalls = 0;
+        let shouldHang = true;
         const ctx = {
           client: {
             session: {
               messages: () => {
-                messagesCalls += 1
+                messagesCalls += 1;
                 if (shouldHang) {
-                  return new Promise<never>(() => {})
+                  return new Promise<never>(() => {});
                 }
                 return Promise.resolve({
                   data: [
@@ -179,171 +183,214 @@ describe("getContextWindowUsage", () => {
                       },
                     },
                   ],
-                })
+                });
               },
             },
           },
-        }
+        };
 
         // when
-        const firstUsage = await getContextWindowUsage(ctx as never, "ses_hang_then_recover", {
-          anthropicContext1MEnabled: false,
-        })
-        invalidateContextWindowUsageCache(ctx as never, "ses_hang_then_recover")
-        shouldHang = false
-        const secondUsage = await getContextWindowUsage(ctx as never, "ses_hang_then_recover", {
-          anthropicContext1MEnabled: false,
-        })
+        const firstUsage = await getContextWindowUsage(
+          ctx as never,
+          "ses_hang_then_recover",
+          {
+            anthropicContext1MEnabled: false,
+          },
+        );
+        invalidateContextWindowUsageCache(
+          ctx as never,
+          "ses_hang_then_recover",
+        );
+        shouldHang = false;
+        const secondUsage = await getContextWindowUsage(
+          ctx as never,
+          "ses_hang_then_recover",
+          {
+            anthropicContext1MEnabled: false,
+          },
+        );
 
         // then
-        expect(firstUsage).toBeNull()
-        expect(secondUsage?.remainingTokens).toBe(100000)
-        expect(messagesCalls).toBe(2)
-      })
-    })
-  })
+        expect(firstUsage).toBeNull();
+        expect(secondUsage?.remainingTokens).toBe(100000);
+        expect(messagesCalls).toBe(2);
+      });
+    });
+  });
 
   it("uses 1M limit when model cache flag is enabled", async () => {
     //#given
-    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
-    delete process.env[VERTEX_CONTEXT_ENV_KEY]
-    const ctx = createContextUsageMockContext(300000)
+    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY];
+    delete process.env[VERTEX_CONTEXT_ENV_KEY];
+    const ctx = createContextUsageMockContext(300000);
 
     //#when
     const usage = await getContextWindowUsage(ctx as never, "ses_1m_flag", {
       anthropicContext1MEnabled: true,
-    })
+    });
 
     //#then
-    expect(usage?.usagePercentage).toBe(0.3)
-    expect(usage?.remainingTokens).toBe(700000)
-  })
+    expect(usage?.usagePercentage).toBe(0.3);
+    expect(usage?.remainingTokens).toBe(700000);
+  });
 
   it("uses 200K limit when model cache flag is disabled and env vars are unset", async () => {
     //#given
-    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
-    delete process.env[VERTEX_CONTEXT_ENV_KEY]
-    const ctx = createContextUsageMockContext(150000)
+    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY];
+    delete process.env[VERTEX_CONTEXT_ENV_KEY];
+    const ctx = createContextUsageMockContext(150000);
 
     //#when
     const usage = await getContextWindowUsage(ctx as never, "ses_default", {
       anthropicContext1MEnabled: false,
-    })
+    });
 
     //#then
-    expect(usage?.usagePercentage).toBe(0.75)
-    expect(usage?.remainingTokens).toBe(50000)
-  })
+    expect(usage?.usagePercentage).toBe(0.75);
+    expect(usage?.remainingTokens).toBe(50000);
+  });
 
   it("keeps env var fallback when model cache flag is disabled", async () => {
     //#given
-    process.env[ANTHROPIC_CONTEXT_ENV_KEY] = "true"
-    const ctx = createContextUsageMockContext(300000)
+    process.env[ANTHROPIC_CONTEXT_ENV_KEY] = "true";
+    const ctx = createContextUsageMockContext(300000);
 
     //#when
-    const usage = await getContextWindowUsage(ctx as never, "ses_env_fallback", {
-      anthropicContext1MEnabled: false,
-    })
+    const usage = await getContextWindowUsage(
+      ctx as never,
+      "ses_env_fallback",
+      {
+        anthropicContext1MEnabled: false,
+      },
+    );
 
     //#then
-    expect(usage?.usagePercentage).toBe(0.3)
-    expect(usage?.remainingTokens).toBe(700000)
-  })
+    expect(usage?.usagePercentage).toBe(0.3);
+    expect(usage?.remainingTokens).toBe(700000);
+  });
 
   it("uses model-specific limit for non-anthropic providers when cached", async () => {
     // given
-    const modelContextLimitsCache = new Map<string, number>()
-    modelContextLimitsCache.set("opencode/kimi-k2.5-free", 262144)
+    const modelContextLimitsCache = new Map<string, number>();
+    modelContextLimitsCache.set("opencode/kimi-k2.5-free", 262144);
     const ctx = createContextUsageMockContext(180000, {
       providerID: "opencode",
       modelID: "kimi-k2.5-free",
-    })
+    });
 
     // when
     const usage = await getContextWindowUsage(ctx as never, "ses_model_limit", {
       anthropicContext1MEnabled: false,
       modelContextLimitsCache,
-    })
+    });
 
     // then
-    expect(usage?.usagePercentage).toBeCloseTo(180000 / 262144)
-    expect(usage?.remainingTokens).toBe(82144)
-  })
+    expect(usage?.usagePercentage).toBeCloseTo(180000 / 262144);
+    expect(usage?.remainingTokens).toBe(82144);
+  });
 
   it("reuses context usage for repeated calls in the same session", async () => {
     // given
-    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
-    delete process.env[VERTEX_CONTEXT_ENV_KEY]
-    const { ctx, getMessagesCalls } = createCountingContextUsageMockContext(100000)
-    const modelCacheState = { anthropicContext1MEnabled: false }
+    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY];
+    delete process.env[VERTEX_CONTEXT_ENV_KEY];
+    const { ctx, getMessagesCalls } = createCountingContextUsageMockContext(
+      100000,
+    );
+    const modelCacheState = { anthropicContext1MEnabled: false };
 
     // when
-    const firstUsage = await getContextWindowUsage(ctx as never, "ses_cached_usage", modelCacheState)
-    const secondUsage = await getContextWindowUsage(ctx as never, "ses_cached_usage", modelCacheState)
+    const firstUsage = await getContextWindowUsage(
+      ctx as never,
+      "ses_cached_usage",
+      modelCacheState,
+    );
+    const secondUsage = await getContextWindowUsage(
+      ctx as never,
+      "ses_cached_usage",
+      modelCacheState,
+    );
 
     // then
-    expect(firstUsage?.remainingTokens).toBe(100000)
-    expect(secondUsage?.remainingTokens).toBe(100000)
-    expect(getMessagesCalls()).toBe(1)
-  })
+    expect(firstUsage?.remainingTokens).toBe(100000);
+    expect(secondUsage?.remainingTokens).toBe(100000);
+    expect(getMessagesCalls()).toBe(1);
+  });
 
   it("refetches context usage after cache invalidation", async () => {
     // given
-    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
-    delete process.env[VERTEX_CONTEXT_ENV_KEY]
-    const { ctx, getMessagesCalls } = createCountingContextUsageMockContext(100000)
-    const modelCacheState = { anthropicContext1MEnabled: false }
+    delete process.env[ANTHROPIC_CONTEXT_ENV_KEY];
+    delete process.env[VERTEX_CONTEXT_ENV_KEY];
+    const { ctx, getMessagesCalls } = createCountingContextUsageMockContext(
+      100000,
+    );
+    const modelCacheState = { anthropicContext1MEnabled: false };
 
     // when
-    await getContextWindowUsage(ctx as never, "ses_invalidated_usage", modelCacheState)
-    invalidateContextWindowUsageCache(ctx as never, "ses_invalidated_usage")
-    await getContextWindowUsage(ctx as never, "ses_invalidated_usage", modelCacheState)
+    await getContextWindowUsage(
+      ctx as never,
+      "ses_invalidated_usage",
+      modelCacheState,
+    );
+    invalidateContextWindowUsageCache(ctx as never, "ses_invalidated_usage");
+    await getContextWindowUsage(
+      ctx as never,
+      "ses_invalidated_usage",
+      modelCacheState,
+    );
 
     // then
-    expect(getMessagesCalls()).toBe(2)
-  })
+    expect(getMessagesCalls()).toBe(2);
+  });
 
   it("returns null for non-anthropic providers without a cached limit", async () => {
     // given
     const ctx = createContextUsageMockContext(180000, {
       providerID: "openai",
       modelID: "gpt-5",
-    })
+    });
 
     // when
-    const usage = await getContextWindowUsage(ctx as never, "ses_no_cached_limit", {
-      anthropicContext1MEnabled: false,
-    })
+    const usage = await getContextWindowUsage(
+      ctx as never,
+      "ses_no_cached_limit",
+      {
+        anthropicContext1MEnabled: false,
+      },
+    );
 
     // then
-    expect(usage).toBeNull()
-  })
+    expect(usage).toBeNull();
+  });
 
   describe("#given Anthropic provider with cached context limit and 1M mode enabled", () => {
     describe("#when context usage is resolved", () => {
       it("#then should ignore the cached limit and use the 1M Anthropic limit", async () => {
         // given
-        delete process.env[ANTHROPIC_CONTEXT_ENV_KEY]
-        delete process.env[VERTEX_CONTEXT_ENV_KEY]
+        delete process.env[ANTHROPIC_CONTEXT_ENV_KEY];
+        delete process.env[VERTEX_CONTEXT_ENV_KEY];
 
-        const modelContextLimitsCache = new Map<string, number>()
-        modelContextLimitsCache.set("anthropic/claude-sonnet-4-5", 200000)
+        const modelContextLimitsCache = new Map<string, number>();
+        modelContextLimitsCache.set("anthropic/claude-sonnet-4-5", 200000);
 
         const ctx = createContextUsageMockContext(300000, {
           providerID: "anthropic",
           modelID: "claude-sonnet-4-5",
-        })
+        });
 
         // when
-        const usage = await getContextWindowUsage(ctx as never, "ses_cached_anthropic_1m", {
-          anthropicContext1MEnabled: true,
-          modelContextLimitsCache,
-        })
+        const usage = await getContextWindowUsage(
+          ctx as never,
+          "ses_cached_anthropic_1m",
+          {
+            anthropicContext1MEnabled: true,
+            modelContextLimitsCache,
+          },
+        );
 
         // then
-        expect(usage?.usagePercentage).toBe(0.3)
-        expect(usage?.remainingTokens).toBe(700000)
-      })
-    })
-  })
-})
+        expect(usage?.usagePercentage).toBe(0.3);
+        expect(usage?.remainingTokens).toBe(700000);
+      });
+    });
+  });
+});

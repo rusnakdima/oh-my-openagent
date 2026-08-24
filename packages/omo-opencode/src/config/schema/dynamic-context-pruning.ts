@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const DynamicContextPruningConfigSchema = z.object({
   enabled: z.boolean().default(false),
@@ -46,8 +46,8 @@ export const DynamicContextPruningConfigSchema = z.object({
         .optional(),
     })
     .optional(),
-})
+});
 
 export type DynamicContextPruningConfig = z.infer<
   typeof DynamicContextPruningConfigSchema
->
+>;

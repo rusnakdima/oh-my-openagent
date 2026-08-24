@@ -2,7 +2,7 @@ import type {
   AvailableAgent,
   AvailableCategory,
   AvailableSkill,
-} from "./dynamic-agent-prompt-types"
+} from "./dynamic-agent-prompt-types";
 
 export function buildHardBlocksSection(): string {
   const blocks = [
@@ -12,11 +12,11 @@ export function buildHardBlocksSection(): string {
     "- Leave code in broken state after failures - **Never**",
     "- `background_cancel(all=true)` - **Never.** Always cancel individually by taskId.",
     "- Delivering final answer before collecting Oracle result - **Never.**",
-  ]
+  ];
 
   return `## Hard Blocks (NEVER violate)
 
-${blocks.join("\n")}`
+${blocks.join("\n")}`;
 }
 
 export function buildAntiPatternsSection(): string {
@@ -29,11 +29,11 @@ export function buildAntiPatternsSection(): string {
     "- **Background Tasks**: Polling `background_output` on running tasks - end response and wait for notification",
     "- **Delegation Duplication**: Delegating exploration to explore/librarian and then manually doing the same search yourself",
     "- **Oracle**: Delivering answer without collecting Oracle results",
-  ]
+  ];
 
   return `## Anti-Patterns (BLOCKING violations)
 
-${patterns.join("\n")}`
+${patterns.join("\n")}`;
 }
 
 export function buildToolCallFormatSection(): string {
@@ -50,7 +50,7 @@ When you need to call a tool:
 **CORRECT**: Invoke the tool through the tool call interface
 **WRONG**: Writing \`assistant to=functions.todowrite\` or \`json\n{...}\` as text
 
-Your tool calls are processed automatically. Just invoke the tool - do not format the call yourself.`
+Your tool calls are processed automatically. Just invoke the tool - do not format the call yourself.`;
 }
 
 export function buildUltraworkSection(
@@ -58,70 +58,74 @@ export function buildUltraworkSection(
   categories: AvailableCategory[],
   skills: AvailableSkill[],
 ): string {
-  const lines: string[] = []
+  const lines: string[] = [];
 
   if (categories.length > 0) {
-    lines.push("**Categories** (for implementation tasks):")
+    lines.push("**Categories** (for implementation tasks):");
     for (const category of categories) {
-      const shortDescription = category.description || category.name
-      lines.push(`- \`${category.name}\`: ${shortDescription}`)
+      const shortDescription = category.description || category.name;
+      lines.push(`- \`${category.name}\`: ${shortDescription}`);
     }
-    lines.push("")
+    lines.push("");
   }
 
   if (skills.length > 0) {
-    const builtinSkills = skills.filter((skill) => skill.location === "plugin")
-    const customSkills = skills.filter((skill) => skill.location !== "plugin")
+    const builtinSkills = skills.filter((skill) => skill.location === "plugin");
+    const customSkills = skills.filter((skill) => skill.location !== "plugin");
 
     if (builtinSkills.length > 0) {
-      lines.push("**Built-in Skills** (combine with categories):")
+      lines.push("**Built-in Skills** (combine with categories):");
       for (const skill of builtinSkills) {
-        const shortDescription = skill.description.split(".")[0] || skill.description
-        lines.push(`- \`${skill.name}\`: ${shortDescription}`)
+        const shortDescription = skill.description.split(".")[0] ||
+          skill.description;
+        lines.push(`- \`${skill.name}\`: ${shortDescription}`);
       }
-      lines.push("")
+      lines.push("");
     }
 
     if (customSkills.length > 0) {
-      lines.push("**User-Installed Skills** (HIGH PRIORITY - user installed these for their workflow):")
+      lines.push(
+        "**User-Installed Skills** (HIGH PRIORITY - user installed these for their workflow):",
+      );
       for (const skill of customSkills) {
-        const shortDescription = skill.description.split(".")[0] || skill.description
-        lines.push(`- \`${skill.name}\`: ${shortDescription}`)
+        const shortDescription = skill.description.split(".")[0] ||
+          skill.description;
+        lines.push(`- \`${skill.name}\`: ${shortDescription}`);
       }
-      lines.push("")
+      lines.push("");
     }
   }
 
   if (agents.length > 0) {
-    const ultraworkAgentPriority = ["explore", "librarian", "plan", "oracle"]
+    const ultraworkAgentPriority = ["explore", "librarian", "plan", "oracle"];
     const sortedAgents = [...agents].sort((left, right) => {
-      const leftIndex = ultraworkAgentPriority.indexOf(left.name)
-      const rightIndex = ultraworkAgentPriority.indexOf(right.name)
+      const leftIndex = ultraworkAgentPriority.indexOf(left.name);
+      const rightIndex = ultraworkAgentPriority.indexOf(right.name);
       if (leftIndex === -1 && rightIndex === -1) {
-        return 0
+        return 0;
       }
       if (leftIndex === -1) {
-        return 1
+        return 1;
       }
       if (rightIndex === -1) {
-        return -1
+        return -1;
       }
-      return leftIndex - rightIndex
-    })
+      return leftIndex - rightIndex;
+    });
 
-    lines.push("**Agents** (for specialized consultation/exploration):")
+    lines.push("**Agents** (for specialized consultation/exploration):");
     for (const agent of sortedAgents) {
-      const shortDescription =
-        agent.description.length > 120
-          ? `${agent.description.slice(0, 120)}...`
-          : agent.description
-      const suffix =
-        agent.name === "explore" || agent.name === "librarian" ? " (multiple)" : ""
-      lines.push(`- \`${agent.name}${suffix}\`: ${shortDescription}`)
+      const shortDescription = agent.description.length > 120
+        ? `${agent.description.slice(0, 120)}...`
+        : agent.description;
+      const suffix = agent.name === "explore" || agent.name === "librarian"
+        ? " (multiple)"
+        : "";
+      lines.push(`- \`${agent.name}${suffix}\`: ${shortDescription}`);
     }
   }
 
-  return lines.join("\n")
+  return lines.join("\n");
 }
 
 export function buildAntiDuplicationSection(): string {
@@ -169,5 +173,5 @@ task(subagent_type="explore", run_in_background=true, ...)
 // Work on a different, unrelated file while they search
 // End your response and wait for the notification
 \`\`\`
-</Anti_Duplication>`
+</Anti_Duplication>`;
 }

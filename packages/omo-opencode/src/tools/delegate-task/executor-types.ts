@@ -1,47 +1,55 @@
-import type { BackgroundManager } from "../../features/background-agent"
-import type { CategoriesConfig, GitMasterConfig, BrowserAutomationProvider, AgentOverrides, SisyphusAgentConfig } from "../../config/schema"
-import type { ModelFallbackControllerAccessor } from "../../hooks/model-fallback"
-import type { OpencodeClient } from "./types"
+import type { BackgroundManager } from "../../features/background-agent";
+import type {
+  AgentOverrides,
+  BrowserAutomationProvider,
+  CategoriesConfig,
+  GitMasterConfig,
+  SisyphusAgentConfig,
+} from "../../config/schema";
+import type { ModelFallbackControllerAccessor } from "../../hooks/model-fallback";
+import type { OpencodeClient } from "./types";
 
 export interface ExecutorContext {
-  manager: BackgroundManager
-  client: OpencodeClient
-  directory: string
-  userCategories?: CategoriesConfig
-  gitMasterConfig?: GitMasterConfig
-  sisyphusJuniorModel?: string
-  browserProvider?: BrowserAutomationProvider
-  agentOverrides?: AgentOverrides
-  sisyphusAgentConfig?: SisyphusAgentConfig
-  modelFallbackControllerAccessor?: ModelFallbackControllerAccessor
-  onSyncSessionCreated?: (event: { sessionID: string; parentID: string; title: string }) => Promise<void>
-  syncPollTimeoutMs?: number
+  manager: BackgroundManager;
+  client: OpencodeClient;
+  directory: string;
+  userCategories?: CategoriesConfig;
+  gitMasterConfig?: GitMasterConfig;
+  sisyphusJuniorModel?: string;
+  browserProvider?: BrowserAutomationProvider;
+  agentOverrides?: AgentOverrides;
+  sisyphusAgentConfig?: SisyphusAgentConfig;
+  modelFallbackControllerAccessor?: ModelFallbackControllerAccessor;
+  onSyncSessionCreated?: (
+    event: { sessionID: string; parentID: string; title: string },
+  ) => Promise<void>;
+  syncPollTimeoutMs?: number;
   /**
    * Test hook: bypass getAvailableModelsForDelegateTask by providing an explicit available model set.
    * Must be typed as Set<string> (not string[]) for direct O(1) membership tests.
    */
-  availableModelsOverride?: Set<string>
+  availableModelsOverride?: Set<string>;
 }
 
 export interface ParentContext {
-  sessionID: string
-  messageID: string
-  agent?: string
-  model?: { providerID: string; modelID: string; variant?: string }
+  sessionID: string;
+  messageID: string;
+  agent?: string;
+  model?: { providerID: string; modelID: string; variant?: string };
 }
 
 export interface SessionMessage {
   info?: {
-    id?: string
-    role?: string
-    time?: { created?: number }
-    finish?: string
-    error?: unknown
-    agent?: string
-    model?: { providerID: string; modelID: string; variant?: string }
-    modelID?: string
-    providerID?: string
-    variant?: string
-  }
-  parts?: Array<{ type?: string; text?: string }>
+    id?: string;
+    role?: string;
+    time?: { created?: number };
+    finish?: string;
+    error?: unknown;
+    agent?: string;
+    model?: { providerID: string; modelID: string; variant?: string };
+    modelID?: string;
+    providerID?: string;
+    variant?: string;
+  };
+  parts?: Array<{ type?: string; text?: string }>;
 }

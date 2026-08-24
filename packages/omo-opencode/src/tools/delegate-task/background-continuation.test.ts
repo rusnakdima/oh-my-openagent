@@ -1,4 +1,4 @@
-const { describe, test, expect, mock } = require("bun:test")
+const { describe, test, expect, mock } = require("bun:test");
 
 describe("executeBackgroundContinuation - subagent metadata", () => {
   test("reports an error instead of false success when the task is already running", async () => {
@@ -7,16 +7,16 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
       resume: async () => {
         throw new Error(
           "Task bg_running is currently running and cannot accept a continuation prompt. " +
-          "Wait for it to complete before resuming it with task_id.",
-        )
+            "Wait for it to complete before resuming it with task_id.",
+        );
       },
-    }
+    };
 
     const mockCtx = {
       sessionID: "parent-session",
       callID: "call-running",
       metadata: mock(() => Promise.resolve()),
-    }
+    };
 
     const args = {
       task_id: "ses_running_123",
@@ -24,10 +24,12 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
       description: "update running task",
       load_skills: [],
       run_in_background: true,
-    }
+    };
 
     //#when
-    const { executeBackgroundContinuation } = require("./background-continuation")
+    const { executeBackgroundContinuation } = require(
+      "./background-continuation",
+    );
     const result = await executeBackgroundContinuation(
       args,
       mockCtx,
@@ -37,11 +39,13 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
         messageID: "msg-parent",
         agent: "sisyphus",
       },
-    )
+    );
 
     //#then - the tool cannot claim a continuation that was never delivered
-    expect(result).toContain("currently running and cannot accept a continuation prompt")
-  })
+    expect(result).toContain(
+      "currently running and cannot accept a continuation prompt",
+    );
+  });
 
   test("includes subagent in task_metadata when task has agent", async () => {
     //#given - mock manager.resume returning task with agent info
@@ -53,23 +57,23 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
         status: "running",
         sessionId: "ses_resumed_123",
       }),
-    }
+    };
 
     const mockCtx = {
       sessionID: "parent-session",
       callID: "call-456",
       metadata: mock(() => Promise.resolve()),
-    }
+    };
 
     const mockExecutorCtx = {
       manager: mockManager,
-    }
+    };
 
     const parentContext = {
       sessionID: "parent-session",
       messageID: "msg-parent",
       agent: "sisyphus",
-    }
+    };
 
     const args = {
       task_id: "ses_resumed_123",
@@ -77,20 +81,27 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
       description: "resume oracle",
       load_skills: [],
       run_in_background: true,
-    }
+    };
 
     //#when - executeBackgroundContinuation completes
-    const { executeBackgroundContinuation } = require("./background-continuation")
-    const result = await executeBackgroundContinuation(args, mockCtx, mockExecutorCtx, parentContext)
+    const { executeBackgroundContinuation } = require(
+      "./background-continuation",
+    );
+    const result = await executeBackgroundContinuation(
+      args,
+      mockCtx,
+      mockExecutorCtx,
+      parentContext,
+    );
 
     //#then - task_metadata should contain subagent field
-    expect(result).toContain("<task_metadata>")
-    expect(result).toContain("subagent: oracle")
-    expect(result).toContain("session_id: ses_resumed_123")
-    expect(result).toContain("background_task_id: bg_task_001")
-    expect(result).not.toContain("task_id: ses_resumed_123")
-    expect(result).toContain("Background Task ID: bg_task_001")
-  })
+    expect(result).toContain("<task_metadata>");
+    expect(result).toContain("subagent: oracle");
+    expect(result).toContain("session_id: ses_resumed_123");
+    expect(result).toContain("background_task_id: bg_task_001");
+    expect(result).not.toContain("task_id: ses_resumed_123");
+    expect(result).toContain("Background Task ID: bg_task_001");
+  });
 
   test("omits subagent from task_metadata when task agent is undefined", async () => {
     //#given - mock manager.resume returning task without agent
@@ -102,23 +113,23 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
         status: "running",
         sessionId: "ses_resumed_456",
       }),
-    }
+    };
 
     const mockCtx = {
       sessionID: "parent-session",
       callID: "call-789",
       metadata: mock(() => Promise.resolve()),
-    }
+    };
 
     const mockExecutorCtx = {
       manager: mockManager,
-    }
+    };
 
     const parentContext = {
       sessionID: "parent-session",
       messageID: "msg-parent",
       agent: "sisyphus",
-    }
+    };
 
     const args = {
       task_id: "ses_resumed_456",
@@ -126,15 +137,22 @@ describe("executeBackgroundContinuation - subagent metadata", () => {
       description: "resume task",
       load_skills: [],
       run_in_background: true,
-    }
+    };
 
     //#when - executeBackgroundContinuation completes without agent
-    const { executeBackgroundContinuation } = require("./background-continuation")
-    const result = await executeBackgroundContinuation(args, mockCtx, mockExecutorCtx, parentContext)
+    const { executeBackgroundContinuation } = require(
+      "./background-continuation",
+    );
+    const result = await executeBackgroundContinuation(
+      args,
+      mockCtx,
+      mockExecutorCtx,
+      parentContext,
+    );
 
     //#then - task_metadata should NOT contain subagent field
-    expect(result).toContain("<task_metadata>")
-    expect(result).toContain("session_id: ses_resumed_456")
-    expect(result).not.toContain("subagent:")
-  })
-})
+    expect(result).toContain("<task_metadata>");
+    expect(result).toContain("session_id: ses_resumed_456");
+    expect(result).not.toContain("subagent:");
+  });
+});

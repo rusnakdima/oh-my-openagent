@@ -1,5 +1,5 @@
 export {
+  type AstGrepSgProvisionDeps,
   clearAstGrepSgProvisionTargetsForTesting,
   createAstGrepSgProvisionHook,
-  type AstGrepSgProvisionDeps,
-} from "./hook"
+} from "./hook";

@@ -1,34 +1,39 @@
-import { mkdirSync, mkdtempSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { mkdirSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { afterEach, describe, expect, it } from "bun:test"
+import { afterEach, describe, expect, it } from "bun:test";
 
-import { OmoTaskSettingsSchema, type OmoTaskSettings } from "@oh-my-opencode/omo-config-core"
-import { saveRuntimeState } from "@oh-my-opencode/team-core/team-state-store"
-import type { RuntimeState } from "@oh-my-opencode/team-core/types"
 import {
+  type OmoTaskSettings,
+  OmoTaskSettingsSchema,
+} from "@oh-my-opencode/omo-config-core";
+import { saveRuntimeState } from "@oh-my-opencode/team-core/team-state-store";
+import type { RuntimeState } from "@oh-my-opencode/team-core/types";
+import {
+  type ListedTask,
+  type ListScope,
   resolveTeamRuntimeDirs,
+  type TaskRecord,
   teamStorageBaseDir,
   toTeamCoreConfig,
-  type ListScope,
-  type ListedTask,
-  type TaskRecord,
-} from "@oh-my-opencode/senpi-task"
+} from "@oh-my-opencode/senpi-task";
 
-import { FakeExtensionAPI } from "../../../test-support/fake-extension-api"
+import { FakeExtensionAPI } from "../../../test-support/fake-extension-api";
 import {
-  RESUMPTION_CHANNEL_STATE_EVENT,
   createResumptionChannelEmitter,
-} from "./resumption-channel-emitter"
+  RESUMPTION_CHANNEL_STATE_EVENT,
+} from "./resumption-channel-emitter";
 
-const SESSION_ID = "parent-session"
-const TEAM_RUN_ID = "11111111-1111-4111-8111-111111111111"
-const tempRoots: string[] = []
+const SESSION_ID = "parent-session";
+const TEAM_RUN_ID = "11111111-1111-4111-8111-111111111111";
+const tempRoots: string[] = [];
 
 afterEach(() => {
-  for (const root of tempRoots.splice(0)) rmSync(root, { recursive: true, force: true })
-})
+  for (const root of tempRoots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 function ownedTeamRuntime(): RuntimeState {
   return {
@@ -39,7 +44,12 @@ function ownedTeamRuntime(): RuntimeState {
     createdAt: 1_000,
     status: "active",
     leadSessionId: SESSION_ID,
-    members: [{ name: "reviewer", agentType: "general-purpose", status: "running", pendingInjectedMessageIds: [] }],
+    members: [{
+      name: "reviewer",
+      agentType: "general-purpose",
+      status: "running",
+      pendingInjectedMessageIds: [],
+    }],
     shutdownRequests: [],
     bounds: {
       maxMembers: 8,
@@ -48,7 +58,7 @@ function ownedTeamRuntime(): RuntimeState {
       maxWallClockMinutes: 120,
       maxMemberTurns: 500,
     },
-  }
+  };
 }
 
 function taskRecord(overrides: Partial<TaskRecord> = {}): TaskRecord {
@@ -69,51 +79,55 @@ function taskRecord(overrides: Partial<TaskRecord> = {}): TaskRecord {
     notification: { run_epoch: 0, notified_epoch: -1 },
     notify_on_terminal: true,
     ...overrides,
-  }
+  };
 }
 
 function createHarness(options: {
-  readonly records?: TaskRecord[]
-  readonly ownedTaskIds?: ReadonlySet<string>
-  readonly withEvents?: boolean
+  readonly records?: TaskRecord[];
+  readonly ownedTaskIds?: ReadonlySet<string>;
+  readonly withEvents?: boolean;
 } = {}) {
-  const records = options.records ?? []
-  const emitted: Array<{ name: string; data: unknown }> = []
-  const pi = new FakeExtensionAPI()
+  const records = options.records ?? [];
+  const emitted: Array<{ name: string; data: unknown }> = [];
+  const pi = new FakeExtensionAPI();
   if (options.withEvents !== false) {
     pi.events = {
       emit: (name, data) => emitted.push({ name, data }),
       on: () => () => {},
-    }
+    };
   }
   const manager = {
-    list: (_scope: ListScope): readonly ListedTask[] => records.map((record) => ({ record })),
-    wasBackground: (taskId: string) => records.find((record) => record.task_id === taskId)?.notify_on_terminal === true,
-  }
+    list: (_scope: ListScope): readonly ListedTask[] =>
+      records.map((record) => ({ record })),
+    wasBackground: (taskId: string) =>
+      records.find((record) => record.task_id === taskId)
+        ?.notify_on_terminal === true,
+  };
   const emitter = createResumptionChannelEmitter({
     pi,
     manager,
     sessionId: () => SESSION_ID,
     stateDir: { project_dir: "/tmp/omo-resumption-channel-test" },
     settings: {} as OmoTaskSettings,
-    isOwnedTeamMember: async (record) => options.ownedTaskIds?.has(record.task_id) === true,
-  })
-  return { emitted, emitter, records }
+    isOwnedTeamMember: async (record) =>
+      options.ownedTaskIds?.has(record.task_id) === true,
+  });
+  return { emitted, emitter, records };
 }
 
 describe("createResumptionChannelEmitter", () => {
   it("#given a background child #when it spawns and then reaches a terminal state #then snapshots transition from one channel to zero", async () => {
     // given
-    const child = taskRecord()
-    const harness = createHarness({ records: [] })
-    await harness.emitter.emitSessionStart()
-    harness.emitted.length = 0
+    const child = taskRecord();
+    const harness = createHarness({ records: [] });
+    await harness.emitter.emitSessionStart();
+    harness.emitted.length = 0;
 
     // when
-    harness.records.push(child)
-    await harness.emitter.emitIfChanged()
-    harness.records[0] = { ...child, status: "completed" }
-    await harness.emitter.emitIfChanged()
+    harness.records.push(child);
+    await harness.emitter.emitIfChanged();
+    harness.records[0] = { ...child, status: "completed" };
+    await harness.emitter.emitIfChanged();
 
     // then
     expect(harness.emitted).toEqual([
@@ -133,8 +147,8 @@ describe("createResumptionChannelEmitter", () => {
         name: "wake_source_state",
         data: { source: "senpi-task", activeCount: 0, channels: [] },
       },
-    ])
-  })
+    ]);
+  });
 
   it("#given a foreground owned team member #when the snapshot is emitted #then the member counts as active", async () => {
     // given
@@ -144,11 +158,14 @@ describe("createResumptionChannelEmitter", () => {
       task_summary: undefined,
       description: "Review the implementation",
       notify_on_terminal: false,
-    })
-    const harness = createHarness({ records: [member], ownedTaskIds: new Set([member.task_id]) })
+    });
+    const harness = createHarness({
+      records: [member],
+      ownedTaskIds: new Set([member.task_id]),
+    });
 
     // when
-    await harness.emitter.emitSessionStart()
+    await harness.emitter.emitSessionStart();
 
     // then
     expect(harness.emitted).toEqual([{
@@ -162,44 +179,51 @@ describe("createResumptionChannelEmitter", () => {
           startedAtMs: Date.parse(member.created_at),
         }],
       },
-    }])
-  })
+    }]);
+  });
 
   it("#given a foreground owned team member resolved through the real ownership helper #when the session snapshot is emitted #then the member counts as active", async () => {
     // given a durable team runtime owned by this session and no injected ownership resolver
-    const project = mkdtempSync(join(tmpdir(), "omo-resumption-channel-binding-"))
-    tempRoots.push(project)
-    const settings = OmoTaskSettingsSchema.parse({})
-    const stateDir = { project_dir: project }
-    mkdirSync(resolveTeamRuntimeDirs(stateDir, TEAM_RUN_ID).runtimeDir, { recursive: true })
-    await saveRuntimeState(ownedTeamRuntime(), toTeamCoreConfig(settings, teamStorageBaseDir(stateDir)))
+    const project = mkdtempSync(
+      join(tmpdir(), "omo-resumption-channel-binding-"),
+    );
+    tempRoots.push(project);
+    const settings = OmoTaskSettingsSchema.parse({});
+    const stateDir = { project_dir: project };
+    mkdirSync(resolveTeamRuntimeDirs(stateDir, TEAM_RUN_ID).runtimeDir, {
+      recursive: true,
+    });
+    await saveRuntimeState(
+      ownedTeamRuntime(),
+      toTeamCoreConfig(settings, teamStorageBaseDir(stateDir)),
+    );
     const member = taskRecord({
       task_id: "st_00000003",
       name: `team:${TEAM_RUN_ID}:reviewer`,
       task_summary: undefined,
       description: "Review the implementation",
       notify_on_terminal: false,
-    })
-    const emitted: Array<{ name: string; data: unknown }> = []
-    const pi = new FakeExtensionAPI()
+    });
+    const emitted: Array<{ name: string; data: unknown }> = [];
+    const pi = new FakeExtensionAPI();
     pi.events = {
       emit: (name, data) => emitted.push({ name, data }),
       on: () => () => {},
-    }
+    };
     const manager = {
       list: (_scope: ListScope): readonly ListedTask[] => [{ record: member }],
       wasBackground: () => false,
-    }
+    };
     const emitter = createResumptionChannelEmitter({
       pi,
       manager,
       sessionId: () => SESSION_ID,
       stateDir,
       settings,
-    })
+    });
 
     // when
-    await emitter.emitSessionStart()
+    await emitter.emitSessionStart();
 
     // then
     expect(emitted).toEqual([{
@@ -213,42 +237,45 @@ describe("createResumptionChannelEmitter", () => {
           startedAtMs: Date.parse(member.created_at),
         }],
       },
-    }])
-  })
+    }]);
+  });
 
   it("#given an active child count of one #when a store mutation preserves that count #then no duplicate snapshot is emitted", async () => {
     // given
-    const child = taskRecord()
-    const harness = createHarness({ records: [child] })
-    await harness.emitter.emitSessionStart()
-    harness.emitted.length = 0
+    const child = taskRecord();
+    const harness = createHarness({ records: [child] });
+    await harness.emitter.emitSessionStart();
+    harness.emitted.length = 0;
 
     // when
-    harness.records[0] = { ...child, updated_at: "2026-08-08T01:02:05.000Z" }
-    await harness.emitter.emitIfChanged()
+    harness.records[0] = { ...child, updated_at: "2026-08-08T01:02:05.000Z" };
+    await harness.emitter.emitIfChanged();
 
     // then
-    expect(harness.emitted).toEqual([])
-  })
+    expect(harness.emitted).toEqual([]);
+  });
 
   it("#given an ExtensionAPI without events #when the emitter lifecycle is driven #then registration and emissions are harmless no-ops", async () => {
     // given
-    const harness = createHarness({ records: [taskRecord()], withEvents: false })
+    const harness = createHarness({
+      records: [taskRecord()],
+      withEvents: false,
+    });
 
     // when
     const result = await Promise.all([
       harness.emitter.emitSessionStart(),
       harness.emitter.emitIfChanged(),
       harness.emitter.emitShutdown(),
-    ])
+    ]);
 
     // then
-    expect(result).toEqual([undefined, undefined, undefined])
-    expect(harness.emitted).toEqual([])
-  })
+    expect(result).toEqual([undefined, undefined, undefined]);
+    expect(harness.emitted).toEqual([]);
+  });
 
   it("#given the local event contract #when the literal is inspected #then it exactly matches the harness event name", () => {
     // given / when / then
-    expect(RESUMPTION_CHANNEL_STATE_EVENT).toBe("wake_source_state")
-  })
-})
+    expect(RESUMPTION_CHANNEL_STATE_EVENT).toBe("wake_source_state");
+  });
+});

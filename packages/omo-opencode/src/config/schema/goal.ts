@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const GoalConfigSchema = z.object({
   /** Enable the Goal subsystem (default: false) */
@@ -7,6 +7,6 @@ export const GoalConfigSchema = z.object({
   auto_start: z.boolean().default(false),
   /** Default continuation iteration cap, preserved for Ralph Loop behavioral parity (default: 100) */
   default_max_iterations: z.number().min(1).max(1000).default(100),
-})
+});
 
-export type GoalConfig = z.infer<typeof GoalConfigSchema>
+export type GoalConfig = z.infer<typeof GoalConfigSchema>;

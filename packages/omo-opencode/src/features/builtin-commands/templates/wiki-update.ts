@@ -47,4 +47,4 @@ If the change affects high-level synthesis, update overview.md.
 Append to log.md: \`| {today} | update | Updated [[page-1]], [[page-2]] -- {reason} |\`
 
 ### Step 10: Confirm
-Show: pages updated, stale claims swept, sources cited.`
+Show: pages updated, stale claims swept, sources cited.`;

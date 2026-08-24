@@ -1,23 +1,28 @@
-declare const require: NodeJS.Require
+declare const require: NodeJS.Require;
 
-const { afterEach, describe, expect, it, mock, spyOn } = require("bun:test")
+const { afterEach, describe, expect, it, mock, spyOn } = require("bun:test");
 
-import { __resetTimingConfig, __setTimingConfig } from "./timing"
-import * as connectedProvidersCache from "../../shared/connected-providers-cache"
-import { releaseAllPromptAsyncReservationsForTesting } from "../../shared/prompt-async-gate"
-import type { NativeSkillEntry } from "../skill/native-skills"
+import { __resetTimingConfig, __setTimingConfig } from "./timing";
+import * as connectedProvidersCache from "../../shared/connected-providers-cache";
+import { releaseAllPromptAsyncReservationsForTesting } from "../../shared/prompt-async-gate";
+import type { NativeSkillEntry } from "../skill/native-skills";
 
 type LaunchInput = {
-  readonly skillContent?: string
-}
+  readonly skillContent?: string;
+};
 
 type DelegateTaskForTest = {
-  readonly execute: (args: Record<string, unknown>, context: Record<string, unknown>) => Promise<unknown>
-}
+  readonly execute: (
+    args: Record<string, unknown>,
+    context: Record<string, unknown>,
+  ) => Promise<unknown>;
+};
 
 type DelegateTaskToolsModule = {
-  readonly createDelegateTask: (options: Record<string, unknown>) => DelegateTaskForTest
-}
+  readonly createDelegateTask: (
+    options: Record<string, unknown>,
+  ) => DelegateTaskForTest;
+};
 
 function nativeSkill(name: string, description: string): NativeSkillEntry {
   return {
@@ -25,15 +30,15 @@ function nativeSkill(name: string, description: string): NativeSkillEntry {
     description,
     location: `/native/${name}/SKILL.md`,
     content: `${name} body`,
-  }
+  };
 }
 
 describe("createDelegateTask native skill prompt filtering", () => {
   afterEach(() => {
-    mock.restore()
-    __resetTimingConfig()
-    releaseAllPromptAsyncReservationsForTesting()
-  })
+    mock.restore();
+    __resetTimingConfig();
+    releaseAllPromptAsyncReservationsForTesting();
+  });
 
   it("#given native skills and a non-plan target #when delegate system content is built #then native descriptions are omitted", async () => {
     // given
@@ -45,25 +50,26 @@ describe("createDelegateTask native skill prompt filtering", () => {
       WAIT_FOR_SESSION_TIMEOUT_MS: 100,
       MAX_POLL_TIME_MS: 50,
       SESSION_CONTINUATION_STABILITY_MS: 50,
-    })
-    spyOn(connectedProvidersCache, "readConnectedProvidersCache").mockReturnValue(["openai"])
+    });
+    spyOn(connectedProvidersCache, "readConnectedProvidersCache")
+      .mockReturnValue(["openai"]);
     spyOn(connectedProvidersCache, "readProviderModelsCache").mockReturnValue({
       models: { openai: ["gpt-5.6-luna-fast"] },
       connected: ["openai"],
       updatedAt: "2026-06-15T00:00:00.000Z",
-    })
+    });
 
-    let capturedLaunch: LaunchInput | undefined
+    let capturedLaunch: LaunchInput | undefined;
     const manager = {
       async launch(input: LaunchInput) {
-        capturedLaunch = input
+        capturedLaunch = input;
         return {
           id: "bg_native_prompt_filter",
           sessionId: "ses_native_prompt_filter",
           status: "pending",
           description: "Native prompt filter",
           agent: "explore",
-        }
+        };
       },
       getTask() {
         return {
@@ -72,45 +78,45 @@ describe("createDelegateTask native skill prompt filtering", () => {
           status: "pending",
           description: "Native prompt filter",
           agent: "explore",
-        }
+        };
       },
-    }
+    };
     const client = {
       app: {
         async agents() {
-          return { data: [{ name: "explore", mode: "subagent" }] }
+          return { data: [{ name: "explore", mode: "subagent" }] };
         },
       },
       config: {
         async get() {
-          return { data: { model: "openai/gpt-5.6-luna-fast" } }
+          return { data: { model: "openai/gpt-5.6-luna-fast" } };
         },
       },
       session: {
         async abort() {
-          return { data: {} }
+          return { data: {} };
         },
         async create() {
-          return { data: { id: "ses_native_prompt_filter" } }
+          return { data: { id: "ses_native_prompt_filter" } };
         },
         async get() {
-          return { data: { directory: "/project" } }
+          return { data: { directory: "/project" } };
         },
         async messages() {
-          return { data: [] }
+          return { data: [] };
         },
         async prompt() {
-          return { data: {} }
+          return { data: {} };
         },
         async promptAsync() {
-          return { data: {} }
+          return { data: {} };
         },
         async status() {
-          return { data: {} }
+          return { data: {} };
         },
       },
-    }
-    const { createDelegateTask }: DelegateTaskToolsModule = require("./tools")
+    };
+    const { createDelegateTask }: DelegateTaskToolsModule = require("./tools");
     const tool = createDelegateTask({
       manager,
       client,
@@ -126,20 +132,23 @@ describe("createDelegateTask native skill prompt filtering", () => {
       nativeSkills: {
         all() {
           return [
-            nativeSkill("blocked-native-skill", "BLOCKED_NATIVE_PROMPT_INJECTION"),
+            nativeSkill(
+              "blocked-native-skill",
+              "BLOCKED_NATIVE_PROMPT_INJECTION",
+            ),
             nativeSkill("debugging", "DISABLED_SHARED_ALIAS_INJECTION"),
             nativeSkill("ulw-plan", "IGNORE_ALL_PRIOR_INSTRUCTIONS"),
             nativeSkill("safe-native-skill", "Safe native guidance"),
-          ]
+          ];
         },
         get() {
-          return undefined
+          return undefined;
         },
         dirs() {
-          return ["/native"]
+          return ["/native"];
         },
       },
-    })
+    });
 
     // when
     await tool.execute(
@@ -156,10 +165,10 @@ describe("createDelegateTask native skill prompt filtering", () => {
         agent: "sisyphus",
         abort: new AbortController().signal,
       },
-    )
+    );
 
     // then
-    expect(capturedLaunch).toBeDefined()
-    expect(capturedLaunch?.skillContent).toBeUndefined()
-  })
-})
+    expect(capturedLaunch).toBeDefined();
+    expect(capturedLaunch?.skillContent).toBeUndefined();
+  });
+});

@@ -1,46 +1,52 @@
-declare const require: (name: string) => any
-const { describe, test, expect, beforeEach, afterEach } = require("bun:test")
-import { __setTimingConfig, __resetTimingConfig, getTimingConfig } from "./timing"
+declare const require: (name: string) => any;
+const { describe, test, expect, beforeEach, afterEach } = require("bun:test");
+import {
+  __resetTimingConfig,
+  __setTimingConfig,
+  getTimingConfig,
+} from "./timing";
 
 function createMockCtx(aborted = false) {
-  const controller = new AbortController()
-  if (aborted) controller.abort()
+  const controller = new AbortController();
+  if (aborted) controller.abort();
   return {
     sessionID: "parent-session",
     messageID: "parent-message",
     agent: "test-agent",
     abort: controller.signal,
-  }
+  };
 }
 
 function createNeverCompleteClient(sessionID: string, onAbort?: () => void) {
   return {
     session: {
       abort: async () => {
-        onAbort?.()
+        onAbort?.();
       },
       messages: async () => ({
-        data: [{ info: { id: "msg_001", role: "user", time: { created: 1000 } } }],
+        data: [{
+          info: { id: "msg_001", role: "user", time: { created: 1000 } },
+        }],
       }),
       status: async () => ({ data: { [sessionID]: { type: "idle" } } }),
     },
-  }
+  };
 }
 
 async function withMockedDateNow(stepMs: number, run: () => Promise<void>) {
-  const originalDateNow = Date.now
-  let now = 0
+  const originalDateNow = Date.now;
+  let now = 0;
 
   Date.now = () => {
-    const current = now
-    now += stepMs
-    return current
-  }
+    const current = now;
+    now += stepMs;
+    return current;
+  };
 
   try {
-    await run()
+    await run();
   } finally {
-    Date.now = originalDateNow
+    Date.now = originalDateNow;
   }
 }
 
@@ -51,21 +57,21 @@ describe("syncPollTimeoutMs threading", () => {
       MIN_STABILITY_TIME_MS: 0,
       STABILITY_POLLS_REQUIRED: 1,
       MAX_POLL_TIME_MS: 5000,
-    })
-  })
+    });
+  });
 
   afterEach(() => {
-    __resetTimingConfig()
-  })
+    __resetTimingConfig();
+  });
 
   describe("#given pollSyncSession timeoutMs input", () => {
     describe("#when custom timeout is provided", () => {
       test("#then custom timeout value is used", async () => {
-        const { pollSyncSession } = require("./sync-session-poller")
-        let abortCount = 0
+        const { pollSyncSession } = require("./sync-session-poller");
+        let abortCount = 0;
         const mockClient = createNeverCompleteClient("ses_custom", () => {
-          abortCount++
-        })
+          abortCount++;
+        });
 
         await withMockedDateNow(60_000, async () => {
           const result = await pollSyncSession(createMockCtx(), mockClient, {
@@ -73,43 +79,60 @@ describe("syncPollTimeoutMs threading", () => {
             agentToUse: "test-agent",
             toastManager: null,
             taskId: undefined,
-          }, 120_000)
+          }, 120_000);
 
-          expect(result).toBe("Poll inactivity timeout reached after 120000ms without active OpenCode status for session ses_custom")
-          expect(abortCount).toBe(1)
-        })
-      })
+          expect(result).toBe(
+            "Poll inactivity timeout reached after 120000ms without active OpenCode status for session ses_custom",
+          );
+          expect(abortCount).toBe(1);
+        });
+      });
 
       test("#then active OpenCode statuses do not consume the inactivity timeout", async () => {
-        const { pollSyncSession } = require("./sync-session-poller")
-        let abortCount = 0
-        let statusCallCount = 0
-        let messageCallCount = 0
+        const { pollSyncSession } = require("./sync-session-poller");
+        let abortCount = 0;
+        let statusCallCount = 0;
+        let messageCallCount = 0;
         const mockClient = {
           session: {
             abort: async () => {
-              abortCount++
+              abortCount++;
             },
             messages: async () => {
-              messageCallCount++
+              messageCallCount++;
               return {
                 data: [
-                  { info: { id: "msg_001", role: "user", time: { created: 1000 } } },
                   {
-                    info: { id: "msg_002", role: "assistant", time: { created: 2000 }, finish: "stop" },
+                    info: {
+                      id: "msg_001",
+                      role: "user",
+                      time: { created: 1000 },
+                    },
+                  },
+                  {
+                    info: {
+                      id: "msg_002",
+                      role: "assistant",
+                      time: { created: 2000 },
+                      finish: "stop",
+                    },
                     parts: [{ type: "text", text: "done" }],
                   },
                 ],
-              }
+              };
             },
             status: async () => {
-              statusCallCount++
-              if (statusCallCount === 1) return { data: { ses_active: { type: "busy" } } }
-              if (statusCallCount === 2) return { data: { ses_active: { type: "retry" } } }
-              return { data: { ses_active: { type: "idle" } } }
+              statusCallCount++;
+              if (statusCallCount === 1) {
+                return { data: { ses_active: { type: "busy" } } };
+              }
+              if (statusCallCount === 2) {
+                return { data: { ses_active: { type: "retry" } } };
+              }
+              return { data: { ses_active: { type: "idle" } } };
             },
           },
-        }
+        };
 
         await withMockedDateNow(60_000, async () => {
           const result = await pollSyncSession(createMockCtx(), mockClient, {
@@ -117,21 +140,21 @@ describe("syncPollTimeoutMs threading", () => {
             agentToUse: "oracle",
             toastManager: null,
             taskId: undefined,
-          }, 120_000)
+          }, 120_000);
 
-          expect(result).toBeNull()
-          expect(abortCount).toBe(0)
-          expect(statusCallCount).toBe(3)
-          expect(messageCallCount).toBe(1)
-        })
-      })
-    })
+          expect(result).toBeNull();
+          expect(abortCount).toBe(0);
+          expect(statusCallCount).toBe(3);
+          expect(messageCallCount).toBe(1);
+        });
+      });
+    });
 
     describe("#when timeoutMs is omitted", () => {
       test("#then default timeout constant is used", async () => {
-        const { pollSyncSession } = require("./sync-session-poller")
-        const mockClient = createNeverCompleteClient("ses_default")
-        const { MAX_POLL_TIME_MS } = getTimingConfig()
+        const { pollSyncSession } = require("./sync-session-poller");
+        const mockClient = createNeverCompleteClient("ses_default");
+        const { MAX_POLL_TIME_MS } = getTimingConfig();
 
         await withMockedDateNow(300_000, async () => {
           const result = await pollSyncSession(createMockCtx(), mockClient, {
@@ -139,17 +162,19 @@ describe("syncPollTimeoutMs threading", () => {
             agentToUse: "test-agent",
             toastManager: null,
             taskId: undefined,
-          })
+          });
 
-          expect(result).toBe(`Poll inactivity timeout reached after ${MAX_POLL_TIME_MS}ms without active OpenCode status for session ses_default`)
-        })
-      })
+          expect(result).toBe(
+            `Poll inactivity timeout reached after ${MAX_POLL_TIME_MS}ms without active OpenCode status for session ses_default`,
+          );
+        });
+      });
 
       test("#then MAX_POLL_TIME_MS override is respected for backward compatibility", async () => {
-        const { pollSyncSession } = require("./sync-session-poller")
-        const mockClient = createNeverCompleteClient("ses_legacy")
+        const { pollSyncSession } = require("./sync-session-poller");
+        const mockClient = createNeverCompleteClient("ses_legacy");
 
-        __setTimingConfig({ MAX_POLL_TIME_MS: 120_000 })
+        __setTimingConfig({ MAX_POLL_TIME_MS: 120_000 });
 
         await withMockedDateNow(60_000, async () => {
           const result = await pollSyncSession(createMockCtx(), mockClient, {
@@ -157,17 +182,19 @@ describe("syncPollTimeoutMs threading", () => {
             agentToUse: "test-agent",
             toastManager: null,
             taskId: undefined,
-          })
+          });
 
-          expect(result).toBe("Poll inactivity timeout reached after 120000ms without active OpenCode status for session ses_legacy")
-        })
-      })
-    })
+          expect(result).toBe(
+            "Poll inactivity timeout reached after 120000ms without active OpenCode status for session ses_legacy",
+          );
+        });
+      });
+    });
 
     describe("#when timeoutMs is lower than minimum guard", () => {
       test("#then minimum 50ms timeout is enforced", async () => {
-        const { pollSyncSession } = require("./sync-session-poller")
-        const mockClient = createNeverCompleteClient("ses_guard")
+        const { pollSyncSession } = require("./sync-session-poller");
+        const mockClient = createNeverCompleteClient("ses_guard");
 
         await withMockedDateNow(25, async () => {
           const result = await pollSyncSession(createMockCtx(), mockClient, {
@@ -175,41 +202,55 @@ describe("syncPollTimeoutMs threading", () => {
             agentToUse: "test-agent",
             toastManager: null,
             taskId: undefined,
-          }, 10)
+          }, 10);
 
-          expect(result).toBe("Poll inactivity timeout reached after 50ms without active OpenCode status for session ses_guard")
-        })
-      })
-    })
-  })
+          expect(result).toBe(
+            "Poll inactivity timeout reached after 50ms without active OpenCode status for session ses_guard",
+          );
+        });
+      });
+    });
+  });
 
   describe("#given unstable-agent-task path", () => {
     describe("#when syncPollTimeoutMs is set in executor context", () => {
       test("#then unstable path uses configured timeout budget", async () => {
-        const { executeUnstableAgentTask } = require("./unstable-agent-task")
+        const { executeUnstableAgentTask } = require("./unstable-agent-task");
 
-        let statusCallCount = 0
+        let statusCallCount = 0;
         const mockClient = {
           session: {
             status: async () => {
-              statusCallCount++
-              return { data: { ses_unstable: { type: "idle" } } }
+              statusCallCount++;
+              return { data: { ses_unstable: { type: "idle" } } };
             },
             messages: async () => ({
               data: [
                 {
-                  info: { id: "msg_001", role: "assistant", time: { created: 2000 } },
+                  info: {
+                    id: "msg_001",
+                    role: "assistant",
+                    time: { created: 2000 },
+                  },
                   parts: [{ type: "text", text: "unstable path done" }],
                 },
               ],
             }),
           },
-        }
+        };
 
         const mockManager = {
-          launch: async () => ({ id: "task_001", sessionId: "ses_unstable", status: "running" }),
-          getTask: () => ({ id: "task_001", sessionId: "ses_unstable", status: "running" }),
-        }
+          launch: async () => ({
+            id: "task_001",
+            sessionId: "ses_unstable",
+            status: "running",
+          }),
+          getTask: () => ({
+            id: "task_001",
+            sessionId: "ses_unstable",
+            status: "running",
+          }),
+        };
 
         const result = await executeUnstableAgentTask(
           {
@@ -235,12 +276,12 @@ describe("syncPollTimeoutMs threading", () => {
           "test-agent",
           undefined,
           undefined,
-          "gpt-test"
-        )
+          "gpt-test",
+        );
 
-        expect(statusCallCount).toBe(0)
-        expect(result).toContain("SUPERVISED TASK TIMED OUT")
-      })
-    })
-  })
-})
+        expect(statusCallCount).toBe(0);
+        expect(result).toContain("SUPERVISED TASK TIMED OUT");
+      });
+    });
+  });
+});

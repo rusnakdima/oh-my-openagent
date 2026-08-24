@@ -4,13 +4,13 @@ export {
   CATEGORY_CALLER_GUIDANCE,
   CATEGORY_DESCRIPTIONS,
   CATEGORY_PROMPT_APPENDS,
-  DEFAULT_CATEGORIES,
   categoryGateModel,
+  DEFAULT_CATEGORIES,
   isCategoryChainRungResolvable,
   isCategoryChainViable,
   isCategoryGateSatisfied,
-} from "./builtins"
-export { resolveAvailableCategoryNames, resolveCategory } from "./resolver"
+} from "./builtins";
+export { resolveAvailableCategoryNames, resolveCategory } from "./resolver";
 export type {
   BuiltinCategoryDefinition,
   CategoryModelSelection,
@@ -19,4 +19,4 @@ export type {
   ResolvedChildSpec,
   SenpiModelPort,
   SenpiModelRegistryPort,
-} from "./types"
+} from "./types";

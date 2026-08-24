@@ -1,7 +1,10 @@
-import type { PluginInput } from "@opencode-ai/plugin"
-import { classifyFinalWaveVerdict, shouldPauseForFinalWaveApproval } from "./final-wave-approval-gate"
-import { readFinalWavePlanState } from "./final-wave-plan-state"
-import type { SessionState } from "./types"
+import type { PluginInput } from "@opencode-ai/plugin";
+import {
+  classifyFinalWaveVerdict,
+  shouldPauseForFinalWaveApproval,
+} from "./final-wave-approval-gate";
+import { readFinalWavePlanState } from "./final-wave-plan-state";
+import type { SessionState } from "./types";
 import {
   buildAdvanceDirective,
   buildCompletionGate,
@@ -9,63 +12,71 @@ import {
   buildMissingVerdictEscalation,
   buildOrchestratorReminder,
   buildRejectedVerdictEscalation,
-} from "./verification-reminders"
+} from "./verification-reminders";
 
 type CurrentTask = {
-  readonly key: string
-  readonly label: string
-} | null
+  readonly key: string;
+  readonly label: string;
+} | null;
 
 type ReminderDecision = {
-  readonly leadReminder: string
-  readonly followupReminder: string | null
-  readonly isFinalWaveTask: boolean
-  readonly isMissingFinalWaveVerdict: boolean
-  readonly isRejectedFinalWaveVerdict: boolean
-  readonly shouldPauseForApproval: boolean
-}
+  readonly leadReminder: string;
+  readonly followupReminder: string | null;
+  readonly isFinalWaveTask: boolean;
+  readonly isMissingFinalWaveVerdict: boolean;
+  readonly isRejectedFinalWaveVerdict: boolean;
+  readonly shouldPauseForApproval: boolean;
+};
 
 export async function buildSubagentCompletionReminder(input: {
-  readonly ctx: PluginInput
-  readonly planPath: string
-  readonly planName: string
-  readonly progress: { readonly total: number; readonly completed: number }
-  readonly preferredSessionId: string
-  readonly originalResponse: string
-  readonly currentTask: CurrentTask
-  readonly sessionState: SessionState | undefined
-  readonly isAlreadyVerified: boolean
-  readonly autoCommit: boolean
+  readonly ctx: PluginInput;
+  readonly planPath: string;
+  readonly planName: string;
+  readonly progress: { readonly total: number; readonly completed: number };
+  readonly preferredSessionId: string;
+  readonly originalResponse: string;
+  readonly currentTask: CurrentTask;
+  readonly sessionState: SessionState | undefined;
+  readonly isAlreadyVerified: boolean;
+  readonly autoCommit: boolean;
 }): Promise<ReminderDecision> {
   const shouldPauseForApproval = input.sessionState
     ? shouldPauseForFinalWaveApproval({
-        planPath: input.planPath,
-        taskOutput: input.originalResponse,
-        sessionState: input.sessionState,
-      })
-    : false
+      planPath: input.planPath,
+      taskOutput: input.originalResponse,
+      sessionState: input.sessionState,
+    })
+    : false;
 
-  const finalWavePlanState = readFinalWavePlanState(input.planPath)
-  const isFinalWaveTask = input.currentTask?.key.startsWith("final-wave:") === true
-    || ((finalWavePlanState?.pendingImplementationTaskCount ?? 1) === 0
-      && (finalWavePlanState?.pendingFinalWaveTaskCount ?? 0) > 0)
+  const finalWavePlanState = readFinalWavePlanState(input.planPath);
+  const isFinalWaveTask =
+    input.currentTask?.key.startsWith("final-wave:") === true ||
+    ((finalWavePlanState?.pendingImplementationTaskCount ?? 1) === 0 &&
+      (finalWavePlanState?.pendingFinalWaveTaskCount ?? 0) > 0);
   const finalWaveVerdict = isFinalWaveTask
     ? classifyFinalWaveVerdict(input.originalResponse)
-    : "missing"
-  const isMissingFinalWaveVerdict = isFinalWaveTask && finalWaveVerdict === "missing"
-  const isRejectedFinalWaveVerdict = isFinalWaveTask && finalWaveVerdict === "reject"
-  const shouldPause = shouldPauseForApproval || isMissingFinalWaveVerdict || isRejectedFinalWaveVerdict
+    : "missing";
+  const isMissingFinalWaveVerdict = isFinalWaveTask &&
+    finalWaveVerdict === "missing";
+  const isRejectedFinalWaveVerdict = isFinalWaveTask &&
+    finalWaveVerdict === "reject";
+  const shouldPause = shouldPauseForApproval || isMissingFinalWaveVerdict ||
+    isRejectedFinalWaveVerdict;
 
   if (input.sessionState) {
-    input.sessionState.waitingForFinalWaveApproval = shouldPause
+    input.sessionState.waitingForFinalWaveApproval = shouldPause;
     if (shouldPause && input.sessionState.pendingRetryTimer) {
-      clearTimeout(input.sessionState.pendingRetryTimer)
-      input.sessionState.pendingRetryTimer = undefined
+      clearTimeout(input.sessionState.pendingRetryTimer);
+      input.sessionState.pendingRetryTimer = undefined;
     }
   }
 
   if (isMissingFinalWaveVerdict) {
-    await showFinalWaveToast(input.ctx, "Final review incomplete", "A reviewer returned no clear verdict. Boulder paused - confirm or re-run the review.")
+    await showFinalWaveToast(
+      input.ctx,
+      "Final review incomplete",
+      "A reviewer returned no clear verdict. Boulder paused - confirm or re-run the review.",
+    );
     return {
       leadReminder: buildMissingVerdictEscalation(
         input.planName,
@@ -77,11 +88,15 @@ export async function buildSubagentCompletionReminder(input: {
       isMissingFinalWaveVerdict,
       isRejectedFinalWaveVerdict,
       shouldPauseForApproval,
-    }
+    };
   }
 
   if (isRejectedFinalWaveVerdict) {
-    await showFinalWaveToast(input.ctx, "Final review rejected", "A reviewer returned VERDICT: REJECT. Boulder paused - fix or ask the user how to proceed.")
+    await showFinalWaveToast(
+      input.ctx,
+      "Final review rejected",
+      "A reviewer returned VERDICT: REJECT. Boulder paused - fix or ask the user how to proceed.",
+    );
     return {
       leadReminder: buildRejectedVerdictEscalation(
         input.planName,
@@ -93,18 +108,22 @@ export async function buildSubagentCompletionReminder(input: {
       isMissingFinalWaveVerdict,
       isRejectedFinalWaveVerdict,
       shouldPauseForApproval,
-    }
+    };
   }
 
   if (shouldPauseForApproval) {
     return {
-      leadReminder: buildFinalWaveApprovalReminder(input.planName, input.progress, input.preferredSessionId),
+      leadReminder: buildFinalWaveApprovalReminder(
+        input.planName,
+        input.progress,
+        input.preferredSessionId,
+      ),
       followupReminder: null,
       isFinalWaveTask,
       isMissingFinalWaveVerdict,
       isRejectedFinalWaveVerdict,
       shouldPauseForApproval,
-    }
+    };
   }
 
   if (input.isAlreadyVerified) {
@@ -115,25 +134,35 @@ export async function buildSubagentCompletionReminder(input: {
       isMissingFinalWaveVerdict,
       isRejectedFinalWaveVerdict,
       shouldPauseForApproval,
-    }
+    };
   }
 
   if (input.currentTask && input.sessionState && !isFinalWaveTask) {
-    input.sessionState.verifiedTaskKeys ??= new Set<string>()
-    input.sessionState.verifiedTaskKeys.add(input.currentTask.key)
+    input.sessionState.verifiedTaskKeys ??= new Set<string>();
+    input.sessionState.verifiedTaskKeys.add(input.currentTask.key);
   }
 
   return {
     leadReminder: buildCompletionGate(input.planName, input.preferredSessionId),
-    followupReminder: buildOrchestratorReminder(input.planName, input.progress, input.preferredSessionId, input.autoCommit, false),
+    followupReminder: buildOrchestratorReminder(
+      input.planName,
+      input.progress,
+      input.preferredSessionId,
+      input.autoCommit,
+      false,
+    ),
     isFinalWaveTask,
     isMissingFinalWaveVerdict,
     isRejectedFinalWaveVerdict,
     shouldPauseForApproval,
-  }
+  };
 }
 
-async function showFinalWaveToast(ctx: PluginInput, title: string, message: string): Promise<void> {
+async function showFinalWaveToast(
+  ctx: PluginInput,
+  title: string,
+  message: string,
+): Promise<void> {
   await ctx.client.tui
     .showToast({
       body: {
@@ -143,5 +172,5 @@ async function showFinalWaveToast(ctx: PluginInput, title: string, message: stri
         duration: 10000,
       },
     })
-    .catch(() => {})
+    .catch(() => {});
 }

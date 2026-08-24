@@ -1,12 +1,14 @@
-const BOOLEAN_PROPERTY = Object.freeze({ type: "boolean" } as const)
-const NUMBER_PROPERTY = Object.freeze({ type: "number" } as const)
-const STRING_PROPERTY = Object.freeze({ type: "string" } as const)
+const BOOLEAN_PROPERTY = Object.freeze({ type: "boolean" } as const);
+const NUMBER_PROPERTY = Object.freeze({ type: "number" } as const);
+const STRING_PROPERTY = Object.freeze({ type: "string" } as const);
 
-function enumProperty<const Values extends readonly string[]>(values: Values): Readonly<{
-  type: "string"
-  values: Values
+function enumProperty<const Values extends readonly string[]>(
+  values: Values,
+): Readonly<{
+  type: "string";
+  values: Values;
 }> {
-  return Object.freeze({ type: "string", values: Object.freeze(values) })
+  return Object.freeze({ type: "string", values: Object.freeze(values) });
 }
 
 export const PARALLELISM_SUMMARY_SCHEMA = Object.freeze({
@@ -40,4 +42,4 @@ export const PARALLELISM_SUMMARY_SCHEMA = Object.freeze({
   non_eval_waves_total: NUMBER_PROPERTY,
   schema_kind: enumProperty(["parallelism_v1", "parallelism_v2"] as const),
   upper_bound_saved_ms: NUMBER_PROPERTY,
-})
+});

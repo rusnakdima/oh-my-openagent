@@ -1,57 +1,60 @@
-import { log } from "../../shared/logger"
-import type { PluginInput } from "@opencode-ai/plugin"
-import { normalizeSDKResponse } from "../../shared"
-import { isSqliteBackend } from "../../shared/opencode-storage-detection"
-import { findEmptyMessages } from "./storage/empty-messages"
+import { log } from "../../shared/logger";
+import type { PluginInput } from "@opencode-ai/plugin";
+import { normalizeSDKResponse } from "../../shared";
+import { isSqliteBackend } from "../../shared/opencode-storage-detection";
+import { findEmptyMessages } from "./storage/empty-messages";
 import {
   findMessagesWithEmptyTextParts,
   findMessagesWithEmptyTextPartsFromSDK,
   replaceEmptyTextParts,
   replaceEmptyTextPartsAsync,
-} from "./storage/empty-text"
-import { injectTextPart, injectTextPartAsync } from "./storage/text-part-injector"
+} from "./storage/empty-text";
+import {
+  injectTextPart,
+  injectTextPartAsync,
+} from "./storage/text-part-injector";
 
-export const PLACEHOLDER_TEXT = "[user interrupted]"
+export const PLACEHOLDER_TEXT = "[user interrupted]";
 
-type OpencodeClient = PluginInput["client"]
+type OpencodeClient = PluginInput["client"];
 
 interface SDKPart {
-  type?: string
-  text?: string
+  type?: string;
+  text?: string;
 }
 
 interface SDKMessage {
-  info?: { id?: string }
-  parts?: SDKPart[]
+  info?: { id?: string };
+  parts?: SDKPart[];
 }
 
-const IGNORE_TYPES = new Set(["thinking", "redacted_thinking", "meta"])
-const TOOL_TYPES = new Set(["tool", "tool_use", "tool_result"])
+const IGNORE_TYPES = new Set(["thinking", "redacted_thinking", "meta"]);
+const TOOL_TYPES = new Set(["tool", "tool_use", "tool_result"]);
 
 function messageHasContentFromSDK(message: SDKMessage): boolean {
-  const parts = message.parts
-  if (!parts || parts.length === 0) return false
+  const parts = message.parts;
+  if (!parts || parts.length === 0) return false;
 
   for (const part of parts) {
-    const type = part.type
-    if (!type) continue
+    const type = part.type;
+    if (!type) continue;
     if (IGNORE_TYPES.has(type)) {
-      continue
+      continue;
     }
 
     if (type === "text") {
-      if (part.text?.trim()) return true
-      continue
+      if (part.text?.trim()) return true;
+      continue;
     }
 
-    if (TOOL_TYPES.has(type)) return true
+    if (TOOL_TYPES.has(type)) return true;
 
-    return true
+    return true;
   }
 
   // Messages with only thinking/meta parts are treated as empty
   // to align with file-based logic (messageHasContent)
-  return false
+  return false;
 }
 
 async function findEmptyMessageIdsFromSDK(
@@ -61,24 +64,26 @@ async function findEmptyMessageIdsFromSDK(
   try {
     const response = (await client.session.messages({
       path: { id: sessionID },
-    })) as { data?: SDKMessage[] }
-    const messages = normalizeSDKResponse(response, [] as SDKMessage[], { preferResponseOnMissingData: true })
+    })) as { data?: SDKMessage[] };
+    const messages = normalizeSDKResponse(response, [] as SDKMessage[], {
+      preferResponseOnMissingData: true,
+    });
 
-    const emptyIds: string[] = []
+    const emptyIds: string[] = [];
     for (const message of messages) {
-      const messageID = message.info?.id
-      if (!messageID) continue
+      const messageID = message.info?.id;
+      if (!messageID) continue;
       if (!messageHasContentFromSDK(message)) {
-        emptyIds.push(messageID)
+        emptyIds.push(messageID);
       }
     }
 
-    return emptyIds
+    return emptyIds;
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
-    return []
+    return [];
   }
 }
 
@@ -87,22 +92,35 @@ export async function sanitizeEmptyMessagesBeforeSummarize(
   client?: OpencodeClient,
 ): Promise<number> {
   if (client && isSqliteBackend()) {
-    const emptyMessageIds = await findEmptyMessageIdsFromSDK(client, sessionID)
-    const emptyTextPartIds = await findMessagesWithEmptyTextPartsFromSDK(client, sessionID)
-    const allIds = [...new Set([...emptyMessageIds, ...emptyTextPartIds])]
+    const emptyMessageIds = await findEmptyMessageIdsFromSDK(client, sessionID);
+    const emptyTextPartIds = await findMessagesWithEmptyTextPartsFromSDK(
+      client,
+      sessionID,
+    );
+    const allIds = [...new Set([...emptyMessageIds, ...emptyTextPartIds])];
     if (allIds.length === 0) {
-      return 0
+      return 0;
     }
 
-    let fixedCount = 0
+    let fixedCount = 0;
     for (const messageID of allIds) {
-      const replaced = await replaceEmptyTextPartsAsync(client, sessionID, messageID, PLACEHOLDER_TEXT)
+      const replaced = await replaceEmptyTextPartsAsync(
+        client,
+        sessionID,
+        messageID,
+        PLACEHOLDER_TEXT,
+      );
       if (replaced) {
-        fixedCount++
+        fixedCount++;
       } else {
-        const injected = await injectTextPartAsync(client, sessionID, messageID, PLACEHOLDER_TEXT)
+        const injected = await injectTextPartAsync(
+          client,
+          sessionID,
+          messageID,
+          PLACEHOLDER_TEXT,
+        );
         if (injected) {
-          fixedCount++
+          fixedCount++;
         }
       }
     }
@@ -112,28 +130,28 @@ export async function sanitizeEmptyMessagesBeforeSummarize(
         sessionID,
         fixedCount,
         totalEmpty: allIds.length,
-      })
+      });
     }
 
-    return fixedCount
+    return fixedCount;
   }
 
-  const emptyMessageIds = findEmptyMessages(sessionID)
-  const emptyTextPartIds = findMessagesWithEmptyTextParts(sessionID)
-  const allIds = [...new Set([...emptyMessageIds, ...emptyTextPartIds])]
+  const emptyMessageIds = findEmptyMessages(sessionID);
+  const emptyTextPartIds = findMessagesWithEmptyTextParts(sessionID);
+  const allIds = [...new Set([...emptyMessageIds, ...emptyTextPartIds])];
   if (allIds.length === 0) {
-    return 0
+    return 0;
   }
 
-  let fixedCount = 0
+  let fixedCount = 0;
   for (const messageID of allIds) {
-    const replaced = replaceEmptyTextParts(messageID, PLACEHOLDER_TEXT)
+    const replaced = replaceEmptyTextParts(messageID, PLACEHOLDER_TEXT);
     if (replaced) {
-      fixedCount++
+      fixedCount++;
     } else {
-      const injected = injectTextPart(sessionID, messageID, PLACEHOLDER_TEXT)
+      const injected = injectTextPart(sessionID, messageID, PLACEHOLDER_TEXT);
       if (injected) {
-        fixedCount++
+        fixedCount++;
       }
     }
   }
@@ -143,16 +161,16 @@ export async function sanitizeEmptyMessagesBeforeSummarize(
       sessionID,
       fixedCount,
       totalEmpty: allIds.length,
-    })
+    });
   }
 
-  return fixedCount
+  return fixedCount;
 }
 
 export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes}B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
 }
 
 export async function getLastAssistant(
@@ -164,31 +182,31 @@ export async function getLastAssistant(
     const resp = await client.session.messages({
       path: { id: sessionID },
       query: { directory },
-    })
+    });
 
-    const data = (resp as { data?: unknown[] }).data
-    if (!Array.isArray(data)) return null
+    const data = (resp as { data?: unknown[] }).data;
+    if (!Array.isArray(data)) return null;
 
-    const reversed = [...data].reverse()
+    const reversed = [...data].reverse();
     const last = reversed.find((m) => {
-      const msg = m as Record<string, unknown>
-      const info = msg.info as Record<string, unknown> | undefined
-      return info?.role === "assistant"
-    })
-    if (!last) return null
+      const msg = m as Record<string, unknown>;
+      const info = msg.info as Record<string, unknown> | undefined;
+      return info?.role === "assistant";
+    });
+    if (!last) return null;
 
-    const message = last as SDKMessage & { info?: Record<string, unknown> }
-    const info = message.info
-    if (!info) return null
+    const message = last as SDKMessage & { info?: Record<string, unknown> };
+    const info = message.info;
+    if (!info) return null;
 
     return {
       info,
       hasContent: messageHasContentFromSDK(message),
-    }
+    };
   } catch (error) {
     if (!(error instanceof Error)) {
-      throw error
+      throw error;
     }
-    return null
+    return null;
   }
 }

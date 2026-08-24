@@ -1,26 +1,31 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test"
-import { tmpdir } from "node:os"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { tmpdir } from "node:os";
 
-import { _resetForTesting, subagentSessions } from "../claude-code-session-state"
-import { SessionCategoryRegistry } from "../../shared/session-category-registry"
-import { BackgroundManager } from "./manager"
-import type { BackgroundTask } from "./types"
+import {
+  _resetForTesting,
+  subagentSessions,
+} from "../claude-code-session-state";
+import { SessionCategoryRegistry } from "../../shared/session-category-registry";
+import { BackgroundManager } from "./manager";
+import type { BackgroundTask } from "./types";
 
 function createDeferredPromise(): {
-  promise: Promise<void>
-  resolve: () => void
+  promise: Promise<void>;
+  resolve: () => void;
 } {
-  let resolvePromise = () => {}
+  let resolvePromise = () => {};
   const promise = new Promise<void>((resolve) => {
-    resolvePromise = resolve
-  })
+    resolvePromise = resolve;
+  });
   return {
     promise,
     resolve: resolvePromise,
-  }
+  };
 }
 
-function createTask(overrides: Partial<BackgroundTask> & { id: string; sessionId: string }): BackgroundTask {
+function createTask(
+  overrides: Partial<BackgroundTask> & { id: string; sessionId: string },
+): BackgroundTask {
   return {
     parentSessionId: "parent-session",
     parentMessageId: "parent-message",
@@ -30,45 +35,47 @@ function createTask(overrides: Partial<BackgroundTask> & { id: string; sessionId
     status: "running",
     startedAt: new Date(),
     ...overrides,
-  }
+  };
 }
 
 function createBackgroundManager(): BackgroundManager {
-  return new BackgroundManager({ pluginContext: {
-    client: {
-      session: {
-        abort: async () => ({}),
-        prompt: async () => ({}),
-        promptAsync: async () => ({}),
-      },
+  return new BackgroundManager({
+    pluginContext: {
+      client: {
+        session: {
+          abort: async () => ({}),
+          prompt: async () => ({}),
+          promptAsync: async () => ({}),
+        },
+      } as never,
+      project: {} as never,
+      directory: tmpdir(),
+      worktree: tmpdir(),
+      serverUrl: new URL("https://example.com"),
+      $: {} as never,
     } as never,
-    project: {} as never,
-    directory: tmpdir(),
-    worktree: tmpdir(),
-    serverUrl: new URL("https://example.com"),
-    $: {} as never,
-  } as never })
+  });
 }
 
 describe("BackgroundManager shutdown global cleanup", () => {
   beforeEach(() => {
     // given
-    _resetForTesting()
-    SessionCategoryRegistry.clear()
-  })
+    _resetForTesting();
+    SessionCategoryRegistry.clear();
+  });
 
   afterEach(() => {
     // given
-    _resetForTesting()
-    SessionCategoryRegistry.clear()
-  })
+    _resetForTesting();
+    SessionCategoryRegistry.clear();
+  });
 
   test("removes tracked session IDs from subagentSessions and SessionCategoryRegistry on shutdown", async () => {
     // given
-    const runningSessionID = "ses-running-shutdown-cleanup"
-    const completedSessionID = "ses-completed-shutdown-cleanup"
-    const unrelatedSessionID = "ses-unrelated-shutdown-cleanup"
-    const manager = createBackgroundManager()
+    const runningSessionID = "ses-running-shutdown-cleanup";
+    const completedSessionID = "ses-completed-shutdown-cleanup";
+    const unrelatedSessionID = "ses-unrelated-shutdown-cleanup";
+    const manager = createBackgroundManager();
     const tasks = new Map<string, BackgroundTask>([
       [
         "task-running-shutdown-cleanup",
@@ -86,34 +93,34 @@ describe("BackgroundManager shutdown global cleanup", () => {
           completedAt: new Date(),
         }),
       ],
-    ])
+    ]);
 
-    Object.assign(manager, { tasks })
+    Object.assign(manager, { tasks });
 
-    subagentSessions.add(runningSessionID)
-    subagentSessions.add(completedSessionID)
-    subagentSessions.add(unrelatedSessionID)
-    SessionCategoryRegistry.register(runningSessionID, "quick")
-    SessionCategoryRegistry.register(completedSessionID, "deep")
-    SessionCategoryRegistry.register(unrelatedSessionID, "test")
+    subagentSessions.add(runningSessionID);
+    subagentSessions.add(completedSessionID);
+    subagentSessions.add(unrelatedSessionID);
+    SessionCategoryRegistry.register(runningSessionID, "quick");
+    SessionCategoryRegistry.register(completedSessionID, "deep");
+    SessionCategoryRegistry.register(unrelatedSessionID, "test");
 
     // when
-    await manager.shutdown()
+    await manager.shutdown();
 
     // then
-    expect(subagentSessions.has(runningSessionID)).toBe(false)
-    expect(subagentSessions.has(completedSessionID)).toBe(false)
-    expect(subagentSessions.has(unrelatedSessionID)).toBe(true)
-    expect(SessionCategoryRegistry.has(runningSessionID)).toBe(false)
-    expect(SessionCategoryRegistry.has(completedSessionID)).toBe(false)
-    expect(SessionCategoryRegistry.has(unrelatedSessionID)).toBe(true)
-  })
+    expect(subagentSessions.has(runningSessionID)).toBe(false);
+    expect(subagentSessions.has(completedSessionID)).toBe(false);
+    expect(subagentSessions.has(unrelatedSessionID)).toBe(true);
+    expect(SessionCategoryRegistry.has(runningSessionID)).toBe(false);
+    expect(SessionCategoryRegistry.has(completedSessionID)).toBe(false);
+    expect(SessionCategoryRegistry.has(unrelatedSessionID)).toBe(true);
+  });
 
   test("awaits running session aborts before shutdown resolves", async () => {
     // given
-    const runningSessionID = "ses-running-await-shutdown"
-    const deferred = createDeferredPromise()
-    const manager = createBackgroundManager()
+    const runningSessionID = "ses-running-await-shutdown";
+    const deferred = createDeferredPromise();
+    const manager = createBackgroundManager();
     const tasks = new Map<string, BackgroundTask>([
       [
         "task-running-await-shutdown",
@@ -122,9 +129,9 @@ describe("BackgroundManager shutdown global cleanup", () => {
           sessionId: runningSessionID,
         }),
       ],
-    ])
+    ]);
 
-    Object.assign(manager, { tasks })
+    Object.assign(manager, { tasks });
     Object.assign(manager, {
       client: {
         session: {
@@ -133,23 +140,23 @@ describe("BackgroundManager shutdown global cleanup", () => {
           promptAsync: async () => ({}),
         },
       },
-    })
+    });
 
     // when
-    const shutdownPromise = manager.shutdown()
-    let settled = false
+    const shutdownPromise = manager.shutdown();
+    let settled = false;
     void shutdownPromise.then(() => {
-      settled = true
-    })
+      settled = true;
+    });
 
-    await Promise.resolve()
+    await Promise.resolve();
 
     // then
-    expect(settled).toBe(false)
+    expect(settled).toBe(false);
 
-    deferred.resolve()
-    await shutdownPromise
+    deferred.resolve();
+    await shutdownPromise;
 
-    expect(settled).toBe(true)
-  })
-})
+    expect(settled).toBe(true);
+  });
+});

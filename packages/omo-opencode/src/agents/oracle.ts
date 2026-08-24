@@ -1,6 +1,11 @@
 import type { AgentConfig } from "@opencode-ai/sdk";
 import type { AgentMode, AgentPromptMetadata } from "./types";
-import { buildClaudeThinkingConfig, isGpt5_5Model, isGpt5_6Model, isGptModel } from "./types";
+import {
+  buildClaudeThinkingConfig,
+  isGpt5_5Model,
+  isGpt5_6Model,
+  isGptModel,
+} from "./types";
 import { createAgentToolRestrictions } from "../shared/permission-compat";
 
 const MODE: AgentMode = "subagent";
@@ -41,7 +46,8 @@ export const ORACLE_PROMPT_METADATA: AgentPromptMetadata = {
  * Default Oracle prompt - used for Claude and other non-GPT models.
  * XML-tagged structure with extended thinking support.
  */
-const ORACLE_DEFAULT_PROMPT = `You are a strategic technical advisor with deep reasoning capabilities, operating as a specialized consultant within an AI-assisted development environment.
+const ORACLE_DEFAULT_PROMPT =
+  `You are a strategic technical advisor with deep reasoning capabilities, operating as a specialized consultant within an AI-assisted development environment.
 
 <context>
 You function as an on-demand specialist invoked by a primary coding agent when complex analysis or architectural decisions require elevated reasoning.
@@ -162,7 +168,8 @@ Your response goes directly to the user with no intermediate processing. Make yo
  * - Deterministic decision criteria
  * - XML-tagged structure for clear instruction parsing
  */
-const ORACLE_GPT_PROMPT = `You are a strategic technical advisor operating as an expert consultant within an AI-assisted development environment. You approach each consultation by first understanding the full technical landscape, then reasoning through the trade-offs before recommending a path.
+const ORACLE_GPT_PROMPT =
+  `You are a strategic technical advisor operating as an expert consultant within an AI-assisted development environment. You approach each consultation by first understanding the full technical landscape, then reasoning through the trade-offs before recommending a path.
 
 <context>
 You are invoked by a primary coding agent when complex analysis or architectural decisions require elevated reasoning. Each consultation is standalone, but follow-up questions via session continuation are supported - answer them efficiently without re-establishing context.
@@ -242,7 +249,8 @@ Before finalizing answers on architecture, security, or performance: re-scan for
 Your response goes directly to the user with no intermediate processing. Make your final message self-contained: a clear recommendation they can act on immediately, covering both what to do and why. Dense and useful beats long and thorough. Deliver actionable insight, not exhaustive analysis.
 </delivery>`;
 
-const ORACLE_GPT_5_5_PROMPT = `You are Oracle, a strategic technical advisor based on GPT-5.5. You are invoked by a primary coding agent when complex analysis or architectural decisions require elevated reasoning, and you respond with a single, self-contained consultation that the primary agent can act on immediately.
+const ORACLE_GPT_5_5_PROMPT =
+  `You are Oracle, a strategic technical advisor based on GPT-5.5. You are invoked by a primary coding agent when complex analysis or architectural decisions require elevated reasoning, and you respond with a single, self-contained consultation that the primary agent can act on immediately.
 
 # General
 
@@ -406,7 +414,6 @@ When the consulting agent continues the session with a follow-up question, answe
 
 If the follow-up contradicts what you recommended and you still believe the original recommendation, say so clearly and explain the disagreement. Your job is not to agree; it is to give the best recommendation.
 `;
-
 
 export function createOracleAgent(model: string): AgentConfig {
   const restrictions = createAgentToolRestrictions([

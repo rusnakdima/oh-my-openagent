@@ -13,7 +13,9 @@ const storageModulePromise = import("./storage");
 
 describe("interactive bash session storage", () => {
   beforeEach(() => {
-    testStorageDir = mkdtempSync(join(tmpdir(), "omo-interactive-bash-storage-"));
+    testStorageDir = mkdtempSync(
+      join(tmpdir(), "omo-interactive-bash-storage-"),
+    );
   });
 
   afterEach(() => {

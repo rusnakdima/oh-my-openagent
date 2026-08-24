@@ -1,8 +1,8 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import {
-  isGptModel,
   isGeminiModel,
   isGlmModel,
+  isGptModel,
   isGptNativeSisyphusModel,
   isMiniMaxModel,
 } from "./types";

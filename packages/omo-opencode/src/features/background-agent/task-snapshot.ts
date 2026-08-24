@@ -1,4 +1,4 @@
-import type { BackgroundTask, BackgroundTaskSnapshot } from "./types"
+import type { BackgroundTask, BackgroundTaskSnapshot } from "./types";
 
 function toSnapshot(task: BackgroundTask): BackgroundTaskSnapshot {
   return Object.freeze({
@@ -7,9 +7,11 @@ function toSnapshot(task: BackgroundTask): BackgroundTaskSnapshot {
     toolCalls: task.progress?.toolCalls ?? null,
     lastTool: task.progress?.lastTool ?? null,
     agent: task.agent,
-  })
+  });
 }
 
-export function toBackgroundTaskSnapshots(tasks: Iterable<BackgroundTask>): BackgroundTaskSnapshot[] {
-  return Array.from(tasks, toSnapshot)
+export function toBackgroundTaskSnapshots(
+  tasks: Iterable<BackgroundTask>,
+): BackgroundTaskSnapshot[] {
+  return Array.from(tasks, toSnapshot);
 }

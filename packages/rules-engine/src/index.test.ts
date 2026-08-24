@@ -1,4 +1,10 @@
-import { mkdirSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "bun:test";
@@ -7,19 +13,23 @@ import {
   clearProjectRootCache,
   createAgentsMdCache,
   createRuleScanCache,
-  findRuleFilesRecursive,
+  type DirectoryScanEntry,
   findAgentsMdUp,
   findProjectRoot,
   findRuleFiles,
+  findRuleFilesRecursive,
   parseRuleFrontmatter,
   shouldApplyRule,
-  type DirectoryScanEntry,
 } from "./index";
-import { _resetSisyphusRuleDeprecationWarningStateForTesting, _setSisyphusRuleDeprecationLoggerForTesting } from "./finder";
+import {
+  _resetSisyphusRuleDeprecationWarningStateForTesting,
+  _setSisyphusRuleDeprecationLoggerForTesting,
+} from "./finder";
 
 let testRoot: string | null = null;
 
-const SISYPHUS_DEPRECATION_MESSAGE = "[rules] .sisyphus/rules is deprecated and will be removed in v4.3.0; migrate to .omo/rules";
+const SISYPHUS_DEPRECATION_MESSAGE =
+  "[rules] .sisyphus/rules is deprecated and will be removed in v4.3.0; migrate to .omo/rules";
 
 function createTestRoot(name: string): string {
   testRoot = join(tmpdir(), `${name}-${Date.now()}-${Math.random()}`);
@@ -52,7 +62,10 @@ describe("rules-core", () => {
     writeFileSync(join(root, ".sisyphus", "rules", "sisyphus.md"), "sisyphus");
     writeFileSync(join(root, ".claude", "rules", "claude.md"), "claude");
     writeFileSync(join(root, ".cursor", "rules", "cursor.md"), "cursor");
-    writeFileSync(join(root, ".github", "instructions", "github.instructions.md"), "github");
+    writeFileSync(
+      join(root, ".github", "instructions", "github.instructions.md"),
+      "github",
+    );
 
     // when
     const found = findRuleFiles(root, root, join(root, "src", "index.ts"));
@@ -72,7 +85,10 @@ describe("rules-core", () => {
     // given
     const root = createTestRoot("rules-core-windows-github-instructions");
     const githubInstructionsDir = join(root, String.raw`.github\instructions`);
-    const instructionFile = join(githubInstructionsDir, "typescript.instructions.md");
+    const instructionFile = join(
+      githubInstructionsDir,
+      "typescript.instructions.md",
+    );
     const ignoredMarkdownFile = join(githubInstructionsDir, "README.md");
     const results: DirectoryScanEntry[] = [];
     mkdirSync(githubInstructionsDir, { recursive: true });
@@ -80,7 +96,12 @@ describe("rules-core", () => {
     writeFileSync(ignoredMarkdownFile, "ignored");
 
     // when
-    findRuleFilesRecursive(githubInstructionsDir, results, new Set<string>(), root);
+    findRuleFilesRecursive(
+      githubInstructionsDir,
+      results,
+      new Set<string>(),
+      root,
+    );
 
     // then
     expect(results.map((rule) => rule.path)).toEqual([instructionFile]);
@@ -91,15 +112,29 @@ describe("rules-core", () => {
     const root = createTestRoot("rules-core-alias-boundary");
     const realProjectRoot = join(root, "repo-real");
     const aliasProjectRoot = join(root, "repo-link");
-    const githubInstructionsDir = join(aliasProjectRoot, ".github", "instructions");
-    const instructionFile = join(githubInstructionsDir, "typescript.instructions.md");
+    const githubInstructionsDir = join(
+      aliasProjectRoot,
+      ".github",
+      "instructions",
+    );
+    const instructionFile = join(
+      githubInstructionsDir,
+      "typescript.instructions.md",
+    );
     const results: DirectoryScanEntry[] = [];
-    mkdirSync(join(realProjectRoot, ".github", "instructions"), { recursive: true });
+    mkdirSync(join(realProjectRoot, ".github", "instructions"), {
+      recursive: true,
+    });
     symlinkSync(realProjectRoot, aliasProjectRoot, "dir");
     writeFileSync(instructionFile, "typescript");
 
     // when
-    findRuleFilesRecursive(githubInstructionsDir, results, new Set<string>(), aliasProjectRoot);
+    findRuleFilesRecursive(
+      githubInstructionsDir,
+      results,
+      new Set<string>(),
+      aliasProjectRoot,
+    );
 
     // then
     expect(results.map((rule) => rule.path)).toEqual([instructionFile]);
@@ -120,7 +155,9 @@ describe("rules-core", () => {
     const found = findRuleFiles(root, root, join(root, "src", "index.ts"));
     const relativePaths = found.map((rule) => rule.relativePath);
     const omoSharedIndex = relativePaths.indexOf(".omo/rules/shared.md");
-    const sisyphusSharedIndex = relativePaths.indexOf(".sisyphus/rules/shared.md");
+    const sisyphusSharedIndex = relativePaths.indexOf(
+      ".sisyphus/rules/shared.md",
+    );
 
     // then
     expect(relativePaths).toContain(".sisyphus/rules/legacy.md");
@@ -136,7 +173,9 @@ describe("rules-core", () => {
     mkdirSync(join(root, ".sisyphus", "rules"), { recursive: true });
     mkdirSync(join(root, "src"), { recursive: true });
     writeFileSync(legacyRulePath, "legacy");
-    const warnings: Array<{ readonly message: string; readonly data: unknown }> = [];
+    const warnings: Array<
+      { readonly message: string; readonly data: unknown }
+    > = [];
     _setSisyphusRuleDeprecationLoggerForTesting((message, data) => {
       warnings.push({ message, data });
     });
@@ -145,7 +184,9 @@ describe("rules-core", () => {
     findRuleFiles(root, root, join(root, "src", "index.ts"));
     findRuleFiles(root, root, join(root, "src", "index.ts"));
     const deprecationWarnings = warnings.filter(
-      ({ message, data }) => message === SISYPHUS_DEPRECATION_MESSAGE && isSisyphusDeprecationData(data, legacyRulePath),
+      ({ message, data }) =>
+        message === SISYPHUS_DEPRECATION_MESSAGE &&
+        isSisyphusDeprecationData(data, legacyRulePath),
     );
 
     // then
@@ -177,11 +218,21 @@ describe("rules-core", () => {
 
   it("#given frontmatter aliases and negative glob #when matching #then honors applyTo paths and exclusions", () => {
     // given
-    const { metadata } = parseRuleFrontmatter(`---\npaths: ["src/**/*.ts"]\napplyTo:\n  - "!src/**/*.test.ts"\n---\nRule\n`);
+    const { metadata } = parseRuleFrontmatter(
+      `---\npaths: ["src/**/*.ts"]\napplyTo:\n  - "!src/**/*.test.ts"\n---\nRule\n`,
+    );
 
     // when
-    const sourceMatch = shouldApplyRule(metadata, "/repo/src/index.ts", "/repo");
-    const testMatch = shouldApplyRule(metadata, "/repo/src/index.test.ts", "/repo");
+    const sourceMatch = shouldApplyRule(
+      metadata,
+      "/repo/src/index.ts",
+      "/repo",
+    );
+    const testMatch = shouldApplyRule(
+      metadata,
+      "/repo/src/index.test.ts",
+      "/repo",
+    );
 
     // then
     expect(sourceMatch).toEqual({ applies: true, reason: "glob: src/**/*.ts" });
@@ -262,12 +313,27 @@ describe("rules-core", () => {
     const cache = createRuleScanCache();
 
     // when
-    const first = findRuleFiles(root, root, join(root, "src", "a.ts"), undefined, cache);
-    const second = findRuleFiles(root, root, join(root, "src", "b.ts"), undefined, cache);
+    const first = findRuleFiles(
+      root,
+      root,
+      join(root, "src", "a.ts"),
+      undefined,
+      cache,
+    );
+    const second = findRuleFiles(
+      root,
+      root,
+      join(root, "src", "b.ts"),
+      undefined,
+      cache,
+    );
 
     // then
     expect(first).toEqual(second);
-    expect(cache.stats()).toEqual({ candidateEntries: 1, directoryEntries: 11 });
+    expect(cache.stats()).toEqual({
+      candidateEntries: 1,
+      directoryEntries: 11,
+    });
   });
 
   it("#given nested project markers #when finding project root #then memoizes ancestor lookups", () => {

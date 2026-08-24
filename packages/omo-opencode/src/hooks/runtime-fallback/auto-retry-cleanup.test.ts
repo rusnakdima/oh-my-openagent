@@ -1,7 +1,7 @@
-import { describe, expect, it } from "bun:test"
-import type { HookDeps, RuntimeFallbackPluginInput } from "./types"
-import { createFallbackState } from "./fallback-state"
-import { createStaleSessionCleanup } from "./auto-retry-cleanup"
+import { describe, expect, it } from "bun:test";
+import type { HookDeps, RuntimeFallbackPluginInput } from "./types";
+import { createFallbackState } from "./fallback-state";
+import { createStaleSessionCleanup } from "./auto-retry-cleanup";
 
 function createContext(): RuntimeFallbackPluginInput {
   return {
@@ -16,7 +16,7 @@ function createContext(): RuntimeFallbackPluginInput {
       },
     },
     directory: "/test/dir",
-  }
+  };
 }
 
 function createDeps(): HookDeps {
@@ -40,31 +40,37 @@ function createDeps(): HookDeps {
     sessionFallbackTimeouts: new Map(),
     sessionStatusRetryKeys: new Map(),
     internallyAbortedSessions: new Set(),
-  }
+  };
 }
 
 describe("createStaleSessionCleanup", () => {
   it("#given active and stale fallback sessions #when cleanup runs #then it retains state for twelve hours", () => {
     // given
-    const deps = createDeps()
-    const activeSessionID = "active-session"
-    const staleSessionID = "stale-session"
-    const now = Date.now()
-    deps.sessionStates.set(activeSessionID, createFallbackState("openai/gpt-5.4"))
-    deps.sessionStates.set(staleSessionID, createFallbackState("openai/gpt-5.4"))
-    deps.sessionLastAccess.set(activeSessionID, now - 31 * 60 * 1000)
-    deps.sessionLastAccess.set(staleSessionID, now - 13 * 60 * 60 * 1000)
-    const clearedTimeouts: string[] = []
+    const deps = createDeps();
+    const activeSessionID = "active-session";
+    const staleSessionID = "stale-session";
+    const now = Date.now();
+    deps.sessionStates.set(
+      activeSessionID,
+      createFallbackState("openai/gpt-5.4"),
+    );
+    deps.sessionStates.set(
+      staleSessionID,
+      createFallbackState("openai/gpt-5.4"),
+    );
+    deps.sessionLastAccess.set(activeSessionID, now - 31 * 60 * 1000);
+    deps.sessionLastAccess.set(staleSessionID, now - 13 * 60 * 60 * 1000);
+    const clearedTimeouts: string[] = [];
     const cleanup = createStaleSessionCleanup(deps, (sessionID) => {
-      clearedTimeouts.push(sessionID)
-    })
+      clearedTimeouts.push(sessionID);
+    });
 
     // when
-    cleanup()
+    cleanup();
 
     // then
-    expect(deps.sessionStates.has(activeSessionID)).toBe(true)
-    expect(deps.sessionStates.has(staleSessionID)).toBe(false)
-    expect(clearedTimeouts).toEqual([staleSessionID])
-  })
-})
+    expect(deps.sessionStates.has(activeSessionID)).toBe(true);
+    expect(deps.sessionStates.has(staleSessionID)).toBe(false);
+    expect(clearedTimeouts).toEqual([staleSessionID]);
+  });
+});

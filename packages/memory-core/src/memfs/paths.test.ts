@@ -26,7 +26,12 @@ function createFixture(): { base: string; root: string } {
 
 afterEach(() => {
   for (const directory of temporaryDirectories.splice(0)) {
-    rmSync(directory, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+    rmSync(directory, {
+      recursive: true,
+      force: true,
+      maxRetries: 10,
+      retryDelay: 200,
+    });
   }
 });
 
@@ -114,8 +119,11 @@ describe("validateMemoryPath", () => {
       const { base, root } = createFixture();
       const outside = join(base, "outside");
       mkdirSync(outside);
-      symlinkSync(outside, join(root, "escape"),
-        process.platform === "win32" ? "junction" : "dir");
+      symlinkSync(
+        outside,
+        join(root, "escape"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
 
       expect(() => validateMemoryPath(root, "escape/secret.md")).toThrow(
         "symlink",
@@ -144,8 +152,11 @@ describe("validateMemoryPath", () => {
       const { root } = createFixture();
       const system = join(root, "system");
       mkdirSync(system);
-      symlinkSync(system, join(root, "alias"),
-        process.platform === "win32" ? "junction" : "dir");
+      symlinkSync(
+        system,
+        join(root, "alias"),
+        process.platform === "win32" ? "junction" : "dir",
+      );
 
       expect(validateMemoryPath(root, "alias/notes.md")).toBe(
         join(root, "alias", "notes.md"),
@@ -165,9 +176,10 @@ describe("validateMemoryPath", () => {
     it("#given a non-markdown file #when validated through repository API #then it is accepted", () => {
       const { root } = createFixture();
 
-      expect(validateMemoryPath(root, "assets/tree.txt", { toolPath: false })).toBe(
-        join(root, "assets", "tree.txt"),
-      );
+      expect(validateMemoryPath(root, "assets/tree.txt", { toolPath: false }))
+        .toBe(
+          join(root, "assets", "tree.txt"),
+        );
     });
 
     it("#given .git with repository API #when validated #then it remains rejected", () => {

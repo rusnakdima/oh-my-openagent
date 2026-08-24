@@ -1,44 +1,65 @@
-import type { OmoConfig, OmoTaskSettings } from "@oh-my-opencode/omo-config-core"
-import type { ChildPlanner, PlanResolution, PlanResolutionError } from "@oh-my-opencode/senpi-task"
+import type {
+  OmoConfig,
+  OmoTaskSettings,
+} from "@oh-my-opencode/omo-config-core";
+import type {
+  ChildPlanner,
+  PlanResolution,
+  PlanResolutionError,
+} from "@oh-my-opencode/senpi-task";
 
-import type { SenpiExtensionAPI } from "../../extension/types"
-import type { TaskRuntimeContext } from "./runtime-context"
-import { createOncePerSessionGuard } from "./usage-guidance"
+import type { SenpiExtensionAPI } from "../../extension/types";
+import type { TaskRuntimeContext } from "./runtime-context";
+import { createOncePerSessionGuard } from "./usage-guidance";
 
 // The dead-chain warning custom-message type; the component registers a compact renderer for it.
-export const CATEGORY_UNAVAILABLE_MESSAGE_TYPE = "senpi-task.category-unavailable"
+export const CATEGORY_UNAVAILABLE_MESSAGE_TYPE =
+  "senpi-task.category-unavailable";
 
 export type CategoryUnavailableWarningDeps = {
-  readonly planner: ChildPlanner
-  readonly pi: SenpiExtensionAPI
-  readonly runtime: TaskRuntimeContext
-  readonly omoConfig: OmoConfig
-  readonly settings: OmoTaskSettings
-}
+  readonly planner: ChildPlanner;
+  readonly pi: SenpiExtensionAPI;
+  readonly runtime: TaskRuntimeContext;
+  readonly omoConfig: OmoConfig;
+  readonly settings: OmoTaskSettings;
+};
 
 type DeadChainError = PlanResolutionError & {
-  readonly category: string
-  readonly attempted_chain: NonNullable<PlanResolutionError["attempted_chain"]>
+  readonly category: string;
+  readonly attempted_chain: NonNullable<PlanResolutionError["attempted_chain"]>;
+};
+
+function asDeadChainError(
+  resolution: PlanResolution,
+): DeadChainError | undefined {
+  if (resolution.kind !== "error") return undefined;
+  const error = resolution.error;
+  if (error.code !== "model_unavailable") return undefined;
+  if (error.category === undefined || error.attempted_chain === undefined) {
+    return undefined;
+  }
+  return {
+    ...error,
+    category: error.category,
+    attempted_chain: error.attempted_chain,
+  };
 }
 
-function asDeadChainError(resolution: PlanResolution): DeadChainError | undefined {
-  if (resolution.kind !== "error") return undefined
-  const error = resolution.error
-  if (error.code !== "model_unavailable") return undefined
-  if (error.category === undefined || error.attempted_chain === undefined) return undefined
-  return { ...error, category: error.category, attempted_chain: error.attempted_chain }
-}
-
-function warningSuppressed(config: OmoConfig, settings: OmoTaskSettings, category: string): boolean {
-  const perCategory = config.categories?.[category]?.warn_unavailable
-  const effective = perCategory ?? settings.warnings?.unavailable_categories ?? true
-  return effective === false
+function warningSuppressed(
+  config: OmoConfig,
+  settings: OmoTaskSettings,
+  category: string,
+): boolean {
+  const perCategory = config.categories?.[category]?.warn_unavailable;
+  const effective = perCategory ?? settings.warnings?.unavailable_categories ??
+    true;
+  return effective === false;
 }
 
 // A user category with its own model never warns: its failure is a plain user-model miss, not a
 // dead builtin chain (the resolver omits attempted_chain for it; this is the belt-and-braces guard).
 function hasUserModel(config: OmoConfig, category: string): boolean {
-  return config.categories?.[category]?.model !== undefined
+  return config.categories?.[category]?.model !== undefined;
 }
 
 /**
@@ -49,21 +70,26 @@ function hasUserModel(config: OmoConfig, category: string): boolean {
  * when the registry is captured), and never warns for categories with a user-configured model.
  * Suppression: categories.<name>.warn_unavailable ?? task.warnings.unavailable_categories ?? true.
  */
-export function createCategoryUnavailableWarningPlanner(deps: CategoryUnavailableWarningDeps): ChildPlanner {
-  const warned = createOncePerSessionGuard()
+export function createCategoryUnavailableWarningPlanner(
+  deps: CategoryUnavailableWarningDeps,
+): ChildPlanner {
+  const warned = createOncePerSessionGuard();
   return (spec): PlanResolution => {
-    const resolution = deps.planner(spec)
-    const error = asDeadChainError(resolution)
-    if (error === undefined) return resolution
-    const category = error.category
-    if (hasUserModel(deps.omoConfig, category)) return resolution
-    if (warningSuppressed(deps.omoConfig, deps.settings, category)) return resolution
-    const sessionId = deps.runtime.sessionId() ?? "unknown-session"
-    if (!warned(`${sessionId}:${category}`)) return resolution
+    const resolution = deps.planner(spec);
+    const error = asDeadChainError(resolution);
+    if (error === undefined) return resolution;
+    const category = error.category;
+    if (hasUserModel(deps.omoConfig, category)) return resolution;
+    if (warningSuppressed(deps.omoConfig, deps.settings, category)) {
+      return resolution;
+    }
+    const sessionId = deps.runtime.sessionId() ?? "unknown-session";
+    if (!warned(`${sessionId}:${category}`)) return resolution;
 
-    const providers = (error.missing_providers ?? []).join(", ")
-    const text = `Category "${category}" has no usable model: none of its fallback-chain providers are connected (${providers}).`
-    deps.runtime.ui()?.notify(text, "warning")
+    const providers = (error.missing_providers ?? []).join(", ");
+    const text =
+      `Category "${category}" has no usable model: none of its fallback-chain providers are connected (${providers}).`;
+    deps.runtime.ui()?.notify(text, "warning");
     deps.pi.sendMessage(
       {
         customType: CATEGORY_UNAVAILABLE_MESSAGE_TYPE,
@@ -78,7 +104,7 @@ export function createCategoryUnavailableWarningPlanner(deps: CategoryUnavailabl
         },
       },
       {},
-    )
-    return resolution
-  }
+    );
+    return resolution;
+  };
 }

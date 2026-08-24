@@ -1,10 +1,12 @@
-const seenSessionIDs = new Set<string>()
+const seenSessionIDs = new Set<string>();
 
-export function shouldInvalidateSkillCacheForSession(sessionID?: string): boolean {
+export function shouldInvalidateSkillCacheForSession(
+  sessionID?: string,
+): boolean {
   if (!sessionID || seenSessionIDs.has(sessionID)) {
-    return false
+    return false;
   }
 
-  seenSessionIDs.add(sessionID)
-  return true
+  seenSessionIDs.add(sessionID);
+  return true;
 }

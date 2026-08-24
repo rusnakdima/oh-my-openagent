@@ -1,19 +1,19 @@
 type TimerHandleWithOptionalUnref = ReturnType<typeof setTimeout> & {
-  readonly unref?: () => unknown
-}
+  readonly unref?: () => unknown;
+};
 
 export function unrefTimerHandle(handle: TimerHandleWithOptionalUnref): void {
-  const maybeUnref = handle.unref
+  const maybeUnref = handle.unref;
   if (typeof maybeUnref !== "function") {
-    return
+    return;
   }
 
   try {
-    maybeUnref.call(handle)
+    maybeUnref.call(handle);
   } catch (error) {
     if (error instanceof Error) {
-      return
+      return;
     }
-    return
+    return;
   }
 }

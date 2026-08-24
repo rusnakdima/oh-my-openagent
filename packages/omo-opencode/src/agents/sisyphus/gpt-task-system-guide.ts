@@ -8,7 +8,7 @@ Workflow:
 3. After each step, call \`task_update(status="completed")\` immediately. Never batch completions.
 4. If scope changes, update the task list before proceeding.
 
-Your task creations are tracked by the harness; the system will nudge you if you go idle with open tasks.`
+Your task creations are tracked by the harness; the system will nudge you if you go idle with open tasks.`;
   }
 
   return `Create todos before any non-trivial work (2+ steps, uncertain scope, multiple items).
@@ -19,5 +19,5 @@ Workflow:
 3. After each step, mark it \`completed\` immediately. Never batch completions.
 4. If scope changes, update the todo list before proceeding.
 
-Your todo creations are tracked by the harness; the system will nudge you if you go idle with open items.`
+Your todo creations are tracked by the harness; the system will nudge you if you go idle with open items.`;
 }

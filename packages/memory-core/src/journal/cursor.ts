@@ -1,25 +1,25 @@
-import type { TranscriptEntry } from "./entries"
+import type { TranscriptEntry } from "./entries";
 
-export const REFLECTION_STATE_SCHEMA_VERSION = "v3_assistant_steps" as const
+export const REFLECTION_STATE_SCHEMA_VERSION = "v3_assistant_steps" as const;
 
 export type ReflectionTranscriptState = {
-  readonly schema_version: typeof REFLECTION_STATE_SCHEMA_VERSION
-  readonly reflected_through_message_id?: string
-  readonly total_completed_steps: number
-  readonly reflected_completed_steps: number
-  readonly steps_since_last_successful_reflection: number
-  readonly last_reflection_started_at?: string
-  readonly last_reflection_succeeded_at?: string
-  readonly pending_compaction?: boolean
-}
+  readonly schema_version: typeof REFLECTION_STATE_SCHEMA_VERSION;
+  readonly reflected_through_message_id?: string;
+  readonly total_completed_steps: number;
+  readonly reflected_completed_steps: number;
+  readonly steps_since_last_successful_reflection: number;
+  readonly last_reflection_started_at?: string;
+  readonly last_reflection_succeeded_at?: string;
+  readonly pending_compaction?: boolean;
+};
 
 export type ReflectionSnapshot = {
-  readonly start_message_id: string
-  readonly end_message_id: string
-  readonly start_line: number
-  readonly end_snapshot_line: number
-  readonly entries: readonly TranscriptEntry[]
-}
+  readonly start_message_id: string;
+  readonly end_message_id: string;
+  readonly start_line: number;
+  readonly end_snapshot_line: number;
+  readonly entries: readonly TranscriptEntry[];
+};
 
 export function isCanonicalEntry(
   entry: TranscriptEntry,
@@ -28,27 +28,29 @@ export function isCanonicalEntry(
     (entry.kind === "user" || entry.kind === "assistant") &&
     entry.source_message_id.length > 0 &&
     entry.text.trim().length > 0
-  )
+  );
 }
 
-export function countCompletedSteps(entries: readonly TranscriptEntry[]): number {
+export function countCompletedSteps(
+  entries: readonly TranscriptEntry[],
+): number {
   return entries.filter(
     (entry) =>
       entry.kind === "assistant" &&
       entry.source_message_id.length > 0 &&
       entry.text.trim().length > 0,
-  ).length
+  ).length;
 }
 
 export function deriveState(
   state: ReflectionTranscriptState,
   entries: readonly TranscriptEntry[],
 ): ReflectionTranscriptState {
-  const totalCompletedSteps = countCompletedSteps(entries)
+  const totalCompletedSteps = countCompletedSteps(entries);
   const reflectedCompletedSteps = Math.min(
     Math.max(0, Math.trunc(state.reflected_completed_steps)),
     totalCompletedSteps,
-  )
+  );
   return {
     ...state,
     schema_version: REFLECTION_STATE_SCHEMA_VERSION,
@@ -58,7 +60,7 @@ export function deriveState(
       0,
       totalCompletedSteps - reflectedCompletedSteps,
     ),
-  }
+  };
 }
 
 export function captureCursorSnapshot(
@@ -67,27 +69,29 @@ export function captureCursorSnapshot(
 ): ReflectionSnapshot | null {
   const anchorIndex = state.reflected_through_message_id
     ? entries.findIndex(
-        (entry) =>
-          isCanonicalEntry(entry) &&
-          entry.source_message_id === state.reflected_through_message_id,
-      )
-    : -1
+      (entry) =>
+        isCanonicalEntry(entry) &&
+        entry.source_message_id === state.reflected_through_message_id,
+    )
+    : -1;
   const startIndex = entries.findIndex(
     (entry, index) => index > anchorIndex && isCanonicalEntry(entry),
-  )
-  if (startIndex < 0) return null
+  );
+  if (startIndex < 0) return null;
 
-  let endIndex = -1
+  let endIndex = -1;
   for (let index = entries.length - 1; index >= startIndex; index -= 1) {
-    const entry = entries[index]
+    const entry = entries[index];
     if (entry && isCanonicalEntry(entry)) {
-      endIndex = index
-      break
+      endIndex = index;
+      break;
     }
   }
-  const start = entries[startIndex]
-  const end = entries[endIndex]
-  if (!start || !end || !isCanonicalEntry(start) || !isCanonicalEntry(end)) return null
+  const start = entries[startIndex];
+  const end = entries[endIndex];
+  if (!start || !end || !isCanonicalEntry(start) || !isCanonicalEntry(end)) {
+    return null;
+  }
 
   return {
     start_message_id: start.source_message_id,
@@ -95,7 +99,7 @@ export function captureCursorSnapshot(
     start_line: anchorIndex + 1,
     end_snapshot_line: entries.length,
     entries: entries.slice(anchorIndex + 1),
-  }
+  };
 }
 
 export function finalizeCursor(
@@ -105,9 +109,12 @@ export function finalizeCursor(
   success: boolean,
   succeededAt: string,
 ): ReflectionTranscriptState {
-  if (!success) return deriveState(state, entries)
+  if (!success) return deriveState(state, entries);
 
-  const snapshotEntries = entries.slice(0, Math.max(0, snapshot.end_snapshot_line))
+  const snapshotEntries = entries.slice(
+    0,
+    Math.max(0, snapshot.end_snapshot_line),
+  );
   return deriveState(
     {
       ...state,
@@ -116,7 +123,7 @@ export function finalizeCursor(
       last_reflection_succeeded_at: succeededAt,
     },
     entries,
-  )
+  );
 }
 
 export function initialReflectionState(): ReflectionTranscriptState {
@@ -125,5 +132,5 @@ export function initialReflectionState(): ReflectionTranscriptState {
     total_completed_steps: 0,
     reflected_completed_steps: 0,
     steps_since_last_successful_reflection: 0,
-  }
+  };
 }

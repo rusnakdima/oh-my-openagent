@@ -1,27 +1,27 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { createTaskList } from "./task-list"
-import { writeJsonAtomic } from "../../features/claude-tasks/storage"
-import type { TaskObject } from "./types"
-import { join } from "path"
-import { existsSync, rmSync } from "fs"
+import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { createTaskList } from "./task-list";
+import { writeJsonAtomic } from "../../features/claude-tasks/storage";
+import type { TaskObject } from "./types";
+import { join } from "path";
+import { existsSync, rmSync } from "fs";
 
-const testProjectDir = "/tmp/task-list-test"
+const testProjectDir = "/tmp/task-list-test";
 
 describe("createTaskList", () => {
-  let taskDir: string
+  let taskDir: string;
 
   beforeEach(() => {
-    taskDir = join(testProjectDir, ".omo/tasks")
+    taskDir = join(testProjectDir, ".omo/tasks");
     if (existsSync(taskDir)) {
-      rmSync(taskDir, { recursive: true })
+      rmSync(taskDir, { recursive: true });
     }
-  })
+  });
 
   afterEach(() => {
     if (existsSync(taskDir)) {
-      rmSync(taskDir, { recursive: true })
+      rmSync(taskDir, { recursive: true });
     }
-  })
+  });
 
   it("returns empty array when no tasks exist", async () => {
     //#given
@@ -32,16 +32,16 @@ describe("createTaskList", () => {
           claude_code_compat: false,
         },
       },
-    }
-    const tool = createTaskList(config)
+    };
+    const tool = createTaskList(config);
 
     //#when
-    const result = await tool.execute({}, { sessionID: "test-session" })
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
     //#then
-    const parsed = JSON.parse(result)
-    expect(parsed.tasks).toEqual([])
-  })
+    const parsed = JSON.parse(result);
+    expect(parsed.tasks).toEqual([]);
+  });
 
   it("excludes completed tasks by default", async () => {
     //#given
@@ -53,7 +53,7 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: [],
       threadID: "test-session",
-    }
+    };
     const task2: TaskObject = {
       id: "T-2",
       subject: "Completed task",
@@ -62,10 +62,10 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: [],
       threadID: "test-session",
-    }
+    };
 
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task1)
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-2.json"), task2)
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task1);
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-2.json"), task2);
 
     const config = {
       sisyphus: {
@@ -74,17 +74,17 @@ describe("createTaskList", () => {
           claude_code_compat: false,
         },
       },
-    }
-    const tool = createTaskList(config)
+    };
+    const tool = createTaskList(config);
 
     //#when
-    const result = await tool.execute({}, { sessionID: "test-session" })
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
     //#then
-    const parsed = JSON.parse(result)
-    expect(parsed.tasks).toHaveLength(1)
-    expect(parsed.tasks[0].id).toBe("T-1")
-  })
+    const parsed = JSON.parse(result);
+    expect(parsed.tasks).toHaveLength(1);
+    expect(parsed.tasks[0].id).toBe("T-1");
+  });
 
   it("excludes deleted tasks by default", async () => {
     //#given
@@ -96,7 +96,7 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: [],
       threadID: "test-session",
-    }
+    };
     const task2: TaskObject = {
       id: "T-2",
       subject: "Deleted task",
@@ -105,31 +105,31 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: [],
       threadID: "test-session",
-    }
+    };
 
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task1)
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-2.json"), task2)
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task1);
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-2.json"), task2);
 
-     const config = {
-       sisyphus: {
-         tasks: {
-           storage_path: join(testProjectDir, ".omo/tasks"),
-           claude_code_compat: false,
-         },
-       },
-     }
-     const tool = createTaskList(config)
+    const config = {
+      sisyphus: {
+        tasks: {
+          storage_path: join(testProjectDir, ".omo/tasks"),
+          claude_code_compat: false,
+        },
+      },
+    };
+    const tool = createTaskList(config);
 
-     //#when
-     const result = await tool.execute({}, { sessionID: "test-session" })
+    //#when
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
-     //#then
-     const parsed = JSON.parse(result)
-     expect(parsed.tasks).toHaveLength(1)
-     expect(parsed.tasks[0].id).toBe("T-1")
-   })
+    //#then
+    const parsed = JSON.parse(result);
+    expect(parsed.tasks).toHaveLength(1);
+    expect(parsed.tasks[0].id).toBe("T-1");
+  });
 
-   it("returns summary format with id, subject, status, owner, blockedBy", async () => {
+  it("returns summary format with id, subject, status, owner, blockedBy", async () => {
     //#given
     const task: TaskObject = {
       id: "T-1",
@@ -140,39 +140,39 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: ["T-2"],
       threadID: "test-session",
-    }
+    };
 
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task)
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task);
 
-     const config = {
-       sisyphus: {
-         tasks: {
-           storage_path: join(testProjectDir, ".omo/tasks"),
-           claude_code_compat: false,
-         },
-       },
-     }
-     const tool = createTaskList(config)
+    const config = {
+      sisyphus: {
+        tasks: {
+          storage_path: join(testProjectDir, ".omo/tasks"),
+          claude_code_compat: false,
+        },
+      },
+    };
+    const tool = createTaskList(config);
 
-     //#when
-     const result = await tool.execute({}, { sessionID: "test-session" })
+    //#when
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
-     //#then
-     const parsed = JSON.parse(result)
-     expect(parsed.tasks).toHaveLength(1)
-     const summary = parsed.tasks[0]
-    expect(summary).toHaveProperty("id")
-    expect(summary).toHaveProperty("subject")
-    expect(summary).toHaveProperty("status")
-    expect(summary).toHaveProperty("owner")
-    expect(summary).toHaveProperty("blockedBy")
-    expect(summary).not.toHaveProperty("description")
-    expect(summary.id).toBe("T-1")
-    expect(summary.subject).toBe("Test task")
-    expect(summary.status).toBe("in_progress")
-    expect(summary.owner).toBe("sisyphus")
-    expect(summary.blockedBy).toEqual(["T-2"])
-  })
+    //#then
+    const parsed = JSON.parse(result);
+    expect(parsed.tasks).toHaveLength(1);
+    const summary = parsed.tasks[0];
+    expect(summary).toHaveProperty("id");
+    expect(summary).toHaveProperty("subject");
+    expect(summary).toHaveProperty("status");
+    expect(summary).toHaveProperty("owner");
+    expect(summary).toHaveProperty("blockedBy");
+    expect(summary).not.toHaveProperty("description");
+    expect(summary.id).toBe("T-1");
+    expect(summary.subject).toBe("Test task");
+    expect(summary.status).toBe("in_progress");
+    expect(summary.owner).toBe("sisyphus");
+    expect(summary.blockedBy).toEqual(["T-2"]);
+  });
 
   it("filters blockedBy to only include unresolved (non-completed) blockers", async () => {
     //#given
@@ -184,7 +184,7 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: [],
       threadID: "test-session",
-    }
+    };
     const blockerPending: TaskObject = {
       id: "T-blocker-pending",
       subject: "Pending blocker",
@@ -193,7 +193,7 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: [],
       threadID: "test-session",
-    }
+    };
     const mainTask: TaskObject = {
       id: "T-main",
       subject: "Main task",
@@ -202,134 +202,145 @@ describe("createTaskList", () => {
       blocks: [],
       blockedBy: ["T-blocker-completed", "T-blocker-pending"],
       threadID: "test-session",
-    }
+    };
 
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-blocker-completed.json"), blockerCompleted)
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-blocker-pending.json"), blockerPending)
-    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-main.json"), mainTask)
+    writeJsonAtomic(
+      join(testProjectDir, ".omo/tasks", "T-blocker-completed.json"),
+      blockerCompleted,
+    );
+    writeJsonAtomic(
+      join(testProjectDir, ".omo/tasks", "T-blocker-pending.json"),
+      blockerPending,
+    );
+    writeJsonAtomic(
+      join(testProjectDir, ".omo/tasks", "T-main.json"),
+      mainTask,
+    );
 
-     const config = {
-       sisyphus: {
-         tasks: {
-           storage_path: join(testProjectDir, ".omo/tasks"),
-           claude_code_compat: false,
-         },
-       },
-     }
-     const tool = createTaskList(config)
+    const config = {
+      sisyphus: {
+        tasks: {
+          storage_path: join(testProjectDir, ".omo/tasks"),
+          claude_code_compat: false,
+        },
+      },
+    };
+    const tool = createTaskList(config);
 
-     //#when
-     const result = await tool.execute({}, { sessionID: "test-session" })
+    //#when
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
-     //#then
-     const parsed = JSON.parse(result)
-     const mainTaskSummary = parsed.tasks.find((t: { id: string }) => t.id === "T-main")
-    expect(mainTaskSummary.blockedBy).toEqual(["T-blocker-pending"])
-  })
+    //#then
+    const parsed = JSON.parse(result);
+    const mainTaskSummary = parsed.tasks.find((t: { id: string }) =>
+      t.id === "T-main"
+    );
+    expect(mainTaskSummary.blockedBy).toEqual(["T-blocker-pending"]);
+  });
 
-   it("includes all active statuses (pending, in_progress)", async () => {
-     //#given
-     const task1: TaskObject = {
-       id: "T-1",
-       subject: "Pending task",
-       description: "",
-       status: "pending",
-       blocks: [],
-       blockedBy: [],
-       threadID: "test-session",
-     }
-     const task2: TaskObject = {
-       id: "T-2",
-       subject: "In progress task",
-       description: "",
-       status: "in_progress",
-       blocks: [],
-       blockedBy: [],
-       threadID: "test-session",
-     }
+  it("includes all active statuses (pending, in_progress)", async () => {
+    //#given
+    const task1: TaskObject = {
+      id: "T-1",
+      subject: "Pending task",
+      description: "",
+      status: "pending",
+      blocks: [],
+      blockedBy: [],
+      threadID: "test-session",
+    };
+    const task2: TaskObject = {
+      id: "T-2",
+      subject: "In progress task",
+      description: "",
+      status: "in_progress",
+      blocks: [],
+      blockedBy: [],
+      threadID: "test-session",
+    };
 
-     writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task1)
-     writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-2.json"), task2)
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task1);
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-2.json"), task2);
 
-     const config = {
-       sisyphus: {
-         tasks: {
-           storage_path: join(testProjectDir, ".omo/tasks"),
-           claude_code_compat: false,
-         },
-       },
-     }
-     const tool = createTaskList(config)
+    const config = {
+      sisyphus: {
+        tasks: {
+          storage_path: join(testProjectDir, ".omo/tasks"),
+          claude_code_compat: false,
+        },
+      },
+    };
+    const tool = createTaskList(config);
 
-     //#when
-     const result = await tool.execute({}, { sessionID: "test-session" })
+    //#when
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
-     //#then
-     const parsed = JSON.parse(result)
-     expect(parsed.tasks).toHaveLength(2)
-   })
+    //#then
+    const parsed = JSON.parse(result);
+    expect(parsed.tasks).toHaveLength(2);
+  });
 
-   it("handles tasks with no blockedBy gracefully", async () => {
-     //#given
-     const task: TaskObject = {
-       id: "T-1",
-       subject: "Task with no blockers",
-       description: "",
-       status: "pending",
-       blocks: [],
-       blockedBy: [],
-       threadID: "test-session",
-     }
+  it("handles tasks with no blockedBy gracefully", async () => {
+    //#given
+    const task: TaskObject = {
+      id: "T-1",
+      subject: "Task with no blockers",
+      description: "",
+      status: "pending",
+      blocks: [],
+      blockedBy: [],
+      threadID: "test-session",
+    };
 
-     writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task)
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task);
 
-     const config = {
-       sisyphus: {
-         tasks: {
-           storage_path: join(testProjectDir, ".omo/tasks"),
-           claude_code_compat: false,
-         },
-       },
-     }
-     const tool = createTaskList(config)
+    const config = {
+      sisyphus: {
+        tasks: {
+          storage_path: join(testProjectDir, ".omo/tasks"),
+          claude_code_compat: false,
+        },
+      },
+    };
+    const tool = createTaskList(config);
 
-     //#when
-     const result = await tool.execute({}, { sessionID: "test-session" })
+    //#when
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
-     //#then
-     const parsed = JSON.parse(result)
-     expect(parsed.tasks[0].blockedBy).toEqual([])
-   })
+    //#then
+    const parsed = JSON.parse(result);
+    expect(parsed.tasks[0].blockedBy).toEqual([]);
+  });
 
-   it("handles missing blocker tasks gracefully", async () => {
-     //#given
-     const task: TaskObject = {
-       id: "T-1",
-       subject: "Task with missing blocker",
-       description: "",
-       status: "pending",
-       blocks: [],
-       blockedBy: ["T-missing"],
-       threadID: "test-session",
-     }
+  it("handles missing blocker tasks gracefully", async () => {
+    //#given
+    const task: TaskObject = {
+      id: "T-1",
+      subject: "Task with missing blocker",
+      description: "",
+      status: "pending",
+      blocks: [],
+      blockedBy: ["T-missing"],
+      threadID: "test-session",
+    };
 
-     writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task)
+    writeJsonAtomic(join(testProjectDir, ".omo/tasks", "T-1.json"), task);
 
-     const config = {
-       sisyphus: {
-         tasks: {
-           storage_path: join(testProjectDir, ".omo/tasks"),
-           claude_code_compat: false,
-         },
-       },
-     }
-     const tool = createTaskList(config)
+    const config = {
+      sisyphus: {
+        tasks: {
+          storage_path: join(testProjectDir, ".omo/tasks"),
+          claude_code_compat: false,
+        },
+      },
+    };
+    const tool = createTaskList(config);
 
-     //#when
-     const result = await tool.execute({}, { sessionID: "test-session" })
+    //#when
+    const result = await tool.execute({}, { sessionID: "test-session" });
 
-     //#then
-     const parsed = JSON.parse(result)
-     expect(parsed.tasks[0].blockedBy).toEqual(["T-missing"])
-   })
-})
+    //#then
+    const parsed = JSON.parse(result);
+    expect(parsed.tasks[0].blockedBy).toEqual(["T-missing"]);
+  });
+});

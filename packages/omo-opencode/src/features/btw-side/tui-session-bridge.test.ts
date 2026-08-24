@@ -1,6 +1,6 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it } from "bun:test";
 
-import { isCurrentTuiSession } from "./tui-session-bridge"
+import { isCurrentTuiSession } from "./tui-session-bridge";
 
 describe("isCurrentTuiSession", () => {
   it("#given an adoption lookup #when the route changes #then the original session is stale", () => {
@@ -12,15 +12,15 @@ describe("isCurrentTuiSession", () => {
           sessionID: "ses_a",
         },
       },
-    }
+    };
 
     // then
-    expect(isCurrentTuiSession({ route } as never, "ses_a")).toBe(true)
+    expect(isCurrentTuiSession({ route } as never, "ses_a")).toBe(true);
 
     // when
-    route.current.params.sessionID = "ses_b"
+    route.current.params.sessionID = "ses_b";
 
     // then
-    expect(isCurrentTuiSession({ route } as never, "ses_a")).toBe(false)
-  })
-})
+    expect(isCurrentTuiSession({ route } as never, "ses_a")).toBe(false);
+  });
+});

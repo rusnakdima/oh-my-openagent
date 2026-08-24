@@ -1,22 +1,22 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { executeUnstableAgentTask } from "./unstable-agent-task"
-import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value"
+import { executeUnstableAgentTask } from "./unstable-agent-task";
+import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
 
 describe("executeUnstableAgentTask session permission", () => {
   test("passes question-deny session permission into background launch", async () => {
     // given
-    const launchCalls: Array<Record<string, unknown>> = []
+    const launchCalls: Array<Record<string, unknown>> = [];
     const mockManager = {
       launch: async (input: Record<string, unknown>) => {
-        launchCalls.push(input)
+        launchCalls.push(input);
         return {
           id: "bg_unstable_permission",
           sessionId: "ses_unstable_permission",
           description: "test task",
           agent: "sisyphus-junior",
           status: "running",
-        }
+        };
       },
       getTask: () => ({
         id: "bg_unstable_permission",
@@ -26,15 +26,17 @@ describe("executeUnstableAgentTask session permission", () => {
         agent: "sisyphus-junior",
         error: "stop after launch",
       }),
-    }
+    };
     const toolContext = {
       sessionID: "parent-session",
       messageID: "msg_parent",
       agent: "sisyphus",
       metadata: () => {},
       abort: new AbortController().signal,
-    } satisfies Parameters<typeof executeUnstableAgentTask>[1]
-    const executorContext = unsafeTestValue<Parameters<typeof executeUnstableAgentTask>[2]>({
+    } satisfies Parameters<typeof executeUnstableAgentTask>[1];
+    const executorContext = unsafeTestValue<
+      Parameters<typeof executeUnstableAgentTask>[2]
+    >({
       manager: mockManager,
       client: {
         session: {
@@ -42,11 +44,11 @@ describe("executeUnstableAgentTask session permission", () => {
           messages: async () => ({ data: [] }),
         },
       },
-    })
+    });
     const parentContext = {
       sessionID: "parent-session",
       messageID: "msg_parent",
-    } satisfies Parameters<typeof executeUnstableAgentTask>[3]
+    } satisfies Parameters<typeof executeUnstableAgentTask>[3];
 
     // when
     await executeUnstableAgentTask(
@@ -64,12 +66,12 @@ describe("executeUnstableAgentTask session permission", () => {
       undefined,
       undefined,
       "test-model",
-    )
+    );
 
     // then
-    expect(launchCalls).toHaveLength(1)
+    expect(launchCalls).toHaveLength(1);
     expect(launchCalls[0]?.sessionPermission).toEqual([
       { permission: "question", action: "deny", pattern: "*" },
-    ])
-  })
-})
+    ]);
+  });
+});

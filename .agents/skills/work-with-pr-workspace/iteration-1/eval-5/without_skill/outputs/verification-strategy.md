@@ -3,28 +3,32 @@
 ## 1. Unit Tests
 
 ### New test file: `allowed-prefix-filter.test.ts`
+
 Run: `bun test src/hooks/comment-checker/allowed-prefix-filter.test.ts`
 
-| # | Scenario | Input | Expected |
-|---|----------|-------|----------|
-| 1 | Only Note: comments (default prefixes) | `// Note: Thread-safe`, `// NOTE: See RFC` | `hasRemainingComments: false`, empty message |
-| 2 | Only TODO/FIXME/HACK (default prefixes) | `// TODO: impl`, `// FIXME: race`, `# HACK: workaround` | Suppressed |
-| 3 | Only AI slop comments | `// Added validation`, `// Refactored for perf` | Full message preserved |
-| 4 | Mixed legitimate + slop | `// Note: Thread-safe`, `// Changed from old to new` | Message kept, Note: entry removed from XML |
-| 5 | Case-insensitive Note: | `// note: lowercase test` | Suppressed |
-| 6 | Hash-prefixed comments | `# Note: Python`, `# TODO: something` | Suppressed (prefix stripped before matching) |
-| 7 | Security: prefix | `// Security: validate input` | Suppressed |
-| 8 | Warning: prefix | `// WARNING: mutates input` | Suppressed |
-| 9 | Empty allowed prefixes | `// Note: should pass through` | Full message preserved (no filtering) |
-| 10 | Custom prefix | `// PERF: O(n log n)` with `["perf:"]` | Suppressed |
-| 11 | Agent memo header + Note: | Full agent memo banner + `// Note: Thread-safe` | Entire message suppressed including banner |
+| #  | Scenario                                | Input                                                   | Expected                                     |
+| -- | --------------------------------------- | ------------------------------------------------------- | -------------------------------------------- |
+| 1  | Only Note: comments (default prefixes)  | `// Note: Thread-safe`, `// NOTE: See RFC`              | `hasRemainingComments: false`, empty message |
+| 2  | Only TODO/FIXME/HACK (default prefixes) | `// TODO: impl`, `// FIXME: race`, `# HACK: workaround` | Suppressed                                   |
+| 3  | Only AI slop comments                   | `// Added validation`, `// Refactored for perf`         | Full message preserved                       |
+| 4  | Mixed legitimate + slop                 | `// Note: Thread-safe`, `// Changed from old to new`    | Message kept, Note: entry removed from XML   |
+| 5  | Case-insensitive Note:                  | `// note: lowercase test`                               | Suppressed                                   |
+| 6  | Hash-prefixed comments                  | `# Note: Python`, `# TODO: something`                   | Suppressed (prefix stripped before matching) |
+| 7  | Security: prefix                        | `// Security: validate input`                           | Suppressed                                   |
+| 8  | Warning: prefix                         | `// WARNING: mutates input`                             | Suppressed                                   |
+| 9  | Empty allowed prefixes                  | `// Note: should pass through`                          | Full message preserved (no filtering)        |
+| 10 | Custom prefix                           | `// PERF: O(n log n)` with `["perf:"]`                  | Suppressed                                   |
+| 11 | Agent memo header + Note:               | Full agent memo banner + `// Note: Thread-safe`         | Entire message suppressed including banner   |
 
 ### Existing test: `hook.apply-patch.test.ts`
+
 Run: `bun test src/hooks/comment-checker/hook.apply-patch.test.ts`
 
-Verify the updated mock assertion accepts the new `allowedPrefixes` array parameter.
+Verify the updated mock assertion accepts the new `allowedPrefixes` array
+parameter.
 
 ### Existing test: `cli.test.ts`
+
 Run: `bun test src/hooks/comment-checker/cli.test.ts`
 
 Verify no regressions in binary spawning, timeout, and semaphore logic.
@@ -36,7 +40,9 @@ bun run typecheck
 ```
 
 Verify:
-- `CommentCheckerConfigSchema` change propagates correctly to `CommentCheckerConfig` type
+
+- `CommentCheckerConfigSchema` change propagates correctly to
+  `CommentCheckerConfig` type
 - All call sites in `hook.ts` and `cli-runner.ts` pass the new parameter
 - `filterAllowedComments` return type matches usage in `cli-runner.ts`
 - No new type errors introduced
@@ -59,6 +65,7 @@ bun test src/hooks/comment-checker/
 ```
 
 All 4 test files should pass:
+
 - `cli.test.ts` (existing - no regressions)
 - `pending-calls.test.ts` (existing - no regressions)
 - `hook.apply-patch.test.ts` (modified assertion)
@@ -82,7 +89,8 @@ echo '{"session_id":"test","tool_name":"Write","transcript_path":"","cwd":"/tmp"
 echo "Exit code: $?"
 ```
 
-Expected: Binary returns exit 2 (comment detected), but the TypeScript post-filter should suppress it.
+Expected: Binary returns exit 2 (comment detected), but the TypeScript
+post-filter should suppress it.
 
 ## 7. Config Validation
 
@@ -98,14 +106,19 @@ Test that config changes work:
 }
 ```
 
-Verify Zod schema accepts the config and defaults are applied when field is omitted.
+Verify Zod schema accepts the config and defaults are applied when field is
+omitted.
 
 ## 8. Regression Checks
 
 Verify the following still work correctly:
-- AI slop comments (`// Added new feature`, `// Refactored for performance`) are still flagged
-- BDD comments (`// given`, `// when`, `// then`) are still allowed (binary-side filter)
-- Linter directives (`// eslint-disable`, `// @ts-ignore`) are still allowed (binary-side filter)
+
+- AI slop comments (`// Added new feature`, `// Refactored for performance`) are
+  still flagged
+- BDD comments (`// given`, `// when`, `// then`) are still allowed (binary-side
+  filter)
+- Linter directives (`// eslint-disable`, `// @ts-ignore`) are still allowed
+  (binary-side filter)
 - Shebangs (`#!/usr/bin/env node`) are still allowed (binary-side filter)
 - `custom_prompt` config still works
 - Semaphore prevents concurrent comment-checker runs

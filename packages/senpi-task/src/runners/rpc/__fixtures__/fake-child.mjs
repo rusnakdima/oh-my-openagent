@@ -4,19 +4,19 @@
 //   FAKE_IGNORE_TERM=1   install a SIGTERM handler that ignores it (proves SIGKILL escalation)
 //   FAKE_EMIT_UI=1       emit an extension_ui_request confirm at startup
 //   FAKE_EMIT_MALFORMED=1 emit one malformed line then a valid event at startup
-import { createInterface } from "node:readline"
-import { kill } from "node:process"
+import { createInterface } from "node:readline";
+import { kill } from "node:process";
 
 function emit(payload) {
-  process.stdout.write(`${JSON.stringify(payload)}\n`)
+  process.stdout.write(`${JSON.stringify(payload)}\n`);
 }
 
 function respond(command, id, extra) {
-  emit({ type: "response", command, id, success: true, ...(extra ?? {}) })
+  emit({ type: "response", command, id, success: true, ...(extra ?? {}) });
 }
 
 function reject(command, id, error) {
-  emit({ type: "response", command, id, success: false, error })
+  emit({ type: "response", command, id, success: false, error });
 }
 
 function assistantMessage(text, stopReason = "endTurn", errorMessage) {
@@ -25,96 +25,104 @@ function assistantMessage(text, stopReason = "endTurn", errorMessage) {
     content: text.length === 0 ? [] : [{ type: "text", text }],
     stopReason,
     ...(errorMessage === undefined ? {} : { errorMessage }),
-  }
+  };
 }
 
 function completeTurn(text) {
-  emit({ type: "message_end", message: assistantMessage(text) })
-  emit({ type: "agent_end", willRetry: false, messages: [assistantMessage(text)] })
+  emit({ type: "message_end", message: assistantMessage(text) });
+  emit({
+    type: "agent_end",
+    willRetry: false,
+    messages: [assistantMessage(text)],
+  });
 }
 
 function handlePrompt(cmd) {
-  const message = typeof cmd.message === "string" ? cmd.message : ""
+  const message = typeof cmd.message === "string" ? cmd.message : "";
   if (cmd.streamingBehavior === "followUp") {
-    respond("prompt", cmd.id)
-    emit({ type: "queue_update", steering: [], followUp: [message] })
+    respond("prompt", cmd.id);
+    emit({ type: "queue_update", steering: [], followUp: [message] });
     if (message === "empty-followup") {
-      emit({ type: "agent_start" })
-      emit({ type: "agent_end", willRetry: false, messages: [] })
+      emit({ type: "agent_start" });
+      emit({ type: "agent_end", willRetry: false, messages: [] });
     }
-    return
+    return;
   }
   if (message.startsWith("delay:")) {
-    const [, msRaw] = message.split(":")
-    const ms = Number.parseInt(msRaw, 10)
-    setTimeout(() => respond("prompt", cmd.id), Number.isFinite(ms) ? ms : 0)
-    return
+    const [, msRaw] = message.split(":");
+    const ms = Number.parseInt(msRaw, 10);
+    setTimeout(() => respond("prompt", cmd.id), Number.isFinite(ms) ? ms : 0);
+    return;
   }
   if (message.startsWith("crash:")) {
-    const [, codeRaw, ...rest] = message.split(":")
-    process.stderr.write(rest.join(":"))
-    process.exit(Number.parseInt(codeRaw, 10))
-    return
+    const [, codeRaw, ...rest] = message.split(":");
+    process.stderr.write(rest.join(":"));
+    process.exit(Number.parseInt(codeRaw, 10));
+    return;
   }
   if (message.startsWith("prompt-error:")) {
-    reject("prompt", cmd.id, message.slice("prompt-error:".length))
-    return
+    reject("prompt", cmd.id, message.slice("prompt-error:".length));
+    return;
   }
   if (message.startsWith("turn-error:")) {
-    const errorMessage = message.slice("turn-error:".length)
-    const failed = assistantMessage("", "error", errorMessage)
-    respond("prompt", cmd.id)
-    emit({ type: "agent_start" })
-    emit({ type: "message_end", message: failed })
-    emit({ type: "agent_end", willRetry: false, messages: [failed] })
-    return
+    const errorMessage = message.slice("turn-error:".length);
+    const failed = assistantMessage("", "error", errorMessage);
+    respond("prompt", cmd.id);
+    emit({ type: "agent_start" });
+    emit({ type: "message_end", message: failed });
+    emit({ type: "agent_end", willRetry: false, messages: [failed] });
+    return;
   }
   if (message.startsWith("exit:")) {
-    respond("prompt", cmd.id)
-    process.exit(Number.parseInt(message.slice("exit:".length), 10))
-    return
+    respond("prompt", cmd.id);
+    process.exit(Number.parseInt(message.slice("exit:".length), 10));
+    return;
   }
   if (message === "diesignal") {
-    respond("prompt", cmd.id)
-    emit({ type: "agent_start" })
-    kill(process.pid, "SIGKILL")
-    return
+    respond("prompt", cmd.id);
+    emit({ type: "agent_start" });
+    kill(process.pid, "SIGKILL");
+    return;
   }
   if (message.startsWith("finish:")) {
-    respond("prompt", cmd.id)
-    emit({ type: "agent_start" })
-    completeTurn(message.slice("finish:".length))
-    setTimeout(() => process.exit(0), 20)
-    return
+    respond("prompt", cmd.id);
+    emit({ type: "agent_start" });
+    completeTurn(message.slice("finish:".length));
+    setTimeout(() => process.exit(0), 20);
+    return;
   }
-  respond("prompt", cmd.id)
-  emit({ type: "agent_start" })
+  respond("prompt", cmd.id);
+  emit({ type: "agent_start" });
   if (message === "hold") {
-    return
+    return;
   }
-  completeTurn(message)
+  completeTurn(message);
 }
 
 function handleSteer(cmd) {
-  respond("steer", cmd.id)
-  emit({ type: "queue_update", steering: [cmd.message], followUp: [] })
+  respond("steer", cmd.id);
+  emit({ type: "queue_update", steering: [cmd.message], followUp: [] });
   if (cmd.message === "complete") {
-    completeTurn("steered-complete")
+    completeTurn("steered-complete");
   }
 }
 
 function handleCommand(cmd) {
   switch (cmd.type) {
     case "prompt":
-      return handlePrompt(cmd)
+      return handlePrompt(cmd);
     case "steer":
-      return handleSteer(cmd)
+      return handleSteer(cmd);
     case "follow_up":
-      respond("follow_up", cmd.id)
-      return emit({ type: "queue_update", steering: [], followUp: [cmd.message] })
+      respond("follow_up", cmd.id);
+      return emit({
+        type: "queue_update",
+        steering: [],
+        followUp: [cmd.message],
+      });
     case "abort":
-      respond("abort", cmd.id)
-      return emit({ type: "agent_end", willRetry: false, messages: [] })
+      respond("abort", cmd.id);
+      return emit({ type: "agent_end", willRetry: false, messages: [] });
     case "get_state":
       return respond("get_state", cmd.id, {
         data: {
@@ -128,41 +136,51 @@ function handleCommand(cmd) {
           messageCount: 1,
           pendingMessageCount: 0,
         },
-      })
+      });
     default:
-      return respond(cmd.type ?? "unknown", cmd.id)
+      return respond(cmd.type ?? "unknown", cmd.id);
   }
 }
 
 function handleLine(line) {
-  const trimmed = line.trim()
+  const trimmed = line.trim();
   if (!trimmed) {
-    return
+    return;
   }
-  const parsed = JSON.parse(trimmed)
+  const parsed = JSON.parse(trimmed);
   if (parsed.type === "extension_ui_response") {
-    const outcome = parsed.confirmed === false ? "denied" : parsed.cancelled ? "cancelled" : "confirmed"
-    emit({ type: "session_info_changed", name: `ui:${outcome}` })
-    return
+    const outcome = parsed.confirmed === false
+      ? "denied"
+      : parsed.cancelled
+      ? "cancelled"
+      : "confirmed";
+    emit({ type: "session_info_changed", name: `ui:${outcome}` });
+    return;
   }
-  handleCommand(parsed)
+  handleCommand(parsed);
 }
 
 if (process.env.FAKE_IGNORE_TERM === "1") {
-  process.on("SIGTERM", () => {})
-  setInterval(() => {}, 1_000)
-  emit({ type: "session_info_changed", name: "ready" })
+  process.on("SIGTERM", () => {});
+  setInterval(() => {}, 1_000);
+  emit({ type: "session_info_changed", name: "ready" });
 }
 
 if (process.env.FAKE_EMIT_MALFORMED === "1") {
-  process.stdout.write("this-is-not-json\n")
-  emit({ type: "agent_start" })
+  process.stdout.write("this-is-not-json\n");
+  emit({ type: "agent_start" });
 }
 
 if (process.env.FAKE_EMIT_UI === "1") {
   setTimeout(() => {
-    emit({ type: "extension_ui_request", id: "ui-1", method: "confirm", title: "t", message: "m" })
-  }, 5)
+    emit({
+      type: "extension_ui_request",
+      id: "ui-1",
+      method: "confirm",
+      title: "t",
+      message: "m",
+    });
+  }, 5);
 }
 
-createInterface({ input: process.stdin }).on("line", handleLine)
+createInterface({ input: process.stdin }).on("line", handleLine);

@@ -1,10 +1,10 @@
-import { join } from "node:path"
-import { existsSync } from "node:fs"
-import { getDataDir } from "../shared/data-path"
-import { log } from "../shared"
+import { join } from "node:path";
+import { existsSync } from "node:fs";
+import { getDataDir } from "../shared/data-path";
+import { log } from "../shared";
 
-type BunDatabase = import("bun:sqlite").Database
-type BunStatement = ReturnType<BunDatabase["prepare"]>
+type BunDatabase = import("bun:sqlite").Database;
+type BunStatement = ReturnType<BunDatabase["prepare"]>;
 
 /**
  * Safely import bun:sqlite only when running in Bun runtime.
@@ -13,61 +13,70 @@ type BunStatement = ReturnType<BunDatabase["prepare"]>
  */
 async function importBunSqlite(): Promise<typeof import("bun:sqlite") | null> {
   if (typeof globalThis.Bun === "undefined") {
-    return null
+    return null;
   }
   try {
     // new Function() prevents Node.js ESM loader from seeing the bun: import at parse time
-    const dynamicImport = new Function("return import('bun:sqlite')") as () => Promise<typeof import("bun:sqlite")>
-    return await dynamicImport()
+    const dynamicImport = new Function("return import('bun:sqlite')") as () =>
+      Promise<typeof import("bun:sqlite")>;
+    return await dynamicImport();
   } catch (error) {
     if (error instanceof Error) {
-      return null
+      return null;
     }
-    return null
+    return null;
   }
 }
 
 function getDbPath(): string {
-  return join(getDataDir(), "opencode", "opencode.db")
+  return join(getDataDir(), "opencode", "opencode.db");
 }
 
-const MAX_MICROTASK_RETRIES = 10
+const MAX_MICROTASK_RETRIES = 10;
 
 function logCaughtDbError(
   message: string,
   metadata: Record<string, string | number | undefined>,
   error: unknown,
 ): void {
-  log(message, { ...metadata, error: String(error) })
+  log(message, { ...metadata, error: String(error) });
 }
 
 function nextMicrotask(): Promise<void> {
   return new Promise((resolve) => {
-    queueMicrotask(resolve)
-  })
+    queueMicrotask(resolve);
+  });
 }
 
 function nextTimerTick(): Promise<void> {
   return new Promise((resolve) => {
-    setTimeout(resolve, 0)
-  })
+    setTimeout(resolve, 0);
+  });
 }
 
-function closeDbWithLog(db: BunDatabase, message: string, metadata: Record<string, string | number | undefined>): void {
+function closeDbWithLog(
+  db: BunDatabase,
+  message: string,
+  metadata: Record<string, string | number | undefined>,
+): void {
   try {
-    db.close()
+    db.close();
   } catch (error) {
-    logCaughtDbError(message, metadata, error)
-    if (error instanceof Error) return
+    logCaughtDbError(message, metadata, error);
+    if (error instanceof Error) return;
   }
 }
 
-function finalizeStatementWithLog(stmt: BunStatement, message: string, metadata: Record<string, string | number | undefined>): void {
+function finalizeStatementWithLog(
+  stmt: BunStatement,
+  message: string,
+  metadata: Record<string, string | number | undefined>,
+): void {
   try {
-    stmt.finalize()
+    stmt.finalize();
   } catch (error) {
-    logCaughtDbError(message, metadata, error)
-    if (error instanceof Error) return
+    logCaughtDbError(message, metadata, error);
+    if (error instanceof Error) return;
   }
 }
 
@@ -79,25 +88,37 @@ function tryUpdateMessageModel(
 ): boolean {
   const stmt = db.prepare(
     `UPDATE message SET data = json_set(data, '$.model.providerID', ?, '$.model.modelID', ?) WHERE id = ?`,
-  )
+  );
   try {
-    const result = stmt.run(targetModel.providerID, targetModel.modelID, messageId)
-    if (result.changes === 0) return false
+    const result = stmt.run(
+      targetModel.providerID,
+      targetModel.modelID,
+      messageId,
+    );
+    if (result.changes === 0) return false;
   } finally {
-    finalizeStatementWithLog(stmt, "[ultrawork-db-override] Failed to finalize model update statement", { messageId })
+    finalizeStatementWithLog(
+      stmt,
+      "[ultrawork-db-override] Failed to finalize model update statement",
+      { messageId },
+    );
   }
 
   if (variant) {
     const variantStmt = db.prepare(
       `UPDATE message SET data = json_set(data, '$.variant', ?, '$.thinking', ?) WHERE id = ?`,
-    )
+    );
     try {
-      variantStmt.run(variant, variant, messageId)
+      variantStmt.run(variant, variant, messageId);
     } finally {
-      finalizeStatementWithLog(variantStmt, "[ultrawork-db-override] Failed to finalize variant update statement", { messageId })
+      finalizeStatementWithLog(
+        variantStmt,
+        "[ultrawork-db-override] Failed to finalize variant update statement",
+        { messageId },
+      );
     }
   }
-  return true
+  return true;
 }
 
 async function retryViaMicrotask(
@@ -108,43 +129,71 @@ async function retryViaMicrotask(
   attempt: number,
 ): Promise<void> {
   if (attempt >= MAX_MICROTASK_RETRIES) {
-    log("[ultrawork-db-override] Exhausted microtask retries, falling back to setTimeout", {
-      messageId,
-      attempt,
-    })
-    await nextTimerTick()
+    log(
+      "[ultrawork-db-override] Exhausted microtask retries, falling back to setTimeout",
+      {
+        messageId,
+        attempt,
+      },
+    );
+    await nextTimerTick();
     try {
       if (tryUpdateMessageModel(db, messageId, targetModel, variant)) {
-        log(`[ultrawork-db-override] setTimeout fallback succeeded: ${targetModel.providerID}/${targetModel.modelID}`, { messageId })
+        log(
+          `[ultrawork-db-override] setTimeout fallback succeeded: ${targetModel.providerID}/${targetModel.modelID}`,
+          { messageId },
+        );
       } else {
-        log("[ultrawork-db-override] setTimeout fallback failed - message not found", { messageId })
+        log(
+          "[ultrawork-db-override] setTimeout fallback failed - message not found",
+          { messageId },
+        );
       }
     } catch (error) {
-      logCaughtDbError("[ultrawork-db-override] setTimeout fallback failed with error", { messageId }, error)
-      if (error instanceof Error) return
+      logCaughtDbError(
+        "[ultrawork-db-override] setTimeout fallback failed with error",
+        { messageId },
+        error,
+      );
+      if (error instanceof Error) return;
     } finally {
-      closeDbWithLog(db, "[ultrawork-db-override] Failed to close DB after setTimeout fallback", { messageId })
+      closeDbWithLog(
+        db,
+        "[ultrawork-db-override] Failed to close DB after setTimeout fallback",
+        { messageId },
+      );
     }
-    return
+    return;
   }
 
-  await nextMicrotask()
-  let shouldCloseDb = true
+  await nextMicrotask();
+  let shouldCloseDb = true;
 
   try {
     if (tryUpdateMessageModel(db, messageId, targetModel, variant)) {
-      log(`[ultrawork-db-override] Deferred DB update (attempt ${attempt}): ${targetModel.providerID}/${targetModel.modelID}`, { messageId })
-      return
+      log(
+        `[ultrawork-db-override] Deferred DB update (attempt ${attempt}): ${targetModel.providerID}/${targetModel.modelID}`,
+        { messageId },
+      );
+      return;
     }
 
-    shouldCloseDb = false
-    await retryViaMicrotask(db, messageId, targetModel, variant, attempt + 1)
+    shouldCloseDb = false;
+    await retryViaMicrotask(db, messageId, targetModel, variant, attempt + 1);
   } catch (error) {
-    logCaughtDbError("[ultrawork-db-override] Deferred DB update failed with error", { messageId, attempt }, error)
-    if (error instanceof Error) return
+    logCaughtDbError(
+      "[ultrawork-db-override] Deferred DB update failed with error",
+      { messageId, attempt },
+      error,
+    );
+    if (error instanceof Error) return;
   } finally {
     if (shouldCloseDb) {
-      closeDbWithLog(db, "[ultrawork-db-override] Failed to close DB after deferred DB update", { messageId, attempt })
+      closeDbWithLog(
+        db,
+        "[ultrawork-db-override] Failed to close DB after deferred DB update",
+        { messageId, attempt },
+      );
     }
   }
 }
@@ -161,34 +210,49 @@ export async function scheduleDeferredModelOverride(
   targetModel: { providerID: string; modelID: string },
   variant?: string,
 ): Promise<void> {
-  await nextMicrotask()
-  const sqliteModule = await importBunSqlite()
-  const Database = sqliteModule?.Database
+  await nextMicrotask();
+  const sqliteModule = await importBunSqlite();
+  const Database = sqliteModule?.Database;
   if (typeof Database !== "function") {
-    log("[ultrawork-db-override] bun:sqlite unavailable, skipping deferred override", { messageId })
-    return
+    log(
+      "[ultrawork-db-override] bun:sqlite unavailable, skipping deferred override",
+      { messageId },
+    );
+    return;
   }
 
-  const dbPath = getDbPath()
+  const dbPath = getDbPath();
   if (!existsSync(dbPath)) {
-    log("[ultrawork-db-override] DB not found, skipping deferred override")
-    return
+    log("[ultrawork-db-override] DB not found, skipping deferred override");
+    return;
   }
 
-  let db: BunDatabase
+  let db: BunDatabase;
   try {
-    db = new Database(dbPath)
+    db = new Database(dbPath);
   } catch (error) {
-    logCaughtDbError("[ultrawork-db-override] Failed to open DB, skipping deferred override", { messageId }, error)
-    if (error instanceof Error) return
-    return
+    logCaughtDbError(
+      "[ultrawork-db-override] Failed to open DB, skipping deferred override",
+      { messageId },
+      error,
+    );
+    if (error instanceof Error) return;
+    return;
   }
 
   try {
-    await retryViaMicrotask(db, messageId, targetModel, variant, 0)
+    await retryViaMicrotask(db, messageId, targetModel, variant, 0);
   } catch (error) {
-    logCaughtDbError("[ultrawork-db-override] Failed to apply deferred model override", {}, error)
-    closeDbWithLog(db, "[ultrawork-db-override] Failed to close DB after deferred override error", { messageId })
-    if (error instanceof Error) return
+    logCaughtDbError(
+      "[ultrawork-db-override] Failed to apply deferred model override",
+      {},
+      error,
+    );
+    closeDbWithLog(
+      db,
+      "[ultrawork-db-override] Failed to close DB after deferred override error",
+      { messageId },
+    );
+    if (error instanceof Error) return;
   }
 }

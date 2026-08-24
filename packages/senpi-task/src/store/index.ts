@@ -1,7 +1,10 @@
-export { claimTaskRecord } from "./claim"
-export type { ClaimOptions } from "./claim"
-export { TaskRecordCollisionError, createTaskRecordStore } from "./record-store"
-export { resolveStateDir } from "./state-dir"
+export { claimTaskRecord } from "./claim";
+export type { ClaimOptions } from "./claim";
+export {
+  createTaskRecordStore,
+  TaskRecordCollisionError,
+} from "./record-store";
+export { resolveStateDir } from "./state-dir";
 export type {
   ListTaskRecordsResult,
   PersistedTaskEvent,
@@ -9,4 +12,4 @@ export type {
   TaskRecordDiagnostic,
   TaskRecordStore,
   TombstoneResult,
-} from "./types"
+} from "./types";

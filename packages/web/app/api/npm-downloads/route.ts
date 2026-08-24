@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server"
-import { getStats } from "@/lib/stats"
+import { NextResponse } from "next/server";
+import { getStats } from "@/lib/stats";
 
 /**
  * Shields.io endpoint badge for combined NPM downloads.
@@ -10,40 +10,40 @@ import { getStats } from "@/lib/stats"
 
 function formatDownloads(num: number): string {
   if (num >= 1_000_000) {
-    const formatted = (num / 1_000_000).toFixed(1)
-    return `${formatted.replace(/\.0$/, "")}M`
+    const formatted = (num / 1_000_000).toFixed(1);
+    return `${formatted.replace(/\.0$/, "")}M`;
   }
   if (num >= 1_000) {
-    const formatted = (num / 1_000).toFixed(1)
-    return `${formatted.replace(/\.0$/, "")}k`
+    const formatted = (num / 1_000).toFixed(1);
+    return `${formatted.replace(/\.0$/, "")}k`;
   }
-  return String(num)
+  return String(num);
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
-  const period = searchParams.get("period") ?? "total"
+  const { searchParams } = new URL(request.url);
+  const period = searchParams.get("period") ?? "total";
 
   try {
-    const stats = await getStats()
+    const stats = await getStats();
 
-    let value: number
-    let label: string
+    let value: number;
+    let label: string;
 
     switch (period) {
       case "monthly":
-        value = stats.monthlyDownloads
-        label = "npm downloads/month"
-        break
+        value = stats.monthlyDownloads;
+        label = "npm downloads/month";
+        break;
       case "weekly":
-        value = stats.weeklyDownloads
-        label = "npm downloads/week"
-        break
+        value = stats.weeklyDownloads;
+        label = "npm downloads/week";
+        break;
       case "total":
       default:
-        value = stats.totalDownloads
-        label = "npm downloads"
-        break
+        value = stats.totalDownloads;
+        label = "npm downloads";
+        break;
     }
 
     // Shields.io endpoint badge schema
@@ -55,14 +55,14 @@ export async function GET(request: Request) {
       color: "ff6b35",
       labelColor: "000000",
       style: "flat-square",
-    }
+    };
 
     return NextResponse.json(badge, {
       headers: {
         "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=86400",
         "Access-Control-Allow-Origin": "*",
       },
-    })
+    });
   } catch {
     // Fallback badge
     return NextResponse.json(
@@ -80,6 +80,6 @@ export async function GET(request: Request) {
           "Access-Control-Allow-Origin": "*",
         },
       },
-    )
+    );
   }
 }

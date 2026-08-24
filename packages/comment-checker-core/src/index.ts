@@ -7,13 +7,13 @@ export {
   makeAccumulator,
   parseApplyPatchRequests,
   readApplyPatchMetadataFiles,
-} from "./apply-patch-edits"
-export { resolveCommentCheckerBinary, runCommentChecker } from "./runner"
+} from "./apply-patch-edits";
+export { resolveCommentCheckerBinary, runCommentChecker } from "./runner";
 export type {
   ApplyPatchAccumulator,
   ApplyPatchFileMetadata,
-  CheckResult,
   CheckerEdit,
+  CheckResult,
   CommentFilter,
   CommentInfo,
   CommentType,
@@ -27,4 +27,4 @@ export type {
   SpawnFn,
   SpawnProcess,
   SpawnSignal,
-} from "./types"
+} from "./types";

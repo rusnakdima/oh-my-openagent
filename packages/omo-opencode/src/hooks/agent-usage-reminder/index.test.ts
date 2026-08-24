@@ -1,7 +1,19 @@
 import type { PluginInput } from "@opencode-ai/plugin";
-import { afterEach, beforeEach, describe, expect, mock, spyOn, test } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from "bun:test";
 import { createAgentUsageReminderHook } from "./index";
-import { clearSessionAgent, updateSessionAgent, _resetForTesting } from "../../features/claude-code-session-state";
+import {
+  _resetForTesting,
+  clearSessionAgent,
+  updateSessionAgent,
+} from "../../features/claude-code-session-state";
 import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
 import * as storage from "./storage";
 
@@ -13,8 +25,12 @@ describe("agent-usage-reminder hook", () => {
   beforeEach(() => {
     _resetForTesting();
     loadStateSpy = spyOn(storage, "loadAgentUsageState").mockReturnValue(null);
-    saveStateSpy = spyOn(storage, "saveAgentUsageState").mockImplementation(mock(() => {}));
-    clearStateSpy = spyOn(storage, "clearAgentUsageState").mockImplementation(mock(() => {}));
+    saveStateSpy = spyOn(storage, "saveAgentUsageState").mockImplementation(
+      mock(() => {}),
+    );
+    clearStateSpy = spyOn(storage, "clearAgentUsageState").mockImplementation(
+      mock(() => {}),
+    );
   });
 
   afterEach(() => {
@@ -38,9 +54,18 @@ describe("agent-usage-reminder hook", () => {
     const output3 = { title: "", output: "result-3", metadata: {} };
     const output4 = { title: "", output: "result-4", metadata: {} };
 
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "1" }, output1);
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "2" }, output2);
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "3" }, output3);
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "1" },
+      output1,
+    );
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "2" },
+      output2,
+    );
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "3" },
+      output3,
+    );
 
     // then - the first three reminders are shown
     expect(output1.output).toContain("[Agent Usage Reminder]");
@@ -48,8 +73,13 @@ describe("agent-usage-reminder hook", () => {
     expect(output3.output).toContain("[Agent Usage Reminder]");
 
     // when - compaction happens and another target tool runs
-    await hook.event({ event: { type: "session.compacted", properties: { sessionID } } });
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "4" }, output4);
+    await hook.event({
+      event: { type: "session.compacted", properties: { sessionID } },
+    });
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "4" },
+      output4,
+    );
 
     // then - compaction does not reset the reminder cap
     expect(output4.output).not.toContain("[Agent Usage Reminder]");
@@ -69,10 +99,22 @@ describe("agent-usage-reminder hook", () => {
     const output4 = { title: "", output: "result-4", metadata: {} };
     const output5 = { title: "", output: "result-5", metadata: {} };
 
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "1" }, output1);
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "2" }, output2);
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "3" }, output3);
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "4" }, output4);
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "1" },
+      output1,
+    );
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "2" },
+      output2,
+    );
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "3" },
+      output3,
+    );
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "4" },
+      output4,
+    );
 
     expect(output1.output).toContain("[Agent Usage Reminder]");
     expect(output2.output).toContain("[Agent Usage Reminder]");
@@ -80,8 +122,16 @@ describe("agent-usage-reminder hook", () => {
     expect(output4.output).not.toContain("[Agent Usage Reminder]");
 
     // when - the session is deleted and another target tool runs
-    await hook.event({ event: { type: "session.deleted", properties: { info: { id: sessionID } } } });
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "5" }, output5);
+    await hook.event({
+      event: {
+        type: "session.deleted",
+        properties: { info: { id: sessionID } },
+      },
+    });
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "5" },
+      output5,
+    );
 
     // then - deletion still resets the state
     expect(output5.output).toContain("[Agent Usage Reminder]");
@@ -97,11 +147,19 @@ describe("agent-usage-reminder hook", () => {
 
     const output = { title: "", output: "result", metadata: {} };
 
-    await hook["tool.execute.after"]({ tool: "task", sessionID, callID: "1" }, output);
+    await hook["tool.execute.after"](
+      { tool: "task", sessionID, callID: "1" },
+      output,
+    );
 
     // when - compaction happens and another target tool runs
-    await hook.event({ event: { type: "session.compacted", properties: { sessionID } } });
-    await hook["tool.execute.after"]({ tool: "grep", sessionID, callID: "2" }, output);
+    await hook.event({
+      event: { type: "session.compacted", properties: { sessionID } },
+    });
+    await hook["tool.execute.after"](
+      { tool: "grep", sessionID, callID: "2" },
+      output,
+    );
 
     // then - compaction does not clear delegated state
     expect(output.output).not.toContain("[Agent Usage Reminder]");

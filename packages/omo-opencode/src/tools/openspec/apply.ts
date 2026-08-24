@@ -5,20 +5,20 @@
  * Also handles session tracking (marking when the spec was applied).
  */
 
-import { join } from "node:path"
+import { join } from "node:path";
 import {
+  markPendingAsInProgress,
+  readSpecFile,
   resolveSpecFile,
   specExists,
-  readSpecFile,
   writeSpecFile,
-  markPendingAsInProgress,
-} from "./store"
+} from "./store";
 
 export interface ApplySpecResult {
-  specName: string
-  success: boolean
-  applied: boolean
-  message: string
+  specName: string;
+  success: boolean;
+  applied: boolean;
+  message: string;
 }
 
 /**
@@ -36,38 +36,43 @@ export async function applySpec(
   specName: string,
   sessionID?: string,
 ): Promise<ApplySpecResult> {
-  const tasksFile = resolveSpecFile(projectDir, specDir, specName, "tasks.md")
+  const tasksFile = resolveSpecFile(projectDir, specDir, specName, "tasks.md");
 
-  const exists = await specExists(tasksFile)
+  const exists = await specExists(tasksFile);
   if (!exists) {
     return {
       specName,
       success: false,
       applied: false,
       message: `Spec "${specName}" not found or has no tasks.md.`,
-    }
+    };
   }
 
-  const content = await readSpecFile(tasksFile)
+  const content = await readSpecFile(tasksFile);
   if (!content) {
-    return { specName, success: false, applied: false, message: `Could not read tasks.md for "${specName}".` }
+    return {
+      specName,
+      success: false,
+      applied: false,
+      message: `Could not read tasks.md for "${specName}".`,
+    };
   }
 
-  const updated = markPendingAsInProgress(content)
+  const updated = markPendingAsInProgress(content);
   if (!updated) {
     return {
       specName,
       success: true,
       applied: false,
       message: `Spec "${specName}" already has no pending tasks to apply.`,
-    }
+    };
   }
 
-  await writeSpecFile(tasksFile, updated)
+  await writeSpecFile(tasksFile, updated);
 
   const msg = sessionID
     ? `Spec "${specName}" applied. Pending tasks marked in-progress (session: ${sessionID}).`
-    : `Spec "${specName}" applied. All pending tasks marked in-progress.`
+    : `Spec "${specName}" applied. All pending tasks marked in-progress.`;
 
-  return { specName, success: true, applied: true, message: msg }
+  return { specName, success: true, applied: true, message: msg };
 }

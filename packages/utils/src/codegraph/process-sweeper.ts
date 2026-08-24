@@ -3,8 +3,8 @@
  * `../process-sweep/sweeper` (family-based sweep restructure).
  */
 export {
-  sweepCodegraphZombies,
   type CodegraphSweepAction,
+  sweepCodegraphZombies,
   type SweepCodegraphZombiesOptions,
   type SweepCodegraphZombiesResult,
-} from "../process-sweep/sweeper"
+} from "../process-sweep/sweeper";

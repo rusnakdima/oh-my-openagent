@@ -16,7 +16,9 @@ export function finalizeAgentConfig(
   if (params.config.agent) {
     params.config.agent = remapAgentKeysToDisplayNames(
       params.config.agent as Record<string, unknown>,
-      params.pluginConfig.agents as Record<string, { displayName?: string } | undefined> | undefined,
+      params.pluginConfig.agents as
+        | Record<string, { displayName?: string } | undefined>
+        | undefined,
     );
     params.config.agent = reorderAgentsByPriority(
       params.config.agent as Record<string, unknown>,
@@ -26,16 +28,20 @@ export function finalizeAgentConfig(
 
   if (params.configuredDefaultAgent) {
     setDefaultAgentForSort(
-      (params.config as { default_agent?: string }).default_agent ?? params.configuredDefaultAgent,
+      (params.config as { default_agent?: string }).default_agent ??
+        params.configuredDefaultAgent,
     );
   }
 
-  const agentResult =
-    params.config.agent != null ? (params.config.agent as Record<string, unknown>) : {};
+  const agentResult = params.config.agent != null
+    ? (params.config.agent as Record<string, unknown>)
+    : {};
   clearRegisteredAgentNames();
   for (const name of Object.keys(agentResult)) {
     registerAgentName(name);
   }
-  log("[config-handler] agents loaded", { agentKeys: Object.keys(agentResult) });
+  log("[config-handler] agents loaded", {
+    agentKeys: Object.keys(agentResult),
+  });
   return agentResult;
 }

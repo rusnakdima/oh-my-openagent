@@ -1,48 +1,51 @@
-import { randomUUID } from "node:crypto"
+import { randomUUID } from "node:crypto";
 
-import type { TeamModeConfig } from "../../config/schema/team-mode"
-import { findResolvedMemberSession } from "../../features/team-mode/member-session-resolution"
-import { sendMessage } from "../../features/team-mode/team-mailbox/send"
+import type { TeamModeConfig } from "../../config/schema/team-mode";
+import { findResolvedMemberSession } from "../../features/team-mode/member-session-resolution";
+import { sendMessage } from "../../features/team-mode/team-mailbox/send";
 import {
   releaseDeliveryReservation,
   reserveMessageForDelivery,
-} from "../../features/team-mode/team-mailbox/reservation"
-import { loadRuntimeState, transitionRuntimeState } from "../../features/team-mode/team-state-store/store"
-import { resolveSessionEventID } from "../../shared/event-session-id"
-import { isRecord } from "../../shared/record-type-guard"
-import { log } from "../../shared/logger"
+} from "../../features/team-mode/team-mailbox/reservation";
+import {
+  loadRuntimeState,
+  transitionRuntimeState,
+} from "../../features/team-mode/team-state-store/store";
+import { resolveSessionEventID } from "../../shared/event-session-id";
+import { isRecord } from "../../shared/record-type-guard";
+import { log } from "../../shared/logger";
 import {
   DEFAULT_SESSION_IDLE_SETTLE_MS,
   isSessionActive,
   settleAfterSessionIdle,
-} from "../../shared/session-idle-settle"
+} from "../../shared/session-idle-settle";
 
-type HookInput = { event: { type: string; properties?: unknown } }
-export type HookImpl = (input: HookInput) => Promise<void>
+type HookInput = { event: { type: string; properties?: unknown } };
+export type HookImpl = (input: HookInput) => Promise<void>;
 type TeamMemberErrorHandlerDeps = {
   client?: {
     session?: {
-      status?: () => Promise<unknown>
-      messages?: (input: { path: { id: string } }) => Promise<unknown>
-    }
-  }
-  settleMs?: number
-}
+      status?: () => Promise<unknown>;
+      messages?: (input: { path: { id: string } }) => Promise<unknown>;
+    };
+  };
+  settleMs?: number;
+};
 
 function getErroredSessionID(properties: unknown): string | undefined {
-  return resolveSessionEventID(properties)
+  return resolveSessionEventID(properties);
 }
 
 function extractErrorText(properties: unknown): string {
-  const props = isRecord(properties) ? properties : undefined
-  const errorValue = props?.["error"]
+  const props = isRecord(properties) ? properties : undefined;
+  const errorValue = props?.["error"];
   if (errorValue instanceof Error) {
-    return errorValue.message
+    return errorValue.message;
   }
   if (typeof errorValue === "string" && errorValue.length > 0) {
-    return errorValue
+    return errorValue;
   }
-  return "unknown error"
+  return "unknown error";
 }
 
 async function requeuePendingLiveDeliveries(
@@ -52,12 +55,17 @@ async function requeuePendingLiveDeliveries(
   config: TeamModeConfig,
 ): Promise<void> {
   for (const messageId of messageIds) {
-    const reservation = await reserveMessageForDelivery(teamRunId, memberName, messageId, config)
+    const reservation = await reserveMessageForDelivery(
+      teamRunId,
+      memberName,
+      messageId,
+      config,
+    );
     if (reservation === null) {
-      continue
+      continue;
     }
 
-    await releaseDeliveryReservation(reservation)
+    await releaseDeliveryReservation(reservation);
   }
 }
 
@@ -66,35 +74,40 @@ async function shouldKeepPendingLiveDeliveries(
   sessionID: string,
 ): Promise<boolean> {
   if (typeof deps.client?.session?.status !== "function") {
-    return false
+    return false;
   }
 
-  await settleAfterSessionIdle(deps.settleMs ?? DEFAULT_SESSION_IDLE_SETTLE_MS)
-  return await isSessionActive(deps.client, sessionID)
+  await settleAfterSessionIdle(deps.settleMs ?? DEFAULT_SESSION_IDLE_SETTLE_MS);
+  return await isSessionActive(deps.client, sessionID);
 }
 
 function getMessagesData(response: unknown): unknown[] {
   if (isRecord(response) && Array.isArray(response.data)) {
-    return response.data
+    return response.data;
   }
 
-  return Array.isArray(response) ? response : []
+  return Array.isArray(response) ? response : [];
 }
 
-function valueContainsAnyMessageId(value: unknown, messageIds: ReadonlySet<string>): boolean {
+function valueContainsAnyMessageId(
+  value: unknown,
+  messageIds: ReadonlySet<string>,
+): boolean {
   if (typeof value === "string") {
-    return [...messageIds].some((messageId) => value.includes(messageId))
+    return [...messageIds].some((messageId) => value.includes(messageId));
   }
 
   if (Array.isArray(value)) {
-    return value.some((entry) => valueContainsAnyMessageId(entry, messageIds))
+    return value.some((entry) => valueContainsAnyMessageId(entry, messageIds));
   }
 
   if (isRecord(value)) {
-    return Object.values(value).some((entry) => valueContainsAnyMessageId(entry, messageIds))
+    return Object.values(value).some((entry) =>
+      valueContainsAnyMessageId(entry, messageIds)
+    );
   }
 
-  return false
+  return false;
 }
 
 async function sessionHistoryContainsPendingMessage(
@@ -102,21 +115,28 @@ async function sessionHistoryContainsPendingMessage(
   sessionID: string,
   messageIds: readonly string[],
 ): Promise<boolean> {
-  if (messageIds.length === 0 || typeof deps.client?.session?.messages !== "function") {
-    return false
+  if (
+    messageIds.length === 0 ||
+    typeof deps.client?.session?.messages !== "function"
+  ) {
+    return false;
   }
 
   try {
-    const response = await deps.client.session.messages({ path: { id: sessionID } })
-    const pendingMessageIds = new Set(messageIds)
-    return getMessagesData(response).some((message) => valueContainsAnyMessageId(message, pendingMessageIds))
+    const response = await deps.client.session.messages({
+      path: { id: sessionID },
+    });
+    const pendingMessageIds = new Set(messageIds);
+    return getMessagesData(response).some((message) =>
+      valueContainsAnyMessageId(message, pendingMessageIds)
+    );
   } catch (error) {
     log("team member session history check failed", {
       event: "team-mode-member-error-history-check-failed",
       sessionID,
       error: error instanceof Error ? error.message : String(error),
-    })
-    return false
+    });
+    return false;
   }
 }
 
@@ -125,20 +145,30 @@ export function createTeamMemberErrorHandler(
   deps: TeamMemberErrorHandlerDeps = {},
 ): HookImpl {
   return async ({ event }: HookInput): Promise<void> => {
-    if (event.type !== "session.error") return
+    if (event.type !== "session.error") return;
 
-    const erroredSessionID = getErroredSessionID(event.properties)
-    if (!erroredSessionID) return
+    const erroredSessionID = getErroredSessionID(event.properties);
+    if (!erroredSessionID) return;
 
     try {
-      const runtimeMember = await findResolvedMemberSession(erroredSessionID, config, "team member error handler")
+      const runtimeMember = await findResolvedMemberSession(
+        erroredSessionID,
+        config,
+        "team member error handler",
+      );
       if (runtimeMember === null) {
-        return
+        return;
       }
 
-      const runtimeState = await loadRuntimeState(runtimeMember.teamRunId, config)
-      const memberEntry = runtimeState.members.find((member) => member.name === runtimeMember.memberName)
-      const pendingInjectedMessageIds = memberEntry?.pendingInjectedMessageIds ?? []
+      const runtimeState = await loadRuntimeState(
+        runtimeMember.teamRunId,
+        config,
+      );
+      const memberEntry = runtimeState.members.find((member) =>
+        member.name === runtimeMember.memberName
+      );
+      const pendingInjectedMessageIds =
+        memberEntry?.pendingInjectedMessageIds ?? [];
       if (await shouldKeepPendingLiveDeliveries(deps, erroredSessionID)) {
         log("team member session error ignored while session remains active", {
           event: "team-mode-member-error-active",
@@ -147,50 +177,75 @@ export function createTeamMemberErrorHandler(
           memberName: runtimeMember.memberName,
           sessionID: erroredSessionID,
           pendingCount: pendingInjectedMessageIds.length,
-        })
-        return
+        });
+        return;
       }
-      if (await sessionHistoryContainsPendingMessage(deps, erroredSessionID, pendingInjectedMessageIds)) {
-        log("team member session error ignored after pending peer message reached history", {
-          event: "team-mode-member-error-peer-message-accepted",
-          teamRunId: runtimeState.teamRunId,
-          teamName: runtimeState.teamName,
-          memberName: runtimeMember.memberName,
-          sessionID: erroredSessionID,
-          pendingCount: pendingInjectedMessageIds.length,
-        })
-        return
+      if (
+        await sessionHistoryContainsPendingMessage(
+          deps,
+          erroredSessionID,
+          pendingInjectedMessageIds,
+        )
+      ) {
+        log(
+          "team member session error ignored after pending peer message reached history",
+          {
+            event: "team-mode-member-error-peer-message-accepted",
+            teamRunId: runtimeState.teamRunId,
+            teamName: runtimeState.teamName,
+            memberName: runtimeMember.memberName,
+            sessionID: erroredSessionID,
+            pendingCount: pendingInjectedMessageIds.length,
+          },
+        );
+        return;
       }
 
-      let memberWasMarkedErrored = false
-      let messageIdsToRequeue: readonly string[] = []
-      const nextRuntimeState = await transitionRuntimeState(runtimeState.teamRunId, (currentRuntimeState) => ({
-        ...currentRuntimeState,
-        members: currentRuntimeState.members.map((member) => {
-          if (member.name !== runtimeMember.memberName) {
-            return member
-          }
-          if (member.sessionId !== undefined && member.sessionId !== erroredSessionID) {
-            return member
-          }
+      let memberWasMarkedErrored = false;
+      let messageIdsToRequeue: readonly string[] = [];
+      const nextRuntimeState = await transitionRuntimeState(
+        runtimeState.teamRunId,
+        (currentRuntimeState) => ({
+          ...currentRuntimeState,
+          members: currentRuntimeState.members.map((member) => {
+            if (member.name !== runtimeMember.memberName) {
+              return member;
+            }
+            if (
+              member.sessionId !== undefined &&
+              member.sessionId !== erroredSessionID
+            ) {
+              return member;
+            }
 
-          memberWasMarkedErrored = true
-          messageIdsToRequeue = member.pendingInjectedMessageIds ?? []
-          return { ...member, status: "errored", pendingInjectedMessageIds: [] }
+            memberWasMarkedErrored = true;
+            messageIdsToRequeue = member.pendingInjectedMessageIds ?? [];
+            return {
+              ...member,
+              status: "errored",
+              pendingInjectedMessageIds: [],
+            };
+          }),
         }),
-      }), config)
+        config,
+      );
 
       if (!memberWasMarkedErrored) {
-        const currentMember = nextRuntimeState.members.find((member) => member.name === runtimeMember.memberName)
-        log("team member session error skipped: session already replaced by fallback retry", {
-          event: "team-mode-member-error-stale-after-replacement",
-          teamRunId: nextRuntimeState.teamRunId,
-          teamName: nextRuntimeState.teamName,
-          memberName: runtimeMember.memberName,
-          erroredSessionID,
-          currentSessionID: currentMember?.sessionId,
-        })
-        return
+        const currentMember = nextRuntimeState.members.find((member) =>
+          member.name === runtimeMember.memberName
+        );
+        log(
+          "team member session error skipped: session already replaced by fallback retry",
+          {
+            event: "team-mode-member-error-stale-after-replacement",
+            teamRunId: nextRuntimeState.teamRunId,
+            teamName: nextRuntimeState.teamName,
+            memberName: runtimeMember.memberName,
+            erroredSessionID,
+            currentSessionID: currentMember?.sessionId,
+          },
+        );
+        return;
       }
 
       await requeuePendingLiveDeliveries(
@@ -198,12 +253,18 @@ export function createTeamMemberErrorHandler(
         runtimeMember.memberName,
         messageIdsToRequeue,
         config,
-      )
+      );
 
-      const leaderMember = nextRuntimeState.members.find((member) => member.agentType === "leader")
-      if (leaderMember !== undefined && leaderMember.name !== runtimeMember.memberName) {
-        const errorText = extractErrorText(event.properties)
-        const errorBody = `Team member "${runtimeMember.memberName}" has entered an error state and will not complete its task.\nError: ${errorText}`
+      const leaderMember = nextRuntimeState.members.find((member) =>
+        member.agentType === "leader"
+      );
+      if (
+        leaderMember !== undefined &&
+        leaderMember.name !== runtimeMember.memberName
+      ) {
+        const errorText = extractErrorText(event.properties);
+        const errorBody =
+          `Team member "${runtimeMember.memberName}" has entered an error state and will not complete its task.\nError: ${errorText}`;
         try {
           await sendMessage(
             {
@@ -217,15 +278,23 @@ export function createTeamMemberErrorHandler(
             },
             nextRuntimeState.teamRunId,
             config,
-            { isLead: true, activeMembers: nextRuntimeState.members.map((m) => m.name) },
-          )
+            {
+              isLead: true,
+              activeMembers: nextRuntimeState.members.map((m) => m.name),
+            },
+          );
         } catch (sendError) {
-          log("team member error handler: failed to notify lead of member error", {
-            event: "team-mode-member-error-notify-failed",
-            teamRunId: nextRuntimeState.teamRunId,
-            memberName: runtimeMember.memberName,
-            error: sendError instanceof Error ? sendError.message : String(sendError),
-          })
+          log(
+            "team member error handler: failed to notify lead of member error",
+            {
+              event: "team-mode-member-error-notify-failed",
+              teamRunId: nextRuntimeState.teamRunId,
+              memberName: runtimeMember.memberName,
+              error: sendError instanceof Error
+                ? sendError.message
+                : String(sendError),
+            },
+          );
         }
       }
 
@@ -236,13 +305,13 @@ export function createTeamMemberErrorHandler(
         memberName: runtimeMember.memberName,
         sessionID: erroredSessionID,
         runtimeStatus: nextRuntimeState.status,
-      })
+      });
     } catch (error) {
       log("team member error handler failed", {
         event: "team-mode-member-error-handler-error",
         sessionID: erroredSessionID,
         error: error instanceof Error ? error.message : String(error),
-      })
+      });
     }
-  }
+  };
 }

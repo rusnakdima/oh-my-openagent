@@ -1,6 +1,6 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it } from "bun:test";
 
-import { assertNever } from "./state-types"
+import { assertNever } from "./state-types";
 import type {
   AgentsState,
   ConfigBanner,
@@ -9,71 +9,73 @@ import type {
   LoopState,
   RosterState,
   SidebarView,
-} from "./state-types"
+} from "./state-types";
 
 function describeConfigState(state: ConfigState): string {
   switch (state.kind) {
     case "valid":
-      return "valid"
+      return "valid";
     case "invalid":
-      return state.messages.join("\n")
+      return state.messages.join("\n");
     default:
-      return assertNever(state)
+      return assertNever(state);
   }
 }
 
 function describeRosterState(state: RosterState): string {
   switch (state.kind) {
     case "empty":
-      return "empty"
+      return "empty";
     case "rows":
-      return state.rows.map((row) => `${row.label}:${row.model}`).join(",")
+      return state.rows.map((row) => `${row.label}:${row.model}`).join(",");
     default:
-      return assertNever(state)
+      return assertNever(state);
   }
 }
 
 function describeAgentsState(state: AgentsState): string {
   switch (state.kind) {
     case "none":
-      return "none"
+      return "none";
     case "list":
-      return state.agents.map((agent) => `${agent.name}:${agent.status}`).join(",")
+      return state.agents.map((agent) => `${agent.name}:${agent.status}`).join(
+        ",",
+      );
     default:
-      return assertNever(state)
+      return assertNever(state);
   }
 }
 
 function describeJobBoardState(state: JobBoardState): string {
   switch (state.kind) {
     case "none":
-      return "none"
+      return "none";
     case "list":
-      return state.jobs.map((job) => `${job.title}:${job.status}`).join(",")
+      return state.jobs.map((job) => `${job.title}:${job.status}`).join(",");
     default:
-      return assertNever(state)
+      return assertNever(state);
   }
 }
 
 function describeLoopState(state: LoopState): string {
   switch (state.kind) {
     case "none":
-      return "none"
+      return "none";
     case "live":
-      return `${state.goalsDone}/${state.goalsTotal}`
+      return `${state.goalsDone}/${state.goalsTotal}`;
     default:
-      return assertNever(state)
+      return assertNever(state);
   }
 }
 
 function describeConfigBanner(banner: ConfigBanner): string {
   switch (banner.kind) {
     case "none":
-      return "none"
+      return "none";
     case "invalid":
-      return "invalid"
+      return "invalid";
     default:
-      return assertNever(banner)
+      return assertNever(banner);
   }
 }
 
@@ -85,13 +87,13 @@ function describeSidebarView(view: SidebarView): string {
         describeAgentsState(view.agents),
         describeJobBoardState(view.jobs),
         describeConfigBanner(view.configBanner),
-      ].join("|")
+      ].join("|");
     case "broken":
-      return view.messages.join("\n")
+      return view.messages.join("\n");
     case "idle":
-      return describeRosterState(view.roster)
+      return describeRosterState(view.roster);
     default:
-      return assertNever(view)
+      return assertNever(view);
   }
 }
 
@@ -126,27 +128,38 @@ describe("tui sidebar state types", () => {
         ],
       },
       configBanner: { kind: "invalid" },
-    }
+    };
     const broken: SidebarView = {
       kind: "broken",
       messages: ["config invalid"],
-    }
+    };
     const idle: SidebarView = {
       kind: "idle",
-      roster: { kind: "rows", rows: [{ label: "sisyphus", model: "gpt-5", effectiveModel: "openai/gpt-5", hasOverride: false, isGlobal: false }] },
+      roster: {
+        kind: "rows",
+        rows: [{
+          label: "sisyphus",
+          model: "gpt-5",
+          effectiveModel: "openai/gpt-5",
+          hasOverride: false,
+          isGlobal: false,
+        }],
+      },
       modal: { kind: "closed" },
-    }
+    };
 
     // when
-    const descriptions = [active, broken, idle].map(describeSidebarView)
+    const descriptions = [active, broken, idle].map(describeSidebarView);
 
     // then
     expect(descriptions).toEqual([
       "1/2|sisyphus:busy|Summarize:completed|invalid",
       "config invalid",
       "sisyphus:gpt-5",
-    ])
-    expect(describeConfigState({ kind: "valid" })).toBe("valid")
-    expect(describeConfigState({ kind: "invalid", messages: ["bad"] })).toBe("bad")
-  })
-})
+    ]);
+    expect(describeConfigState({ kind: "valid" })).toBe("valid");
+    expect(describeConfigState({ kind: "invalid", messages: ["bad"] })).toBe(
+      "bad",
+    );
+  });
+});

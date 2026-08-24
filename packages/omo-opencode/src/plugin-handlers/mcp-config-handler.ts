@@ -6,12 +6,15 @@ import { log } from "../shared";
 
 type McpEntry = Record<string, unknown>;
 
-function isDisabledMcpEntry(value: unknown): value is McpEntry & { enabled: false } {
-  return typeof value === "object" && value !== null && (value as McpEntry).enabled === false;
+function isDisabledMcpEntry(
+  value: unknown,
+): value is McpEntry & { enabled: false } {
+  return typeof value === "object" && value !== null &&
+    (value as McpEntry).enabled === false;
 }
 
 function captureUserDisabledMcps(
-  userMcp: Record<string, unknown> | undefined
+  userMcp: Record<string, unknown> | undefined,
 ): Set<string> {
   const disabled = new Set<string>();
   if (!userMcp) return disabled;
@@ -42,13 +45,17 @@ export async function applyMcpConfig(params: {
   if (userMcp) {
     for (const name of Object.keys(userMcp)) {
       if (name in mcpResult.servers) {
-        log(`warning: MCP server "${name}" from user config overrides Claude Code .mcp.json`);
+        log(
+          `warning: MCP server "${name}" from user config overrides Claude Code .mcp.json`,
+        );
       }
     }
   }
 
   const merged = {
-    ...createBuiltinMcps(disabledMcps, params.pluginConfig, { cwd: params.ctx.directory }),
+    ...createBuiltinMcps(disabledMcps, params.pluginConfig, {
+      cwd: params.ctx.directory,
+    }),
     ...mcpResult.servers,
     ...(userMcp ?? {}),
     ...params.pluginComponents.mcpServers,

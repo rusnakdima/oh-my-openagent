@@ -1,13 +1,13 @@
-import { execFileSync } from "node:child_process"
+import { execFileSync } from "node:child_process";
 
-import type { ExtensionContext } from "@code-yeongyu/senpi"
+import type { ExtensionContext } from "@code-yeongyu/senpi";
 
-import type { SenpiExtensionAPI } from "../../extension/types"
-import { getBuiltinSkillsRoot } from "../telemetry/product-identity"
-import { computeEligibility } from "./eligibility"
-import { gitHead } from "./git-helpers"
-import { buildProposedData } from "./proposed-data"
-import type { EligibilityResult, SuggestedMode } from "./proposed-data"
+import type { SenpiExtensionAPI } from "../../extension/types";
+import { getBuiltinSkillsRoot } from "../telemetry/product-identity";
+import { computeEligibility } from "./eligibility";
+import { gitHead } from "./git-helpers";
+import { buildProposedData } from "./proposed-data";
+import type { EligibilityResult, SuggestedMode } from "./proposed-data";
 import {
   isGloballyDeclined,
   isProjectDeclined,
@@ -18,18 +18,18 @@ import {
   writeGlobalDecline,
   writeLastProposedHead,
   writeProjectDecline,
-} from "./state"
+} from "./state";
 
 const CHOICES = [
   "Run now",
   "Skip this time",
   "Never in this project",
   "Never anywhere",
-] as const
+] as const;
 
 export interface AdvisorPreflight {
-  readonly root: string
-  readonly stateDir: string
+  readonly root: string;
+  readonly stateDir: string;
 }
 
 export async function runAdvisorAfterPreflight(
@@ -37,24 +37,26 @@ export async function runAdvisorAfterPreflight(
   eventCtx: ExtensionContext,
   preflight: AdvisorPreflight,
 ): Promise<void> {
-  const { root, stateDir } = preflight
-  const repo = repoHash(root)
-  if (isGloballyDeclined(stateDir)) return
-  if (isProjectDeclined(stateDir, repo)) return
-  const cooldownUntil = readCooldownUntil(stateDir, repo)
-  if (Date.now() < cooldownUntil) return
-  const currentHead = gitHead(root)
+  const { root, stateDir } = preflight;
+  const repo = repoHash(root);
+  if (isGloballyDeclined(stateDir)) return;
+  if (isProjectDeclined(stateDir, repo)) return;
+  const cooldownUntil = readCooldownUntil(stateDir, repo);
+  if (Date.now() < cooldownUntil) return;
+  const currentHead = gitHead(root);
   const eligibility = computeEligibility(
     root,
     currentHead,
     readLastProposedHead(stateDir, repo),
     cooldownUntil,
-  )
-  if (eligibility === null) return
-  writeLastProposedHead(stateDir, repo, currentHead)
-  await new Promise<void>((resolve) => setTimeout(resolve, 0))
-  const choice = await eventCtx.ui?.select("Init-deep", [...CHOICES], { timeout: 60_000 })
-  handleChoice(choice, pi, stateDir, repo, root, eligibility)
+  );
+  if (eligibility === null) return;
+  writeLastProposedHead(stateDir, repo, currentHead);
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  const choice = await eventCtx.ui?.select("Init-deep", [...CHOICES], {
+    timeout: 60_000,
+  });
+  handleChoice(choice, pi, stateDir, repo, root, eligibility);
 }
 
 function handleChoice(
@@ -66,30 +68,31 @@ function handleChoice(
   eligibility: EligibilityResult,
 ): void {
   if (choice === "Run now") {
-    const skillsRoot = getBuiltinSkillsRoot()
+    const skillsRoot = getBuiltinSkillsRoot();
     pi.sendMessage(
       {
         customType: "omo-init-deep-advisor:run",
-        content: `Read the init-deep skill at ${skillsRoot}/init-deep/SKILL.md with the read tool and follow it.`,
+        content:
+          `Read the init-deep skill at ${skillsRoot}/init-deep/SKILL.md with the read tool and follow it.`,
         display: false,
       },
       { triggerTurn: true, deliverAs: "followUp" },
-    )
+    );
     pi.appendEntry?.(
       "omo-init-deep-advisor:proposed",
       buildProposedData(repo, eligibility, suggestedMode(root)),
-    )
-    return
+    );
+    return;
   }
   if (choice === "Skip this time" || choice === undefined) {
-    writeCooldown(stateDir, repo, Date.now())
-    return
+    writeCooldown(stateDir, repo, Date.now());
+    return;
   }
   if (choice === "Never in this project") {
-    writeProjectDecline(stateDir, repo)
-    return
+    writeProjectDecline(stateDir, repo);
+    return;
   }
-  if (choice === "Never anywhere") writeGlobalDecline(stateDir)
+  if (choice === "Never anywhere") writeGlobalDecline(stateDir);
 }
 
 function suggestedMode(root: string): SuggestedMode {
@@ -98,9 +101,9 @@ function suggestedMode(root: string): SuggestedMode {
       cwd: root,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-    })
-    return "committed"
+    });
+    return "committed";
   } catch {
-    return "local"
+    return "local";
   }
 }

@@ -6,7 +6,7 @@ export type MailboxErrorKind =
   | "invalid_recipient"
   | "payload_too_large"
   | "broadcast_denied"
-  | "team_deleting"
+  | "team_deleting";
 
 const MAILBOX_ERROR_NAMES: Readonly<Record<string, MailboxErrorKind>> = {
   RecipientBackpressureError: "recipient_backpressure",
@@ -14,13 +14,15 @@ const MAILBOX_ERROR_NAMES: Readonly<Record<string, MailboxErrorKind>> = {
   PayloadTooLargeError: "payload_too_large",
   BroadcastNotPermittedError: "broadcast_denied",
   TeamDeletingError: "team_deleting",
-}
+};
 
-export function classifyMailboxError(error: unknown): MailboxErrorKind | undefined {
-  if (!(error instanceof Error)) return undefined
-  return MAILBOX_ERROR_NAMES[error.name]
+export function classifyMailboxError(
+  error: unknown,
+): MailboxErrorKind | undefined {
+  if (!(error instanceof Error)) return undefined;
+  return MAILBOX_ERROR_NAMES[error.name];
 }
 
 export function isMissingStateError(error: unknown): boolean {
-  return (error as NodeJS.ErrnoException | null)?.code === "ENOENT"
+  return (error as NodeJS.ErrnoException | null)?.code === "ENOENT";
 }

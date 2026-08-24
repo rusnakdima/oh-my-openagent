@@ -1,103 +1,123 @@
 /// <reference path="../../../../bun-test.d.ts" />
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test"
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { updateCodexConfig } from "./codex-config-toml"
-import { readCodexModelCatalog } from "./codex-model-catalog"
+import { describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { updateCodexConfig } from "./codex-config-toml";
+import { readCodexModelCatalog } from "./codex-model-catalog";
 
 describe("codex-config-reasoning unified reasoning override", () => {
   test("#given reasoning override #when updating config #then override wins over catalog default", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-override-"))
-    const configPath = join(root, "config.toml")
+    const root = await mkdtemp(
+      join(tmpdir(), "omo-codex-config-reasoning-override-"),
+    );
+    const configPath = join(root, "config.toml");
 
     // when
     await updateCodexConfig({
       configPath,
       repoRoot: "/repo/packages/omo-codex",
       marketplaceName: "debug",
-      marketplaceSource: { sourceType: "local", source: "/repo/packages/omo-codex" },
+      marketplaceSource: {
+        sourceType: "local",
+        source: "/repo/packages/omo-codex",
+      },
       pluginNames: ["omo"],
       reasoning: "xhigh",
-    })
+    });
 
     // then
-    const content = await readFile(configPath, "utf8")
-    expect(content).toContain('model_reasoning_effort = "xhigh"')
-    expect(content).not.toContain('model_reasoning_effort = "high"')
-  })
+    const content = await readFile(configPath, "utf8");
+    expect(content).toContain('model_reasoning_effort = "xhigh"');
+    expect(content).not.toContain('model_reasoning_effort = "high"');
+  });
 
   test("#given off reasoning override #when updating config #then maps to codex wire spelling none", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-off-"))
-    const configPath = join(root, "config.toml")
+    const root = await mkdtemp(
+      join(tmpdir(), "omo-codex-config-reasoning-off-"),
+    );
+    const configPath = join(root, "config.toml");
 
     // when
     await updateCodexConfig({
       configPath,
       repoRoot: "/repo/packages/omo-codex",
       marketplaceName: "debug",
-      marketplaceSource: { sourceType: "local", source: "/repo/packages/omo-codex" },
+      marketplaceSource: {
+        sourceType: "local",
+        source: "/repo/packages/omo-codex",
+      },
       pluginNames: ["omo"],
       reasoning: "off",
-    })
+    });
 
     // then
-    const content = await readFile(configPath, "utf8")
-    expect(content).toContain('model_reasoning_effort = "none"')
-  })
+    const content = await readFile(configPath, "utf8");
+    expect(content).toContain('model_reasoning_effort = "none"');
+  });
 
   test("#given unknown reasoning token #when updating config #then catalog default is kept", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-unknown-"))
-    const configPath = join(root, "config.toml")
+    const root = await mkdtemp(
+      join(tmpdir(), "omo-codex-config-reasoning-unknown-"),
+    );
+    const configPath = join(root, "config.toml");
 
     // when
     await updateCodexConfig({
       configPath,
       repoRoot: "/repo/packages/omo-codex",
       marketplaceName: "debug",
-      marketplaceSource: { sourceType: "local", source: "/repo/packages/omo-codex" },
+      marketplaceSource: {
+        sourceType: "local",
+        source: "/repo/packages/omo-codex",
+      },
       pluginNames: ["omo"],
       reasoning: "ultrathink",
-    })
+    });
 
     // then
-    const content = await readFile(configPath, "utf8")
-    expect(content).toContain('model_reasoning_effort = "high"')
-  })
-})
+    const content = await readFile(configPath, "utf8");
+    expect(content).toContain('model_reasoning_effort = "high"');
+  });
+});
 
 describe("codex-config-reasoning", () => {
   test("#given empty Codex config #when updating config #then sets worker model and reasoning defaults", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-"))
-    const configPath = join(root, "config.toml")
+    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-"));
+    const configPath = join(root, "config.toml");
 
     // when
     await updateCodexConfig({
       configPath,
       repoRoot: "/repo/packages/omo-codex",
       marketplaceName: "debug",
-      marketplaceSource: { sourceType: "local", source: "/repo/packages/omo-codex" },
+      marketplaceSource: {
+        sourceType: "local",
+        source: "/repo/packages/omo-codex",
+      },
       pluginNames: ["omo"],
-    })
+    });
 
     // then
-    const content = await readFile(configPath, "utf8")
-    expect(content).toContain('model = "gpt-5.6-sol"')
-    expect(content).toContain("model_context_window = 372000")
-    expect(content).toContain('model_reasoning_effort = "high"')
-    expect(content).toContain('plan_mode_reasoning_effort = "xhigh"')
-  })
+    const content = await readFile(configPath, "utf8");
+    expect(content).toContain('model = "gpt-5.6-sol"');
+    expect(content).toContain("model_context_window = 372000");
+    expect(content).toContain('model_reasoning_effort = "high"');
+    expect(content).toContain('plan_mode_reasoning_effort = "xhigh"');
+  });
 
   test("#given existing model and reasoning config #when updating config #then replaces stale defaults without duplicate keys", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-existing-"))
-    const configPath = join(root, "config.toml")
+    const root = await mkdtemp(
+      join(tmpdir(), "omo-codex-config-reasoning-existing-"),
+    );
+    const configPath = join(root, "config.toml");
     await writeFile(
       configPath,
       [
@@ -110,38 +130,43 @@ describe("codex-config-reasoning", () => {
         "plugins = false",
         "",
       ].join("\n"),
-    )
+    );
 
     // when
     await updateCodexConfig({
       configPath,
       repoRoot: "/repo/packages/omo-codex",
       marketplaceName: "debug",
-      marketplaceSource: { sourceType: "local", source: "/repo/packages/omo-codex" },
+      marketplaceSource: {
+        sourceType: "local",
+        source: "/repo/packages/omo-codex",
+      },
       pluginNames: ["omo"],
-    })
+    });
 
     // then
-    const content = await readFile(configPath, "utf8")
-    expect(content.match(/^model\s*=/gm)).toHaveLength(1)
-    expect(content.match(/^model_context_window\s*=/gm)).toHaveLength(1)
-    expect(content.match(/^model_reasoning_effort\s*=/gm)).toHaveLength(1)
-    expect(content.match(/^plan_mode_reasoning_effort\s*=/gm)).toHaveLength(1)
-    expect(content).toContain('model = "gpt-5.6-sol"')
-    expect(content).toContain("model_context_window = 372000")
-    expect(content).toContain('model_reasoning_effort = "high"')
-    expect(content).toContain('plan_mode_reasoning_effort = "xhigh"')
-    expect(content).not.toContain("model_context_window = 272000")
-    expect(content).not.toContain('model_reasoning_effort = "low"')
-    expect(content).not.toContain('plan_mode_reasoning_effort = "medium"')
-    expect(content).toContain("[features]")
-    expect(content).toContain("plugins = true")
-  })
+    const content = await readFile(configPath, "utf8");
+    expect(content.match(/^model\s*=/gm)).toHaveLength(1);
+    expect(content.match(/^model_context_window\s*=/gm)).toHaveLength(1);
+    expect(content.match(/^model_reasoning_effort\s*=/gm)).toHaveLength(1);
+    expect(content.match(/^plan_mode_reasoning_effort\s*=/gm)).toHaveLength(1);
+    expect(content).toContain('model = "gpt-5.6-sol"');
+    expect(content).toContain("model_context_window = 372000");
+    expect(content).toContain('model_reasoning_effort = "high"');
+    expect(content).toContain('plan_mode_reasoning_effort = "xhigh"');
+    expect(content).not.toContain("model_context_window = 272000");
+    expect(content).not.toContain('model_reasoning_effort = "low"');
+    expect(content).not.toContain('plan_mode_reasoning_effort = "medium"');
+    expect(content).toContain("[features]");
+    expect(content).toContain("plugins = true");
+  });
 
   test("#given user-customized model config #when updating config #then preserves user reasoning values", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-custom-"))
-    const configPath = join(root, "config.toml")
+    const root = await mkdtemp(
+      join(tmpdir(), "omo-codex-config-reasoning-custom-"),
+    );
+    const configPath = join(root, "config.toml");
     await writeFile(
       configPath,
       [
@@ -151,31 +176,36 @@ describe("codex-config-reasoning", () => {
         'plan_mode_reasoning_effort = "medium"',
         "",
       ].join("\n"),
-    )
+    );
 
     // when
     await updateCodexConfig({
       configPath,
       repoRoot: "/repo/packages/omo-codex",
       marketplaceName: "debug",
-      marketplaceSource: { sourceType: "local", source: "/repo/packages/omo-codex" },
+      marketplaceSource: {
+        sourceType: "local",
+        source: "/repo/packages/omo-codex",
+      },
       pluginNames: ["omo"],
-    })
+    });
 
     // then
-    const content = await readFile(configPath, "utf8")
-    expect(content).toContain('model = "my-private-model"')
-    expect(content).toContain("model_context_window = 123456")
-    expect(content).toContain('model_reasoning_effort = "medium"')
-    expect(content).toContain('plan_mode_reasoning_effort = "medium"')
-  })
+    const content = await readFile(configPath, "utf8");
+    expect(content).toContain('model = "my-private-model"');
+    expect(content).toContain("model_context_window = 123456");
+    expect(content).toContain('model_reasoning_effort = "medium"');
+    expect(content).toContain('plan_mode_reasoning_effort = "medium"');
+  });
 
   test("#given bundled model catalog #when updating config #then reads defaults from catalog", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-reasoning-catalog-"))
-    const repoRoot = join(root, "omo-codex")
-    const configPath = join(root, "config.toml")
-    await mkdir(join(repoRoot, "plugin"), { recursive: true })
+    const root = await mkdtemp(
+      join(tmpdir(), "omo-codex-config-reasoning-catalog-"),
+    );
+    const repoRoot = join(root, "omo-codex");
+    const configPath = join(root, "config.toml");
+    await mkdir(join(repoRoot, "plugin"), { recursive: true });
     await writeFile(
       join(repoRoot, "plugin", "model-catalog.json"),
       JSON.stringify({
@@ -188,7 +218,7 @@ describe("codex-config-reasoning", () => {
         },
         managedProfiles: [],
       }),
-    )
+    );
 
     // when
     await updateCodexConfig({
@@ -197,25 +227,28 @@ describe("codex-config-reasoning", () => {
       marketplaceName: "debug",
       marketplaceSource: { sourceType: "local", source: repoRoot },
       pluginNames: ["omo"],
-    })
+    });
 
     // then
-    const content = await readFile(configPath, "utf8")
-    expect(content).toContain('model = "catalog-default"')
-    expect(content).toContain("model_context_window = 123456")
-    expect(content).toContain('model_reasoning_effort = "medium"')
-    expect(content).toContain('plan_mode_reasoning_effort = "high"')
-  })
+    const content = await readFile(configPath, "utf8");
+    expect(content).toContain('model = "catalog-default"');
+    expect(content).toContain("model_context_window = 123456");
+    expect(content).toContain('model_reasoning_effort = "medium"');
+    expect(content).toContain('plan_mode_reasoning_effort = "high"');
+  });
 
   test("#given fallback Codex model catalog #when catalog file is unavailable #then no managed preset uses pure GPT-5.4", async () => {
     // given
-    const root = await mkdtemp(join(tmpdir(), "omo-codex-config-fallback-catalog-"))
+    const root = await mkdtemp(
+      join(tmpdir(), "omo-codex-config-fallback-catalog-"),
+    );
 
     // when
-    const catalog = await readCodexModelCatalog(root)
+    const catalog = await readCodexModelCatalog(root);
 
     // then
-    expect(catalog.current.model).toBe("gpt-5.6-sol")
-    expect(catalog.managedProfiles.map(profile => profile.model)).not.toContain("gpt-5.4")
-  })
-})
+    expect(catalog.current.model).toBe("gpt-5.6-sol");
+    expect(catalog.managedProfiles.map((profile) => profile.model)).not
+      .toContain("gpt-5.4");
+  });
+});

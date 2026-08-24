@@ -1,24 +1,21 @@
 import {
   findBtwBoundaryMessageID,
   parseBtwQuestion,
-} from "./btw-command-draft"
-import {
-  BTW_SIDE_METADATA_KEY,
-  createBtwSideMetadata,
-} from "./metadata"
+} from "./btw-command-draft";
+import { BTW_SIDE_METADATA_KEY, createBtwSideMetadata } from "./metadata";
 import type {
   BtwCreateSessionInput,
   BtwPromptRef,
   BtwSideControllerDependencies,
-} from "./tui-controller-types"
+} from "./tui-controller-types";
 
 export type PreparedBtwSideStart = {
-  parentSessionID: string
-  originalDraft: string
-  consumeDraft: boolean
-  question: string
-  createInput: BtwCreateSessionInput
-}
+  parentSessionID: string;
+  originalDraft: string;
+  consumeDraft: boolean;
+  question: string;
+  createInput: BtwCreateSessionInput;
+};
 
 export function prepareBtwSideStart(
   dependencies: BtwSideControllerDependencies,
@@ -26,27 +23,27 @@ export function prepareBtwSideStart(
   parentSessionID = dependencies.getCurrentSessionID(),
 ): PreparedBtwSideStart | undefined {
   if (!parentSessionID) {
-    dependencies.showToast("BTW is unavailable before the session starts.")
-    return undefined
+    dependencies.showToast("BTW is unavailable before the session starts.");
+    return undefined;
   }
-  const parentSession = dependencies.getSession(parentSessionID)
+  const parentSession = dependencies.getSession(parentSessionID);
   const boundaryMessageID = findBtwBoundaryMessageID(
     dependencies.getMessages(parentSessionID),
-  )
+  );
   if (!parentSession || !boundaryMessageID) {
-    dependencies.showToast("BTW is unavailable before the session starts.")
-    return undefined
+    dependencies.showToast("BTW is unavailable before the session starts.");
+    return undefined;
   }
   if (promptRef.hasAttachments) {
     dependencies.showToast(
       "BTW supports text-only drafts. Remove attachments before starting BTW.",
-    )
-    return undefined
+    );
+    return undefined;
   }
 
-  const originalDraft = promptRef.input
-  const parsed = parseBtwQuestion(originalDraft)
-  const summary = parsed.question.replace(/\s+/g, " ").trim()
+  const originalDraft = promptRef.input;
+  const parsed = parseBtwQuestion(originalDraft);
+  const summary = parsed.question.replace(/\s+/g, " ").trim();
   return {
     parentSessionID,
     originalDraft,
@@ -57,11 +54,11 @@ export function prepareBtwSideStart(
       ...(parentSession.agent ? { agent: parentSession.agent } : {}),
       ...(parentSession.model
         ? {
-            model: {
-              providerID: parentSession.model.providerID,
-              id: parentSession.model.id,
-            },
-          }
+          model: {
+            providerID: parentSession.model.providerID,
+            id: parentSession.model.id,
+          },
+        }
         : {}),
       metadata: {
         [BTW_SIDE_METADATA_KEY]: createBtwSideMetadata({
@@ -70,6 +67,5 @@ export function prepareBtwSideStart(
         }),
       },
     },
-  }
+  };
 }
-

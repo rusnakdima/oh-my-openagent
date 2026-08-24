@@ -1,7 +1,7 @@
-import { describe, expect, test } from "bun:test"
+import { describe, expect, test } from "bun:test";
 
-import { OMO_INTERNAL_INITIATOR_MARKER } from "../shared"
-import { createChatHeadersHandler } from "./chat-headers"
+import { OMO_INTERNAL_INITIATOR_MARKER } from "../shared";
+import { createChatHeadersHandler } from "./chat-headers";
 
 describe("createChatHeadersHandler", () => {
   test("sets x-initiator=agent for Copilot internal marker messages", async () => {
@@ -22,8 +22,8 @@ describe("createChatHeadersHandler", () => {
           },
         },
       } as never,
-    })
-    const output: { headers: Record<string, string> } = { headers: {} }
+    });
+    const output: { headers: Record<string, string> } = { headers: {} };
 
     await handler(
       {
@@ -35,10 +35,10 @@ describe("createChatHeadersHandler", () => {
         },
       },
       output,
-    )
+    );
 
-    expect(output.headers["x-initiator"]).toBe("agent")
-  })
+    expect(output.headers["x-initiator"]).toBe("agent");
+  });
 
   test("does not override non-copilot providers", async () => {
     const handler = createChatHeadersHandler({
@@ -58,8 +58,8 @@ describe("createChatHeadersHandler", () => {
           },
         },
       } as never,
-    })
-    const output: { headers: Record<string, string> } = { headers: {} }
+    });
+    const output: { headers: Record<string, string> } = { headers: {} };
 
     await handler(
       {
@@ -71,10 +71,10 @@ describe("createChatHeadersHandler", () => {
         },
       },
       output,
-    )
+    );
 
-    expect(output.headers["x-initiator"]).toBeUndefined()
-  })
+    expect(output.headers["x-initiator"]).toBeUndefined();
+  });
 
   test("does not override regular user messages", async () => {
     const handler = createChatHeadersHandler({
@@ -89,8 +89,8 @@ describe("createChatHeadersHandler", () => {
           },
         },
       } as never,
-    })
-    const output: { headers: Record<string, string> } = { headers: {} }
+    });
+    const output: { headers: Record<string, string> } = { headers: {} };
 
     await handler(
       {
@@ -102,10 +102,10 @@ describe("createChatHeadersHandler", () => {
         },
       },
       output,
-    )
+    );
 
-    expect(output.headers["x-initiator"]).toBeUndefined()
-  })
+    expect(output.headers["x-initiator"]).toBeUndefined();
+  });
 
   test("skips x-initiator override when model uses @ai-sdk/github-copilot", async () => {
     const handler = createChatHeadersHandler({
@@ -125,8 +125,8 @@ describe("createChatHeadersHandler", () => {
           },
         },
       } as never,
-    })
-    const output: { headers: Record<string, string> } = { headers: {} }
+    });
+    const output: { headers: Record<string, string> } = { headers: {} };
 
     await handler(
       {
@@ -139,8 +139,8 @@ describe("createChatHeadersHandler", () => {
         },
       },
       output,
-    )
+    );
 
-    expect(output.headers["x-initiator"]).toBeUndefined()
-  })
-})
+    expect(output.headers["x-initiator"]).toBeUndefined();
+  });
+});

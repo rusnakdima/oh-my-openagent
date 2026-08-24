@@ -45,4 +45,4 @@ For each ERROR/WARNING, offer to fix:
 - Contradictions: show both, ask which is correct
 
 ### Step 6: Log
-Append to log.md: \`| {today} | lint | {errors} errors, {warnings} warnings |\``
+Append to log.md: \`| {today} | lint | {errors} errors, {warnings} warnings |\``;

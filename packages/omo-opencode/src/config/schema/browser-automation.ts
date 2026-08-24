@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const BrowserAutomationProviderSchema = z.enum([
   "playwright",
@@ -6,7 +6,7 @@ export const BrowserAutomationProviderSchema = z.enum([
   "dev-browser",
   "playwright-cli",
   "openchrome-aside",
-])
+]);
 
 export const BrowserAutomationConfigSchema = z.object({
   /**
@@ -38,9 +38,11 @@ export const BrowserAutomationConfigSchema = z.object({
    * See https://github.com/microsoft/playwright-mcp for the full flag list.
    */
   playwright_mcp_args: z.array(z.string()).optional(),
-})
+});
 
 export type BrowserAutomationProvider = z.infer<
   typeof BrowserAutomationProviderSchema
->
-export type BrowserAutomationConfig = z.infer<typeof BrowserAutomationConfigSchema>
+>;
+export type BrowserAutomationConfig = z.infer<
+  typeof BrowserAutomationConfigSchema
+>;

@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 export const VoiceConfigSchema = z.object({
   /** Enable the voice input tool (default: false) */
@@ -9,7 +9,9 @@ export const VoiceConfigSchema = z.object({
   openai: z
     .object({
       /** Model to use: "whisper-large-v3" | "whisper-large-v3-turbo" */
-      model: z.enum(["whisper-large-v3", "whisper-large-v3-turbo"]).default("whisper-large-v3"),
+      model: z.enum(["whisper-large-v3", "whisper-large-v3-turbo"]).default(
+        "whisper-large-v3",
+      ),
       /** Language code (e.g. "en", "zh"). null = auto-detect */
       language: z.string().nullable().default(null),
       /** Temperature 0-1 */
@@ -33,7 +35,9 @@ export const VoiceConfigSchema = z.object({
       /** Path to faster-whisper executable or "auto" to detect */
       executable: z.string().default("auto"),
       /** Model: "tiny" | "base" | "small" | "medium" | "large-v3" */
-      model: z.enum(["tiny", "base", "small", "medium", "large-v3"]).default("base"),
+      model: z.enum(["tiny", "base", "small", "medium", "large-v3"]).default(
+        "base",
+      ),
       /** Device: "cpu" | "cuda" */
       device: z.enum(["cpu", "cuda"]).default("cpu"),
     })
@@ -50,7 +54,12 @@ export const VoiceConfigSchema = z.object({
       /** Sample rate for capture */
       sample_rate: z.number().default(16000),
     })
-    .default({ silence_threshold_db: -40, max_duration_seconds: 60, min_duration_seconds: 1, sample_rate: 16000 }),
+    .default({
+      silence_threshold_db: -40,
+      max_duration_seconds: 60,
+      min_duration_seconds: 1,
+      sample_rate: 16000,
+    }),
   /** Text-to-speech / audio output settings */
   tts: z
     .object({
@@ -62,7 +71,9 @@ export const VoiceConfigSchema = z.object({
       openai: z
         .object({
           /** Model: "gpt-4o-mini-tts" | "tts-1" | "tts-1-hd" */
-          model: z.enum(["gpt-4o-mini-tts", "tts-1", "tts-1-hd"]).default("gpt-4o-mini-tts"),
+          model: z.enum(["gpt-4o-mini-tts", "tts-1", "tts-1-hd"]).default(
+            "gpt-4o-mini-tts",
+          ),
           /** Voice: "alloy" | "echo" | "fable" | "onyx" | "nova" | "shimmer" */
           voice: z
             .enum(["alloy", "echo", "fable", "onyx", "nova", "shimmer"])
@@ -86,6 +97,6 @@ export const VoiceConfigSchema = z.object({
         .optional(),
     })
     .default({ enabled: false, default_backend: "openai" }),
-})
+});
 
-export type VoiceConfig = z.infer<typeof VoiceConfigSchema>
+export type VoiceConfig = z.infer<typeof VoiceConfigSchema>;

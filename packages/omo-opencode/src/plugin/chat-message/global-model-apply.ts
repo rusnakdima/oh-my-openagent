@@ -1,23 +1,29 @@
-import type { OhMyOpenCodeConfig } from "../../config"
-import { getSessionAgent, isAgentRegistered } from "../../features/claude-code-session-state"
-import { getAgentConfigKey } from "../../shared/agent-display-names"
-import { getModelCapabilities } from "../../shared/model-capabilities"
-import { log } from "../../shared"
-import { getSelectedGlobalModelLive, type SessionModel } from "../../shared/session-model-state"
-import { hasExplicitAgentModelOverride } from "../global-model-capture"
-import type { ChatMessageHandlerOutput, ChatMessageInput } from "./types"
+import type { OhMyOpenCodeConfig } from "../../config";
+import {
+  getSessionAgent,
+  isAgentRegistered,
+} from "../../features/claude-code-session-state";
+import { getAgentConfigKey } from "../../shared/agent-display-names";
+import { getModelCapabilities } from "../../shared/model-capabilities";
+import { log } from "../../shared";
+import {
+  getSelectedGlobalModelLive,
+  type SessionModel,
+} from "../../shared/session-model-state";
+import { hasExplicitAgentModelOverride } from "../global-model-capture";
+import type { ChatMessageHandlerOutput, ChatMessageInput } from "./types";
 
 // Agents whose job depends on image input. A global pick without image support
 // must not override their model — they keep their own vision-capable chains.
-const VISION_REQUIRED_AGENTS = new Set(["multimodal-looker"])
+const VISION_REQUIRED_AGENTS = new Set(["multimodal-looker"]);
 
 function pickedModelSupportsVision(model: SessionModel): boolean {
   const capabilities = getModelCapabilities({
     providerID: model.providerID,
     modelID: model.modelID,
-  })
-  const inputModalities = capabilities.modalities?.input
-  return Array.isArray(inputModalities) && inputModalities.includes("image")
+  });
+  const inputModalities = capabilities.modalities?.input;
+  return Array.isArray(inputModalities) && inputModalities.includes("image");
 }
 
 /**
@@ -38,24 +44,30 @@ export function applyGlobalModelToChatMessage(
   output: ChatMessageHandlerOutput,
   pluginConfig: OhMyOpenCodeConfig,
 ): void {
-  const global = getSelectedGlobalModelLive()
-  if (!global) return
+  const global = getSelectedGlobalModelLive();
+  if (!global) return;
 
-  const agent = input.agent ?? getSessionAgent(input.sessionID)
-  if (!agent || !isAgentRegistered(agent)) return
+  const agent = input.agent ?? getSessionAgent(input.sessionID);
+  if (!agent || !isAgentRegistered(agent)) return;
 
-  if (hasExplicitAgentModelOverride(agent, pluginConfig)) return
+  if (hasExplicitAgentModelOverride(agent, pluginConfig)) return;
 
   // Vision-required agents keep their model only if the global pick lacks vision support
   if (VISION_REQUIRED_AGENTS.has(getAgentConfigKey(agent))) {
     if (!pickedModelSupportsVision(global)) {
-      log("[global-model-apply] global pick lacks vision; keeping vision-required agent's model", {
-        agent,
-        globalPick: `${global.providerID}/${global.modelID}`,
-      })
-      return
+      log(
+        "[global-model-apply] global pick lacks vision; keeping vision-required agent's model",
+        {
+          agent,
+          globalPick: `${global.providerID}/${global.modelID}`,
+        },
+      );
+      return;
     }
   }
 
-  output.message.model = { providerID: global.providerID, modelID: global.modelID }
+  output.message.model = {
+    providerID: global.providerID,
+    modelID: global.modelID,
+  };
 }

@@ -1,13 +1,13 @@
-import { fileURLToPath } from "node:url"
+import { fileURLToPath } from "node:url";
 
 import {
   sweepCodegraphZombies,
-  sweepOrphanedLspDaemonProxies,
-  sweepStaleLspDaemonVersions,
   type SweepCodegraphZombiesOptions,
+  sweepOrphanedLspDaemonProxies,
   type SweepOrphanedLspDaemonProxiesOptions,
+  sweepStaleLspDaemonVersions,
   type SweepStaleLspDaemonVersionsOptions,
-} from "@oh-my-opencode/utils/process-sweep"
+} from "@oh-my-opencode/utils/process-sweep";
 
 // Unconditional omo process hygiene for the opencode adapter (T16): plugin
 // startup fires this family sweep fire-and-forget. There are deliberately NO
@@ -17,20 +17,20 @@ import {
 // (packages/omo-codex/plugin/components/codegraph/src/hook-sweep.ts).
 
 export interface OmoFamilySweepOptions {
-  readonly log?: (message: string) => void
+  readonly log?: (message: string) => void;
 }
 
 export interface OmoFamilySweeps {
-  readonly sweepCodegraph: typeof sweepCodegraphZombies
-  readonly sweepLspProxies: typeof sweepOrphanedLspDaemonProxies
-  readonly sweepStaleLspDaemons: typeof sweepStaleLspDaemonVersions
+  readonly sweepCodegraph: typeof sweepCodegraphZombies;
+  readonly sweepLspProxies: typeof sweepOrphanedLspDaemonProxies;
+  readonly sweepStaleLspDaemons: typeof sweepStaleLspDaemonVersions;
 }
 
 const defaultSweeps: OmoFamilySweeps = {
   sweepCodegraph: sweepCodegraphZombies,
   sweepLspProxies: sweepOrphanedLspDaemonProxies,
   sweepStaleLspDaemons: sweepStaleLspDaemonVersions,
-}
+};
 
 export async function sweepCodegraphZombiesBestEffort(
   options: OmoFamilySweepOptions,
@@ -40,10 +40,14 @@ export async function sweepCodegraphZombiesBestEffort(
     const sweepOptions: SweepCodegraphZombiesOptions = {
       pluginRoot: defaultPluginRoot(),
       ...(options.log === undefined ? {} : { log: options.log }),
-    }
-    await sweep(sweepOptions)
+    };
+    await sweep(sweepOptions);
   } catch (error) {
-    options.log?.(`CodeGraph zombie sweep skipped: ${error instanceof Error ? error.message : String(error)}`)
+    options.log?.(
+      `CodeGraph zombie sweep skipped: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 }
 
@@ -55,10 +59,14 @@ export async function sweepOrphanedLspDaemonProxiesBestEffort(
     const sweepOptions: SweepOrphanedLspDaemonProxiesOptions = {
       pluginRoot: defaultPluginRoot(),
       ...(options.log === undefined ? {} : { log: options.log }),
-    }
-    await sweep(sweepOptions)
+    };
+    await sweep(sweepOptions);
   } catch (error) {
-    options.log?.(`lsp-daemon proxy sweep skipped: ${error instanceof Error ? error.message : String(error)}`)
+    options.log?.(
+      `lsp-daemon proxy sweep skipped: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 }
 
@@ -69,10 +77,14 @@ export async function sweepStaleLspDaemonVersionsBestEffort(
   try {
     const sweepOptions: SweepStaleLspDaemonVersionsOptions = {
       ...(options.log === undefined ? {} : { log: options.log }),
-    }
-    await sweep(sweepOptions)
+    };
+    await sweep(sweepOptions);
   } catch (error) {
-    options.log?.(`lsp-daemon stale-version sweep skipped: ${error instanceof Error ? error.message : String(error)}`)
+    options.log?.(
+      `lsp-daemon stale-version sweep skipped: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
   }
 }
 
@@ -89,9 +101,9 @@ export async function sweepOmoFamiliesBestEffort(
     sweepCodegraphZombiesBestEffort(options, sweeps.sweepCodegraph),
     sweepOrphanedLspDaemonProxiesBestEffort(options, sweeps.sweepLspProxies),
     sweepStaleLspDaemonVersionsBestEffort(options, sweeps.sweepStaleLspDaemons),
-  ])
+  ]);
 }
 
 function defaultPluginRoot(): string {
-  return fileURLToPath(new URL("../..", import.meta.url))
+  return fileURLToPath(new URL("../..", import.meta.url));
 }

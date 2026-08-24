@@ -26,11 +26,11 @@ export const MAX_IN_TEST_BUDGET_MS = 10_000;
 export const TEST_TIMEOUT_MS = 30_000;
 
 export default defineConfig({
-	test: {
-		include: ["test/**/*.test.ts"],
-		environment: "node",
-		pool: "threads",
-		testTimeout: TEST_TIMEOUT_MS,
-		hookTimeout: TEST_TIMEOUT_MS,
-	},
+  test: {
+    include: ["test/**/*.test.ts"],
+    environment: "node",
+    pool: "threads",
+    testTimeout: TEST_TIMEOUT_MS,
+    hookTimeout: TEST_TIMEOUT_MS,
+  },
 });

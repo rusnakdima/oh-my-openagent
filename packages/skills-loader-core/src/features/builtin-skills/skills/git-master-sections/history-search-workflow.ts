@@ -1,4 +1,5 @@
-export const GIT_MASTER_HISTORY_SEARCH_WORKFLOW_SECTION = `## HISTORY SEARCH MODE (Phase H1-H3)
+export const GIT_MASTER_HISTORY_SEARCH_WORKFLOW_SECTION =
+  `## HISTORY SEARCH MODE (Phase H1-H3)
 
 ## PHASE H1: Determine Search Type
 
@@ -226,4 +227,4 @@ POTENTIAL ACTIONS:
 - See related commits: git log --ancestry-path abc1234..HEAD
 - Cherry-pick to another branch: git cherry-pick abc1234
 \`\`\`
-</history_results>`
+</history_results>`;

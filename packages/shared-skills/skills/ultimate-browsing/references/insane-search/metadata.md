@@ -1,7 +1,7 @@
 # 메타데이터 추출 — OGP / JSON-LD / Schema.org
 
-> HTML을 받았을 때 구조화된 데이터를 추출하는 보조 기법.
-> 본문 전체를 못 가져와도 제목, 요약, 가격, 프로필 등 핵심 정보를 확보할 수 있다.
+> HTML을 받았을 때 구조화된 데이터를 추출하는 보조 기법. 본문 전체를 못 가져와도
+> 제목, 요약, 가격, 프로필 등 핵심 정보를 확보할 수 있다.
 
 ## 의존성
 
@@ -25,7 +25,8 @@ for m in re.findall(r'<meta name=\"description\" content=\"([^\"]*?)\"', html):
 
 ## JSON-LD (Schema.org 구조화 데이터)
 
-**가장 가치 높은 추출 대상.** 상품, 기사, 프로필 등 구조화된 정보가 JSON으로 들어있다.
+**가장 가치 높은 추출 대상.** 상품, 기사, 프로필 등 구조화된 정보가 JSON으로
+들어있다.
 
 ```bash
 curl -sL "{URL}" | \
@@ -45,6 +46,7 @@ for b in blocks:
 ### 실제 사례
 
 **쿠팡 검색 결과** — `CollectionPage` + `ItemList`:
+
 ```json
 {
   "@type": "CollectionPage",
@@ -65,6 +67,7 @@ for b in blocks:
 ```
 
 **LinkedIn 프로필** — `Person`:
+
 ```json
 {
   "@type": "Person",
@@ -77,6 +80,7 @@ for b in blocks:
 ```
 
 **뉴스 기사** — `NewsArticle`:
+
 ```json
 {
   "@type": "NewsArticle",
@@ -106,11 +110,12 @@ print(decoded[:3000])
 
 ## 활용 시점
 
-메타데이터 추출은 **독립 방법이 아니라 보조 기법**이다.
-어떤 Phase에서든 HTML을 받으면 같이 실행:
+메타데이터 추출은 **독립 방법이 아니라 보조 기법**이다. 어떤 Phase에서든 HTML을
+받으면 같이 실행:
 
 - Phase 1에서 curl로 HTML 받음 → JSON-LD도 추출
 - Phase 2에서 curl_cffi로 HTML 받음 → JSON-LD도 추출
 - Phase 3에서 Playwright로 DOM 받음 → `browser_evaluate`로 JSON-LD 추출
 
-본문은 못 가져와도 JSON-LD에서 **상품 가격, 기사 요약, 프로필 정보**는 확보될 수 있다.
+본문은 못 가져와도 JSON-LD에서 **상품 가격, 기사 요약, 프로필 정보**는 확보될 수
+있다.

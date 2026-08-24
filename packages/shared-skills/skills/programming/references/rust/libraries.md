@@ -1,10 +1,13 @@
 # Library Defaults — Full Decision Tree
 
-The opinionated, audited-in-prod stack for 2026 Rust. Every entry has a one-line rationale and a canonical code snippet so the agent does not have to relearn each library's idioms.
+The opinionated, audited-in-prod stack for 2026 Rust. Every entry has a one-line
+rationale and a canonical code snippet so the agent does not have to relearn
+each library's idioms.
 
 ## Async runtime — `tokio`
 
-The default. Use `tokio` for new work. Multi-thread runtime unless you have a measured reason to go single-thread.
+The default. Use `tokio` for new work. Multi-thread runtime unless you have a
+measured reason to go single-thread.
 
 ```rust
 #[tokio::main(flavor = "multi_thread", worker_threads = 8)]
@@ -15,13 +18,18 @@ async fn main() -> anyhow::Result<()> {
 ```
 
 Avoid:
-- `async-std` — unmaintained, last release ages ago. crates.io download counts are misleading because of historical inertia.
-- `smol` — fine for embedded-ish niches; outside that, the ecosystem is on tokio.
+
+- `async-std` — unmaintained, last release ages ago. crates.io download counts
+  are misleading because of historical inertia.
+- `smol` — fine for embedded-ish niches; outside that, the ecosystem is on
+  tokio.
 - Mixing runtimes in one binary. Pick one and stay.
 
 ## Errors — `anyhow` (apps) + `thiserror` (libs)
 
-Application boundaries get `anyhow::Error` with `.context("...")` at every layer that adds meaning. Libraries expose `#[derive(thiserror::Error)]` enums with `#[non_exhaustive]`.
+Application boundaries get `anyhow::Error` with `.context("...")` at every layer
+that adds meaning. Libraries expose `#[derive(thiserror::Error)]` enums with
+`#[non_exhaustive]`.
 
 ```rust
 // Application code
@@ -49,7 +57,9 @@ pub enum ParseError {
 }
 ```
 
-`#[non_exhaustive]` on enums prevents downstream `match` from breaking when you add variants. `#[error(transparent)]` on a wrapper variant forwards Display + cause to the inner error.
+`#[non_exhaustive]` on enums prevents downstream `match` from breaking when you
+add variants. `#[error(transparent)]` on a wrapper variant forwards Display +
+cause to the inner error.
 
 ## CLI — `clap` with derive
 
@@ -86,11 +96,13 @@ enum Command {
 }
 ```
 
-Avoid `structopt` (deprecated, merged into clap), `argh` (less ergonomic), `pico-args` (only when binary size matters more than DX).
+Avoid `structopt` (deprecated, merged into clap), `argh` (less ergonomic),
+`pico-args` (only when binary size matters more than DX).
 
 ## Logging — `tracing` + `tracing-subscriber`
 
-Not `log` + `env_logger`. `tracing` supports spans (structured context that follows async tasks) and structured fields - `log` cannot.
+Not `log` + `env_logger`. `tracing` supports spans (structured context that
+follows async tasks) and structured fields - `log` cannot.
 
 ```rust
 use tracing::{info, instrument, warn, Level};
@@ -120,11 +132,13 @@ async fn process_user(db: &Pool, user: &User) -> anyhow::Result<()> {
 }
 ```
 
-Replace `println!` with `info!`/`warn!`/`error!`. Replace `eprintln!` with `tracing::error!`.
+Replace `println!` with `info!`/`warn!`/`error!`. Replace `eprintln!` with
+`tracing::error!`.
 
 ## Error reporting (binaries) — `color-eyre`
 
-For binary `main()`, hook `color-eyre` to give pretty panics + nice `Result` printing:
+For binary `main()`, hook `color-eyre` to give pretty panics + nice `Result`
+printing:
 
 ```rust
 fn main() -> color_eyre::Result<()> {
@@ -134,11 +148,13 @@ fn main() -> color_eyre::Result<()> {
 }
 ```
 
-Library code stays on `anyhow`/`thiserror`. `color-eyre` is purely a display layer for the binary.
+Library code stays on `anyhow`/`thiserror`. `color-eyre` is purely a display
+layer for the binary.
 
 ## Serialization — `serde` + `serde_json`
 
-The default for any data crossing a process boundary (file, network, IPC, database column).
+The default for any data crossing a process boundary (file, network, IPC,
+database column).
 
 ```rust
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -153,10 +169,14 @@ pub struct ApiResponse {
 }
 ```
 
-`deny_unknown_fields` catches typos in inputs. `rename_all = "snake_case"` aligns with REST/JSON conventions while keeping idiomatic Rust field names. `#[serde(flatten)]` for forward-compatible extra fields.
+`deny_unknown_fields` catches typos in inputs. `rename_all = "snake_case"`
+aligns with REST/JSON conventions while keeping idiomatic Rust field names.
+`#[serde(flatten)]` for forward-compatible extra fields.
 
 Alternatives:
-- `serde_yaml` (YAML — note: YAML's "deserialize anything" surface is a security trap; prefer JSON/TOML where possible)
+
+- `serde_yaml` (YAML — note: YAML's "deserialize anything" surface is a security
+  trap; prefer JSON/TOML where possible)
 - `toml` (config files)
 - `rmp-serde` (MessagePack — binary, fast)
 - `ciborium` (CBOR)
@@ -182,7 +202,9 @@ let repo: Repo = client
     .json().await?;
 ```
 
-`error_for_status()?` turns 4xx/5xx into `Err`. Always include a User-Agent. `https_only(true)` is a soundness toggle - prevents accidental http:// downgrade.
+`error_for_status()?` turns 4xx/5xx into `Err`. Always include a User-Agent.
+`https_only(true)` is a soundness toggle - prevents accidental http://
+downgrade.
 
 ## Web framework — `axum`
 
@@ -213,7 +235,10 @@ async fn main() -> anyhow::Result<()> {
 }
 ```
 
-Avoid `actix-web` (legacy patterns, separate runtime model), `warp` (filter explosion in non-trivial apps), `rocket` (slow release cadence). Pair `axum` with `tower-http` for middleware (trace, compression, CORS, timeout, request-id).
+Avoid `actix-web` (legacy patterns, separate runtime model), `warp` (filter
+explosion in non-trivial apps), `rocket` (slow release cadence). Pair `axum`
+with `tower-http` for middleware (trace, compression, CORS, timeout,
+request-id).
 
 ## Database — `sqlx` (compile-time checked SQL)
 
@@ -235,15 +260,20 @@ pub async fn find_user(pool: &PgPool, email: &str) -> Result<Option<User>, sqlx:
 }
 ```
 
-`query_as!` checks the SQL against the live database at compile time. To work without a live DB during builds, generate offline metadata: `cargo sqlx prepare`. Commit the resulting `.sqlx/` directory.
+`query_as!` checks the SQL against the live database at compile time. To work
+without a live DB during builds, generate offline metadata:
+`cargo sqlx prepare`. Commit the resulting `.sqlx/` directory.
 
-Avoid `diesel` (sync-first, heavy DSL), raw `tokio-postgres` (loses type checks), `sea-orm` (more magic, less control).
+Avoid `diesel` (sync-first, heavy DSL), raw `tokio-postgres` (loses type
+checks), `sea-orm` (more magic, less control).
 
-For migrations: `sqlx migrate add <name>` + `sqlx::migrate!("./migrations").run(&pool).await?`.
+For migrations: `sqlx migrate add <name>` +
+`sqlx::migrate!("./migrations").run(&pool).await?`.
 
 ## Time — `jiff`
 
-The 2025+ choice. Single crate, sane defaults, civil time / instant / span distinction.
+The 2025+ choice. Single crate, sane defaults, civil time / instant / span
+distinction.
 
 ```rust
 use jiff::{Timestamp, Span, ToSpan, Zoned};
@@ -254,7 +284,8 @@ let local: Zoned = now.in_tz("Asia/Seoul")?;
 let span: Span = local - some_earlier.in_tz("Asia/Seoul")?;
 ```
 
-Avoid `chrono` (old API, generic-heavy, time zone story still painful), `time` crate (split ecosystem, weaker docs). `jiff` is the post-`chrono` consolidation.
+Avoid `chrono` (old API, generic-heavy, time zone story still painful), `time`
+crate (split ecosystem, weaker docs). `jiff` is the post-`chrono` consolidation.
 
 ## UUID — `uuid` with v7
 
@@ -265,7 +296,9 @@ use uuid::Uuid;
 let id = Uuid::now_v7();
 ```
 
-v4 is fine for nonces, v7 for primary keys (better index locality). Never v1 (leaks MAC). Cargo features: `uuid = { version = "1", features = ["v4", "v7", "serde"] }`.
+v4 is fine for nonces, v7 for primary keys (better index locality). Never v1
+(leaks MAC). Cargo features:
+`uuid = { version = "1", features = ["v4", "v7", "serde"] }`.
 
 ## DataFrames / analytics — `polars`
 
@@ -282,16 +315,19 @@ let df = LazyCsvReader::new("events.csv")
     .collect()?;
 ```
 
-The Rust API mirrors the Python one. Use the lazy API by default; materialize with `.collect()` at the end.
+The Rust API mirrors the Python one. Use the lazy API by default; materialize
+with `.collect()` at the end.
 
 ## Channels
 
-- Single-producer single-consumer or bounded MPSC → `tokio::sync::mpsc` (async) or `flume` (sync + async).
+- Single-producer single-consumer or bounded MPSC → `tokio::sync::mpsc` (async)
+  or `flume` (sync + async).
 - Broadcast → `tokio::sync::broadcast`.
 - Watch (latest-value pubsub) → `tokio::sync::watch`.
 - Oneshot → `tokio::sync::oneshot`.
 
-Avoid raw `std::sync::mpsc` (sync only, fewer features), `crossbeam-channel` (good but heavier; use only if you need rendezvous semantics).
+Avoid raw `std::sync::mpsc` (sync only, fewer features), `crossbeam-channel`
+(good but heavier; use only if you need rendezvous semantics).
 
 ## Coordinate spaces / 2D math — `euclid`
 
@@ -326,7 +362,8 @@ proptest! {
 }
 ```
 
-Avoid `quickcheck` (older, less ergonomic). proptest gives shrinking + regression corpus + integration with `criterion`.
+Avoid `quickcheck` (older, less ergonomic). proptest gives shrinking +
+regression corpus + integration with `criterion`.
 
 ## Snapshot tests — `insta`
 
@@ -343,7 +380,8 @@ fn serializes_well() {
 }
 ```
 
-`cargo insta review` (after `cargo install cargo-insta`) — interactive review of changed snapshots.
+`cargo insta review` (after `cargo install cargo-insta`) — interactive review of
+changed snapshots.
 
 ## Benchmarks — `criterion`
 
@@ -361,11 +399,13 @@ criterion_group!(benches, bench_parse);
 criterion_main!(benches);
 ```
 
-Run with `cargo bench`. HTML reports under `target/criterion/`. Pair with `cargo bench -- --save-baseline main` then `--baseline main` for comparison.
+Run with `cargo bench`. HTML reports under `target/criterion/`. Pair with
+`cargo bench -- --save-baseline main` then `--baseline main` for comparison.
 
 ## Concurrency model — `loom`
 
-For lock-free or atomic-heavy code (channels, refcounts, hazard pointers). See `references/concurrency.md` for the full pattern.
+For lock-free or atomic-heavy code (channels, refcounts, hazard pointers). See
+`references/concurrency.md` for the full pattern.
 
 ## Arena allocator — `bumpalo`
 
@@ -378,11 +418,13 @@ let s: &str = bump.alloc_str("hello");
 // All allocations freed at once when `bump` drops.
 ```
 
-For parser nodes, AST construction, per-request scratch. Outperforms heap allocation for short-lived owned data by an order of magnitude.
+For parser nodes, AST construction, per-request scratch. Outperforms heap
+allocation for short-lived owned data by an order of magnitude.
 
 ## Web client (browser, WASM-bound) — `gloo` ecosystem
 
-If targeting WASM browser, use `gloo-net` for fetch and `gloo-storage` for localStorage; not `web-sys` directly unless you need DOM-level APIs.
+If targeting WASM browser, use `gloo-net` for fetch and `gloo-storage` for
+localStorage; not `web-sys` directly unless you need DOM-level APIs.
 
 ## Lazy statics — `std::sync::LazyLock` (since 1.80)
 
@@ -391,7 +433,8 @@ use std::sync::LazyLock;
 static CONFIG: LazyLock<Config> = LazyLock::new(|| Config::load_from_env().unwrap());
 ```
 
-Avoid `lazy_static!` (macro-heavy, predates std), `once_cell` (now in std as `LazyLock`/`OnceLock`).
+Avoid `lazy_static!` (macro-heavy, predates std), `once_cell` (now in std as
+`LazyLock`/`OnceLock`).
 
 ## Hash maps — `std::collections::HashMap` + `ahash` for hot paths
 
@@ -403,9 +446,11 @@ type FastMap<K, V> = HashMap<K, V, RandomState>;
 let mut counters: FastMap<String, u64> = FastMap::default();
 ```
 
-`HashMap` defaults to SipHash (DoS-resistant). For internal hot loops where you trust the keys, `ahash` is 2-5x faster.
+`HashMap` defaults to SipHash (DoS-resistant). For internal hot loops where you
+trust the keys, `ahash` is 2-5x faster.
 
-For sorted iteration, use `BTreeMap`. For small keys with known small N, `Vec<(K, V)>` may beat both.
+For sorted iteration, use `BTreeMap`. For small keys with known small N,
+`Vec<(K, V)>` may beat both.
 
 ## File I/O — `tokio::fs` (async) or `std::fs` (sync utility)
 
@@ -413,7 +458,8 @@ For sorted iteration, use `BTreeMap`. For small keys with known small N, `Vec<(K
 let contents = tokio::fs::read_to_string("data.json").await?;
 ```
 
-For large files: `tokio::fs::File` + `tokio::io::BufReader`. For random access, `memmap2` (with the unsafe-discipline wrappers).
+For large files: `tokio::fs::File` + `tokio::io::BufReader`. For random access,
+`memmap2` (with the unsafe-discipline wrappers).
 
 ## Decision tree
 
@@ -432,8 +478,11 @@ Need to ship the thing?
 ```
 
 When in doubt, search crates.io for the latest version, then check:
-1. Is it maintained? (`cargo deny check` will scream if it's yanked or unmaintained)
+
+1. Is it maintained? (`cargo deny check` will scream if it's yanked or
+   unmaintained)
 2. Does it have `serde` feature? (boundary types should always serde)
 3. Does it have `tokio` integration? (avoid runtime mixing)
 4. Is it on `tokio::io::AsyncRead`/`AsyncWrite` (the std for async I/O)?
-5. Are there safety-critical `unsafe` regions? If yes, has the author shipped miri proofs?
+5. Are there safety-critical `unsafe` regions? If yes, has the author shipped
+   miri proofs?

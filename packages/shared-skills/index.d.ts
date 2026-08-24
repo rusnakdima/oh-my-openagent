@@ -1,1 +1,1 @@
-export function sharedSkillsRootPath(): string
+export function sharedSkillsRootPath(): string;

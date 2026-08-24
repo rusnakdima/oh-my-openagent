@@ -1,40 +1,44 @@
 /// <reference types="bun-types" />
 
-import { afterEach, describe, expect, mock, test } from "bun:test"
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { afterEach, describe, expect, mock, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
-import { tool } from "@opencode-ai/plugin"
+import { tool } from "@opencode-ai/plugin";
 
-import { OhMyOpenCodeConfigSchema } from "../config"
-import type { OpencodeClient } from "../tools/delegate-task/types"
-import { createToolRegistry } from "./tool-registry"
+import { OhMyOpenCodeConfigSchema } from "../config";
+import type { OpencodeClient } from "../tools/delegate-task/types";
+import { createToolRegistry } from "./tool-registry";
 
 const fakeTool = tool({
   description: "test tool",
   args: {},
   async execute(): Promise<string> {
-    return "ok"
+    return "ok";
   },
-})
+});
 
-const tempDirs: string[] = []
-let homeDirectory: string | undefined
+const tempDirs: string[] = [];
+let homeDirectory: string | undefined;
 
 afterEach(() => {
-  delete process.env.OPENCODE_CONFIG_DIR
-  if (homeDirectory === undefined) delete process.env.HOME
-  else process.env.HOME = homeDirectory
-  homeDirectory = undefined
+  delete process.env.OPENCODE_CONFIG_DIR;
+  if (homeDirectory === undefined) delete process.env.HOME;
+  else process.env.HOME = homeDirectory;
+  homeDirectory = undefined;
 
   for (const tempDir of tempDirs.splice(0)) {
-    rmSync(tempDir, { recursive: true, force: true })
+    rmSync(tempDir, { recursive: true, force: true });
   }
-})
+});
 
-async function importFreshPluginConfigModule(): Promise<typeof import("../plugin-config")> {
-  return import(`../plugin-config?team-mode-fresh-install=${Date.now()}-${Math.random()}`)
+async function importFreshPluginConfigModule(): Promise<
+  typeof import("../plugin-config")
+> {
+  return import(
+    `../plugin-config?team-mode-fresh-install=${Date.now()}-${Math.random()}`
+  );
 }
 
 function createPluginConfig() {
@@ -47,32 +51,34 @@ function createPluginConfig() {
     team_mode: {
       enabled: true,
     },
-  })
+  });
 }
 
 describe("team-mode tool registry wiring", () => {
   test("registers team tools from a fresh-install minimal user config", async () => {
     // given
-    const rootDir = mkdtempSync(join(tmpdir(), "omo-team-mode-fresh-install-"))
-    tempDirs.push(rootDir)
-    const userHomeDir = join(rootDir, "home")
-    const projectDir = join(rootDir, "project")
+    const rootDir = mkdtempSync(join(tmpdir(), "omo-team-mode-fresh-install-"));
+    tempDirs.push(rootDir);
+    const userHomeDir = join(rootDir, "home");
+    const projectDir = join(rootDir, "project");
 
-    mkdirSync(join(userHomeDir, ".omo"), { recursive: true })
-    mkdirSync(projectDir, { recursive: true })
+    mkdirSync(join(userHomeDir, ".omo"), { recursive: true });
+    mkdirSync(projectDir, { recursive: true });
     writeFileSync(
       join(userHomeDir, ".omo", "omo.jsonc"),
       JSON.stringify({ "[opencode]": { team_mode: { enabled: true } } }),
-    )
-    homeDirectory = process.env.HOME
-    process.env.HOME = userHomeDir
+    );
+    homeDirectory = process.env.HOME;
+    process.env.HOME = userHomeDir;
 
-    const { loadPluginConfig } = await importFreshPluginConfigModule()
-    const pluginConfig = loadPluginConfig(projectDir, {})
+    const { loadPluginConfig } = await importFreshPluginConfigModule();
+    const pluginConfig = loadPluginConfig(projectDir, {});
 
     // when
     const result = createToolRegistry({
-      ctx: { directory: projectDir, client: {} } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: projectDir, client: {} } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig,
       managers: {
         backgroundManager: {},
@@ -117,36 +123,42 @@ describe("team-mode tool registry wiring", () => {
         createTeamStatusTool: mock(() => fakeTool),
         createTeamListTool: mock(() => fakeTool),
       },
-    })
+    });
 
     // then
-    expect(pluginConfig.team_mode?.enabled).toBe(true)
-    expect(result.filteredTools).toHaveProperty("team_create")
-    expect(result.filteredTools).toHaveProperty("team_send_message")
-    expect(result.filteredTools).toHaveProperty("team_task_create")
-    expect(result.filteredTools).toHaveProperty("team_status")
-    expect(Object.keys(result.filteredTools).filter((toolName) => toolName.startsWith("team_"))).toHaveLength(12)
-  })
+    expect(pluginConfig.team_mode?.enabled).toBe(true);
+    expect(result.filteredTools).toHaveProperty("team_create");
+    expect(result.filteredTools).toHaveProperty("team_send_message");
+    expect(result.filteredTools).toHaveProperty("team_task_create");
+    expect(result.filteredTools).toHaveProperty("team_status");
+    expect(
+      Object.keys(result.filteredTools).filter((toolName) =>
+        toolName.startsWith("team_")
+      ),
+    ).toHaveLength(12);
+  });
 
   test("passes ctx.client into every team tool factory", () => {
     // given
-    const client = {} as OpencodeClient
-    const createTeamCreateTool = mock(() => fakeTool)
-    const createTeamDeleteTool = mock(() => fakeTool)
-    const createTeamShutdownRequestTool = mock(() => fakeTool)
-    const createTeamApproveShutdownTool = mock(() => fakeTool)
-    const createTeamRejectShutdownTool = mock(() => fakeTool)
-    const createTeamSendMessageTool = mock(() => fakeTool)
-    const createTeamTaskCreateTool = mock(() => fakeTool)
-    const createTeamTaskListTool = mock(() => fakeTool)
-    const createTeamTaskUpdateTool = mock(() => fakeTool)
-    const createTeamTaskGetTool = mock(() => fakeTool)
-    const createTeamStatusTool = mock(() => fakeTool)
-    const createTeamListTool = mock(() => fakeTool)
+    const client = {} as OpencodeClient;
+    const createTeamCreateTool = mock(() => fakeTool);
+    const createTeamDeleteTool = mock(() => fakeTool);
+    const createTeamShutdownRequestTool = mock(() => fakeTool);
+    const createTeamApproveShutdownTool = mock(() => fakeTool);
+    const createTeamRejectShutdownTool = mock(() => fakeTool);
+    const createTeamSendMessageTool = mock(() => fakeTool);
+    const createTeamTaskCreateTool = mock(() => fakeTool);
+    const createTeamTaskListTool = mock(() => fakeTool);
+    const createTeamTaskUpdateTool = mock(() => fakeTool);
+    const createTeamTaskGetTool = mock(() => fakeTool);
+    const createTeamStatusTool = mock(() => fakeTool);
+    const createTeamListTool = mock(() => fakeTool);
 
     // when
     createToolRegistry({
-      ctx: { directory: "/tmp/team-mode", client } as Parameters<typeof createToolRegistry>[0]["ctx"],
+      ctx: { directory: "/tmp/team-mode", client } as Parameters<
+        typeof createToolRegistry
+      >[0]["ctx"],
       pluginConfig: createPluginConfig(),
       managers: {
         backgroundManager: {},
@@ -190,20 +202,59 @@ describe("team-mode tool registry wiring", () => {
         createTeamStatusTool,
         createTeamListTool,
       },
-    })
+    });
 
     // then
-    expect(createTeamCreateTool).toHaveBeenCalledWith(expect.anything(), client, expect.anything(), expect.anything(), expect.anything())
-    expect(createTeamDeleteTool).toHaveBeenCalledWith(expect.anything(), client, expect.anything(), expect.anything())
-    expect(createTeamShutdownRequestTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamApproveShutdownTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamRejectShutdownTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamSendMessageTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamTaskCreateTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamTaskListTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamTaskUpdateTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamTaskGetTool).toHaveBeenCalledWith(expect.anything(), client)
-    expect(createTeamStatusTool).toHaveBeenCalledWith(expect.anything(), client, expect.anything())
-    expect(createTeamListTool).toHaveBeenCalledWith(expect.anything(), client)
-  })
-})
+    expect(createTeamCreateTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(createTeamDeleteTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+      expect.anything(),
+      expect.anything(),
+    );
+    expect(createTeamShutdownRequestTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamApproveShutdownTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamRejectShutdownTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamSendMessageTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamTaskCreateTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamTaskListTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamTaskUpdateTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamTaskGetTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+    );
+    expect(createTeamStatusTool).toHaveBeenCalledWith(
+      expect.anything(),
+      client,
+      expect.anything(),
+    );
+    expect(createTeamListTool).toHaveBeenCalledWith(expect.anything(), client);
+  });
+});

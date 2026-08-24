@@ -5,18 +5,23 @@ description: "MUST USE whenever a task needs a commit or git-history investigati
 
 # Git Master
 
-Use this skill when the user asks you to operate on Git history or answer a Git-history question. Be exact, conservative, and evidence-led. Read the repository state before you infer anything.
+Use this skill when the user asks you to operate on Git history or answer a
+Git-history question. Be exact, conservative, and evidence-led. Read the
+repository state before you infer anything.
 
 ## Mode Gate
 
 Classify the request first:
 
 - `COMMIT`: stage and commit local changes.
-- `REBASE`: rebase, squash, fixup, autosquash, reorder, split, or otherwise rewrite branch history.
+- `REBASE`: rebase, squash, fixup, autosquash, reorder, split, or otherwise
+  rewrite branch history.
 - `HISTORY`: answer when, where, who, why, or which commit changed something.
 - `STATUS`: inspect branch, diff, or working-tree state without changing it.
 
-Do not commit, rebase, push, force-push, reset, stash-pop, or delete anything unless the user explicitly asked for that operation. If the request is only investigative, report findings and stop.
+Do not commit, rebase, push, force-push, reset, stash-pop, or delete anything
+unless the user explicitly asked for that operation. If the request is only
+investigative, report findings and stop.
 
 ## Ground Truth
 
@@ -34,28 +39,45 @@ git merge-base HEAD origin/main
 git merge-base HEAD origin/master
 ```
 
-Missing upstream or missing `main`/`master` is normal. Fall back to the best available branch or report the missing fact. Never treat a failed lookup as proof.
+Missing upstream or missing `main`/`master` is normal. Fall back to the best
+available branch or report the missing fact. Never treat a failed lookup as
+proof.
 
 ## PR Body Evidence Attachments
 
-When a PR body needs screenshots or terminal PNGs, use the repo reference at `docs/reference/github-attachment-upload.md`. The allowed hosting path is GitHub user attachments from the authenticated web attachment flow; never commit temporary images, never use GitHub Releases for PR evidence, and never use external image hosts. Do not log browser cookies, CSRF tokens, S3 form fields, or upload headers.
+When a PR body needs screenshots or terminal PNGs, use the repo reference at
+`docs/reference/github-attachment-upload.md`. The allowed hosting path is GitHub
+user attachments from the authenticated web attachment flow; never commit
+temporary images, never use GitHub Releases for PR evidence, and never use
+external image hosts. Do not log browser cookies, CSRF tokens, S3 form fields,
+or upload headers.
 
 ## Commit Mode
 
 Commit only the user's requested changes. Preserve unrelated dirty work.
 
-1. Detect message style from recent history. Use the dominant local pattern, language, and casing. Do not default to Conventional Commits unless the repo uses them.
-2. Inspect the full diff, not only filenames. Separate unrelated user edits from the requested commit.
-3. Build atomic groups by behavior, module, and revertability. Keep implementation and its direct tests together.
-4. Prefer multiple commits for unrelated concerns. A single commit is acceptable only when the changed files form one indivisible behavior or the user explicitly asks for one commit.
+1. Detect message style from recent history. Use the dominant local pattern,
+   language, and casing. Do not default to Conventional Commits unless the repo
+   uses them.
+2. Inspect the full diff, not only filenames. Separate unrelated user edits from
+   the requested commit.
+3. Build atomic groups by behavior, module, and revertability. Keep
+   implementation and its direct tests together.
+4. Prefer multiple commits for unrelated concerns. A single commit is acceptable
+   only when the changed files form one indivisible behavior or the user
+   explicitly asks for one commit.
 5. Stage by path or hunk so each commit contains only its atomic group.
-6. Before each commit, verify `git diff --staged --stat` and enough staged diff to prove the group is right.
-7. Commit with the detected style. After each commit, verify `git log -1 --oneline`.
+6. Before each commit, verify `git diff --staged --stat` and enough staged diff
+   to prove the group is right.
+7. Commit with the detected style. After each commit, verify
+   `git log -1 --oneline`.
 
 Grouping rules:
 
-- Split different features, modules, generated artifacts, config, docs, and test-only changes unless they are inseparable.
-- Keep generated files with the source change that produced them when omitting them would leave the repo inconsistent.
+- Split different features, modules, generated artifacts, config, docs, and
+  test-only changes unless they are inseparable.
+- Keep generated files with the source change that produced them when omitting
+  them would leave the repo inconsistent.
 - Never hide failing or unrelated changes inside a broad commit.
 
 Final report: list commit hashes, messages, and any remaining uncommitted files.
@@ -64,14 +86,21 @@ Final report: list commit hashes, messages, and any remaining uncommitted files.
 
 History rewriting is a shared-impact operation.
 
-- Never rebase or rewrite `main`, `master`, `dev`, release branches, or a protected branch unless the user explicitly named that exact operation.
-- If commits may already be pushed, ask before force-pushing. Use `--force-with-lease`, never plain `--force`.
-- If the worktree is dirty, preserve it intentionally before rebasing. Do not stash-pop over conflicts without checking what changed.
-- For fixups, prefer `git commit --fixup=<hash>` followed by `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash <base>`.
-- For conflicts, read the conflicting files and resolve by intent. Do not choose ours/theirs blindly.
-- If a rebase goes wrong, use `git rebase --abort` first. Use reflog only after explaining the recovery path.
+- Never rebase or rewrite `main`, `master`, `dev`, release branches, or a
+  protected branch unless the user explicitly named that exact operation.
+- If commits may already be pushed, ask before force-pushing. Use
+  `--force-with-lease`, never plain `--force`.
+- If the worktree is dirty, preserve it intentionally before rebasing. Do not
+  stash-pop over conflicts without checking what changed.
+- For fixups, prefer `git commit --fixup=<hash>` followed by
+  `GIT_SEQUENCE_EDITOR=: git rebase -i --autosquash <base>`.
+- For conflicts, read the conflicting files and resolve by intent. Do not choose
+  ours/theirs blindly.
+- If a rebase goes wrong, use `git rebase --abort` first. Use reflog only after
+  explaining the recovery path.
 
-After rewriting, run the relevant tests or at least the project's cheapest smoke check, then show the new branch log from base to HEAD.
+After rewriting, run the relevant tests or at least the project's cheapest smoke
+check, then show the new branch log from base to HEAD.
 
 ## History Mode
 
@@ -82,10 +111,13 @@ Choose the Git tool by the question:
 - `git blame -L start,end -- file`: who last changed specific lines.
 - `git log --follow -- file`: history across renames for one file.
 - `git show <hash>`: inspect the commit that appears relevant.
-- `git bisect`: find the first bad commit when there is a deterministic pass/fail command and known good/bad bounds.
+- `git bisect`: find the first bad commit when there is a deterministic
+  pass/fail command and known good/bad bounds.
 - `git reflog`: recover or explain recent local history movement.
 
-Always cite the exact command evidence in the answer: commit hash, subject, file path, and line or diff context when relevant. If the evidence is ambiguous, say what remains unproven.
+Always cite the exact command evidence in the answer: commit hash, subject, file
+path, and line or diff context when relevant. If the evidence is ambiguous, say
+what remains unproven.
 
 ## Safety Checks
 
@@ -99,6 +131,7 @@ Before any write to Git history:
 
 Before finishing:
 
-- Run the most relevant verification available for the changed behavior or history operation.
+- Run the most relevant verification available for the changed behavior or
+  history operation.
 - Report commands that passed and any command you could not run.
 - Leave the worktree state explicit.

@@ -1,12 +1,17 @@
-import { expect, test } from "bun:test"
+import { expect, test } from "bun:test";
 
-import { createTaskRecord } from "../../state"
-import { recordDetails } from "./result-details"
+import { createTaskRecord } from "../../state";
+import { recordDetails } from "./result-details";
 
 test("#given a record with fallback attempts #when result details are built #then the renderer receives the recorded history", () => {
   // given
   const fallbackAttempts = [
-    { provider: "kimi-coding", model_id: "kimi-for-coding-highspeed", display: "kimi-for-coding-highspeed", source: "category" as const },
+    {
+      provider: "kimi-coding",
+      model_id: "kimi-for-coding-highspeed",
+      display: "kimi-for-coding-highspeed",
+      source: "category" as const,
+    },
     {
       provider: "quotio-openai",
       model_id: "gpt-5.6-luna-fast",
@@ -14,7 +19,7 @@ test("#given a record with fallback attempts #when result details are built #the
       reasoning_effort: "high",
       source: "category" as const,
     },
-  ]
+  ];
   const record = createTaskRecord({
     parent_session_id: "session-parent",
     root_session_id: "session-root",
@@ -23,14 +28,14 @@ test("#given a record with fallback attempts #when result details are built #the
     model: "quotio-openai/gpt-5.6-luna-fast",
     notify_on_terminal: false,
     fallback_attempts: fallbackAttempts,
-  }, 1)
+  }, 1);
 
   // when
-  const details = recordDetails(record, "spawn")
+  const details = recordDetails(record, "spawn");
 
   // then
-  expect(details.fallback_attempts).toEqual(fallbackAttempts)
-})
+  expect(details.fallback_attempts).toEqual(fallbackAttempts);
+});
 
 test("#given a record with a task_summary #when result details are built #then the summary reaches the renderer details", () => {
   // given
@@ -42,11 +47,11 @@ test("#given a record with a task_summary #when result details are built #then t
     execution_mode: "in-process",
     model: "quotio-openai/gpt-5.6-luna-fast",
     notify_on_terminal: false,
-  }, 1)
+  }, 1);
 
   // when
-  const details = recordDetails(record, "spawn")
+  const details = recordDetails(record, "spawn");
 
   // then
-  expect(details.task_summary).toBe("Audit the boundary")
-})
+  expect(details.task_summary).toBe("Audit the boundary");
+});

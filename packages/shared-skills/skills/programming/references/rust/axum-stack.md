@@ -119,7 +119,10 @@ impl IntoResponse for AppError {
 pub type AppResult<T> = std::result::Result<T, AppError>;
 ```
 
-Pattern: business errors return `AppResult<T>`; the `IntoResponse` impl translates them to HTTP. `sqlx::Error` and `anyhow::Error` auto-convert via `From`. Internal-bucket errors are logged but never leak their `Debug` representation to clients.
+Pattern: business errors return `AppResult<T>`; the `IntoResponse` impl
+translates them to HTTP. `sqlx::Error` and `anyhow::Error` auto-convert via
+`From`. Internal-bucket errors are logged but never leak their `Debug`
+representation to clients.
 
 ## AppState
 
@@ -274,7 +277,9 @@ pub fn router(state: AppState) -> Router {
 }
 ```
 
-Order matters: outermost layer wraps the request first. Trace before timeout so timeouts get logged. Compression after trace so trace sees the original body size.
+Order matters: outermost layer wraps the request first. Trace before timeout so
+timeouts get logged. Compression after trace so trace sees the original body
+size.
 
 ## Main + graceful shutdown
 
@@ -354,7 +359,9 @@ pub async fn require_auth(
 }
 ```
 
-Apply with `.route_layer(middleware::from_fn_with_state(state.clone(), require_auth))` on the subroutes that need it.
+Apply with
+`.route_layer(middleware::from_fn_with_state(state.clone(), require_auth))` on
+the subroutes that need it.
 
 ## Testing handlers
 
@@ -382,7 +389,8 @@ async fn creates_user() {
 }
 ```
 
-`tower::ServiceExt::oneshot` calls the router directly without binding a socket. Tests run in parallel without port collisions.
+`tower::ServiceExt::oneshot` calls the router directly without binding a socket.
+Tests run in parallel without port collisions.
 
 ## Config
 
@@ -417,11 +425,13 @@ impl Settings {
 }
 ```
 
-`Secret<T>` from the `secrecy` crate hides the value in `Debug`/`Display` to prevent accidental log leakage. Access via `.expose_secret()` only where needed.
+`Secret<T>` from the `secrecy` crate hides the value in `Debug`/`Display` to
+prevent accidental log leakage. Access via `.expose_secret()` only where needed.
 
 ## OpenAPI (optional)
 
-Add `utoipa` derive macros on your DTOs and handlers, mount Swagger UI at `/swagger-ui`:
+Add `utoipa` derive macros on your DTOs and handlers, mount Swagger UI at
+`/swagger-ui`:
 
 ```rust
 use utoipa::OpenApi;
@@ -447,21 +457,31 @@ let app = router.merge(SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json
 - Bind to `0.0.0.0` in containers, `127.0.0.1` for local-only services.
 - Set `RUST_LOG=info,sqlx=warn` (or use `EnvFilter` defaults as shown).
 - Send logs to stdout in JSON. Ingest via Vector / Fluent Bit / Loki.
-- Run migrations on startup (`sqlx::migrate!` block). Fail fast on schema mismatch.
-- Health endpoint **must hit the DB** (so load balancers know if the pool is dead).
-- Add `tower::limit::RateLimitLayer` or token-bucket middleware for public endpoints.
+- Run migrations on startup (`sqlx::migrate!` block). Fail fast on schema
+  mismatch.
+- Health endpoint **must hit the DB** (so load balancers know if the pool is
+  dead).
+- Add `tower::limit::RateLimitLayer` or token-bucket middleware for public
+  endpoints.
 - Set `tower_http::limit::RequestBodyLimitLayer` to bound request size.
 - Compress with brotli + gzip via `CompressionLayer`.
 - Tighten CORS, do not ship `CorsLayer::permissive()` to production.
 - Strip sensitive headers from traces via `SetSensitiveHeadersLayer`.
-- Set up SIGTERM-driven `with_graceful_shutdown` so deploys roll without dropping requests.
+- Set up SIGTERM-driven `with_graceful_shutdown` so deploys roll without
+  dropping requests.
 - Containerize with `cargo chef` for incremental Docker builds.
 
 ## Common mistakes
 
-1. **Forgetting `error_for_status()?` on outbound `reqwest`** — 4xx silently succeeds.
-2. **Returning `Result<T, sqlx::Error>` from handlers** — leak DB details to clients. Always go through `AppError`.
-3. **`Json<T>` extractor before validation** — invalid JSON returns axum's default 422 with no body shape. Wrap in a `ValidatedJson<T>` extractor that runs `validator` and returns `AppError`.
-4. **Holding DB connections across `.await` on slow external calls** — exhausts the pool. Acquire late, release early.
-5. **Skipping `tracing::instrument`** on handlers — losing per-request span correlation.
+1. **Forgetting `error_for_status()?` on outbound `reqwest`** — 4xx silently
+   succeeds.
+2. **Returning `Result<T, sqlx::Error>` from handlers** — leak DB details to
+   clients. Always go through `AppError`.
+3. **`Json<T>` extractor before validation** — invalid JSON returns axum's
+   default 422 with no body shape. Wrap in a `ValidatedJson<T>` extractor that
+   runs `validator` and returns `AppError`.
+4. **Holding DB connections across `.await` on slow external calls** — exhausts
+   the pool. Acquire late, release early.
+5. **Skipping `tracing::instrument`** on handlers — losing per-request span
+   correlation.
 6. **No `RequestBodyLimitLayer`** — DoS surface. Default axum has no limit.

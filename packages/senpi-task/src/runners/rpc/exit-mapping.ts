@@ -1,22 +1,26 @@
-import type { ChildExitFacts, ChildExitOutcome, RunnerErrorFacts } from "../types"
+import type {
+  ChildExitFacts,
+  ChildExitOutcome,
+  RunnerErrorFacts,
+} from "../types";
 
-const STDERR_TAIL_CAP = 4_096
+const STDERR_TAIL_CAP = 4_096;
 
 export type ChildExitInput = {
-  readonly code: number | null
-  readonly signal: NodeJS.Signals | null
-  readonly error?: Error
-  readonly pid?: number
-  readonly stderr: string
+  readonly code: number | null;
+  readonly signal: NodeJS.Signals | null;
+  readonly error?: Error;
+  readonly pid?: number;
+  readonly stderr: string;
   /** Host platform; defaults to the running process. Injectable for tests. */
-  readonly platform?: NodeJS.Platform
-}
+  readonly platform?: NodeJS.Platform;
+};
 
 /**
  * Exit code Windows reports for a process ended by `TerminateProcess` (which is
  * what Node's `process.kill`/`taskkill /F` become there).
  */
-const WINDOWS_TERMINATION_EXIT_CODE = 1
+const WINDOWS_TERMINATION_EXIT_CODE = 1;
 
 /**
  * Windows has no POSIX signal provenance: an externally terminated child is
@@ -26,18 +30,24 @@ const WINDOWS_TERMINATION_EXIT_CODE = 1
  * terminated one is stopped mid-flight with an empty buffer. POSIX is
  * unaffected: there a real kill always carries its signal.
  */
-function isWindowsExternalTermination(input: ChildExitInput, platform: NodeJS.Platform): boolean {
+function isWindowsExternalTermination(
+  input: ChildExitInput,
+  platform: NodeJS.Platform,
+): boolean {
   return (
-    platform === "win32"
-    && input.signal === null
-    && input.code === WINDOWS_TERMINATION_EXIT_CODE
-    && input.stderr.trim().length === 0
-  )
+    platform === "win32" &&
+    input.signal === null &&
+    input.code === WINDOWS_TERMINATION_EXIT_CODE &&
+    input.stderr.trim().length === 0
+  );
 }
 
 /** Keep only the last `cap` characters of a stderr buffer (default 4KB). */
-export function tailStderr(stderr: string, cap: number = STDERR_TAIL_CAP): string {
-  return stderr.length <= cap ? stderr : stderr.slice(stderr.length - cap)
+export function tailStderr(
+  stderr: string,
+  cap: number = STDERR_TAIL_CAP,
+): string {
+  return stderr.length <= cap ? stderr : stderr.slice(stderr.length - cap);
 }
 
 /**
@@ -51,17 +61,20 @@ export function classifyChildExit(input: ChildExitInput): ChildExitOutcome {
     code: input.code,
     signal: input.signal,
     stderrTail: tailStderr(input.stderr),
-  }
+  };
   if (input.error) {
-    return { kind: "spawn_error", message: input.error.message, facts }
+    return { kind: "spawn_error", message: input.error.message, facts };
   }
-  if (input.signal !== null || isWindowsExternalTermination(input, input.platform ?? process.platform)) {
-    return { kind: "killed", facts }
+  if (
+    input.signal !== null ||
+    isWindowsExternalTermination(input, input.platform ?? process.platform)
+  ) {
+    return { kind: "killed", facts };
   }
   if (input.code === 0) {
-    return { kind: "clean", facts }
+    return { kind: "clean", facts };
   }
-  return { kind: "crashed", facts }
+  return { kind: "crashed", facts };
 }
 
 /**
@@ -75,35 +88,45 @@ export function mapExitOutcomeToError(
   options: { readonly alreadyTerminal: boolean },
 ): RunnerErrorFacts | null {
   if (options.alreadyTerminal) {
-    return null
+    return null;
   }
-  const exit = outcome.facts
+  const exit = outcome.facts;
   switch (outcome.kind) {
     case "killed":
       return {
         status: "error",
         killed: true,
-        error_message:
-          exit.signal === null
-            ? `RPC child terminated externally with exit code ${exit.code} (pid=${exit.pid ?? "unknown"})`
-            : `RPC child killed by signal ${exit.signal} (pid=${exit.pid ?? "unknown"})`,
+        error_message: exit.signal === null
+          ? `RPC child terminated externally with exit code ${exit.code} (pid=${
+            exit.pid ?? "unknown"
+          })`
+          : `RPC child killed by signal ${exit.signal} (pid=${
+            exit.pid ?? "unknown"
+          })`,
         exit,
-      }
+      };
     case "crashed":
       return {
         status: "error",
         killed: false,
-        error_message: exit.stderrTail.trim() || `RPC child exited with code ${exit.code}`,
+        error_message: exit.stderrTail.trim() ||
+          `RPC child exited with code ${exit.code}`,
         exit,
-      }
+      };
     case "spawn_error":
-      return { status: "error", killed: false, error_message: outcome.message, exit }
+      return {
+        status: "error",
+        killed: false,
+        error_message: outcome.message,
+        exit,
+      };
     default:
       return {
         status: "error",
         killed: false,
-        error_message: "RPC child exited cleanly before reaching a terminal state",
+        error_message:
+          "RPC child exited cleanly before reaching a terminal state",
         exit,
-      }
+      };
   }
 }

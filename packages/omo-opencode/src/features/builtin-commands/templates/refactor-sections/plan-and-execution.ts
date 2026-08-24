@@ -1,4 +1,5 @@
-export const REFACTOR_PLAN_AND_EXECUTION = `# PHASE 4: PLAN GENERATION (PLAN AGENT)
+export const REFACTOR_PLAN_AND_EXECUTION =
+  `# PHASE 4: PLAN GENERATION (PLAN AGENT)
 
 **Mark phase-4 as in_progress.**
 
@@ -145,4 +146,4 @@ git commit -m "refactor(scope): description
 
 ---
 
-`
+`;

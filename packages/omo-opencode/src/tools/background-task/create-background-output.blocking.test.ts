@@ -1,12 +1,15 @@
 /// <reference types="bun-types" />
 
-import { describe, expect, test } from "bun:test"
-import type { ToolContext } from "@opencode-ai/plugin/tool"
-import type { BackgroundTask } from "../../features/background-agent"
-import type { BackgroundOutputClient, BackgroundOutputManager } from "./clients"
-import { createBackgroundOutput } from "./create-background-output"
+import { describe, expect, test } from "bun:test";
+import type { ToolContext } from "@opencode-ai/plugin/tool";
+import type { BackgroundTask } from "../../features/background-agent";
+import type {
+  BackgroundOutputClient,
+  BackgroundOutputManager,
+} from "./clients";
+import { createBackgroundOutput } from "./create-background-output";
 
-const projectDir = "/Users/yeongyu/local-workspaces/oh-my-opencode"
+const projectDir = "/Users/yeongyu/local-workspaces/oh-my-opencode";
 
 const mockContext = {
   sessionID: "test-session",
@@ -18,16 +21,20 @@ const mockContext = {
   metadata: () => {},
   ask: async () => {},
   $: () => {
-    const result = { stdout: Buffer.from(""), stderr: Buffer.from(""), exitCode: 0 }
+    const result = {
+      stdout: Buffer.from(""),
+      stderr: Buffer.from(""),
+      exitCode: 0,
+    };
     const promise = Promise.resolve(result) as Promise<typeof result> & {
-      quiet: () => Promise<typeof result>
-      nothrow: () => typeof promise
-    }
-    promise.quiet = () => promise
-    promise.nothrow = () => promise
-    return promise
+      quiet: () => Promise<typeof result>;
+      nothrow: () => typeof promise;
+    };
+    promise.quiet = () => promise;
+    promise.nothrow = () => promise;
+    return promise;
   },
-} as ToolContext
+} as ToolContext;
 
 function createTask(overrides: Partial<BackgroundTask> = {}): BackgroundTask {
   return {
@@ -40,7 +47,7 @@ function createTask(overrides: Partial<BackgroundTask> = {}): BackgroundTask {
     agent: "test-agent",
     status: "running",
     ...overrides,
-  }
+  };
 }
 
 function createMockClient(): BackgroundOutputClient {
@@ -48,25 +55,25 @@ function createMockClient(): BackgroundOutputClient {
     session: {
       messages: async () => ({ data: [] }),
     },
-  }
+  };
 }
 
 describe("createBackgroundOutput block=true polling", () => {
   test("retries a missing background task id before reporting not found", async () => {
     // #given
-    let lookupCount = 0
+    let lookupCount = 0;
     const task = createTask({
       id: "bg_retry_visible",
       status: "completed",
       sessionId: "ses-retry-visible",
-    })
+    });
     const manager: BackgroundOutputManager = {
       getTask: (id: string) => {
-        if (id !== task.id) return undefined
-        lookupCount += 1
-        return lookupCount === 1 ? undefined : task
+        if (id !== task.id) return undefined;
+        lookupCount += 1;
+        return lookupCount === 1 ? undefined : task;
       },
-    }
+    };
     const client: BackgroundOutputClient = {
       session: {
         messages: async () => ({
@@ -79,39 +86,39 @@ describe("createBackgroundOutput block=true polling", () => {
           ],
         }),
       },
-    }
+    };
 
-    const tool = createBackgroundOutput(manager, client)
+    const tool = createBackgroundOutput(manager, client);
 
     // #when
-    const output = await tool.execute({ task_id: task.id }, mockContext)
+    const output = await tool.execute({ task_id: task.id }, mockContext);
 
     // #then
-    expect(lookupCount).toBe(2)
-    expect(output).toContain("Task Result")
-    expect(output).toContain("visible result")
-    expect(output).not.toContain("Task not found")
-  })
+    expect(lookupCount).toBe(2);
+    expect(output).toContain("Task Result");
+    expect(output).toContain("visible result");
+    expect(output).not.toContain("Task not found");
+  });
 
   test("returns terminal error output when task fails during blocking wait", async () => {
     // #given
-    let pollCount = 0
-    const task = createTask({ status: "running" })
+    let pollCount = 0;
+    const task = createTask({ status: "running" });
     const manager: BackgroundOutputManager = {
       getTask: (id: string) => {
-        if (id !== task.id) return undefined
+        if (id !== task.id) return undefined;
 
-        pollCount += 1
+        pollCount += 1;
         if (pollCount >= 2) {
-          task.status = "error"
-          task.error = "task failed"
+          task.status = "error";
+          task.error = "task failed";
         }
 
-        return task
+        return task;
       },
-    }
+    };
 
-    const tool = createBackgroundOutput(manager, createMockClient())
+    const tool = createBackgroundOutput(manager, createMockClient());
 
     // #when
     const output = await tool.execute(
@@ -121,28 +128,28 @@ describe("createBackgroundOutput block=true polling", () => {
         timeout: 3000,
         full_session: false,
       },
-      mockContext
-    )
+      mockContext,
+    );
 
     // #then
-    expect(pollCount).toBeGreaterThanOrEqual(2)
-    expect(output).toContain("Status | **error**")
-    expect(output).not.toContain("Timed out waiting")
-  })
+    expect(pollCount).toBeGreaterThanOrEqual(2);
+    expect(output).toContain("Status | **error**");
+    expect(output).not.toContain("Timed out waiting");
+  });
 
   test("returns legacy status output with timeout note when task stays running", async () => {
     // #given
-    let pollCount = 0
-    const task = createTask({ status: "running" })
+    let pollCount = 0;
+    const task = createTask({ status: "running" });
     const manager: BackgroundOutputManager = {
       getTask: (id: string) => {
-        if (id !== task.id) return undefined
-        pollCount += 1
-        return task
+        if (id !== task.id) return undefined;
+        pollCount += 1;
+        return task;
       },
-    }
+    };
 
-    const tool = createBackgroundOutput(manager, createMockClient())
+    const tool = createBackgroundOutput(manager, createMockClient());
 
     // #when
     const output = await tool.execute(
@@ -151,13 +158,13 @@ describe("createBackgroundOutput block=true polling", () => {
         block: true,
         timeout: 10,
       },
-      mockContext
-    )
+      mockContext,
+    );
 
     // #then
-    expect(pollCount).toBeGreaterThanOrEqual(2)
-    expect(output).toContain("# Task Status")
-    expect(output).toContain("Timed out waiting")
-    expect(output).toContain("still running")
-  })
-})
+    expect(pollCount).toBeGreaterThanOrEqual(2);
+    expect(output).toContain("# Task Status");
+    expect(output).toContain("Timed out waiting");
+    expect(output).toContain("still running");
+  });
+});

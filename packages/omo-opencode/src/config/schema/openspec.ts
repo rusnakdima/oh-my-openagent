@@ -1,4 +1,4 @@
-import { z } from "zod"
+import { z } from "zod";
 
 /**
  * OpenSpec config schema.
@@ -47,6 +47,6 @@ export const OpenSpecConfigSchema = z.object({
    * (default: false)
    */
   auto_create: z.boolean().default(false),
-})
+});
 
-export type OpenSpecConfig = z.infer<typeof OpenSpecConfigSchema>
+export type OpenSpecConfig = z.infer<typeof OpenSpecConfigSchema>;

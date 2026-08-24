@@ -1,15 +1,22 @@
-import { existsSync, readdirSync, realpathSync, type Dirent } from "node:fs";
+import { type Dirent, existsSync, readdirSync, realpathSync } from "node:fs";
 import { basename, dirname, isAbsolute, join, relative } from "node:path";
-import { EXCLUDED_DIRS, GITHUB_INSTRUCTIONS_PATTERN, RULE_EXTENSIONS } from "./constants";
+import {
+  EXCLUDED_DIRS,
+  GITHUB_INSTRUCTIONS_PATTERN,
+  RULE_EXTENSIONS,
+} from "./constants";
 import type { DirectoryScanEntry } from "./types";
 
 function isGitHubInstructionsDir(dir: string): boolean {
   const normalizedDir = dir.replaceAll("\\", "/");
-  return normalizedDir.includes(".github/instructions") || normalizedDir.endsWith(".github/instructions");
+  return normalizedDir.includes(".github/instructions") ||
+    normalizedDir.endsWith(".github/instructions");
 }
 
 function isRuleFile(fileName: string, dir: string): boolean {
-  if (isGitHubInstructionsDir(dir)) return GITHUB_INSTRUCTIONS_PATTERN.test(fileName);
+  if (isGitHubInstructionsDir(dir)) {
+    return GITHUB_INSTRUCTIONS_PATTERN.test(fileName);
+  }
   return RULE_EXTENSIONS.some((extension) => fileName.endsWith(extension));
 }
 
@@ -37,20 +44,27 @@ export function findRuleFilesRecursive(
 ): void {
   if (!existsSync(dir)) return;
   const realDir = safeRealpathSync(dir);
-  const effectiveBoundary = boundaryRoot === undefined ? realDir : safeRealpathSync(boundaryRoot);
+  const effectiveBoundary = boundaryRoot === undefined
+    ? realDir
+    : safeRealpathSync(boundaryRoot);
   if (!isPathWithinRoot(realDir, effectiveBoundary)) return;
   if (visited.has(realDir)) return;
   visited.add(realDir);
   let entries: Dirent<string>[] = [];
   try {
-    entries = readdirSync(dir, { withFileTypes: true, encoding: "utf8" }).sort((left, right) => left.name.localeCompare(right.name));
+    entries = readdirSync(dir, { withFileTypes: true, encoding: "utf8" }).sort((
+      left,
+      right,
+    ) => left.name.localeCompare(right.name));
   } catch {
     return;
   }
   for (const entry of entries) {
     const fullPath = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (!EXCLUDED_DIRS.has(entry.name)) findRuleFilesRecursive(fullPath, results, visited, effectiveBoundary);
+      if (!EXCLUDED_DIRS.has(entry.name)) {
+        findRuleFilesRecursive(fullPath, results, visited, effectiveBoundary);
+      }
       continue;
     }
     if (entry.isFile() && isRuleFile(entry.name, dir)) {

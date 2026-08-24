@@ -1,17 +1,17 @@
-import type { VariantTable } from "./types"
-import codexPrompt from "../prompts/ultrawork/codex.md"
-import defaultPrompt from "../prompts/ultrawork/default.md"
-import geminiPrompt from "../prompts/ultrawork/gemini.md"
-import glmPrompt from "../prompts/ultrawork/glm.md"
-import gptPrompt from "../prompts/ultrawork/gpt.md"
-import plannerPrompt from "../prompts/ultrawork/planner.md"
+import type { VariantTable } from "./types";
+import codexPrompt from "../prompts/ultrawork/codex.md";
+import defaultPrompt from "../prompts/ultrawork/default.md";
+import geminiPrompt from "../prompts/ultrawork/gemini.md";
+import glmPrompt from "../prompts/ultrawork/glm.md";
+import gptPrompt from "../prompts/ultrawork/gpt.md";
+import plannerPrompt from "../prompts/ultrawork/planner.md";
 
-export const ULTRAWORK_DEFAULT_PROMPT = defaultPrompt
-export const ULTRAWORK_GEMINI_PROMPT = geminiPrompt
-export const ULTRAWORK_GLM_PROMPT = glmPrompt
-export const ULTRAWORK_GPT_PROMPT = gptPrompt
-export const ULTRAWORK_PLANNER_PROMPT = plannerPrompt
-export const CODEX_ULTRAWORK_PROMPT = codexPrompt
+export const ULTRAWORK_DEFAULT_PROMPT = defaultPrompt;
+export const ULTRAWORK_GEMINI_PROMPT = geminiPrompt;
+export const ULTRAWORK_GLM_PROMPT = glmPrompt;
+export const ULTRAWORK_GPT_PROMPT = gptPrompt;
+export const ULTRAWORK_PLANNER_PROMPT = plannerPrompt;
+export const CODEX_ULTRAWORK_PROMPT = codexPrompt;
 
 export const ultraworkPromptVariants = {
   planner: {
@@ -39,7 +39,7 @@ export const ultraworkPromptVariants = {
     content: defaultPrompt,
     filePath: "packages/prompts-core/prompts/ultrawork/default.md",
   },
-} satisfies VariantTable
+} satisfies VariantTable;
 
 export const codexUltraworkPromptVariants = {
   codex: {
@@ -47,4 +47,4 @@ export const codexUltraworkPromptVariants = {
     content: codexPrompt,
     filePath: "packages/prompts-core/prompts/ultrawork/codex.md",
   },
-} satisfies VariantTable
+} satisfies VariantTable;

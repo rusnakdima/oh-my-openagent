@@ -1,6 +1,8 @@
 # Go Debugging
 
-Covers goroutines, `dlv` (Delve), `pprof`, the race detector, and the fact that Go's concurrency model means most bugs are about goroutines doing something quiet and wrong.
+Covers goroutines, `dlv` (Delve), `pprof`, the race detector, and the fact that
+Go's concurrency model means most bugs are about goroutines doing something
+quiet and wrong.
 
 ---
 
@@ -25,7 +27,9 @@ grep -r 'net/http/pprof\|runtime/pprof' --include='*.go' | head -3
 
 ## Delve (`dlv`) — the Go debugger
 
-Go's gc compiler emits DWARF, but plain gdb barely understands goroutines. **Use dlv, not gdb.** Plain gdb on a Go binary will miss goroutine state and print garbage for interface values.
+Go's gc compiler emits DWARF, but plain gdb barely understands goroutines. **Use
+dlv, not gdb.** Plain gdb on a Go binary will miss goroutine state and print
+garbage for interface values.
 
 ### The five `dlv` launch modes
 
@@ -48,7 +52,8 @@ dlv debug --headless --listen=:2345 --api-version=2 ./cmd/server
 
 ### Building a debuggable binary
 
-The compiler inlines and optimizes aggressively in normal builds, which makes stepping confusing. For serious debugging:
+The compiler inlines and optimizes aggressively in normal builds, which makes
+stepping confusing. For serious debugging:
 
 ```bash
 go build -gcflags="all=-N -l" -o ./bin/server ./cmd/server
@@ -87,7 +92,8 @@ The `trace` command is underused — it's like a logpoint, no stepping required.
 
 ## Goroutine-centric debugging
 
-Goroutine leaks and deadlocks are the most common Go bugs. `dlv`'s `goroutines` command is the starting point.
+Goroutine leaks and deadlocks are the most common Go bugs. `dlv`'s `goroutines`
+command is the starting point.
 
 ```
 (dlv) goroutines -t                    # with truncated stack
@@ -97,13 +103,13 @@ Goroutine leaks and deadlocks are the most common Go bugs. `dlv`'s `goroutines` 
 
 Common patterns:
 
-| You see in `goroutines` | Usually means |
-|---|---|
-| 100s of goroutines stuck at `chan receive` | Producer died; consumers leak |
-| 100s stuck at `semacquire` | Lock contention; a holder probably deadlocked |
-| One stuck at `select` with no default | Missing case or closed channel scenario |
-| Stuck at `netpoll` | External I/O not responding — not a Go bug, check downstream |
-| Growing count over time | Goroutine leak — need to find who's spawning without cleanup |
+| You see in `goroutines`                    | Usually means                                                |
+| ------------------------------------------ | ------------------------------------------------------------ |
+| 100s of goroutines stuck at `chan receive` | Producer died; consumers leak                                |
+| 100s stuck at `semacquire`                 | Lock contention; a holder probably deadlocked                |
+| One stuck at `select` with no default      | Missing case or closed channel scenario                      |
+| Stuck at `netpoll`                         | External I/O not responding — not a Go bug, check downstream |
+| Growing count over time                    | Goroutine leak — need to find who's spawning without cleanup |
 
 ### Panic signals in Go
 
@@ -119,6 +125,7 @@ defer func() {
 ```
 
 **Always check for silent recovers** in Phase 8. Grep:
+
 ```bash
 rg 'recover\(\)' --type go
 ```
@@ -135,9 +142,12 @@ go run -race ./cmd/server
 go build -race ./cmd/server
 ```
 
-The race detector wraps memory accesses and catches concurrent read/write without synchronization. **Run this before attaching dlv** if intermittency is involved — it often finds the bug directly.
+The race detector wraps memory accesses and catches concurrent read/write
+without synchronization. **Run this before attaching dlv** if intermittency is
+involved — it often finds the bug directly.
 
 Output shape:
+
 ```
 WARNING: DATA RACE
 Read at 0x00c0001a0080 by goroutine 7:
@@ -187,6 +197,7 @@ go tool pprof http://localhost:6060/debug/pprof/mutex
 ```
 
 Inside pprof:
+
 ```
 (pprof) top                 # top functions by self time
 (pprof) list main.handler   # annotated source of a function
@@ -195,11 +206,13 @@ Inside pprof:
 ```
 
 For goroutine leaks, **take two snapshots 30s apart** and diff:
+
 ```bash
 go tool pprof -base prof1.pb.gz prof2.pb.gz
 ```
 
-Goroutines that appear in prof2 but not prof1 are new; if they stick around, they're leaking.
+Goroutines that appear in prof2 but not prof1 are new; if they stick around,
+they're leaking.
 
 ---
 
@@ -213,23 +226,24 @@ GODEBUG=allocfreetrace=1 ./myserver       # every alloc/free (noisy!)
 GODEBUG=memprofilerate=1 ./myserver       # profile every allocation
 ```
 
-Useful for diagnosing GC pressure, goroutine starvation, or memory pattern issues.
+Useful for diagnosing GC pressure, goroutine starvation, or memory pattern
+issues.
 
 ---
 
 ## Silent-failure patterns in Go
 
-| Pattern | Why it's silent |
-|---|---|
-| `if err != nil { return err }` that returns to a caller that ignores | Error bubbles up, then gets discarded at the top |
-| `defer func() { recover() }()` — bare recover, no log | Panic swallowed, program continues with state corruption |
-| `_, _ = conn.Write(data)` | Intentionally discarded error |
-| Buffered channel send that blocks forever | Sender hangs; hard to see if no deadlock detection |
-| `time.Sleep` in a test | "Works on my machine"; test passes locally, fails in CI |
-| `go func() { ... }()` with no error path | Goroutine dies silently on panic unless recover+log |
-| Context canceled but operation continues | Ignored `ctx.Err()` check |
-| `json.Unmarshal` of zero-value struct field | Input missing the key; silently zero |
-| Closed channel read returning zero value | Consumer doesn't check `ok`; reads forever |
+| Pattern                                                              | Why it's silent                                          |
+| -------------------------------------------------------------------- | -------------------------------------------------------- |
+| `if err != nil { return err }` that returns to a caller that ignores | Error bubbles up, then gets discarded at the top         |
+| `defer func() { recover() }()` — bare recover, no log                | Panic swallowed, program continues with state corruption |
+| `_, _ = conn.Write(data)`                                            | Intentionally discarded error                            |
+| Buffered channel send that blocks forever                            | Sender hangs; hard to see if no deadlock detection       |
+| `time.Sleep` in a test                                               | "Works on my machine"; test passes locally, fails in CI  |
+| `go func() { ... }()` with no error path                             | Goroutine dies silently on panic unless recover+log      |
+| Context canceled but operation continues                             | Ignored `ctx.Err()` check                                |
+| `json.Unmarshal` of zero-value struct field                          | Input missing the key; silently zero                     |
+| Closed channel read returning zero value                             | Consumer doesn't check `ok`; reads forever               |
 
 ---
 

@@ -13,13 +13,16 @@
 
 async function readStdinJson() {
   return await new Promise((resolve, reject) => {
-    let data = '';
-    process.stdin.on('data', (c) => (data += c));
-    process.stdin.on('end', () => {
-      try { resolve(JSON.parse(data || '{}')); }
-      catch (e) { reject(e); }
+    let data = "";
+    process.stdin.on("data", (c) => (data += c));
+    process.stdin.on("end", () => {
+      try {
+        resolve(JSON.parse(data || "{}"));
+      } catch (e) {
+        reject(e);
+      }
     });
-    process.stdin.on('error', reject);
+    process.stdin.on("error", reject);
   });
 }
 
@@ -31,14 +34,16 @@ function describeError(error) {
 }
 
 function warnBestEffort(action, error) {
-  process.stderr.write(`best-effort ${action} failed: ${describeError(error)}\n`);
+  process.stderr.write(
+    `best-effort ${action} failed: ${describeError(error)}\n`,
+  );
 }
 
 function isMissingTopLevelModule(error, moduleName) {
   return (
     error instanceof Error &&
-    error.code === 'MODULE_NOT_FOUND' &&
-    typeof error.message === 'string' &&
+    error.code === "MODULE_NOT_FOUND" &&
+    typeof error.message === "string" &&
     error.message.includes(`Cannot find module '${moduleName}'`)
   );
 }
@@ -61,26 +66,28 @@ async function main() {
   const args = await readStdinJson();
   const url = args.url;
   if (!url) {
-    process.stderr.write('missing url\n');
+    process.stderr.write("missing url\n");
     process.exitCode = 2;
     return;
   }
 
-  const profileDir = args.profileDir || '/tmp/.insane_pw_mobile_profile';
-  const deviceName = args.device || 'iPhone 13 Pro';
+  const profileDir = args.profileDir || "/tmp/.insane_pw_mobile_profile";
+  const deviceName = args.device || "iPhone 13 Pro";
   const waitSelector = args.waitSelector || null;
   const timeoutMs = args.timeout || 60000;
   const headless = args.headless ?? false;
 
   let chromium, devices;
-  const playwrightExtra = requireOptionalModule('playwright-extra');
-  const stealthPlugin = playwrightExtra ? requireOptionalModule('puppeteer-extra-plugin-stealth') : null;
+  const playwrightExtra = requireOptionalModule("playwright-extra");
+  const stealthPlugin = playwrightExtra
+    ? requireOptionalModule("puppeteer-extra-plugin-stealth")
+    : null;
   if (playwrightExtra && stealthPlugin) {
     ({ chromium, devices } = playwrightExtra);
     const stealth = stealthPlugin();
     chromium.use(stealth);
   } else {
-    ({ chromium, devices } = require('playwright'));
+    ({ chromium, devices } = require("playwright"));
   }
 
   const dev = devices[deviceName];
@@ -93,19 +100,24 @@ async function main() {
   let ctx;
   try {
     ctx = await chromium.launchPersistentContext(profileDir, {
-      channel: 'chrome',
+      channel: "chrome",
       headless,
       ...dev,
     });
     const page = await ctx.newPage();
     const navTimeout = Math.min(timeoutMs, 90000);
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: navTimeout });
+    await page.goto(url, {
+      waitUntil: "domcontentloaded",
+      timeout: navTimeout,
+    });
 
     if (waitSelector) {
       try {
-        await page.waitForSelector(waitSelector, { timeout: Math.min(timeoutMs, 20000) });
+        await page.waitForSelector(waitSelector, {
+          timeout: Math.min(timeoutMs, 20000),
+        });
       } catch (e) {
-        warnBestEffort('waitSelector', e);
+        warnBestEffort("waitSelector", e);
       }
     }
 
@@ -121,7 +133,7 @@ async function main() {
     try {
       if (ctx) await ctx.close();
     } catch (e) {
-      warnBestEffort('browser context close', e);
+      warnBestEffort("browser context close", e);
     }
   }
 }

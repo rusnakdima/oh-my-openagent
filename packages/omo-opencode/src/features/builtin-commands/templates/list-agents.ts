@@ -28,4 +28,4 @@ Show all agents and their current TUI models. Call the tools below in order.
 4. Tell the user: "Selected {agent} (model: {effective}). Run /model {agent} to change its model."
 
 CRITICAL: Do NOT explain the steps. Execute them now.
-`
+`;

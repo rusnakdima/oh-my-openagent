@@ -2,7 +2,7 @@ import type { ModelCacheState, VisionCapableModel } from "../plugin-state";
 import {
   setTextOnlyModelsCache,
   setVisionCapableModelsCache,
-} from "../shared/vision-capable-models-cache"
+} from "../shared/vision-capable-models-cache";
 
 type ProviderConfig = {
   options?: { headers?: Record<string, string> };
@@ -19,25 +19,27 @@ type ProviderModelConfig = {
       image?: boolean;
     };
   };
-}
+};
 
 function readImageInputCapability(
   modelConfig: ProviderModelConfig | undefined,
 ): boolean | undefined {
   if (modelConfig?.modalities?.input) {
-    return modelConfig.modalities.input.includes("image")
+    return modelConfig.modalities.input.includes("image");
   }
 
-  return modelConfig?.capabilities?.input?.image
+  return modelConfig?.capabilities?.input?.image;
 }
 
-function parseTrustedModel(modelString: string): VisionCapableModel | undefined {
-  const [providerID, ...modelIDParts] = modelString.split("/")
-  const modelID = modelIDParts.join("/")
+function parseTrustedModel(
+  modelString: string,
+): VisionCapableModel | undefined {
+  const [providerID, ...modelIDParts] = modelString.split("/");
+  const modelID = modelIDParts.join("/");
   if (!providerID || modelID.length === 0) {
-    return undefined
+    return undefined;
   }
-  return { providerID, modelID }
+  return { providerID, modelID };
 }
 
 export function applyProviderConfig(params: {
@@ -48,20 +50,23 @@ export function applyProviderConfig(params: {
   const providers = params.config.provider as
     | Record<string, ProviderConfig>
     | undefined;
-  const modelContextLimitsCache = params.modelCacheState.modelContextLimitsCache;
+  const modelContextLimitsCache =
+    params.modelCacheState.modelContextLimitsCache;
 
-  modelContextLimitsCache.clear()
+  modelContextLimitsCache.clear();
 
-  const anthropicBeta = providers?.anthropic?.options?.headers?.["anthropic-beta"];
+  const anthropicBeta = providers?.anthropic?.options?.headers
+    ?.["anthropic-beta"];
   params.modelCacheState.anthropicContext1MEnabled =
     anthropicBeta?.includes("context-1m") ?? false;
 
-  const visionCapableModelsCache = params.modelCacheState.visionCapableModelsCache
-    ?? new Map<string, VisionCapableModel>()
-  params.modelCacheState.visionCapableModelsCache = visionCapableModelsCache
-  visionCapableModelsCache.clear()
-  setVisionCapableModelsCache(visionCapableModelsCache)
-  const textOnlyModelsCache = new Map<string, VisionCapableModel>()
+  const visionCapableModelsCache =
+    params.modelCacheState.visionCapableModelsCache ??
+      new Map<string, VisionCapableModel>();
+  params.modelCacheState.visionCapableModelsCache = visionCapableModelsCache;
+  visionCapableModelsCache.clear();
+  setVisionCapableModelsCache(visionCapableModelsCache);
+  const textOnlyModelsCache = new Map<string, VisionCapableModel>();
 
   if (providers) {
     for (const [providerID, providerConfig] of Object.entries(providers)) {
@@ -69,17 +74,17 @@ export function applyProviderConfig(params: {
       if (!models) continue;
 
       for (const [modelID, modelConfig] of Object.entries(models)) {
-        const imageInputCapability = readImageInputCapability(modelConfig)
+        const imageInputCapability = readImageInputCapability(modelConfig);
         if (imageInputCapability === true) {
           visionCapableModelsCache.set(
             `${providerID}/${modelID}`,
             { providerID, modelID },
-          )
+          );
         } else if (imageInputCapability === false) {
           textOnlyModelsCache.set(
             `${providerID}/${modelID}`,
             { providerID, modelID },
-          )
+          );
         }
 
         const contextLimit = modelConfig?.limit?.context;
@@ -94,12 +99,12 @@ export function applyProviderConfig(params: {
   }
 
   for (const trustedModelString of params.trustedVisionCapableModels ?? []) {
-    const trustedModel = parseTrustedModel(trustedModelString)
-    if (!trustedModel) continue
-    const key = `${trustedModel.providerID}/${trustedModel.modelID}`
-    if (visionCapableModelsCache.has(key)) continue
-    visionCapableModelsCache.set(key, trustedModel)
-    textOnlyModelsCache.delete(key)
+    const trustedModel = parseTrustedModel(trustedModelString);
+    if (!trustedModel) continue;
+    const key = `${trustedModel.providerID}/${trustedModel.modelID}`;
+    if (visionCapableModelsCache.has(key)) continue;
+    visionCapableModelsCache.set(key, trustedModel);
+    textOnlyModelsCache.delete(key);
   }
-  setTextOnlyModelsCache(textOnlyModelsCache.values())
+  setTextOnlyModelsCache(textOnlyModelsCache.values());
 }

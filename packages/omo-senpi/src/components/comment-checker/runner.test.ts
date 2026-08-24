@@ -1,17 +1,21 @@
-import { describe, expect, it } from "bun:test"
-import { spawnSync } from "node:child_process"
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 describe("Senpi comment-checker runner", () => {
   it("#given a checker that exits during a large stdin write #when Node runs the adapter #then it does not terminate from an unhandled EPIPE", () => {
     // given
-    const outputDirectory = mkdtempSync(join(tmpdir(), "omo-senpi-comment-checker-"))
-    const runnerBundlePath = join(outputDirectory, "runner.mjs")
-    const runnerSourcePath = fileURLToPath(new URL("./runner.ts", import.meta.url))
-    writeFileSync(join(outputDirectory, "check"), "process.exit(0)")
+    const outputDirectory = mkdtempSync(
+      join(tmpdir(), "omo-senpi-comment-checker-"),
+    );
+    const runnerBundlePath = join(outputDirectory, "runner.mjs");
+    const runnerSourcePath = fileURLToPath(
+      new URL("./runner.ts", import.meta.url),
+    );
+    writeFileSync(join(outputDirectory, "check"), "process.exit(0)");
 
     try {
       const build = spawnSync(
@@ -24,11 +28,13 @@ describe("Senpi comment-checker runner", () => {
           `--outfile=${runnerBundlePath}`,
         ],
         { cwd: process.cwd(), encoding: "utf8", timeout: 10_000 },
-      )
-      expect(build.status).toBe(0)
+      );
+      expect(build.status).toBe(0);
 
       const runAdapter = [
-        `import { defaultRunCommentChecker } from ${JSON.stringify(pathToFileURL(runnerBundlePath).href)}`,
+        `import { defaultRunCommentChecker } from ${
+          JSON.stringify(pathToFileURL(runnerBundlePath).href)
+        }`,
         'if (typeof globalThis.Bun !== "undefined") throw new Error("adapter host must be Node")',
         "await defaultRunCommentChecker({",
         "  binaryPath: process.execPath,",
@@ -44,32 +50,40 @@ describe("Senpi comment-checker runner", () => {
         "    },",
         "  },",
         "})",
-      ].join("\n")
+      ].join("\n");
 
       // when
-      const run = spawnSync("node", ["--input-type=module", "--eval", runAdapter], {
+      const run = spawnSync("node", [
+        "--input-type=module",
+        "--eval",
+        runAdapter,
+      ], {
         cwd: outputDirectory,
         encoding: "utf8",
         timeout: 10_000,
-      })
+      });
 
       // then
-      expect(run.status).toBe(0)
-      expect(run.stderr).toBe("")
+      expect(run.status).toBe(0);
+      expect(run.stderr).toBe("");
     } finally {
-      rmSync(outputDirectory, { force: true, recursive: true })
+      rmSync(outputDirectory, { force: true, recursive: true });
     }
-  })
+  });
 
   it("#given a checker that exits 2 before reading stdin #when stdin reports EPIPE first #then it preserves checker feedback", () => {
     // given
-    const outputDirectory = mkdtempSync(join(tmpdir(), "omo-senpi-comment-checker-"))
-    const runnerBundlePath = join(outputDirectory, "runner.mjs")
-    const runnerSourcePath = fileURLToPath(new URL("./runner.ts", import.meta.url))
+    const outputDirectory = mkdtempSync(
+      join(tmpdir(), "omo-senpi-comment-checker-"),
+    );
+    const runnerBundlePath = join(outputDirectory, "runner.mjs");
+    const runnerSourcePath = fileURLToPath(
+      new URL("./runner.ts", import.meta.url),
+    );
     writeFileSync(
       join(outputDirectory, "check"),
       'process.stderr.write("line 1: redundant comment\\r\\nline 2: stale comment"); process.exit(2)',
-    )
+    );
 
     try {
       const build = spawnSync(
@@ -82,11 +96,13 @@ describe("Senpi comment-checker runner", () => {
           `--outfile=${runnerBundlePath}`,
         ],
         { cwd: process.cwd(), encoding: "utf8", timeout: 10_000 },
-      )
-      expect(build.status).toBe(0)
+      );
+      expect(build.status).toBe(0);
 
       const runAdapter = [
-        `import { defaultRunCommentChecker } from ${JSON.stringify(pathToFileURL(runnerBundlePath).href)}`,
+        `import { defaultRunCommentChecker } from ${
+          JSON.stringify(pathToFileURL(runnerBundlePath).href)
+        }`,
         'if (typeof globalThis.Bun !== "undefined") throw new Error("adapter host must be Node")',
         "const result = await defaultRunCommentChecker({",
         "  binaryPath: process.execPath,",
@@ -103,24 +119,28 @@ describe("Senpi comment-checker runner", () => {
         "  },",
         "})",
         "console.log(JSON.stringify(result))",
-      ].join("\n")
+      ].join("\n");
 
       // when
-      const run = spawnSync("node", ["--input-type=module", "--eval", runAdapter], {
+      const run = spawnSync("node", [
+        "--input-type=module",
+        "--eval",
+        runAdapter,
+      ], {
         cwd: outputDirectory,
         encoding: "utf8",
         timeout: 10_000,
-      })
+      });
 
       // then
-      expect(run.status).toBe(0)
-      expect(run.stderr).toBe("")
+      expect(run.status).toBe(0);
+      expect(run.stderr).toBe("");
       expect(JSON.parse(run.stdout)).toEqual({
         hasComments: true,
         message: "line 1: redundant comment\nline 2: stale comment",
-      })
+      });
     } finally {
-      rmSync(outputDirectory, { force: true, recursive: true })
+      rmSync(outputDirectory, { force: true, recursive: true });
     }
-  })
-})
+  });
+});

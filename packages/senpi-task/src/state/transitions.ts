@@ -4,116 +4,142 @@ import type {
   TaskStatus,
   TaskTransition,
   TaskTransitionResult,
-} from "./types"
+} from "./types";
 
-const terminalStatuses = new Set<TaskStatus>(["completed", "error", "cancelled", "interrupted", "lost"])
+const terminalStatuses = new Set<TaskStatus>([
+  "completed",
+  "error",
+  "cancelled",
+  "interrupted",
+  "lost",
+]);
 const residencyTransitionTypes = new Set<TaskTransition["type"]>([
   "evict",
   "dispose",
   "persist_only",
   "detach_rpc",
   "mark_resident",
-])
+]);
 
-function transitionStatus(transition: TaskTransition, current: TaskStatus): TaskStatus {
+function transitionStatus(
+  transition: TaskTransition,
+  current: TaskStatus,
+): TaskStatus {
   switch (transition.type) {
     case "start":
-      return "running"
+      return "running";
     case "complete":
-      return "completed"
+      return "completed";
     case "fail":
-      return "error"
+      return "error";
     case "cancel":
-      return "cancelled"
+      return "cancelled";
     case "interrupt":
-      return "interrupted"
+      return "interrupted";
     case "lose":
-      return "lost"
+      return "lost";
     case "evict":
     case "dispose":
     case "persist_only":
     case "detach_rpc":
     case "mark_resident":
-      return current
+      return current;
     default:
-      return assertNever(transition)
+      return assertNever(transition);
   }
 }
 
-function transitionResidency(transition: TaskTransition, current: ResidencyState): ResidencyState {
+function transitionResidency(
+  transition: TaskTransition,
+  current: ResidencyState,
+): ResidencyState {
   switch (transition.type) {
     case "evict":
-      return "evicted"
+      return "evicted";
     case "dispose":
-      return "disposed"
+      return "disposed";
     case "persist_only":
-      return "persisted_only"
+      return "persisted_only";
     case "detach_rpc":
-      return "rpc_detached"
+      return "rpc_detached";
     case "mark_resident":
-      return "resident"
+      return "resident";
     case "start":
     case "complete":
     case "fail":
     case "cancel":
     case "interrupt":
     case "lose":
-      return current
+      return current;
     default:
-      return assertNever(transition)
+      return assertNever(transition);
   }
 }
 
-function applyTransitionFields(record: TaskRecord, transition: TaskTransition): TaskRecord {
+function applyTransitionFields(
+  record: TaskRecord,
+  transition: TaskTransition,
+): TaskRecord {
   switch (transition.type) {
     case "start":
       return {
         ...record,
         ...(transition.pid === undefined ? {} : { pid: transition.pid }),
-        ...(transition.child_session_id === undefined ? {} : { child_session_id: transition.child_session_id }),
-      }
+        ...(transition.child_session_id === undefined
+          ? {}
+          : { child_session_id: transition.child_session_id }),
+      };
     case "complete":
-      return { ...record, final_response: transition.final_response, ...runStatsField(transition.run_stats) }
+      return {
+        ...record,
+        final_response: transition.final_response,
+        ...runStatsField(transition.run_stats),
+      };
     case "fail":
       return {
         ...record,
         error_message: transition.error_message,
         ...(transition.killed === true ? { killed: true } : {}),
         ...runStatsField(transition.run_stats),
-      }
+      };
     case "lose":
-      return { ...record, error_message: transition.error_message }
+      return { ...record, error_message: transition.error_message };
     case "cancel":
     case "interrupt":
       return {
         ...record,
-        ...(transition.error_message === undefined ? {} : { error_message: transition.error_message }),
+        ...(transition.error_message === undefined
+          ? {}
+          : { error_message: transition.error_message }),
         ...runStatsField(transition.run_stats),
-      }
+      };
     case "persist_only": {
       // In-process suspension: the owning engine is gone, so host_pid AND the last child pid are
       // both meaningless. Status, epochs, terminal fields, and run stats ride through untouched.
-      const { host_pid: _hostPid, pid: _pid, ...rest } = record
-      return rest
+      const { host_pid: _hostPid, pid: _pid, ...rest } = record;
+      return rest;
     }
     case "detach_rpc": {
       // RPC suspension: only host ownership is gone. The last pid is RETAINED so reconcile can
       // still detect and terminate the orphaned OS process before any replacement spawns.
-      const { host_pid: _hostPid, ...rest } = record
-      return rest
+      const { host_pid: _hostPid, ...rest } = record;
+      return rest;
     }
     case "evict":
     case "dispose":
     case "mark_resident":
-      return record
+      return record;
     default:
-      return assertNever(transition)
+      return assertNever(transition);
   }
 }
 
-export function transitionTaskRecord(record: TaskRecord, transition: TaskTransition): TaskTransitionResult {
-  const nextStatus = transitionStatus(transition, record.status)
-  const changesOnlyResidency = residencyTransitionTypes.has(transition.type)
+export function transitionTaskRecord(
+  record: TaskRecord,
+  transition: TaskTransition,
+): TaskTransitionResult {
+  const nextStatus = transitionStatus(transition, record.status);
+  const changesOnlyResidency = residencyTransitionTypes.has(transition.type);
   if (terminalStatuses.has(record.status) && !changesOnlyResidency) {
     return {
       applied: false,
@@ -123,7 +149,7 @@ export function transitionTaskRecord(record: TaskRecord, transition: TaskTransit
         attempted_status: nextStatus,
         current_status: record.status,
       },
-    }
+    };
   }
 
   if (!isStatusTransitionAllowed(record.status, transition)) {
@@ -135,17 +161,17 @@ export function transitionTaskRecord(record: TaskRecord, transition: TaskTransit
         attempted_status: nextStatus,
         current_status: record.status,
       },
-    }
+    };
   }
 
-  const nextResidency = transitionResidency(transition, record.residency_state)
-  const withFields = applyTransitionFields(record, transition)
+  const nextResidency = transitionResidency(transition, record.residency_state);
+  const withFields = applyTransitionFields(record, transition);
   const nextRecord = {
     ...withFields,
     status: nextStatus,
     residency_state: nextResidency,
     updated_at: transition.timestamp,
-  }
+  };
 
   return {
     applied: true,
@@ -155,14 +181,18 @@ export function transitionTaskRecord(record: TaskRecord, transition: TaskTransit
       status: nextRecord.status,
       residency_state: nextRecord.residency_state,
     },
-  }
+  };
 }
 
 export function markRecordLostForReconciliation(
   record: TaskRecord,
-  input: { readonly timestamp: string; readonly error_message: string; readonly updateReason?: boolean },
+  input: {
+    readonly timestamp: string;
+    readonly error_message: string;
+    readonly updateReason?: boolean;
+  },
 ): TaskTransitionResult {
-  const shouldUpdateReason = input.updateReason === true
+  const shouldUpdateReason = input.updateReason === true;
   if (terminalStatuses.has(record.status) && record.status !== "lost") {
     return {
       applied: false,
@@ -172,7 +202,7 @@ export function markRecordLostForReconciliation(
         attempted_status: "lost",
         current_status: record.status,
       },
-    }
+    };
   }
 
   if (record.status === "lost" && !shouldUpdateReason) {
@@ -184,7 +214,7 @@ export function markRecordLostForReconciliation(
         attempted_status: "lost",
         current_status: record.status,
       },
-    }
+    };
   }
 
   const nextRecord = {
@@ -192,7 +222,7 @@ export function markRecordLostForReconciliation(
     status: "lost" as const,
     error_message: input.error_message,
     updated_at: input.timestamp,
-  }
+  };
 
   return {
     applied: true,
@@ -202,36 +232,41 @@ export function markRecordLostForReconciliation(
       status: nextRecord.status,
       residency_state: nextRecord.residency_state,
     },
-  }
+  };
 }
 
-function isStatusTransitionAllowed(current: TaskStatus, transition: TaskTransition): boolean {
+function isStatusTransitionAllowed(
+  current: TaskStatus,
+  transition: TaskTransition,
+): boolean {
   switch (transition.type) {
     case "start":
-      return current === "pending"
+      return current === "pending";
     case "cancel":
-      return current === "running" || current === "pending"
+      return current === "running" || current === "pending";
     case "complete":
     case "fail":
     case "interrupt":
-      return current === "running"
+      return current === "running";
     case "lose":
-      return false
+      return false;
     case "evict":
     case "dispose":
     case "persist_only":
     case "detach_rpc":
     case "mark_resident":
-      return true
+      return true;
     default:
-      return assertNever(transition)
+      return assertNever(transition);
   }
 }
 
-function runStatsField(runStats: TaskRecord["run_stats"]): Pick<TaskRecord, "run_stats"> {
-  return runStats === undefined ? {} : { run_stats: runStats }
+function runStatsField(
+  runStats: TaskRecord["run_stats"],
+): Pick<TaskRecord, "run_stats"> {
+  return runStats === undefined ? {} : { run_stats: runStats };
 }
 
 function assertNever(value: never): never {
-  throw new Error(`Unexpected task transition: ${JSON.stringify(value)}`)
+  throw new Error(`Unexpected task transition: ${JSON.stringify(value)}`);
 }

@@ -1,5 +1,5 @@
-import { describe, expect, test } from "bun:test"
-import { resolveSessionAgent } from "./session-agent-resolver"
+import { describe, expect, test } from "bun:test";
+import { resolveSessionAgent } from "./session-agent-resolver";
 
 describe("resolveSessionAgent", () => {
   test("returns agent from first message with agent field", async () => {
@@ -14,14 +14,14 @@ describe("resolveSessionAgent", () => {
           ],
         }),
       },
-    }
+    };
 
     //#when
-    const agent = await resolveSessionAgent(client, "ses_test")
+    const agent = await resolveSessionAgent(client, "ses_test");
 
     //#then
-    expect(agent).toBe("explore")
-  })
+    expect(agent).toBe("explore");
+  });
 
   test("skips messages without agent field", async () => {
     //#given
@@ -35,14 +35,14 @@ describe("resolveSessionAgent", () => {
           ],
         }),
       },
-    }
+    };
 
     //#when
-    const agent = await resolveSessionAgent(client, "ses_test")
+    const agent = await resolveSessionAgent(client, "ses_test");
 
     //#then
-    expect(agent).toBe("plan")
-  })
+    expect(agent).toBe("plan");
+  });
 
   test("returns undefined when no messages have agent", async () => {
     //#given
@@ -55,14 +55,14 @@ describe("resolveSessionAgent", () => {
           ],
         }),
       },
-    }
+    };
 
     //#when
-    const agent = await resolveSessionAgent(client, "ses_test")
+    const agent = await resolveSessionAgent(client, "ses_test");
 
     //#then
-    expect(agent).toBeUndefined()
-  })
+    expect(agent).toBeUndefined();
+  });
 
   test("returns undefined when session has no messages", async () => {
     //#given
@@ -70,27 +70,29 @@ describe("resolveSessionAgent", () => {
       session: {
         messages: async () => ({ data: [] }),
       },
-    }
+    };
 
     //#when
-    const agent = await resolveSessionAgent(client, "ses_test")
+    const agent = await resolveSessionAgent(client, "ses_test");
 
     //#then
-    expect(agent).toBeUndefined()
-  })
+    expect(agent).toBeUndefined();
+  });
 
   test("returns undefined when API call fails", async () => {
     //#given
     const client = {
       session: {
-        messages: async () => { throw new Error("API error") },
+        messages: async () => {
+          throw new Error("API error");
+        },
       },
-    }
+    };
 
     //#when
-    const agent = await resolveSessionAgent(client, "ses_test")
+    const agent = await resolveSessionAgent(client, "ses_test");
 
     //#then
-    expect(agent).toBeUndefined()
-  })
-})
+    expect(agent).toBeUndefined();
+  });
+});

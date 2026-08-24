@@ -1,9 +1,9 @@
-import { z } from "zod"
+import { z } from "zod";
 
-export const GOAL_STATUS_VALUES = ["active", "paused", "complete"] as const
+export const GOAL_STATUS_VALUES = ["active", "paused", "complete"] as const;
 
-export const GoalStatusSchema = z.enum(GOAL_STATUS_VALUES)
-export type GoalStatus = z.infer<typeof GoalStatusSchema>
+export const GoalStatusSchema = z.enum(GOAL_STATUS_VALUES);
+export type GoalStatus = z.infer<typeof GoalStatusSchema>;
 
 export const GoalSchema = z.object({
   id: z.string(),
@@ -16,36 +16,36 @@ export const GoalSchema = z.object({
   updatedAt: z.number().int().nonnegative(),
   lastStartedAt: z.number().int().nonnegative().optional(),
   completedAt: z.number().int().nonnegative().optional(),
-})
+});
 
-export type Goal = z.infer<typeof GoalSchema>
+export type Goal = z.infer<typeof GoalSchema>;
 
 export const GoalFileSchema = z.object({
   version: z.literal(1),
   goal: GoalSchema.nullable(),
-})
+});
 
-export type GoalFile = z.infer<typeof GoalFileSchema>
+export type GoalFile = z.infer<typeof GoalFileSchema>;
 
 export type GoalStoreRef = {
-  readonly baseDir: string
-  readonly sessionID: string
-}
+  readonly baseDir: string;
+  readonly sessionID: string;
+};
 
 export type TokenUsageSnapshot = {
-  readonly input: number
-  readonly output: number
-  readonly cacheRead: number
-  readonly cacheWrite: number
-  readonly totalTokens: number
-}
+  readonly input: number;
+  readonly output: number;
+  readonly cacheRead: number;
+  readonly cacheWrite: number;
+  readonly totalTokens: number;
+};
 
 export type GoalUpdate = {
-  readonly objective?: string
-  readonly status?: GoalStatus
-  readonly tokensUsed?: number
-  readonly timeUsedSeconds?: number
-}
+  readonly objective?: string;
+  readonly status?: GoalStatus;
+  readonly tokensUsed?: number;
+  readonly timeUsedSeconds?: number;
+};
 
 export const GoalToolSnapshotSchema = z.object({
   sessionID: z.string(),
@@ -55,14 +55,14 @@ export const GoalToolSnapshotSchema = z.object({
   timeUsedSeconds: z.number().int().nonnegative(),
   createdAt: z.number().int().nonnegative(),
   updatedAt: z.number().int().nonnegative(),
-})
+});
 
-export type GoalToolSnapshot = z.infer<typeof GoalToolSnapshotSchema>
+export type GoalToolSnapshot = z.infer<typeof GoalToolSnapshotSchema>;
 
 export const GoalToolResponseSchema = z.object({
   goal: GoalToolSnapshotSchema.nullable(),
-})
+});
 
-export type GoalToolResponse = z.infer<typeof GoalToolResponseSchema>
+export type GoalToolResponse = z.infer<typeof GoalToolResponseSchema>;
 
-export type GoalAccountingMode = "active" | "activeOrComplete"
+export type GoalAccountingMode = "active" | "activeOrComplete";

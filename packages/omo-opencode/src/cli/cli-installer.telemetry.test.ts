@@ -1,16 +1,26 @@
-import { afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test"
-import * as configManager from "./config-manager"
-import * as astGrepInstall from "./install-ast-grep-sg"
-import type { InstallArgs } from "./types"
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
+import * as configManager from "./config-manager";
+import * as astGrepInstall from "./install-ast-grep-sg";
+import type { InstallArgs } from "./types";
 
 describe("runCliInstaller telemetry isolation", () => {
   beforeEach(() => {
-    spyOn(astGrepInstall, "installAstGrepForOpenCode").mockResolvedValue(undefined)
-  })
+    spyOn(astGrepInstall, "installAstGrepForOpenCode").mockResolvedValue(
+      undefined,
+    );
+  });
 
   afterEach(() => {
-    mock.restore()
-  })
+    mock.restore();
+  });
 
   it("does not crash CLI install when telemetry shutdown throws", async () => {
     // given
@@ -28,7 +38,7 @@ describe("runCliInstaller telemetry isolation", () => {
         hasZaiCodingPlan: false,
         hasKimiForCoding: false,
         hasOpencodeGo: false,
-      hasBailianCodingPlan: false,
+        hasBailianCodingPlan: false,
         hasVercelAiGateway: false,
       }),
       spyOn(configManager, "isOpenCodeInstalled").mockResolvedValue(true),
@@ -41,19 +51,21 @@ describe("runCliInstaller telemetry isolation", () => {
         success: true,
         configPath: "/tmp/omo.jsonc",
       }),
-    ]
+    ];
 
     mock.module("../shared/posthog", () => ({
       createCliPostHog: mock(() => ({
         trackActive: mock(() => {}),
         shutdown: mock(async () => {
-          throw new Error("shutdown failed")
+          throw new Error("shutdown failed");
         }),
       })),
       getPostHogDistinctId: mock(() => "install-distinct-id"),
-    }))
+    }));
 
-    const { runCliInstaller } = await import(`./cli-installer?telemetry=${Date.now()}-${Math.random()}`)
+    const { runCliInstaller } = await import(
+      `./cli-installer?telemetry=${Date.now()}-${Math.random()}`
+    );
     const args: InstallArgs = {
       tui: false,
       claude: "no",
@@ -64,16 +76,16 @@ describe("runCliInstaller telemetry isolation", () => {
       zaiCodingPlan: "no",
       kimiForCoding: "no",
       opencodeGo: "no",
-    }
+    };
 
     // when
-    const result = await runCliInstaller(args, "3.4.0")
+    const result = await runCliInstaller(args, "3.4.0");
 
     // then
-    expect(result).toBe(0)
+    expect(result).toBe(0);
 
     for (const spy of restoreSpies) {
-      spy.mockRestore()
+      spy.mockRestore();
     }
-  })
-})
+  });
+});

@@ -1,14 +1,20 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync } from "node:fs"
-import { dirname, resolve } from "node:path"
-import { fileURLToPath } from "node:url"
+import { readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const scriptDir = dirname(fileURLToPath(import.meta.url))
-const packageRoot = resolve(scriptDir, "../..")
-const repoRoot = resolve(packageRoot, "../..")
-const sourcePath = resolve(repoRoot, "packages/omo-senpi/skills/ultrawork/SKILL.md")
-const targetPath = resolve(packageRoot, "src/components/ultrawork/generated-directive.ts")
+const scriptDir = dirname(fileURLToPath(import.meta.url));
+const packageRoot = resolve(scriptDir, "../..");
+const repoRoot = resolve(packageRoot, "../..");
+const sourcePath = resolve(
+  repoRoot,
+  "packages/omo-senpi/skills/ultrawork/SKILL.md",
+);
+const targetPath = resolve(
+  packageRoot,
+  "src/components/ultrawork/generated-directive.ts",
+);
 
 // The directive is authored senpi-native (skills/ultrawork/SKILL.md) and senpi HAS
 // goal/todo/task/team tools, so the source speaks them directly. These tokens name
@@ -24,39 +30,47 @@ const forbiddenDirectiveTokens = [
   "fork_turns",
   "codex",
   "wait_for",
-]
+];
 
-const forbiddenPatterns = forbiddenDirectiveTokens.map((token) => new RegExp(token, "i"))
+const forbiddenPatterns = forbiddenDirectiveTokens.map((token) =>
+  new RegExp(token, "i")
+);
 
 function normalizeNewlines(value) {
-  return value.replace(/\r\n/g, "\n").replace(/\r/g, "\n")
+  return value.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
 }
 
 function splitBlocks(value) {
-  return normalizeNewlines(value).split(/\n{2,}/)
+  return normalizeNewlines(value).split(/\n{2,}/);
 }
 
 function extractSkillBody(rawSkill) {
-  const normalized = normalizeNewlines(rawSkill)
-  const frontmatter = normalized.match(/^---\n[\s\S]*?\n---\n+/)
-  return frontmatter === null ? normalized : normalized.slice(frontmatter[0].length)
+  const normalized = normalizeNewlines(rawSkill);
+  const frontmatter = normalized.match(/^---\n[\s\S]*?\n---\n+/);
+  return frontmatter === null
+    ? normalized
+    : normalized.slice(frontmatter[0].length);
 }
 
 export function transformDirective(rawSkill) {
-  const body = extractSkillBody(rawSkill)
-  const violations = []
+  const body = extractSkillBody(rawSkill);
+  const violations = [];
   for (const block of splitBlocks(body)) {
     for (const pattern of forbiddenPatterns) {
       if (pattern.test(block)) {
-        violations.push(`/${pattern.source}/i: ${block.trim().slice(0, 120)}`)
+        violations.push(`/${pattern.source}/i: ${block.trim().slice(0, 120)}`);
       }
     }
   }
   if (violations.length > 0) {
-    throw new Error(`senpi ultrawork directive source contains forbidden non-senpi tokens:\n  - ${violations.join("\n  - ")}`)
+    throw new Error(
+      `senpi ultrawork directive source contains forbidden non-senpi tokens:\n  - ${
+        violations.join("\n  - ")
+      }`,
+    );
   }
 
-  return `${body.trim()}\n`
+  return `${body.trim()}\n`;
 }
 
 function renderGeneratedModule(directive) {
@@ -65,36 +79,40 @@ function renderGeneratedModule(directive) {
     ...forbiddenDirectiveTokens.map((token) => `  ${JSON.stringify(token)},`),
     "] as const",
     "",
-    `export const SENPI_ULTRAWORK_DIRECTIVE = ${JSON.stringify(directive)} as const`,
+    `export const SENPI_ULTRAWORK_DIRECTIVE = ${
+      JSON.stringify(directive)
+    } as const`,
     "",
-  ].join("\n")
+  ].join("\n");
 }
 
 function readExpectedModule() {
-  return renderGeneratedModule(transformDirective(readFileSync(sourcePath, "utf8")))
+  return renderGeneratedModule(
+    transformDirective(readFileSync(sourcePath, "utf8")),
+  );
 }
 
 function main(argv) {
-  let expected
+  let expected;
   try {
-    expected = readExpectedModule()
+    expected = readExpectedModule();
   } catch (error) {
-    console.error(error instanceof Error ? error.message : String(error))
-    process.exit(1)
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
   }
 
   if (argv.includes("--check")) {
-    const actual = readFileSync(targetPath, "utf8")
+    const actual = readFileSync(targetPath, "utf8");
     if (actual !== expected) {
-      console.error(`generated directive drifted: ${targetPath}`)
-      process.exit(1)
+      console.error(`generated directive drifted: ${targetPath}`);
+      process.exit(1);
     }
-    console.log(`generated directive is current: ${targetPath}`)
-    return
+    console.log(`generated directive is current: ${targetPath}`);
+    return;
   }
 
-  writeFileSync(targetPath, expected)
-  console.log(`generated ${targetPath}`)
+  writeFileSync(targetPath, expected);
+  console.log(`generated ${targetPath}`);
 }
 
-main(process.argv.slice(2))
+main(process.argv.slice(2));

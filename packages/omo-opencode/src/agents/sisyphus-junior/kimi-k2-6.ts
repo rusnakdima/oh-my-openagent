@@ -24,7 +24,8 @@ export function buildKimiK26SisyphusJuniorPrompt(
     ? "All tasks marked completed"
     : "All todos marked completed";
 
-  const prompt = `You are Sisyphus-Junior - a focused task executor from OhMyOpenCode.
+  const prompt =
+    `You are Sisyphus-Junior - a focused task executor from OhMyOpenCode.
 
 ## Identity
 
@@ -172,7 +173,9 @@ Style:
 
 - **Diagnostics**: Use lsp_diagnostics - ZERO errors on changed files
 - **Build**: Use Bash - Exit code 0 (if applicable)
-- **Tracking**: Use ${useTaskSystem ? "task_update" : "todowrite"} - ${verificationText}
+- **Tracking**: Use ${
+      useTaskSystem ? "task_update" : "todowrite"
+    } - ${verificationText}
 
 **No evidence = not complete.**
 

@@ -10,17 +10,28 @@ function round4(value) {
   return Math.round(value * 1e4) / 1e4;
 }
 function pixelsDiffer(ref, refOffset, act, actOffset) {
-  return ref[refOffset] !== act[actOffset] || ref[refOffset + 1] !== act[actOffset + 1] || ref[refOffset + 2] !== act[actOffset + 2] || ref[refOffset + 3] !== act[actOffset + 3];
+  return ref[refOffset] !== act[actOffset] ||
+    ref[refOffset + 1] !== act[actOffset + 1] ||
+    ref[refOffset + 2] !== act[actOffset + 2] ||
+    ref[refOffset + 3] !== act[actOffset + 3];
 }
-function buildHotspots(cellDiff, cellTotal, cols, rows, overlapWidth, overlapHeight) {
+function buildHotspots(
+  cellDiff,
+  cellTotal,
+  cols,
+  rows,
+  overlapWidth,
+  overlapHeight,
+) {
   const hotspots = [];
-  for (let gridY = 0;gridY < rows; gridY++) {
-    for (let gridX = 0;gridX < cols; gridX++) {
+  for (let gridY = 0; gridY < rows; gridY++) {
+    for (let gridX = 0; gridX < cols; gridX++) {
       const index = gridY * cols + gridX;
       const diff = cellDiff[index] ?? 0;
       const total = cellTotal[index] ?? 0;
-      if (diff === 0 || total === 0)
+      if (diff === 0 || total === 0) {
         continue;
+      }
       const left = Math.floor(gridX * overlapWidth / cols);
       const right = Math.floor((gridX + 1) * overlapWidth / cols);
       const top = Math.floor(gridY * overlapHeight / rows);
@@ -32,19 +43,30 @@ function buildHotspots(cellDiff, cellTotal, cols, rows, overlapWidth, overlapHei
         y: top,
         width: right - left,
         height: bottom - top,
-        diffRatio: round4(diff / total)
+        diffRatio: round4(diff / total),
       });
     }
   }
   hotspots.sort((a, b) => b.diffRatio - a.diffRatio);
   return hotspots;
 }
-function buildSummary(similarityScore, diffPixels, totalPixels, dimensionsMatch, hotspotCount) {
-  const parts = [`${similarityScore}/100 similarity`, `${diffPixels}/${totalPixels} pixels differ`];
-  if (!dimensionsMatch)
+function buildSummary(
+  similarityScore,
+  diffPixels,
+  totalPixels,
+  dimensionsMatch,
+  hotspotCount,
+) {
+  const parts = [
+    `${similarityScore}/100 similarity`,
+    `${diffPixels}/${totalPixels} pixels differ`,
+  ];
+  if (!dimensionsMatch) {
     parts.push("dimensions differ");
-  if (hotspotCount > 0)
+  }
+  if (hotspotCount > 0) {
     parts.push(`${hotspotCount} hotspot region(s)`);
+  }
   return `${parts.join("; ")}.`;
 }
 function diffImages(reference, actual) {
@@ -56,9 +78,9 @@ function diffImages(reference, actual) {
   const cellDiff = new Array(cols * rows).fill(0);
   const cellTotal = new Array(cols * rows).fill(0);
   let diffPixels = 0;
-  for (let y = 0;y < overlapHeight; y++) {
+  for (let y = 0; y < overlapHeight; y++) {
     const cellY = Math.min(rows - 1, Math.floor(y * rows / overlapHeight));
-    for (let x = 0;x < overlapWidth; x++) {
+    for (let x = 0; x < overlapWidth; x++) {
       const cellX = Math.min(cols - 1, Math.floor(x * cols / overlapWidth));
       const cellIndex = cellY * cols + cellX;
       cellTotal[cellIndex] = (cellTotal[cellIndex] ?? 0) + 1;
@@ -72,9 +94,18 @@ function diffImages(reference, actual) {
   }
   const diffRatio = totalPixels === 0 ? 0 : diffPixels / totalPixels;
   const similarityScore = Math.round((1 - diffRatio) * 100);
-  const hotspots = buildHotspots(cellDiff, cellTotal, cols, rows, overlapWidth, overlapHeight);
-  const dimensionsMatch = reference.width === actual.width && reference.height === actual.height;
-  const alphaChannelIntact = !(reference.hasTransparentPixels && !actual.hasTransparentPixels);
+  const hotspots = buildHotspots(
+    cellDiff,
+    cellTotal,
+    cols,
+    rows,
+    overlapWidth,
+    overlapHeight,
+  );
+  const dimensionsMatch = reference.width === actual.width &&
+    reference.height === actual.height;
+  const alphaChannelIntact =
+    !(reference.hasTransparentPixels && !actual.hasTransparentPixels);
   return {
     command: "image-diff",
     dimensionsMatch,
@@ -86,7 +117,13 @@ function diffImages(reference, actual) {
     similarityScore,
     alphaChannelIntact,
     hotspots,
-    summary: buildSummary(similarityScore, diffPixels, totalPixels, dimensionsMatch, hotspots.length)
+    summary: buildSummary(
+      similarityScore,
+      diffPixels,
+      totalPixels,
+      dimensionsMatch,
+      hotspots.length,
+    ),
   };
 }
 
@@ -99,9 +136,9 @@ import { Buffer } from "node:buffer";
 var PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
 function buildCrcTable() {
   const table = new Uint32Array(256);
-  for (let n = 0;n < 256; n++) {
+  for (let n = 0; n < 256; n++) {
     let c = n;
-    for (let k = 0;k < 8; k++) {
+    for (let k = 0; k < 8; k++) {
       c = (c & 1) === 1 ? 3988292384 ^ c >>> 1 : c >>> 1;
     }
     table[n] = c >>> 0;
@@ -122,8 +159,9 @@ function readChunks(buffer) {
     const type = buffer.toString("ascii", offset + 4, offset + 8);
     const dataStart = offset + 8;
     const dataEnd = dataStart + length;
-    if (dataEnd + 4 > buffer.length)
+    if (dataEnd + 4 > buffer.length) {
       break;
+    }
     chunks.push({ type, data: buffer.subarray(dataStart, dataEnd) });
     offset = dataEnd + 4;
   }
@@ -153,7 +191,7 @@ function parseHeader(data) {
     height: data.readUInt32BE(4),
     bitDepth: data[8] ?? 0,
     colorType,
-    channels: channelsForColorType(colorType)
+    channels: channelsForColorType(colorType),
   };
 }
 function paeth(a, b, c) {
@@ -161,15 +199,17 @@ function paeth(a, b, c) {
   const pa = Math.abs(p - a);
   const pb = Math.abs(p - b);
   const pc = Math.abs(p - c);
-  if (pa <= pb && pa <= pc)
+  if (pa <= pb && pa <= pc) {
     return a;
-  if (pb <= pc)
+  }
+  if (pb <= pc) {
     return b;
+  }
   return c;
 }
 function unfilterRow(filterType, row, prev, bpp) {
   const out = Buffer2.alloc(row.length);
-  for (let i = 0;i < row.length; i++) {
+  for (let i = 0; i < row.length; i++) {
     const raw = row[i] ?? 0;
     const a = i >= bpp ? out[i - bpp] ?? 0 : 0;
     const b = prev ? prev[i] ?? 0 : 0;
@@ -204,7 +244,7 @@ function decodePixels(idat, width, height, bpp) {
   }
   const pixels = Buffer2.alloc(width * height * bpp);
   let prev = null;
-  for (let y = 0;y < height; y++) {
+  for (let y = 0; y < height; y++) {
     const rowStart = y * (rowBytes + 1);
     const filterType = inflated[rowStart] ?? 0;
     const filtered = inflated.subarray(rowStart + 1, rowStart + 1 + rowBytes);
@@ -217,7 +257,7 @@ function decodePixels(idat, width, height, bpp) {
 function normalizeToRgba(pixels, pixelCount, channels) {
   const rgba = new Uint8Array(pixelCount * 4);
   let hasTransparent = false;
-  for (let i = 0;i < pixelCount; i++) {
+  for (let i = 0; i < pixelCount; i++) {
     const src = i * channels;
     let r = 0;
     let g = 0;
@@ -257,8 +297,9 @@ function normalizeToRgba(pixels, pixelCount, channels) {
     rgba[dst + 1] = g;
     rgba[dst + 2] = b;
     rgba[dst + 3] = a;
-    if (a < 255)
+    if (a < 255) {
       hasTransparent = true;
+    }
   }
   return { rgba, hasTransparent };
 }
@@ -280,21 +321,33 @@ function decodePng(buffer) {
     throw new PngDecodeError("missing IDAT chunk");
   }
   const idat = Buffer2.concat(idatChunks.map((chunk) => chunk.data));
-  const pixels = decodePixels(idat, header.width, header.height, header.channels);
-  const normalized = normalizeToRgba(pixels, header.width * header.height, header.channels);
+  const pixels = decodePixels(
+    idat,
+    header.width,
+    header.height,
+    header.channels,
+  );
+  const normalized = normalizeToRgba(
+    pixels,
+    header.width * header.height,
+    header.channels,
+  );
   return {
     width: header.width,
     height: header.height,
     rgba: normalized.rgba,
     hasAlphaChannel: header.colorType === 4 || header.colorType === 6,
-    hasTransparentPixels: normalized.hasTransparent
+    hasTransparentPixels: normalized.hasTransparent,
   };
 }
 
 // packages/shared-skills/skills/visual-qa/scripts/ansi.ts
 var ESC = String.fromCharCode(27);
 var CSI = String.fromCharCode(155);
-var ANSI_PATTERN = new RegExp(`[${ESC}${CSI}][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]`, "g");
+var ANSI_PATTERN = new RegExp(
+  `[${ESC}${CSI}][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]`,
+  "g",
+);
 function stripAnsi(input) {
   return input.replace(ANSI_PATTERN, "");
 }
@@ -317,7 +370,7 @@ var ZERO_WIDTH_RANGES = [
   { start: 8288, end: 8292 },
   { start: 8400, end: 8447 },
   { start: 65056, end: 65071 },
-  { start: 65279, end: 65279 }
+  { start: 65279, end: 65279 },
 ];
 var WIDE_RANGES = [
   { start: 4352, end: 4447 },
@@ -337,7 +390,7 @@ var WIDE_RANGES = [
   { start: 110592, end: 110959 },
   { start: 127488, end: 127743 },
   { start: 127744, end: 129791 },
-  { start: 131072, end: 262141 }
+  { start: 131072, end: 262141 },
 ];
 function inRanges(codePoint, ranges) {
   for (const range of ranges) {
@@ -348,24 +401,30 @@ function inRanges(codePoint, ranges) {
   return false;
 }
 function charWidth(codePoint) {
-  if (codePoint === 0)
+  if (codePoint === 0) {
     return 0;
-  if (codePoint < 32)
+  }
+  if (codePoint < 32) {
     return 0;
-  if (codePoint >= 127 && codePoint <= 159)
+  }
+  if (codePoint >= 127 && codePoint <= 159) {
     return 0;
-  if (inRanges(codePoint, ZERO_WIDTH_RANGES))
+  }
+  if (inRanges(codePoint, ZERO_WIDTH_RANGES)) {
     return 0;
-  if (inRanges(codePoint, WIDE_RANGES))
+  }
+  if (inRanges(codePoint, WIDE_RANGES)) {
     return 2;
+  }
   return 1;
 }
 function stringWidth(text) {
   let total = 0;
   for (const char of text) {
     const codePoint = char.codePointAt(0);
-    if (codePoint === undefined)
+    if (codePoint === undefined) {
       continue;
+    }
     total += charWidth(codePoint);
   }
   return total;
@@ -377,14 +436,18 @@ var BOX_DRAWING_END = 9599;
 var MAX_WIDE_COLUMNS = 64;
 function splitLines(text) {
   const lines = text.split(/\r?\n/);
-  if (lines.length > 1 && lines[lines.length - 1] === "")
+  if (lines.length > 1 && lines[lines.length - 1] === "") {
     lines.pop();
+  }
   return lines;
 }
 function isFrameLine(plain) {
   for (const char of plain) {
     const codePoint = char.codePointAt(0);
-    if (codePoint !== undefined && codePoint >= BOX_DRAWING_START && codePoint <= BOX_DRAWING_END) {
+    if (
+      codePoint !== undefined && codePoint >= BOX_DRAWING_START &&
+      codePoint <= BOX_DRAWING_END
+    ) {
       return true;
     }
   }
@@ -395,46 +458,66 @@ function wideStartColumns(plain) {
   let column = 0;
   for (const char of plain) {
     const codePoint = char.codePointAt(0);
-    if (codePoint === undefined)
+    if (codePoint === undefined) {
       continue;
+    }
     const width = charWidth(codePoint);
-    if (width === 2)
+    if (width === 2) {
       columns.push(column);
+    }
     column += width;
   }
   return columns;
 }
-function summarize(lineCount, maxWidth, expectedColumns, overflowCount, borderMisaligned, containsAnsi) {
-  const parts = [`${lineCount} line(s)`, `max width ${maxWidth}/${expectedColumns}`];
-  if (overflowCount > 0)
+function summarize(
+  lineCount,
+  maxWidth,
+  expectedColumns,
+  overflowCount,
+  borderMisaligned,
+  containsAnsi,
+) {
+  const parts = [
+    `${lineCount} line(s)`,
+    `max width ${maxWidth}/${expectedColumns}`,
+  ];
+  if (overflowCount > 0) {
     parts.push(`${overflowCount} overflow line(s)`);
-  if (borderMisaligned)
+  }
+  if (borderMisaligned) {
     parts.push("borders misaligned");
-  if (containsAnsi)
+  }
+  if (containsAnsi) {
     parts.push("contains ANSI");
+  }
   return `${parts.join("; ")}.`;
 }
 function checkTui(text, expectedColumns) {
   const lines = splitLines(text);
   const lineWidths = [];
   const overflowLines = [];
-  const wideColumns = new Set;
-  const frameWidths = new Set;
-  for (let index = 0;index < lines.length; index++) {
+  const wideColumns = new Set();
+  const frameWidths = new Set();
+  for (let index = 0; index < lines.length; index++) {
     const plain = stripAnsi(lines[index] ?? "");
     const width = stringWidth(plain);
     lineWidths.push(width);
     if (expectedColumns > 0 && width > expectedColumns) {
       overflowLines.push({ line: index + 1, width });
     }
-    if (isFrameLine(plain))
+    if (isFrameLine(plain)) {
       frameWidths.add(width);
+    }
     for (const column of wideStartColumns(plain)) {
-      if (wideColumns.size < MAX_WIDE_COLUMNS)
+      if (wideColumns.size < MAX_WIDE_COLUMNS) {
         wideColumns.add(column);
+      }
     }
   }
-  const maxWidth = lineWidths.reduce((max, width) => width > max ? width : max, 0);
+  const maxWidth = lineWidths.reduce(
+    (max, width) => width > max ? width : max,
+    0,
+  );
   const borderMisaligned = frameWidths.size > 1;
   const containsAnsi = hasAnsi(text);
   return {
@@ -447,7 +530,14 @@ function checkTui(text, expectedColumns) {
     borderMisaligned,
     wideCharColumns: [...wideColumns].sort((a, b) => a - b),
     hasAnsi: containsAnsi,
-    summary: summarize(lines.length, maxWidth, expectedColumns, overflowLines.length, borderMisaligned, containsAnsi)
+    summary: summarize(
+      lines.length,
+      maxWidth,
+      expectedColumns,
+      overflowLines.length,
+      borderMisaligned,
+      containsAnsi,
+    ),
   };
 }
 
@@ -468,7 +558,7 @@ function runImageDiff(args) {
   return diffImages(reference, actual);
 }
 function parseColumns(args) {
-  for (let index = 0;index < args.length; index++) {
+  for (let index = 0; index < args.length; index++) {
     const arg = args[index] ?? "";
     if (arg === COLS_FLAG) {
       const parsed = Number(args[index + 1]);
@@ -504,7 +594,11 @@ function run(argv) {
     case "tui-check":
       return runTuiCheck(rest);
     default:
-      throw new CliError(`unknown command "${command ?? ""}"; expected "image-diff" or "tui-check"`);
+      throw new CliError(
+        `unknown command "${
+          command ?? ""
+        }"; expected "image-diff" or "tui-check"`,
+      );
   }
 }
 function main(argv) {
@@ -522,9 +616,4 @@ function main(argv) {
 if (__require.main == __require.module) {
   main(process.argv.slice(2));
 }
-export {
-  runTuiCheck,
-  runImageDiff,
-  run,
-  CliError
-};
+export { CliError, run, runImageDiff, runTuiCheck };

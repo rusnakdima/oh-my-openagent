@@ -4,11 +4,18 @@
 
 ## OVERVIEW
 
-This module loads `.mcp.json` files from project/user scopes and expands `${VAR}` env vars. It feeds Tier 2 of the 3-tier MCP system into `mcp-config-handler.ts` during Phase 5 of config loading. Shared parsing, env expansion, and transform primitives are extracted to [`packages/claude-code-compat-core/`](../../../../../packages/claude-code-compat-core); this directory keeps the OpenCode adapter path stable.
+This module loads `.mcp.json` files from project/user scopes and expands
+`${VAR}` env vars. It feeds Tier 2 of the 3-tier MCP system into
+`mcp-config-handler.ts` during Phase 5 of config loading. Shared parsing, env
+expansion, and transform primitives are extracted to
+[`packages/claude-code-compat-core/`](../../../../../packages/claude-code-compat-core);
+this directory keeps the OpenCode adapter path stable.
 
 ## WHY IT EXISTS
 
-Claude Code ecosystem ships MCPs via `.mcp.json` files with `${VAR}` env var placeholders. OmO consumes these unchanged so existing Claude Code MCP configs work.
+Claude Code ecosystem ships MCPs via `.mcp.json` files with `${VAR}` env var
+placeholders. OmO consumes these unchanged so existing Claude Code MCP configs
+work.
 
 ## LOAD PIPELINE
 
@@ -36,7 +43,7 @@ loadMcpConfigs(ctx)
       }
     },
     "my-http": {
-      "type": "http",       // "sse" legacy → mapped to http
+      "type": "http", // "sse" legacy → mapped to http
       "url": "https://example.com/mcp",
       "headers": {
         "Authorization": "Bearer ${MY_TOKEN}"
@@ -48,28 +55,30 @@ loadMcpConfigs(ctx)
 
 ## KEY FILES
 
-| File | Purpose |
-|------|---------|
-| `index.ts` | Barrel: `loadMcpConfigs`, types |
-| `loader.ts` | `loadMcpConfigs()` main entry |
-| `types.ts` | `ClaudeCodeMcpServer`, `LoadedMcpServer`, `McpScope` |
+| File              | Purpose                                                     |
+| ----------------- | ----------------------------------------------------------- |
+| `index.ts`        | Barrel: `loadMcpConfigs`, types                             |
+| `loader.ts`       | `loadMcpConfigs()` main entry                               |
+| `types.ts`        | `ClaudeCodeMcpServer`, `LoadedMcpServer`, `McpScope`        |
 | `env-expander.ts` | `expandEnvVarsInObject()` — recursive `${VAR}` substitution |
-| `transformer.ts` | Claude Code format → OpenCode `Mcp` shape |
-| `scope-filter.ts` | Project vs user scope precedence |
+| `transformer.ts`  | Claude Code format → OpenCode `Mcp` shape                   |
+| `scope-filter.ts` | Project vs user scope precedence                            |
 
 ## THREE-TIER MCP CONTEXT
 
-| Tier | Loader | Scope |
-|------|--------|-------|
-| 1. Built-in | `src/mcp/` `createBuiltinMcps()` | Global, 3 remote HTTP MCPs + 2 local stdio MCPs (`lsp`, `codegraph`) |
-| 2. **Claude Code** | **This module** | **From `.mcp.json`, project + user** |
-| 3. Skill-embedded | `src/features/skill-mcp-manager/` | Per-session, from SKILL.md YAML |
+| Tier               | Loader                            | Scope                                                                |
+| ------------------ | --------------------------------- | -------------------------------------------------------------------- |
+| 1. Built-in        | `src/mcp/` `createBuiltinMcps()`  | Global, 3 remote HTTP MCPs + 2 local stdio MCPs (`lsp`, `codegraph`) |
+| 2. **Claude Code** | **This module**                   | **From `.mcp.json`, project + user**                                 |
+| 3. Skill-embedded  | `src/features/skill-mcp-manager/` | Per-session, from SKILL.md YAML                                      |
 
 ## SECURITY
 
-- **Env var allowlist**: `mcp_env_allowlist` config restricts which env vars can be expanded
+- **Env var allowlist**: `mcp_env_allowlist` config restricts which env vars can
+  be expanded
 - **No shell execution**: `${VAR}` is string replacement only, not shell `$()`
-- **Secrets redaction**: `env-cleaner.ts` (in skill-mcp-manager) filters known secret patterns from logs
+- **Secrets redaction**: `env-cleaner.ts` (in skill-mcp-manager) filters known
+  secret patterns from logs
 
 ## RELATED
 

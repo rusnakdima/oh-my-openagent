@@ -4,24 +4,27 @@
 
 ## OVERVIEW
 
-Commander.js CLI with 10 commands (`sparkshell` removed 2026-07). Entry: `index.ts` → `runCli()` in `cli-program.ts`.
+Commander.js CLI with 10 commands (`sparkshell` removed 2026-07). Entry:
+`index.ts` → `runCli()` in `cli-program.ts`.
 
 ## COMMANDS
 
-| Command | Purpose | Key Logic |
-|---------|---------|-----------|
-| `install` | Interactive/non-interactive setup | Provider selection → config gen → plugin registration |
-| `run <message>` | Non-interactive session launcher | Agent resolution (flag → env → config → Sisyphus) |
-| `doctor` | 4-category health checks | System, Config, Tools, Models |
-| `get-local-version` | Version detection | Installed vs npm latest |
-| `version` | Print plugin version | Trivial 2-line subcommand |
-| `mcp` | MCP management; nested `oauth` group | `mcp oauth login <server-name>` (PKCE), `logout`, `status` |
-| `refresh-model-capabilities` | Refresh models.dev cache | Model capabilities refresh |
-| `boulder` | Boulder state inspector | Format work-state + tasks from `.omo/boulder-state/` |
-| `cleanup` (alias `uninstall`) | Remove Codex Light state | Clean managed Codex cache/marketplace + repair project-local legacy Codex artifacts |
-| `ulw-loop` | Codex ulw-loop CLI | Run the Codex LazyCodex ulw-loop CLI |
+| Command                       | Purpose                              | Key Logic                                                                           |
+| ----------------------------- | ------------------------------------ | ----------------------------------------------------------------------------------- |
+| `install`                     | Interactive/non-interactive setup    | Provider selection → config gen → plugin registration                               |
+| `run <message>`               | Non-interactive session launcher     | Agent resolution (flag → env → config → Sisyphus)                                   |
+| `doctor`                      | 4-category health checks             | System, Config, Tools, Models                                                       |
+| `get-local-version`           | Version detection                    | Installed vs npm latest                                                             |
+| `version`                     | Print plugin version                 | Trivial 2-line subcommand                                                           |
+| `mcp`                         | MCP management; nested `oauth` group | `mcp oauth login <server-name>` (PKCE), `logout`, `status`                          |
+| `refresh-model-capabilities`  | Refresh models.dev cache             | Model capabilities refresh                                                          |
+| `boulder`                     | Boulder state inspector              | Format work-state + tasks from `.omo/boulder-state/`                                |
+| `cleanup` (alias `uninstall`) | Remove Codex Light state             | Clean managed Codex cache/marketplace + repair project-local legacy Codex artifacts |
+| `ulw-loop`                    | Codex ulw-loop CLI                   | Run the Codex LazyCodex ulw-loop CLI                                                |
 
-`install` accepts `--platform=opencode|codex|both` (default `opencode`). `codex`/`both` route through `install-codex/` to install the Codex CLI Light edition (also `npx lazycodex-ai install`). See `packages/omo-codex/AGENTS.md`.
+`install` accepts `--platform=opencode|codex|both` (default `opencode`).
+`codex`/`both` route through `install-codex/` to install the Codex CLI Light
+edition (also `npx lazycodex-ai install`). See `packages/omo-codex/AGENTS.md`.
 
 ## STRUCTURE
 
@@ -58,17 +61,21 @@ cli/
 
 ## MODEL FALLBACK SYSTEM
 
-No single global priority. CLI install-time resolution uses per-agent fallback chains from `model-fallback-requirements.ts`.
+No single global priority. CLI install-time resolution uses per-agent fallback
+chains from `model-fallback-requirements.ts`.
 
-Common patterns: Claude/OpenAI/Gemini are preferred when an agent chain includes them, `librarian` follows its fallback chain before GLM providers, `sisyphus` falls back through Kimi then GLM-5, and `hephaestus` requires OpenAI-compatible providers.
+Common patterns: Claude/OpenAI/Gemini are preferred when an agent chain includes
+them, `librarian` follows its fallback chain before GLM providers, `sisyphus`
+falls back through Kimi then GLM-5, and `hephaestus` requires OpenAI-compatible
+providers.
 
 ## DOCTOR CHECKS
 
-| Category | Validates |
-|----------|-----------|
-| **System** | Binary found, version >=1.0.150, plugin registered, version match |
-| **Config** | JSONC validity, Zod schema, model override syntax |
-| **Tools** | AST-Grep, comment-checker, LSP servers, GH CLI, MCP servers |
+| Category   | Validates                                                              |
+| ---------- | ---------------------------------------------------------------------- |
+| **System** | Binary found, version >=1.0.150, plugin registered, version match      |
+| **Config** | JSONC validity, Zod schema, model override syntax                      |
+| **Tools**  | AST-Grep, comment-checker, LSP servers, GH CLI, MCP servers            |
 | **Models** | Cache exists, model resolution, agent/category overrides, availability |
 
 ## HOW TO ADD A DOCTOR CHECK

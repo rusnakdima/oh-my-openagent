@@ -1,6 +1,6 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it } from "bun:test";
 
-import { computeView, viewKey } from "./compute-view"
+import { computeView, viewKey } from "./compute-view";
 import type {
   AgentsState,
   ConfigState,
@@ -8,28 +8,40 @@ import type {
   LoopState,
   RosterState,
   SidebarView,
-} from "./state-types"
+} from "./state-types";
 
-const validConfig: ConfigState = { kind: "valid" }
+const validConfig: ConfigState = { kind: "valid" };
 const invalidConfig: ConfigState = {
   kind: "invalid",
   messages: ["bad agent model", "unknown sidebar flag"],
-}
+};
 const roster: RosterState = {
   kind: "rows",
-  rows: [{ label: "sisyphus", mode: "primary", model: "openai/gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }],
-}
-const idleAgents: AgentsState = { kind: "none" }
-const idleJobs: JobBoardState = { kind: "none" }
-const idleLoop: LoopState = { kind: "none" }
+  rows: [{
+    label: "sisyphus",
+    mode: "primary",
+    model: "openai/gpt-5.5",
+    effectiveModel: "openai/gpt-5.5",
+    hasOverride: false,
+    isGlobal: false,
+  }],
+};
+const idleAgents: AgentsState = { kind: "none" };
+const idleJobs: JobBoardState = { kind: "none" };
+const idleLoop: LoopState = { kind: "none" };
 const activeAgents: AgentsState = {
   kind: "list",
   agents: [{ name: "sisyphus", status: "busy" }],
-}
+};
 const activeJobs: JobBoardState = {
   kind: "list",
-  jobs: [{ title: "Review patch", status: "running", toolCalls: 2, lastTool: "grep" }],
-}
+  jobs: [{
+    title: "Review patch",
+    status: "running",
+    toolCalls: 2,
+    lastTool: "grep",
+  }],
+};
 const liveLoop: LoopState = {
   kind: "live",
   goalsDone: 1,
@@ -39,7 +51,7 @@ const liveLoop: LoopState = {
   pending: 2,
   blocked: 1,
   activeGoal: "Ship sidebar",
-}
+};
 
 describe("tui sidebar computeView", () => {
   it("#given inactive sections and valid config #when computing view #then it returns idle with roster and no banner", () => {
@@ -50,15 +62,15 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: idleJobs,
       loop: idleLoop,
-    }
+    };
 
     // when
-    const view = computeView(sections)
+    const view = computeView(sections);
 
     // then
-    expect(view).toEqual({ kind: "idle", roster })
-    expect("configBanner" in view).toBe(false)
-  })
+    expect(view).toEqual({ kind: "idle", roster });
+    expect("configBanner" in view).toBe(false);
+  });
 
   it("#given inactive sections and invalid config #when computing view #then it returns broken messages", () => {
     // given
@@ -68,14 +80,17 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: idleJobs,
       loop: idleLoop,
-    }
+    };
 
     // when
-    const view = computeView(sections)
+    const view = computeView(sections);
 
     // then
-    expect(view).toEqual({ kind: "broken", messages: ["bad agent model", "unknown sidebar flag"] })
-  })
+    expect(view).toEqual({
+      kind: "broken",
+      messages: ["bad agent model", "unknown sidebar flag"],
+    });
+  });
 
   it("#given active agents and valid config #when computing view #then active precedence wins with no banner", () => {
     // given
@@ -85,10 +100,10 @@ describe("tui sidebar computeView", () => {
       agents: activeAgents,
       jobs: idleJobs,
       loop: idleLoop,
-    }
+    };
 
     // when
-    const view = computeView(sections)
+    const view = computeView(sections);
 
     // then
     expect(view).toEqual({
@@ -97,8 +112,8 @@ describe("tui sidebar computeView", () => {
       agents: activeAgents,
       jobs: idleJobs,
       configBanner: { kind: "none" },
-    })
-  })
+    });
+  });
 
   it("#given active jobs and invalid config #when computing view #then active precedence wins with invalid banner", () => {
     // given
@@ -108,10 +123,10 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: activeJobs,
       loop: idleLoop,
-    }
+    };
 
     // when
-    const view = computeView(sections)
+    const view = computeView(sections);
 
     // then
     expect(view).toEqual({
@@ -120,8 +135,8 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: activeJobs,
       configBanner: { kind: "invalid" },
-    })
-  })
+    });
+  });
 
   it("#given only a live loop #when computing view #then loop activity also selects active", () => {
     // given
@@ -131,10 +146,10 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: idleJobs,
       loop: liveLoop,
-    }
+    };
 
     // when
-    const view = computeView(sections)
+    const view = computeView(sections);
 
     // then
     expect(view).toEqual({
@@ -143,8 +158,8 @@ describe("tui sidebar computeView", () => {
       agents: idleAgents,
       jobs: idleJobs,
       configBanner: { kind: "none" },
-    })
-  })
+    });
+  });
 
   it("#given equivalent views built with different literal key order #when computing keys #then viewKey is stable", () => {
     // given
@@ -154,11 +169,16 @@ describe("tui sidebar computeView", () => {
       agents: activeAgents,
       jobs: activeJobs,
       configBanner: { kind: "invalid" },
-    }
+    };
     const second: SidebarView = {
       configBanner: { kind: "invalid" },
       jobs: {
-        jobs: [{ lastTool: "grep", toolCalls: 2, status: "running", title: "Review patch" }],
+        jobs: [{
+          lastTool: "grep",
+          toolCalls: 2,
+          status: "running",
+          title: "Review patch",
+        }],
         kind: "list",
       },
       agents: { agents: [{ status: "busy", name: "sisyphus" }], kind: "list" },
@@ -173,29 +193,39 @@ describe("tui sidebar computeView", () => {
         kind: "live",
       },
       kind: "active",
-    }
+    };
 
     // when
-    const firstKey = viewKey(first)
-    const secondKey = viewKey(second)
+    const firstKey = viewKey(first);
+    const secondKey = viewKey(second);
 
     // then
-    expect(secondKey).toBe(firstKey)
-  })
+    expect(secondKey).toBe(firstKey);
+  });
 
   it("#given a changed view value #when computing keys #then viewKey changes", () => {
     // given
-    const original: SidebarView = { kind: "idle", roster }
+    const original: SidebarView = { kind: "idle", roster };
     const changed: SidebarView = {
       kind: "idle",
-      roster: { kind: "rows", rows: [{ label: "atlas", mode: "primary", model: "openai/gpt-5.5", effectiveModel: "openai/gpt-5.5", hasOverride: false, isGlobal: false }] },
-    }
+      roster: {
+        kind: "rows",
+        rows: [{
+          label: "atlas",
+          mode: "primary",
+          model: "openai/gpt-5.5",
+          effectiveModel: "openai/gpt-5.5",
+          hasOverride: false,
+          isGlobal: false,
+        }],
+      },
+    };
 
     // when
-    const originalKey = viewKey(original)
-    const changedKey = viewKey(changed)
+    const originalKey = viewKey(original);
+    const changedKey = viewKey(changed);
 
     // then
-    expect(changedKey).not.toBe(originalKey)
-  })
-})
+    expect(changedKey).not.toBe(originalKey);
+  });
+});

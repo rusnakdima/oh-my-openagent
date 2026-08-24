@@ -1,31 +1,45 @@
-import type { BoulderState, BoulderWorkState, TaskSessionState } from "../types"
-import { getBoulderWorks, readBoulderState } from "./read-state"
-import { getElapsedMs, normalizeSessionId, nowIsoString, projectWorkToMirror, RESERVED_KEYS } from "./shared"
-import { writeBoulderState } from "./write-state"
+import type {
+  BoulderState,
+  BoulderWorkState,
+  TaskSessionState,
+} from "../types";
+import { getBoulderWorks, readBoulderState } from "./read-state";
+import {
+  getElapsedMs,
+  normalizeSessionId,
+  nowIsoString,
+  projectWorkToMirror,
+  RESERVED_KEYS,
+} from "./shared";
+import { writeBoulderState } from "./write-state";
 
 export function upsertTaskSessionState(
   directory: string,
   input: {
-    taskKey: string
-    taskLabel: string
-    taskTitle: string
-    sessionId: string
-    agent?: string
-    category?: string
+    taskKey: string;
+    taskLabel: string;
+    taskTitle: string;
+    sessionId: string;
+    agent?: string;
+    category?: string;
   },
 ): BoulderState | null {
-  const stateForWork = readBoulderState(directory)
+  const stateForWork = readBoulderState(directory);
   if (stateForWork?.active_work_id) {
-    return upsertTaskSessionStateForWork(directory, stateForWork.active_work_id, input)
+    return upsertTaskSessionStateForWork(
+      directory,
+      stateForWork.active_work_id,
+      input,
+    );
   }
 
-  const state = readBoulderState(directory)
+  const state = readBoulderState(directory);
   if (!state || RESERVED_KEYS.has(input.taskKey)) {
-    return null
+    return null;
   }
 
-  const normalizedSessionId = normalizeSessionId(input.sessionId)
-  const taskSessions = state.task_sessions ?? {}
+  const normalizedSessionId = normalizeSessionId(input.sessionId);
+  const taskSessions = state.task_sessions ?? {};
   taskSessions[input.taskKey] = {
     task_key: input.taskKey,
     task_label: input.taskLabel,
@@ -34,41 +48,41 @@ export function upsertTaskSessionState(
     ...(input.agent !== undefined ? { agent: input.agent } : {}),
     ...(input.category !== undefined ? { category: input.category } : {}),
     updated_at: nowIsoString(),
-  }
+  };
 
-  state.task_sessions = taskSessions
-  return writeBoulderState(directory, state) ? state : null
+  state.task_sessions = taskSessions;
+  return writeBoulderState(directory, state) ? state : null;
 }
 
 export function upsertTaskSessionStateForWork(
   directory: string,
   workId: string,
   input: {
-    taskKey: string
-    taskLabel: string
-    taskTitle: string
-    sessionId: string
-    agent?: string
-    category?: string
+    taskKey: string;
+    taskLabel: string;
+    taskTitle: string;
+    sessionId: string;
+    agent?: string;
+    category?: string;
   },
 ): BoulderState | null {
   if (RESERVED_KEYS.has(input.taskKey)) {
-    return null
+    return null;
   }
 
-  const state = readBoulderState(directory)
+  const state = readBoulderState(directory);
   if (!state) {
-    return null
+    return null;
   }
 
-  const works = getBoulderWorks(state)
-  const targetWork = works.find((work) => work.work_id === workId)
+  const works = getBoulderWorks(state);
+  const targetWork = works.find((work) => work.work_id === workId);
   if (!targetWork) {
-    return null
+    return null;
   }
 
-  const normalizedSessionId = normalizeSessionId(input.sessionId)
-  const previousTaskSession = targetWork.task_sessions?.[input.taskKey]
+  const normalizedSessionId = normalizeSessionId(input.sessionId);
+  const previousTaskSession = targetWork.task_sessions?.[input.taskKey];
   const nextTaskSession: TaskSessionState = {
     task_key: input.taskKey,
     task_label: input.taskLabel,
@@ -76,18 +90,29 @@ export function upsertTaskSessionStateForWork(
     session_id: normalizedSessionId,
     ...(input.agent !== undefined ? { agent: input.agent } : {}),
     ...(input.category !== undefined ? { category: input.category } : {}),
-    ...(previousTaskSession?.started_at !== undefined ? { started_at: previousTaskSession.started_at } : {}),
-    ...(previousTaskSession?.ended_at !== undefined ? { ended_at: previousTaskSession.ended_at } : {}),
-    ...(previousTaskSession?.elapsed_ms !== undefined ? { elapsed_ms: previousTaskSession.elapsed_ms } : {}),
-    ...(previousTaskSession?.status !== undefined ? { status: previousTaskSession.status } : {}),
+    ...(previousTaskSession?.started_at !== undefined
+      ? { started_at: previousTaskSession.started_at }
+      : {}),
+    ...(previousTaskSession?.ended_at !== undefined
+      ? { ended_at: previousTaskSession.ended_at }
+      : {}),
+    ...(previousTaskSession?.elapsed_ms !== undefined
+      ? { elapsed_ms: previousTaskSession.elapsed_ms }
+      : {}),
+    ...(previousTaskSession?.status !== undefined
+      ? { status: previousTaskSession.status }
+      : {}),
     updated_at: nowIsoString(),
-  }
+  };
 
   const nextWork: BoulderWorkState = {
     ...targetWork,
-    task_sessions: { ...(targetWork.task_sessions ?? {}), [input.taskKey]: nextTaskSession },
+    task_sessions: {
+      ...(targetWork.task_sessions ?? {}),
+      [input.taskKey]: nextTaskSession,
+    },
     updated_at: nowIsoString(),
-  }
+  };
 
   const nextState: BoulderState = {
     ...state,
@@ -96,48 +121,48 @@ export function upsertTaskSessionStateForWork(
       ...Object.fromEntries(works.map((work) => [work.work_id, work])),
       [workId]: nextWork,
     },
-  }
+  };
 
   if (state.active_work_id === workId) {
-    projectWorkToMirror(nextState, nextWork)
+    projectWorkToMirror(nextState, nextWork);
   }
 
-  return writeBoulderState(directory, nextState) ? nextState : null
+  return writeBoulderState(directory, nextState) ? nextState : null;
 }
 
 export function startTaskTimer(
   directory: string,
   workId: string,
   input: {
-    taskKey: string
-    taskLabel: string
-    taskTitle: string
-    sessionId: string
-    agent?: string
-    category?: string
-    startedAt?: string
+    taskKey: string;
+    taskLabel: string;
+    taskTitle: string;
+    sessionId: string;
+    agent?: string;
+    category?: string;
+    startedAt?: string;
   },
 ): BoulderState | null {
   const nextState = upsertTaskSessionStateForWork(directory, workId, {
     ...input,
     sessionId: normalizeSessionId(input.sessionId),
-  })
+  });
   if (!nextState) {
-    return null
+    return null;
   }
 
-  const work = nextState.works?.[workId]
-  const taskSession = work?.task_sessions?.[input.taskKey]
+  const work = nextState.works?.[workId];
+  const taskSession = work?.task_sessions?.[input.taskKey];
   if (!work || !taskSession) {
-    return null
+    return null;
   }
 
-  const startedAt = taskSession.started_at ?? input.startedAt ?? nowIsoString()
-  taskSession.started_at = startedAt
-  taskSession.status = "running"
-  taskSession.updated_at = nowIsoString()
-  work.updated_at = nowIsoString()
-  return writeBoulderState(directory, nextState) ? nextState : null
+  const startedAt = taskSession.started_at ?? input.startedAt ?? nowIsoString();
+  taskSession.started_at = startedAt;
+  taskSession.status = "running";
+  taskSession.updated_at = nowIsoString();
+  work.updated_at = nowIsoString();
+  return writeBoulderState(directory, nextState) ? nextState : null;
 }
 
 export function endTaskTimer(
@@ -146,27 +171,28 @@ export function endTaskTimer(
   taskKey: string,
   endedAt?: string,
 ): BoulderState | null {
-  const state = readBoulderState(directory)
+  const state = readBoulderState(directory);
   if (!state) {
-    return null
+    return null;
   }
 
-  const work = state.works?.[workId] ?? getBoulderWorks(state).find((candidate) => candidate.work_id === workId)
+  const work = state.works?.[workId] ??
+    getBoulderWorks(state).find((candidate) => candidate.work_id === workId);
   if (!work?.task_sessions?.[taskKey]) {
-    return null
+    return null;
   }
 
-  const taskSession = work.task_sessions[taskKey]
-  const endAt = endedAt ?? nowIsoString()
-  taskSession.ended_at = endAt
-  taskSession.elapsed_ms = getElapsedMs(taskSession.started_at, endAt)
-  taskSession.status = "completed"
-  taskSession.updated_at = nowIsoString()
-  work.updated_at = nowIsoString()
+  const taskSession = work.task_sessions[taskKey];
+  const endAt = endedAt ?? nowIsoString();
+  taskSession.ended_at = endAt;
+  taskSession.elapsed_ms = getElapsedMs(taskSession.started_at, endAt);
+  taskSession.status = "completed";
+  taskSession.updated_at = nowIsoString();
+  work.updated_at = nowIsoString();
 
   if (state.active_work_id === workId) {
-    projectWorkToMirror(state, work)
+    projectWorkToMirror(state, work);
   }
 
-  return writeBoulderState(directory, state) ? state : null
+  return writeBoulderState(directory, state) ? state : null;
 }

@@ -14,7 +14,9 @@ import type {
   ApplyAgentConfigParams,
 } from "./agent-config-types";
 
-function migratePluginAgents(rawPluginAgents: Record<string, unknown>): AgentSourceMap {
+function migratePluginAgents(
+  rawPluginAgents: Record<string, unknown>,
+): AgentSourceMap {
   const migratedAgents: AgentSourceMap = {};
   for (const [key, value] of Object.entries(rawPluginAgents)) {
     if (!value) {
@@ -37,7 +39,9 @@ function summarizeCustomAgents(
     ...Object.entries(sources.projectAgents),
     ...Object.entries(sources.opencodeGlobalAgents),
     ...Object.entries(sources.opencodeProjectAgents),
-    ...Object.entries(sources.pluginAgents).filter(([, config]) => config !== undefined),
+    ...Object.entries(sources.pluginAgents).filter(([, config]) =>
+      config !== undefined
+    ),
     ...Object.entries(sources.agentDefinitionAgents),
     ...Object.entries(sources.opencodeConfigAgents),
   ]
@@ -54,7 +58,9 @@ function summarizeCustomAgents(
 export function loadAgentSources(params: ApplyAgentConfigParams): AgentSources {
   const includeClaudeAgents = params.pluginConfig.claude_code?.agents ?? true;
   const anthropicProvider = params.pluginConfig.claude_code?.anthropic_provider;
-  const userAgents = includeClaudeAgents ? loadUserAgents(anthropicProvider) : {};
+  const userAgents = includeClaudeAgents
+    ? loadUserAgents(anthropicProvider)
+    : {};
   const projectAgents = includeClaudeAgents
     ? loadProjectAgents(params.ctx.directory, anthropicProvider)
     : {};
@@ -63,10 +69,10 @@ export function loadAgentSources(params: ApplyAgentConfigParams): AgentSources {
   const pluginAgents = migratePluginAgents(params.pluginComponents.agents);
   const agentDefinitionAgents = params.pluginConfig.agent_definitions
     ? loadAgentDefinitions(
-        params.pluginConfig.agent_definitions,
-        "definition-file",
-        anthropicProvider,
-      )
+      params.pluginConfig.agent_definitions,
+      "definition-file",
+      anthropicProvider,
+    )
     : {};
   const opencodeConfigAgents = readOpencodeConfigAgents(params.ctx.directory);
   const configAgent = params.config.agent as AgentConfigRecord | undefined;

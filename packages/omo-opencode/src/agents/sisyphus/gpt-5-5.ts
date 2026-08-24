@@ -5,22 +5,23 @@
 
 import type {
   AvailableAgent,
-  AvailableTool,
-  AvailableSkill,
   AvailableCategory,
-} from "../dynamic-agent-prompt-builder"
+  AvailableSkill,
+  AvailableTool,
+} from "../dynamic-agent-prompt-builder";
 import {
   buildAgentIdentitySection,
   buildCategorySkillsDelegationGuide,
   buildDelegationTable,
   buildKeyTriggersSection,
   buildNonClaudePlannerSection,
-} from "../dynamic-agent-prompt-builder"
-import { GPT_APPLY_PATCH_GUIDANCE } from "../gpt-apply-patch-guard"
-import { getGptPromptIdentity } from "../gpt-prompt-identity"
-import { buildTaskSystemGuide } from "./gpt-task-system-guide"
+} from "../dynamic-agent-prompt-builder";
+import { GPT_APPLY_PATCH_GUIDANCE } from "../gpt-apply-patch-guard";
+import { getGptPromptIdentity } from "../gpt-prompt-identity";
+import { buildTaskSystemGuide } from "./gpt-task-system-guide";
 
-const SISYPHUS_GPT_5_5_TEMPLATE = `You are Sisyphus, an orchestration agent based on {{ modelIdentity }}. You and the user share the same workspace and collaborate to achieve the user's goals through specialized sub-agents and tools provided by the OhMyOpenCode harness.
+const SISYPHUS_GPT_5_5_TEMPLATE =
+  `You are Sisyphus, an orchestration agent based on {{ modelIdentity }}. You and the user share the same workspace and collaborate to achieve the user's goals through specialized sub-agents and tools provided by the OhMyOpenCode harness.
 
 {{ personality }}
 
@@ -397,7 +398,7 @@ ${GPT_APPLY_PATCH_GUIDANCE}
 ## Shell commands
 
 Use \`rg\` directly for text and file search. One tool call, one clear thing. Never chain unrelated commands with \`;\` or \`&&\` in one call - they render poorly. Do not use Python to read or write files when a shell command or the file-edit tools would suffice.
-`
+`;
 
 export function buildGpt55SisyphusPrompt(
   model: string,
@@ -410,16 +411,16 @@ export function buildGpt55SisyphusPrompt(
   const agentIdentity = buildAgentIdentitySection(
     "Sisyphus",
     "Powerful AI Agent with orchestration capabilities from OhMyOpenCode",
-  )
-  const personality = ""
-  const taskSystemGuide = buildTaskSystemGuide(useTaskSystem)
+  );
+  const personality = "";
+  const taskSystemGuide = buildTaskSystemGuide(useTaskSystem);
   const categorySkillsGuide = buildCategorySkillsDelegationGuide(
     availableCategories,
     availableSkills,
-  )
-  const delegationTable = buildDelegationTable(availableAgents)
-  const nonClaudePlannerSection = buildNonClaudePlannerSection(model)
-  const keyTriggers = buildKeyTriggersSection(availableAgents, availableSkills)
+  );
+  const delegationTable = buildDelegationTable(availableAgents);
+  const nonClaudePlannerSection = buildNonClaudePlannerSection(model);
+  const keyTriggers = buildKeyTriggersSection(availableAgents, availableSkills);
 
   const body = SISYPHUS_GPT_5_5_TEMPLATE
     .replace("{{ modelIdentity }}", getGptPromptIdentity(model))
@@ -428,7 +429,7 @@ export function buildGpt55SisyphusPrompt(
     .replace("{{ categorySkillsGuide }}", categorySkillsGuide)
     .replace("{{ delegationTable }}", delegationTable)
     .replace("{{ nonClaudePlannerSection }}", nonClaudePlannerSection)
-    .replace("{{ keyTriggers }}", keyTriggers)
+    .replace("{{ keyTriggers }}", keyTriggers);
 
-  return `${agentIdentity}\n${body}`
+  return `${agentIdentity}\n${body}`;
 }

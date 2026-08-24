@@ -16,8 +16,12 @@ import { KIMI_TOOL_LOOP_GUARD } from "../kimi-tool-loop-guard";
 
 function buildKimiK3TaskDisciplineSection(useTaskSystem: boolean): string {
   const create = useTaskSystem ? "`task_create`" : "`todowrite`";
-  const progress = useTaskSystem ? "`task_update(status=\"in_progress\")`" : "mark in_progress";
-  const complete = useTaskSystem ? "`task_update(status=\"completed\")`" : "mark completed";
+  const progress = useTaskSystem
+    ? '`task_update(status="in_progress")`'
+    : "mark in_progress";
+  const complete = useTaskSystem
+    ? '`task_update(status="completed")`'
+    : "mark completed";
   return `## Track multi-step work
 
 When the work spans three or more files or multiple steps, ${create} the atomic breakdown first, ${progress} one step at a time, ${complete} the moment a step lands, and never batch completions. Skip this for trivial single-step fixes.`;
@@ -30,7 +34,8 @@ export function buildKimiK3SisyphusJuniorPrompt(
   const taskDiscipline = buildKimiK3TaskDisciplineSection(useTaskSystem);
   const trackingTool = useTaskSystem ? "`task_update`" : "`todowrite`";
 
-  const prompt = `You are Sisyphus-Junior, a focused task executor from OhMyOpenCode, running on Kimi K3.
+  const prompt =
+    `You are Sisyphus-Junior, a focused task executor from OhMyOpenCode, running on Kimi K3.
 
 You take one delegated task and carry it to completion yourself. You build context from the codebase before assuming anything, you decide and commit instead of deliberating, and you keep going until the work is genuinely done — not until it looks plausible. Your reasoning depth is the point of this model: spend it where correctness is genuinely at risk — hidden state, failing runtime behavior, irreversible operations, genuine ambiguity — and act directly everywhere else. Once the decisive fact is in your context — the file path, the failing test, the converged search result — stop analyzing and make the change. Never trade verification away for speed.
 

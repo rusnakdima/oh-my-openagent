@@ -1,3 +1,3 @@
-import type { AudioBuffer, STTProvider } from "../types"
+import type { AudioBuffer, STTProvider } from "../types";
 
-export type { STTProvider, AudioBuffer }
+export type { AudioBuffer, STTProvider };

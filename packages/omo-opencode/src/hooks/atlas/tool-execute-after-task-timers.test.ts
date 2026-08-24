@@ -1,87 +1,108 @@
 /// <reference types="bun-types" />
 
-import { afterAll, afterEach, beforeEach, describe, expect, it, mock, spyOn } from "bun:test"
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
-import type { PluginInput } from "@opencode-ai/plugin"
-import type { Project } from "@opencode-ai/sdk"
-import { readBoulderState, writeBoulderState } from "../../features/boulder-state"
-import { createToolExecuteBeforeHandler } from "./tool-execute-before"
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import type { PluginInput } from "@opencode-ai/plugin";
+import type { Project } from "@opencode-ai/sdk";
+import {
+  readBoulderState,
+  writeBoulderState,
+} from "../../features/boulder-state";
+import { createToolExecuteBeforeHandler } from "./tool-execute-before";
 
-const isCallerOrchestratorMock = mock(async () => true)
+const isCallerOrchestratorMock = mock(async () => true);
 const collectGitDiffStatsMock = mock(() => ({
   filesChanged: 0,
   insertions: 0,
   deletions: 0,
-}))
-const formatFileChangesMock = mock(() => "No file changes")
+}));
+const formatFileChangesMock = mock(() => "No file changes");
 
-afterAll(() => { mock.restore() })
+afterAll(() => {
+  mock.restore();
+});
 
-const { createToolExecuteAfterHandler } = await import("./tool-execute-after")
+const { createToolExecuteAfterHandler } = await import("./tool-execute-after");
 
-type SessionGetInput = { path: { id: string } }
+type SessionGetInput = { path: { id: string } };
 type SessionGetResult = {
-  data: { parentID: string | undefined }
-  error?: undefined
-  request: Request
-  response: Response
-}
+  data: { parentID: string | undefined };
+  error?: undefined;
+  request: Request;
+  response: Response;
+};
 
 describe("createToolExecuteAfterHandler task timers", () => {
-  let testDirectory = ""
+  let testDirectory = "";
 
   beforeEach(() => {
-    testDirectory = join(tmpdir(), `atlas-task-timers-${crypto.randomUUID()}`)
+    testDirectory = join(tmpdir(), `atlas-task-timers-${crypto.randomUUID()}`);
     if (!existsSync(testDirectory)) {
-      mkdirSync(testDirectory, { recursive: true })
+      mkdirSync(testDirectory, { recursive: true });
     }
-    isCallerOrchestratorMock.mockClear()
-    collectGitDiffStatsMock.mockClear()
-    formatFileChangesMock.mockClear()
-  })
+    isCallerOrchestratorMock.mockClear();
+    collectGitDiffStatsMock.mockClear();
+    formatFileChangesMock.mockClear();
+  });
 
   afterEach(() => {
     if (testDirectory && existsSync(testDirectory)) {
-      rmSync(testDirectory, { recursive: true, force: true })
+      rmSync(testDirectory, { recursive: true, force: true });
     }
-  })
+  });
 
   function createProject(): Project {
     return {
       id: "project-1",
       worktree: testDirectory,
       time: { created: Date.now() },
-    }
+    };
   }
 
-  function createSessionGetResult(parentID: string | undefined): SessionGetResult {
+  function createSessionGetResult(
+    parentID: string | undefined,
+  ): SessionGetResult {
     return {
       data: { parentID },
       error: undefined,
       request: new Request("https://example.com/session"),
       response: new Response(null, { status: 200 }),
-    } as SessionGetResult
+    } as SessionGetResult;
   }
 
-  function createHandlers(parentSessionIDs?: Record<string, string | undefined>) {
-    const project = createProject()
+  function createHandlers(
+    parentSessionIDs?: Record<string, string | undefined>,
+  ) {
+    const project = createProject();
     const client = {
       session: {
-        get: async (input: SessionGetInput) => createSessionGetResult(parentSessionIDs?.[input.path.id]),
+        get: async (input: SessionGetInput) =>
+          createSessionGetResult(parentSessionIDs?.[input.path.id]),
       },
-    } as PluginInput["client"]
+    } as PluginInput["client"];
 
     if (parentSessionIDs) {
-      spyOn(client.session, "get").mockImplementation((input) => Promise.resolve(
-        createSessionGetResult(parentSessionIDs[input?.path?.id ?? ""]),
-      ) as never)
+      spyOn(client.session, "get").mockImplementation((input) =>
+        Promise.resolve(
+          createSessionGetResult(parentSessionIDs[input?.path?.id ?? ""]),
+        ) as never
+      );
     }
 
-    const pendingFilePaths = new Map<string, string>()
-    const pendingTaskRefs = new Map()
-    const pendingPlanSnapshots = new Map<string, string>()
+    const pendingFilePaths = new Map<string, string>();
+    const pendingTaskRefs = new Map();
+    const pendingPlanSnapshots = new Map<string, string>();
     const ctx = {
       client,
       project,
@@ -90,7 +111,7 @@ describe("createToolExecuteAfterHandler task timers", () => {
       experimental_workspace: { register: () => {} },
       serverUrl: new URL("https://example.com"),
       $: Bun.$,
-    } satisfies PluginInput
+    } satisfies PluginInput;
 
     return {
       beforeHandler: createToolExecuteBeforeHandler({
@@ -111,15 +132,19 @@ describe("createToolExecuteAfterHandler task timers", () => {
         collectGitDiffStats: collectGitDiffStatsMock as never,
         formatFileChanges: formatFileChangesMock as never,
       }),
-    }
+    };
   }
 
   it("starts task timer for todo:1 when delegated task session is tracked", async () => {
     // given
-    const parentSessionID = "ses_parent"
-    const childSessionID = "ses_child"
-    const planPath = join(testDirectory, "task-timer-plan.md")
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n", "utf-8")
+    const parentSessionID = "ses_parent";
+    const childSessionID = "ses_child";
+    const planPath = join(testDirectory, "task-timer-plan.md");
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n",
+      "utf-8",
+    );
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-1",
@@ -137,44 +162,50 @@ describe("createToolExecuteAfterHandler task timers", () => {
           status: "active",
         },
       },
-    })
+    });
     const { beforeHandler, afterHandler } = createHandlers({
       [childSessionID]: parentSessionID,
-    })
+    });
 
     await beforeHandler(
       { tool: "task", sessionID: parentSessionID, callID: "call-task-timer-1" },
       { args: { prompt: "Implement auth flow" } },
-    )
+    );
 
     // when
     await afterHandler(
       { tool: "task", sessionID: parentSessionID, callID: "call-task-timer-1" },
       {
         title: "Sisyphus Task",
-        output: "Task completed\n<task_metadata>\nsession_id: ses_child\n</task_metadata>",
+        output:
+          "Task completed\n<task_metadata>\nsession_id: ses_child\n</task_metadata>",
         metadata: {
           sessionId: childSessionID,
           agent: "sisyphus-junior",
           category: "deep",
         },
       },
-    )
+    );
 
     // then
-    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]?.task_sessions?.["todo:1"]
-    expect(taskSession).toBeDefined()
-    expect(taskSession?.started_at).toBeString()
-    expect(taskSession?.status).toBe("running")
-    expect(taskSession?.session_id).toBe(`opencode:${childSessionID}`)
-  })
+    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]
+      ?.task_sessions?.["todo:1"];
+    expect(taskSession).toBeDefined();
+    expect(taskSession?.started_at).toBeString();
+    expect(taskSession?.status).toBe("running");
+    expect(taskSession?.session_id).toBe(`opencode:${childSessionID}`);
+  });
 
   it("ends task timer when todo:1 checkbox transitions to checked", async () => {
     // given
-    const parentSessionID = "ses_parent_2"
-    const childSessionID = "ses_child_2"
-    const planPath = join(testDirectory, "task-timer-complete-plan.md")
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n", "utf-8")
+    const parentSessionID = "ses_parent_2";
+    const childSessionID = "ses_child_2";
+    const planPath = join(testDirectory, "task-timer-complete-plan.md");
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n",
+      "utf-8",
+    );
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-1",
@@ -192,46 +223,56 @@ describe("createToolExecuteAfterHandler task timers", () => {
           status: "active",
         },
       },
-    })
+    });
     const { beforeHandler, afterHandler } = createHandlers({
       [childSessionID]: parentSessionID,
-    })
+    });
 
     await beforeHandler(
       { tool: "task", sessionID: parentSessionID, callID: "call-task-timer-2" },
       { args: { prompt: "Implement auth flow" } },
-    )
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [x] 1. Implement auth flow\n", "utf-8")
+    );
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [x] 1. Implement auth flow\n",
+      "utf-8",
+    );
 
     // when
     await afterHandler(
       { tool: "task", sessionID: parentSessionID, callID: "call-task-timer-2" },
       {
         title: "Sisyphus Task",
-        output: "Task completed\n<task_metadata>\nsession_id: ses_child_2\n</task_metadata>",
+        output:
+          "Task completed\n<task_metadata>\nsession_id: ses_child_2\n</task_metadata>",
         metadata: {
           sessionId: childSessionID,
           agent: "sisyphus-junior",
           category: "deep",
         },
       },
-    )
+    );
 
     // then
-    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]?.task_sessions?.["todo:1"]
-    expect(taskSession).toBeDefined()
-    expect(taskSession?.ended_at).toBeString()
-    expect(taskSession?.status).toBe("completed")
-    expect(typeof taskSession?.elapsed_ms).toBe("number")
-  })
+    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]
+      ?.task_sessions?.["todo:1"];
+    expect(taskSession).toBeDefined();
+    expect(taskSession?.ended_at).toBeString();
+    expect(taskSession?.status).toBe("completed");
+    expect(typeof taskSession?.elapsed_ms).toBe("number");
+  });
 
   it("ends task timer when plan checkbox flips to checked via edit tool", async () => {
     // given
-    const parentSessionID = "ses_parent_3"
-    const planDirectory = join(testDirectory, ".omo", "plans")
-    mkdirSync(planDirectory, { recursive: true })
-    const planPath = join(planDirectory, "task-timer-edit-plan.md")
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n", "utf-8")
+    const parentSessionID = "ses_parent_3";
+    const planDirectory = join(testDirectory, ".omo", "plans");
+    mkdirSync(planDirectory, { recursive: true });
+    const planPath = join(planDirectory, "task-timer-edit-plan.md");
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n",
+      "utf-8",
+    );
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-1",
@@ -261,19 +302,37 @@ describe("createToolExecuteAfterHandler task timers", () => {
           task_sessions: {},
         },
       },
-    })
-    const { beforeHandler, afterHandler } = createHandlers()
+    });
+    const { beforeHandler, afterHandler } = createHandlers();
 
     await beforeHandler(
-      { tool: "edit", sessionID: parentSessionID, callID: "call-task-timer-edit-1" },
-      { args: { filePath: planPath, oldString: "- [ ] 1. Implement auth flow", newString: "- [x] 1. Implement auth flow" } },
-    )
+      {
+        tool: "edit",
+        sessionID: parentSessionID,
+        callID: "call-task-timer-edit-1",
+      },
+      {
+        args: {
+          filePath: planPath,
+          oldString: "- [ ] 1. Implement auth flow",
+          newString: "- [x] 1. Implement auth flow",
+        },
+      },
+    );
 
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [x] 1. Implement auth flow\n", "utf-8")
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [x] 1. Implement auth flow\n",
+      "utf-8",
+    );
 
     // when
     await afterHandler(
-      { tool: "edit", sessionID: parentSessionID, callID: "call-task-timer-edit-1" },
+      {
+        tool: "edit",
+        sessionID: parentSessionID,
+        callID: "call-task-timer-edit-1",
+      },
       {
         title: "Edit",
         output: "Updated file",
@@ -281,24 +340,29 @@ describe("createToolExecuteAfterHandler task timers", () => {
           filePath: planPath,
         },
       },
-    )
+    );
 
     // then
-    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]?.task_sessions?.["todo:1"]
-    expect(taskSession).toBeDefined()
-    expect(taskSession?.ended_at).toBeString()
-    expect(taskSession?.status).toBe("completed")
-    expect(typeof taskSession?.elapsed_ms).toBe("number")
-    expect((taskSession?.elapsed_ms ?? 0) > 0).toBe(true)
-  })
+    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]
+      ?.task_sessions?.["todo:1"];
+    expect(taskSession).toBeDefined();
+    expect(taskSession?.ended_at).toBeString();
+    expect(taskSession?.status).toBe("completed");
+    expect(typeof taskSession?.elapsed_ms).toBe("number");
+    expect((taskSession?.elapsed_ms ?? 0) > 0).toBe(true);
+  });
 
   it("does not end task timer when only a nested checkbox with the same label is checked", async () => {
     // given
-    const parentSessionID = "ses_parent_nested_checkbox"
-    const planDirectory = join(testDirectory, ".omo", "plans")
-    mkdirSync(planDirectory, { recursive: true })
-    const planPath = join(planDirectory, "task-timer-nested-checkbox-plan.md")
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n  - [ ] 1. nested evidence\n", "utf-8")
+    const parentSessionID = "ses_parent_nested_checkbox";
+    const planDirectory = join(testDirectory, ".omo", "plans");
+    mkdirSync(planDirectory, { recursive: true });
+    const planPath = join(planDirectory, "task-timer-nested-checkbox-plan.md");
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n  - [ ] 1. nested evidence\n",
+      "utf-8",
+    );
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-1",
@@ -338,19 +402,37 @@ describe("createToolExecuteAfterHandler task timers", () => {
           },
         },
       },
-    })
-    const { beforeHandler, afterHandler } = createHandlers()
+    });
+    const { beforeHandler, afterHandler } = createHandlers();
 
     await beforeHandler(
-      { tool: "edit", sessionID: parentSessionID, callID: "call-task-timer-edit-nested" },
-      { args: { filePath: planPath, oldString: "  - [ ] 1. nested evidence", newString: "  - [x] 1. nested evidence" } },
-    )
+      {
+        tool: "edit",
+        sessionID: parentSessionID,
+        callID: "call-task-timer-edit-nested",
+      },
+      {
+        args: {
+          filePath: planPath,
+          oldString: "  - [ ] 1. nested evidence",
+          newString: "  - [x] 1. nested evidence",
+        },
+      },
+    );
 
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n  - [x] 1. nested evidence\n", "utf-8")
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n  - [x] 1. nested evidence\n",
+      "utf-8",
+    );
 
     // when
     await afterHandler(
-      { tool: "edit", sessionID: parentSessionID, callID: "call-task-timer-edit-nested" },
+      {
+        tool: "edit",
+        sessionID: parentSessionID,
+        callID: "call-task-timer-edit-nested",
+      },
       {
         title: "Edit",
         output: "Updated file",
@@ -358,22 +440,30 @@ describe("createToolExecuteAfterHandler task timers", () => {
           filePath: planPath,
         },
       },
-    )
+    );
 
     // then
-    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]?.task_sessions?.["todo:1"]
-    expect(taskSession).toBeDefined()
-    expect(taskSession?.ended_at).toBeUndefined()
-    expect(taskSession?.status).toBe("running")
-  })
+    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]
+      ?.task_sessions?.["todo:1"];
+    expect(taskSession).toBeDefined();
+    expect(taskSession?.ended_at).toBeUndefined();
+    expect(taskSession?.status).toBe("running");
+  });
 
   it("ends task timer when a top-level checkbox with the tracked label is checked", async () => {
     // given
-    const parentSessionID = "ses_parent_top_level_checkbox"
-    const planDirectory = join(testDirectory, ".omo", "plans")
-    mkdirSync(planDirectory, { recursive: true })
-    const planPath = join(planDirectory, "task-timer-top-level-checkbox-plan.md")
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n  - [ ] 1. nested evidence\n", "utf-8")
+    const parentSessionID = "ses_parent_top_level_checkbox";
+    const planDirectory = join(testDirectory, ".omo", "plans");
+    mkdirSync(planDirectory, { recursive: true });
+    const planPath = join(
+      planDirectory,
+      "task-timer-top-level-checkbox-plan.md",
+    );
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [ ] 1. Implement auth flow\n  - [ ] 1. nested evidence\n",
+      "utf-8",
+    );
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-1",
@@ -413,19 +503,37 @@ describe("createToolExecuteAfterHandler task timers", () => {
           },
         },
       },
-    })
-    const { beforeHandler, afterHandler } = createHandlers()
+    });
+    const { beforeHandler, afterHandler } = createHandlers();
 
     await beforeHandler(
-      { tool: "edit", sessionID: parentSessionID, callID: "call-task-timer-edit-top-level" },
-      { args: { filePath: planPath, oldString: "- [ ] 1. Implement auth flow", newString: "- [x] 1. Implement auth flow" } },
-    )
+      {
+        tool: "edit",
+        sessionID: parentSessionID,
+        callID: "call-task-timer-edit-top-level",
+      },
+      {
+        args: {
+          filePath: planPath,
+          oldString: "- [ ] 1. Implement auth flow",
+          newString: "- [x] 1. Implement auth flow",
+        },
+      },
+    );
 
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [x] 1. Implement auth flow\n  - [ ] 1. nested evidence\n", "utf-8")
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [x] 1. Implement auth flow\n  - [ ] 1. nested evidence\n",
+      "utf-8",
+    );
 
     // when
     await afterHandler(
-      { tool: "edit", sessionID: parentSessionID, callID: "call-task-timer-edit-top-level" },
+      {
+        tool: "edit",
+        sessionID: parentSessionID,
+        callID: "call-task-timer-edit-top-level",
+      },
       {
         title: "Edit",
         output: "Updated file",
@@ -433,24 +541,25 @@ describe("createToolExecuteAfterHandler task timers", () => {
           filePath: planPath,
         },
       },
-    )
+    );
 
     // then
-    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]?.task_sessions?.["todo:1"]
-    expect(taskSession).toBeDefined()
-    expect(taskSession?.ended_at).toBeString()
-    expect(taskSession?.status).toBe("completed")
-  })
+    const taskSession = readBoulderState(testDirectory)?.works?.["work-1"]
+      ?.task_sessions?.["todo:1"];
+    expect(taskSession).toBeDefined();
+    expect(taskSession?.ended_at).toBeString();
+    expect(taskSession?.status).toBe("completed");
+  });
 
   it("tracks parallel delegated tasks by task label from TASK section", async () => {
     // given
-    const parentSessionID = "ses_parent_parallel"
-    const planPath = join(testDirectory, "task-timer-parallel-plan.md")
+    const parentSessionID = "ses_parent_parallel";
+    const planPath = join(testDirectory, "task-timer-parallel-plan.md");
     writeFileSync(
       planPath,
       "# Plan\n\n## TODOs\n- [ ] 1. First task\n- [ ] 2. Add tests\n- [ ] 3. Write docs\n",
       "utf-8",
-    )
+    );
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-1",
@@ -468,68 +577,91 @@ describe("createToolExecuteAfterHandler task timers", () => {
           status: "active",
         },
       },
-    })
+    });
     const { beforeHandler, afterHandler } = createHandlers({
       ses_child_parallel_2: parentSessionID,
       ses_child_parallel_3: parentSessionID,
-    })
+    });
 
     await beforeHandler(
-      { tool: "task", sessionID: parentSessionID, callID: "call-task-parallel-2" },
+      {
+        tool: "task",
+        sessionID: parentSessionID,
+        callID: "call-task-parallel-2",
+      },
       {
         args: {
           prompt: "## 1. TASK\n- [ ] 2. Add tests\n\n## 2. CONTEXT\n...",
         },
       },
-    )
+    );
     await beforeHandler(
-      { tool: "task", sessionID: parentSessionID, callID: "call-task-parallel-3" },
+      {
+        tool: "task",
+        sessionID: parentSessionID,
+        callID: "call-task-parallel-3",
+      },
       {
         args: {
           prompt: "## 1. TASK\n- [ ] 3. Write docs\n\n## 2. CONTEXT\n...",
         },
       },
-    )
+    );
 
     // when
     await afterHandler(
-      { tool: "task", sessionID: parentSessionID, callID: "call-task-parallel-2" },
+      {
+        tool: "task",
+        sessionID: parentSessionID,
+        callID: "call-task-parallel-2",
+      },
       {
         title: "Sisyphus Task",
-        output: "Task completed\n<task_metadata>\nsession_id: ses_child_parallel_2\n</task_metadata>",
+        output:
+          "Task completed\n<task_metadata>\nsession_id: ses_child_parallel_2\n</task_metadata>",
         metadata: {
           sessionId: "ses_child_parallel_2",
           agent: "sisyphus-junior",
           category: "deep",
         },
       },
-    )
+    );
     await afterHandler(
-      { tool: "task", sessionID: parentSessionID, callID: "call-task-parallel-3" },
+      {
+        tool: "task",
+        sessionID: parentSessionID,
+        callID: "call-task-parallel-3",
+      },
       {
         title: "Sisyphus Task",
-        output: "Task completed\n<task_metadata>\nsession_id: ses_child_parallel_3\n</task_metadata>",
+        output:
+          "Task completed\n<task_metadata>\nsession_id: ses_child_parallel_3\n</task_metadata>",
         metadata: {
           sessionId: "ses_child_parallel_3",
           agent: "sisyphus-junior",
           category: "deep",
         },
       },
-    )
+    );
 
     // then
-    const taskSessions = readBoulderState(testDirectory)?.works?.["work-1"]?.task_sessions
-    expect(taskSessions?.["todo:2"]?.task_key).toBe("todo:2")
-    expect(taskSessions?.["todo:3"]?.task_key).toBe("todo:3")
-    expect(taskSessions?.["todo:1"]).toBeUndefined()
-  })
+    const taskSessions = readBoulderState(testDirectory)?.works?.["work-1"]
+      ?.task_sessions;
+    expect(taskSessions?.["todo:2"]?.task_key).toBe("todo:2");
+    expect(taskSessions?.["todo:3"]?.task_key).toBe("todo:3");
+    expect(taskSessions?.["todo:1"]).toBeUndefined();
+  });
 
   it("falls back to current top-level task when TASK section label is missing", async () => {
     // given
-    const parentSessionID = "ses_parent_fallback"
-    const childSessionID = "ses_child_fallback"
-    const planPath = join(testDirectory, "task-timer-fallback-plan.md")
-    writeFileSync(planPath, "# Plan\n\n## TODOs\n- [ ] 1. First task\n", "utf-8")
+    const parentSessionID = "ses_parent_fallback";
+    const childSessionID = "ses_child_fallback";
+    const planPath = join(testDirectory, "task-timer-fallback-plan.md");
+    writeFileSync(
+      planPath,
+      "# Plan\n\n## TODOs\n- [ ] 1. First task\n",
+      "utf-8",
+    );
     writeBoulderState(testDirectory, {
       schema_version: 2,
       active_work_id: "work-1",
@@ -547,37 +679,46 @@ describe("createToolExecuteAfterHandler task timers", () => {
           status: "active",
         },
       },
-    })
+    });
     const { beforeHandler, afterHandler } = createHandlers({
       [childSessionID]: parentSessionID,
-    })
+    });
 
     await beforeHandler(
-      { tool: "task", sessionID: parentSessionID, callID: "call-task-fallback-1" },
+      {
+        tool: "task",
+        sessionID: parentSessionID,
+        callID: "call-task-fallback-1",
+      },
       {
         args: {
           prompt: "No structured header in this prompt",
         },
       },
-    )
+    );
 
     // when
     await afterHandler(
-      { tool: "task", sessionID: parentSessionID, callID: "call-task-fallback-1" },
+      {
+        tool: "task",
+        sessionID: parentSessionID,
+        callID: "call-task-fallback-1",
+      },
       {
         title: "Sisyphus Task",
-        output: "Task completed\n<task_metadata>\nsession_id: ses_child_fallback\n</task_metadata>",
+        output:
+          "Task completed\n<task_metadata>\nsession_id: ses_child_fallback\n</task_metadata>",
         metadata: {
           sessionId: childSessionID,
           agent: "sisyphus-junior",
           category: "deep",
         },
       },
-    )
+    );
 
     // then
-    const taskSessions = readBoulderState(testDirectory)?.works?.["work-1"]?.task_sessions
-    expect(taskSessions?.["todo:1"]?.task_key).toBe("todo:1")
-  })
-
-})
+    const taskSessions = readBoulderState(testDirectory)?.works?.["work-1"]
+      ?.task_sessions;
+    expect(taskSessions?.["todo:1"]?.task_key).toBe("todo:1");
+  });
+});
