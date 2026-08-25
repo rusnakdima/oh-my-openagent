@@ -154,7 +154,7 @@ describe("install platform resolution", () => {
 
     // then
     expect(installBlock).not.toBeNull();
-    expect(installBlock?.[1]).toContain('new Option("--platform <platform>"');
+    expect(installBlock?.[1]).toMatch(/new Option\(\s*"--platform <platform>"/);
     expect(installBlock?.[1]).toContain(
       ".choices(availableInstallPlatforms())",
     );
@@ -175,7 +175,7 @@ describe("install platform resolution", () => {
 
     // then
     expect(rootBlock).not.toBeNull();
-    expect(rootBlock?.[1]).toContain('new Option("--platform <platform>"');
+    expect(rootBlock?.[1]).toMatch(/new Option\(\s*"--platform <platform>"/);
     expect(rootBlock?.[1]).toContain(".choices(availableInstallPlatforms())");
     expect(rootBlock?.[1]).toContain(".hideHelp()");
   });

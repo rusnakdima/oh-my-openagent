@@ -26,6 +26,7 @@ export interface CodexComponentsDoctorDeps extends CodexDoctorDeps {
   readonly arch?: string;
   readonly sgRunVersionProbeSync?: SgResolverOptions["runVersionProbeSync"];
   readonly sgWhich?: SgResolverOptions["which"];
+  readonly sgHomeDir?: SgResolverOptions["homeDir"];
 }
 
 interface JsonRecord {
@@ -109,6 +110,7 @@ export async function checkCodexComponents(
       ? {}
       : { runVersionProbeSync: deps.sgRunVersionProbeSync }),
     ...(deps.sgWhich === undefined ? {} : { which: deps.sgWhich }),
+    ...(deps.sgHomeDir === undefined ? {} : { homeDir: deps.sgHomeDir }),
   });
   if (sg === null) {
     details.push("ast_grep: missing");

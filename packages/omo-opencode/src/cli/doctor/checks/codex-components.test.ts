@@ -203,6 +203,7 @@ function buildDeps(
     // for the probe here instead of shipping a platform-specific executable stub.
     sgRunVersionProbeSync: () => "ast-grep 0.43.0",
     sgWhich: () => null,
+    sgHomeDir: "/nonexistent-omo-home",
     ...overrides,
   };
 }

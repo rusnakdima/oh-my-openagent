@@ -72,8 +72,8 @@ describe("cli-program", () => {
     // then
     expect(migrateBlock).not.toBeNull();
     expect(migrateBlock?.[1]).toContain('.command("migrate")');
-    expect(migrateBlock?.[1]).toContain('.option("--dry-run"');
-    expect(migrateBlock?.[1]).toContain('.option("--json"');
+    expect(migrateBlock?.[1]).toMatch(/\.option\(\s*"--dry-run"/);
+    expect(migrateBlock?.[1]).toMatch(/\.option\(\s*"--json"/);
     expect(migrateBlock?.[1]).toContain("runConfigMigrate");
   });
 
@@ -91,10 +91,12 @@ describe("cli-program", () => {
 
     // then
     expect(doctorBlock).not.toBeNull();
-    expect(doctorBlock?.[1]).toContain('new Option("--platform <platform>"');
+    expect(doctorBlock?.[1]).toMatch(
+      /new Option\(\s*"--platform <platform>"/,
+    );
     expect(doctorBlock?.[1]).toContain('.choices(["opencode", "codex"])');
-    expect(cliProgramSource).toContain(
-      "resolveDoctorTarget(process.env.OMO_INVOCATION_NAME, options.platform ?? rootDoctorPlatform)",
+    expect(cliProgramSource).toMatch(
+      /resolveDoctorTarget\(\s*process\.env\.OMO_INVOCATION_NAME,\s*options\.platform \?\? rootDoctorPlatform,?\s*\)/,
     );
   });
 });
@@ -124,11 +126,8 @@ test("program registers runtime commands", async () => {
     path.resolve(import.meta.dir, "cli-program.ts"),
     "utf-8",
   );
-
-  // when
-  const registersRuntimeCommands = cliProgramSource.includes(
-    "configureRuntimeCommands(program)",
-  );
+  const registersRuntimeCommands =
+    /configureRuntimeCommands\(program\b/.test(cliProgramSource);
 
   // then
   expect(registersRuntimeCommands).toBe(true);

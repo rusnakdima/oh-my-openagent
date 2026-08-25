@@ -5,11 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, spyOn } from "bun:test";
 import * as p from "@clack/prompts";
 import * as configManager from "./config-manager";
 import * as astGrepInstall from "./install-ast-grep-sg";
-import * as codexInstaller from "./install-codex";
+import * as codexInstaller from "./install-codex/install-codex";
+import * as codexDetection from "@oh-my-opencode/omo-codex/install/codex-installation-detection";
 import * as tuiConfig from "./config-manager/add-tui-plugin-to-tui-config";
 import * as tuiInstallPrompts from "./tui-install-prompts";
 import { runTuiInstaller } from "./tui-installer";
-import type { CodexInstallResult } from "./install-codex";
+import type { CodexInstallResult } from "./install-codex/install-codex";
 
 function createMockSpinner(): ReturnType<typeof p.spinner> {
   return {
@@ -98,7 +99,7 @@ describe("runTuiInstaller Codex installation detection", () => {
       }),
     ];
     const warnSpy = spyOn(p.log, "warn").mockImplementation(() => undefined);
-    const detectSpy = spyOn(codexInstaller, "detectCodexInstallation")
+    const detectSpy = spyOn(codexDetection, "detectCodexInstallation")
       .mockResolvedValue({
         found: false,
         checkedPaths: ["codex (PATH)"],
@@ -163,7 +164,7 @@ describe("runTuiInstaller Codex installation detection", () => {
       }),
     ];
     const warnSpy = spyOn(p.log, "warn").mockImplementation(() => undefined);
-    const detectSpy = spyOn(codexInstaller, "detectCodexInstallation")
+    const detectSpy = spyOn(codexDetection, "detectCodexInstallation")
       .mockResolvedValue({
         found: true,
         source: "cli",
@@ -263,7 +264,7 @@ describe("runTuiInstaller Codex install failure exit status", () => {
         hasVercelAiGateway: false,
         codexAutonomous: true,
       }),
-      spyOn(codexInstaller, "detectCodexInstallation").mockResolvedValue({
+      spyOn(codexDetection, "detectCodexInstallation").mockResolvedValue({
         found: true,
         source: "cli",
         path: "/opt/homebrew/bin/codex",
@@ -365,7 +366,7 @@ describe("runTuiInstaller Codex install failure exit status", () => {
         changed: false,
         reason: "no-server-entry",
       }),
-      spyOn(codexInstaller, "detectCodexInstallation").mockResolvedValue({
+      spyOn(codexDetection, "detectCodexInstallation").mockResolvedValue({
         found: true,
         source: "cli",
         path: "/opt/homebrew/bin/codex",
