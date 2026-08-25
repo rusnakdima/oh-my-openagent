@@ -297,7 +297,7 @@ describe("omo-codex posthog telemetry", () => {
       "utf-8",
     );
     const match = telemetryCoreConstants.match(
-      /DEFAULT_POSTHOG_API_KEY = "(phc_[a-zA-Z0-9]+)"/,
+      /DEFAULT_POSTHOG_API_KEY =\s*"(phc_[a-zA-Z0-9]+)"/,
     );
 
     // when

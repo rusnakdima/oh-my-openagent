@@ -40,7 +40,7 @@ async function readTelemetryCoreDefaultPostHogConstants() {
     "utf8",
   );
   const host = constantsSource.match(/DEFAULT_POSTHOG_HOST = "([^"]+)"/)?.[1];
-  const apiKey = constantsSource.match(/DEFAULT_POSTHOG_API_KEY = "([^"]+)"/)
+  const apiKey = constantsSource.match(/DEFAULT_POSTHOG_API_KEY =\s*"([^"]+)"/)
     ?.[1];
   assert.equal(host, "https://us.i.posthog.com");
   assert.match(apiKey ?? "", /^phc_/);

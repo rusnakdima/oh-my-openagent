@@ -52,7 +52,10 @@ function packedPaths() {
     maxBuffer: 64 * 1024 * 1024,
     stdio: ["ignore", "pipe", "inherit"],
   });
-  const [result] = JSON.parse(raw);
+  // npm < 11 emits an array of pack results; npm >= 11 emits an object keyed by
+  // package name. Accept both shapes so the gate survives npm upgrades.
+  const parsed = JSON.parse(raw);
+  const result = Array.isArray(parsed) ? parsed[0] : Object.values(parsed)[0];
   if (!result) return { paths: [], unpackedSize: 0 };
   return {
     paths: result.files.map((file) => file.path),
