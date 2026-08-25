@@ -37,7 +37,7 @@ export class ParentWakeNotifier {
     deps: ParentWakeNotifierDeps,
     options: ParentWakeNotifierOptions,
   ) {
-    this.ledger = deps.ledger;
+    this.ledger = deps.ledger ?? new ParentWakeLedger(deps.directory);
     this.onPendingWakeRequeued = deps.onPendingWakeRequeued;
     this.pendingQueue = new ParentWakePendingQueue({
       pendingRetryMs: options.pendingRetryMs,
@@ -75,7 +75,7 @@ export class ParentWakeNotifier {
         options.parentSessionActivityInProgressWindowMs,
     });
     this.flushRunner = new ParentWakeFlushRunner({
-      notifierDeps: deps,
+      notifierDeps: { ...deps, ledger: this.ledger },
       pendingQueue: this.pendingQueue,
       dispatchedTracker: this.dispatchedTracker,
       sessionInspector: this.sessionInspector,

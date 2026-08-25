@@ -31,7 +31,7 @@ export type ParentWakeNotifierClient = PromptDispatchClient & {
 export type ParentWakeNotifierDeps = {
   readonly client: ParentWakeNotifierClient;
   readonly directory: string;
-  readonly ledger: ParentWakeLedger;
+  readonly ledger?: ParentWakeLedger;
   readonly enqueueNotificationForParent: (
     parentSessionID: string | undefined,
     operation: () => Promise<void>,

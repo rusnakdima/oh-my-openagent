@@ -17,7 +17,9 @@ import type { ParentWakeNotifierDeps } from "./parent-wake-notifier-types";
 import type { ParentWakeLedger } from "./parent-wake-ledger";
 
 type ParentWakeFlushRunnerDeps = {
-  readonly notifierDeps: ParentWakeNotifierDeps;
+  readonly notifierDeps: ParentWakeNotifierDeps & {
+    readonly ledger: ParentWakeLedger;
+  };
   readonly pendingQueue: ParentWakePendingQueue;
   readonly dispatchedTracker: ParentWakeDispatchedTracker;
   readonly sessionInspector: ParentWakeSessionInspector;
