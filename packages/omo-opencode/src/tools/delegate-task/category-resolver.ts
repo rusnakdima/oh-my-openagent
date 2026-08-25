@@ -10,11 +10,14 @@ import {
   CATEGORY_PROMPT_APPEND_RESOLVERS,
 } from "./constants";
 import { parseModelString } from "../../shared/model-string-parser";
+import type { FallbackEntry } from "../../shared/model-requirements";
+import { buildFallbackChainFromModels } from "../../shared/fallback-chain-from-models";
 import { CATEGORY_MODEL_REQUIREMENTS } from "../../shared/model-requirements";
 import { getAvailableModelsForDelegateTask } from "./available-models";
 import { resolveModelForDelegateTask } from "./model-selection";
 import type { DelegatedModelConfig } from "./types";
 import { applyCategoryParams } from "./delegated-model-config";
+import { applyFallbackEntrySettings } from "./fallback-entry-settings";
 
 function getConfiguredModel(
   entry: string | { model: string } | undefined,
@@ -49,6 +52,8 @@ export interface CategoryResolutionResult {
   modelInfo: ModelFallbackInfo | undefined;
   actualModel: string | undefined;
   isUnstableAgent: boolean;
+  /** Availability-resolved canonical chain remainder for runtime retry */
+  fallbackChain?: FallbackEntry[];
   error?: string;
 }
 
@@ -154,7 +159,35 @@ Available categories: ${allCategoryNames}`,
     ? configuredPrimaryModel
     : userCategories?.[args.category!]?.model;
 
-  if (!requirement) {
+  // Explicit user-configured canonical `models` outrank the TUI default.
+  // resolveCategoryConfig has already fuzzy-matched every entry against
+  // availableModels and dropped unavailable ones (preserving config order),
+  // so the first entry here is guaranteed selectable when the cache is warm.
+  const canonicalChain = hasCanonicalModels && availableModels.size > 0
+    ? buildFallbackChainFromModels(resolved.config.models, undefined)
+    : undefined;
+
+  if (canonicalChain && canonicalChain.length > 0) {
+    const primary = canonicalChain[0];
+    actualModel = `${primary.providers[0]}/${primary.model}`;
+    const parsedModel = parseModelString(actualModel);
+    if (!parsedModel) {
+      return categoryResolutionError(
+        `Invalid model format "${actualModel}". Expected "provider/model" format (e.g., "anthropic/claude-sonnet-4-6").`,
+      );
+    }
+    categoryModel = applyFallbackEntrySettings({
+      categoryModel: applyCategoryParams(parsedModel, resolved.config),
+      effectiveEntry: primary,
+      variantOverride: userCategories?.[args.category!]?.variant,
+    });
+    modelInfo = {
+      model: actualModel,
+      type: "user-defined",
+      source: "override",
+    };
+  } else if (!requirement) {
+
     // GLOBAL-ONLY MODEL (Aug 2026): TUI model is the ONLY source.
     // No implicit fallback to builtin category models.
     // Error if no TUI model selected.
@@ -305,5 +338,8 @@ Available categories: ${categoryNames.join(", ")}`,
     modelInfo,
     actualModel,
     isUnstableAgent,
+    fallbackChain: canonicalChain && canonicalChain.length > 1
+      ? canonicalChain.slice(1)
+      : undefined,
   };
 }
