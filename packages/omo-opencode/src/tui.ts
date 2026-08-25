@@ -140,26 +140,17 @@ export function handleTuiPollError(
   throw error;
 }
 
-// @ts-ignore - console.log for debugging
 const module: TuiPluginModule = {
   id: "oh-my-openagent:tui",
   tui: async (api) => {
-    console.error(
-      "[tui] TUI PLUGIN LOADING NOW!!! api keys:",
-      Object.keys(api),
-    );
-    log("[tui] TUI plugin loading...");
-    log("[tui] api keys:", Object.keys(api));
-    log("[tui] api.command available:", !!api.command);
-    log("[tui] api.ui available:", !!api.ui);
+    log("[tui] TUI plugin loading...")
+    log("[tui] api keys:", Object.keys(api))
     const solid = await import("@opentui/solid").catch(() => null);
     if (!solid) {
-      console.error("[tui] @opentui/solid not available - skipping TUI plugin");
-      log("[tui] @opentui/solid not available - skipping TUI plugin");
-      return;
+      log("[tui] @opentui/solid not available - skipping TUI plugin")
+      return
     }
-    console.error("[tui] @opentui/solid loaded successfully");
-    log("[tui] @opentui/solid loaded successfully");
+    log("[tui] @opentui/solid loaded successfully")
 
     try {
       await registerBtwSideTui(api, solid);

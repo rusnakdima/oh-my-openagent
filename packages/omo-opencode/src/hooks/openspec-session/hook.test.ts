@@ -97,8 +97,7 @@ describe("createOpenSpecSessionHook", () => {
           { type: string; text?: string; [key: string]: unknown }
         >,
       };
-      // @ts-ignore
-      await hook["chat.message"]({ sessionId: "s1" }, output);
+      await hook["chat.message"]({ sessionID: "s1" }, output);
       expect(output.parts.length).toBe(1); // unchanged
     });
 
@@ -118,8 +117,7 @@ describe("createOpenSpecSessionHook", () => {
           { type: string; text?: string; [key: string]: unknown }
         >,
       };
-      // @ts-ignore
-      await hook["chat.message"]({ sessionId: "s2" }, output1);
+      await hook["chat.message"]({ sessionID: "s2" }, output1);
       const lenAfterFirst = output1.parts.length;
 
       const output2 = {
@@ -127,8 +125,7 @@ describe("createOpenSpecSessionHook", () => {
           { type: string; text?: string; [key: string]: unknown }
         >,
       };
-      // @ts-ignore
-      await hook["chat.message"]({ sessionId: "s2" }, output2);
+      await hook["chat.message"]({ sessionID: "s2" }, output2);
       // Second injection should be skipped (same session)
       expect(output2.parts.length).toBeLessThanOrEqual(lenAfterFirst);
     });
@@ -151,8 +148,7 @@ describe("createOpenSpecSessionHook", () => {
           { type: string; text?: string; [key: string]: unknown }
         >,
       };
-      // @ts-ignore
-      await hook["chat.message"]({ sessionId: "s3" }, output1);
+      await hook["chat.message"]({ sessionID: "s3" }, output1);
       const lenAfterFirst = output1.parts.length;
 
       // Same session - should not re-inject
@@ -161,8 +157,7 @@ describe("createOpenSpecSessionHook", () => {
           { type: string; text?: string; [key: string]: unknown }
         >,
       };
-      // @ts-ignore
-      await hook["chat.message"]({ sessionId: "s3" }, output2);
+      await hook["chat.message"]({ sessionID: "s3" }, output2);
       // Since the same session, the hook returns early at injectedSessions check
       // before even reading files. Length should be unchanged.
       expect(output2.parts.length).toBeLessThanOrEqual(lenAfterFirst);
@@ -233,8 +228,7 @@ describe("createOpenSpecSessionHook", () => {
           text: "Build a login system with OAuth",
         }] as Array<{ type: string; text?: string; [key: string]: unknown }>,
       };
-      // @ts-ignore
-      await hook["chat.message"]({ sessionId: "auto-create-s1" }, output);
+      await hook["chat.message"]({ sessionID: "auto-create-s1" }, output);
 
       // verify propose was called with slugified name (leading verb+article stripped)
       expect(proposeCalls.length).toBe(1);
@@ -298,8 +292,7 @@ describe("createOpenSpecSessionHook", () => {
           { type: string; text?: string; [key: string]: unknown }
         >,
       };
-      // @ts-ignore
-      await hook["chat.message"]({ sessionId: "no-auto-s1" }, output);
+      await hook["chat.message"]({ sessionID: "no-auto-s1" }, output);
 
       // propose should NOT have been called
       expect(proposeCalls.length).toBe(0);
@@ -321,7 +314,6 @@ describe("createOpenSpecSessionHook", () => {
         controller: createMockController(tmp),
       });
 
-      // @ts-ignore
       await hook["tool.execute.after"](
         { tool: "task", sessionID: "s1", callID: "c1" },
         { title: "task", output: "completed successfully" },
@@ -339,7 +331,6 @@ describe("createOpenSpecSessionHook", () => {
         controller: createMockController(tmp),
       });
 
-      // @ts-ignore
       await hook["tool.execute.after"](
         { tool: "grep", sessionID: "s1", callID: "c1" },
         { title: "grep", output: "completed successfully" },
@@ -357,7 +348,6 @@ describe("createOpenSpecSessionHook", () => {
         controller: createMockController(tmp),
       });
 
-      // @ts-ignore
       await hook["tool.execute.after"](
         { tool: "task", sessionID: "s1", callID: "c1" },
         { title: "task", output: "still running" },
@@ -374,7 +364,6 @@ describe("createOpenSpecSessionHook", () => {
         controller: createMockController(tmp),
       });
 
-      // @ts-ignore
       await hook["tool.execute.after"](
         { tool: "delegate-task", sessionID: "s1", callID: "c1" },
         { title: "delegate-task", output: "working on it" },
@@ -392,7 +381,6 @@ describe("createOpenSpecSessionHook", () => {
         controller: createMockController(tmp),
       });
 
-      // @ts-ignore
       await hook["tool.execute.after"](
         { tool: "task_update", sessionID: "s1", callID: "c1" },
         { title: "task_update", output: "updated" },
@@ -416,7 +404,6 @@ describe("createOpenSpecSessionHook", () => {
         controller: createMockController(tmp),
       });
 
-      // @ts-ignore
       await hook["tool.execute.after"](
         { tool: "task", sessionID: "s1", callID: "c1" },
         { title: "task", output: "All tasks completed successfully" },
@@ -451,7 +438,6 @@ describe("createOpenSpecSessionHook", () => {
         controller: createMockController(tmp),
       });
 
-      // @ts-ignore
       await hook["tool.execute.after"](
         { tool: "task", sessionID: "s1", callID: "c1" },
         { title: "task", output: "completed successfully" },
