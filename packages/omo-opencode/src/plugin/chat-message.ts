@@ -14,7 +14,10 @@ import {
   log,
 } from "../shared";
 import type { ChatMessagePart } from "./chat-message/types";
-import { applyGlobalModelToChatMessage } from "./chat-message/global-model-apply";
+import {
+  applyGlobalModelToChatMessage,
+} from "./chat-message/global-model-apply";
+import { detectUserModelPick } from "./chat-message/session-model";
 import { applyUltraworkModelOverrideOnMessage } from "./ultrawork-model-override";
 import type { PluginContext } from "./types";
 import { handleGoalMessage } from "./chat-message/loop-commands";
@@ -77,7 +80,7 @@ async function runChatMessageHooks(args: {
   if (!runtimeFallbackEnabled) {
     await hooks.modelFallback?.["chat.message"]?.(input, output);
   }
-  recordSessionModel(input, output, pluginConfig);
+  recordSessionModel(input, output);
   await hooks.stopContinuationGuard?.["chat.message"]?.(input);
   await hooks.backgroundNotificationHook?.["chat.message"]?.(input, output);
   await hooks.runtimeFallback?.["chat.message"]?.(input, output);
@@ -148,6 +151,12 @@ export function createChatMessageHandler(args: {
     if (storedMainSessionModel) {
       output.message.model = storedMainSessionModel;
     }
+
+    // Classify input.model as restored baseline vs explicit user pick and
+    // capture picks into the global store BEFORE the apply step reads it —
+    // this is what makes the very same message's LLM call use a fresh pick
+    // (no one-message lag) while mode-switch restores never clobber the pick.
+    detectUserModelPick(input, pluginConfig);
 
     // Apply the user's global model pick to every OMO agent mode for this call.
     // Runs BEFORE the hook chain so later error-recovery overrides

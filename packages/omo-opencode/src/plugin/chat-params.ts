@@ -5,15 +5,14 @@ import {
   log,
   resolveCompatibleModelSettings,
 } from "../shared";
-import { captureGlobalModelPick } from "./global-model-capture";
-import { getSelectedGlobalModel } from "../shared/session-model-state";
+// NOTE: global-model capture intentionally lives ONLY in
+// chat-message/session-model.ts (detectUserModelPick). Capturing here too
+// raced it: chat.params runs against the POST-OVERRIDE request model, so a
+// freshly picked model got instantly stomped back to the previous global
+// (user-visible as "my pick never applies"). Re-added by 44417554a, removed
+// again — single capture point = input model seen by chat.message.
 import type { OhMyOpenCodeConfig } from "../config";
 
-// Track last model per session to detect user-driven changes (deduplicate writes)
-const lastChatParamsModel = new Map<
-  string,
-  { providerID: string; modelID: string }
->();
 
 const SAFE_MAX_OUTPUT_TOKENS_FALLBACK = 4096;
 
@@ -131,34 +130,7 @@ export function createChatParamsHandler(_args: {
       modelID: normalizedInput.model.modelID,
     });
 
-    // Capture USER-DRIVEN model picks (fires when the user selects via /models).
-    // All sessions should capture user selections to keep global model visible
-    // across agent mode switches. Dedup at global level to prevent feedback loops.
-    if (pluginConfig) {
-      const parsed = {
-        providerID: normalizedInput.model.providerID,
-        modelID: normalizedInput.model.modelID,
-      };
-      const lastPerSession = lastChatParamsModel.get(normalizedInput.sessionID);
-      const isPerSessionChanged = !lastPerSession ||
-        lastPerSession.providerID !== parsed.providerID ||
-        lastPerSession.modelID !== parsed.modelID;
-      if (isPerSessionChanged) {
-        lastChatParamsModel.set(normalizedInput.sessionID, parsed);
-        // Dedup at global level to prevent feedback loops
-        const current = getSelectedGlobalModel();
-        if (
-          !current || current.providerID !== parsed.providerID ||
-          current.modelID !== parsed.modelID
-        ) {
-          log("[chat-params] user model pick captured", {
-            model: parsed,
-            sessionID: normalizedInput.sessionID.slice(0, 8),
-          });
-          captureGlobalModelPick(parsed, normalizedInput.sessionID);
-        }
-      }
-    }
+    // NOTE: no global-model capture here — see the import note above.
 
     const compatibility = resolveCompatibleModelSettings({
       providerID: normalizedInput.model.providerID,

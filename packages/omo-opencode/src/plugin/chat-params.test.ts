@@ -2,7 +2,12 @@ import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-
+import {
+  applyGlobalModel,
+  clearGlobalTuiModel,
+  getSelectedGlobalModelLive,
+} from "../shared/session-model-state";
+import { _resetGlobalModelStoreCacheForTesting } from "../shared/global-model-store";
 import { type ChatParamsOutput, createChatParamsHandler } from "./chat-params";
 import * as dataPathModule from "../shared/data-path";
 import * as sharedModule from "../shared";
@@ -28,6 +33,8 @@ describe("createChatParamsHandler", () => {
   afterEach(() => {
     clearSessionPromptParams("ses_chat_params");
     clearSessionPromptParams("ses_chat_params_temperature");
+    clearGlobalTuiModel();
+    _resetGlobalModelStoreCacheForTesting();
     sharedModule.writeProviderModelsCache({ connected: [], models: {} });
     getCacheDirSpy?.mockRestore();
     if (tempCacheRoot) {
@@ -250,5 +257,37 @@ describe("createChatParamsHandler", () => {
 
     //#then
     expect(output.maxOutputTokens).toBe(4096);
+  });
+  test("never writes the global model store (single capture point is detectUserModelPick)", async () => {
+    //#given — a global model already selected and a chat.params request whose
+    // model differs from it (post-override request seen by this hook)
+    applyGlobalModel({ providerID: "minimax", modelID: "MiniMax-M2.7" });
+
+    const handler = createChatParamsHandler();
+
+    const input = {
+      sessionID: "ses_chat_params",
+      agent: { name: "oracle" },
+      model: { providerID: "openai", modelID: "gpt-5.4" },
+      provider: { id: "openai" },
+      message: {},
+    };
+
+    const output: ChatParamsOutput = {
+      topP: 1,
+      topK: 1,
+      maxOutputTokens: 4096,
+      options: {},
+    };
+
+    //#when
+    await handler(input, output);
+
+    //#then — the user's pick recorded by chat.message must survive untouched;
+    // a second capture surface here stomped fresh picks within 1ms (2026-08-23)
+    expect(getSelectedGlobalModelLive()).toEqual({
+      providerID: "minimax",
+      modelID: "MiniMax-M2.7",
+    });
   });
 });
