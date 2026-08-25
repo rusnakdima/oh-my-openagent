@@ -1,13 +1,31 @@
-import { afterAll, describe, expect, it, mock } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
+
+import * as loggerModule from "../shared/logger";
 
 import { applyProviderConfig } from "../plugin-handlers/provider-config-handler";
 import { createModelCacheState } from "../plugin-state";
 
 const logMock = mock(() => {});
 
-mock.module("../shared/logger", () => ({
-  log: logMock,
-}));
+beforeEach(() => {
+  mock.restore();
+  spyOn(loggerModule, "log").mockImplementation((message, data) => {
+    logMock(message, data);
+  });
+});
+
+afterEach(() => {
+  mock.restore();
+});
 
 afterAll(() => {
   mock.restore();

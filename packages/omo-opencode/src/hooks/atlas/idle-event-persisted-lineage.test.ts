@@ -1,6 +1,14 @@
 declare const require: (name: string) => any;
-const { afterEach, beforeEach, describe, expect, mock, test, afterAll } =
-  require("bun:test");
+const {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+  afterAll,
+} = require("bun:test");
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +26,9 @@ import {
 } from "../../features/claude-code-session-state";
 import type { BoulderState } from "../../features/boulder-state";
 import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
+import * as originalInjectorConstants from "../../features/hook-message-injector/constants";
+import * as messageDirModule from "../../shared/opencode-message-dir";
+import * as storageDetection from "../../shared/opencode-storage-detection";
 
 const TEST_STORAGE_ROOT = join(
   tmpdir(),
@@ -26,24 +37,35 @@ const TEST_STORAGE_ROOT = join(
 const TEST_MESSAGE_STORAGE = join(TEST_STORAGE_ROOT, "message");
 const TEST_PART_STORAGE = join(TEST_STORAGE_ROOT, "part");
 
-mock.module("../../features/hook-message-injector/constants", () => ({
-  OPENCODE_STORAGE: TEST_STORAGE_ROOT,
-  MESSAGE_STORAGE: TEST_MESSAGE_STORAGE,
-  PART_STORAGE: TEST_PART_STORAGE,
-}));
+beforeEach(() => {
+  mock.restore();
+  mock.module("../../features/hook-message-injector/constants", () => ({
+    OPENCODE_STORAGE: TEST_STORAGE_ROOT,
+    MESSAGE_STORAGE: TEST_MESSAGE_STORAGE,
+    PART_STORAGE: TEST_PART_STORAGE,
+  }));
+  spyOn(messageDirModule, "getMessageDir").mockImplementation(
+    (sessionID: string) => {
+      const directory = join(TEST_MESSAGE_STORAGE, sessionID);
+      return existsSync(directory) ? directory : null;
+    },
+  );
+  spyOn(storageDetection, "isSqliteBackend").mockReturnValue(true);
+});
 
-mock.module("../../shared/opencode-message-dir", () => ({
-  getMessageDir: (sessionID: string) => {
-    const directory = join(TEST_MESSAGE_STORAGE, sessionID);
-    return existsSync(directory) ? directory : null;
-  },
-}));
-
-mock.module("../../shared/opencode-storage-detection", () => ({
-  isSqliteBackend: () => true,
-}));
+afterEach(() => {
+  mock.module(
+    "../../features/hook-message-injector/constants",
+    () => originalInjectorConstants,
+  );
+  mock.restore();
+});
 
 afterAll(() => {
+  mock.module(
+    "../../features/hook-message-injector/constants",
+    () => originalInjectorConstants,
+  );
   mock.restore();
 });
 

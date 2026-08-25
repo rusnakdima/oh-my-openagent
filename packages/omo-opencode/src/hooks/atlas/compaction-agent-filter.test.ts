@@ -1,6 +1,14 @@
 declare const require: (name: string) => any;
-const { afterEach, beforeEach, describe, expect, mock, test, afterAll } =
-  require("bun:test");
+const {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+  afterAll,
+} = require("bun:test");
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -15,6 +23,9 @@ import {
   registerAgentName,
 } from "../../features/claude-code-session-state";
 import type { BoulderState } from "../../features/boulder-state";
+import * as originalInjectorConstants from "../../features/hook-message-injector/constants";
+import * as messageDirModule from "../../shared/opencode-message-dir";
+import * as storageDetection from "../../shared/opencode-storage-detection";
 
 const TEST_STORAGE_ROOT = join(
   tmpdir(),
@@ -23,24 +34,28 @@ const TEST_STORAGE_ROOT = join(
 const TEST_MESSAGE_STORAGE = join(TEST_STORAGE_ROOT, "message");
 const TEST_PART_STORAGE = join(TEST_STORAGE_ROOT, "part");
 
-mock.module("../../features/hook-message-injector/constants", () => ({
-  OPENCODE_STORAGE: TEST_STORAGE_ROOT,
-  MESSAGE_STORAGE: TEST_MESSAGE_STORAGE,
-  PART_STORAGE: TEST_PART_STORAGE,
-}));
+beforeEach(() => {
+  mock.restore();
+  mock.module("../../features/hook-message-injector/constants", () => ({
+    OPENCODE_STORAGE: TEST_STORAGE_ROOT,
+    MESSAGE_STORAGE: TEST_MESSAGE_STORAGE,
+    PART_STORAGE: TEST_PART_STORAGE,
+  }));
+});
 
-mock.module("../../shared/opencode-message-dir", () => ({
-  getMessageDir: (sessionID: string) => {
-    const directory = join(TEST_MESSAGE_STORAGE, sessionID);
-    return existsSync(directory) ? directory : null;
-  },
-}));
-
-mock.module("../../shared/opencode-storage-detection", () => ({
-  isSqliteBackend: () => false,
-}));
+afterEach(() => {
+  mock.module(
+    "../../features/hook-message-injector/constants",
+    () => originalInjectorConstants,
+  );
+  mock.restore();
+});
 
 afterAll(() => {
+  mock.module(
+    "../../features/hook-message-injector/constants",
+    () => originalInjectorConstants,
+  );
   mock.restore();
 });
 
@@ -82,6 +97,14 @@ describe("atlas hook compaction agent filtering", () => {
   }
 
   beforeEach(() => {
+    mock.restore();
+    spyOn(messageDirModule, "getMessageDir").mockImplementation(
+      (sessionID: string) => {
+        const directory = join(TEST_MESSAGE_STORAGE, sessionID);
+        return existsSync(directory) ? directory : null;
+      },
+    );
+    spyOn(storageDetection, "isSqliteBackend").mockReturnValue(false);
     testDirectory = join(tmpdir(), `atlas-compaction-test-${randomUUID()}`);
     mkdirSync(testDirectory, { recursive: true });
     clearBoulderState(testDirectory);
@@ -94,6 +117,7 @@ describe("atlas hook compaction agent filtering", () => {
     clearBoulderState(testDirectory);
     rmSync(testDirectory, { recursive: true, force: true });
     _resetForTesting();
+    mock.restore();
   });
 
   test("should inject continuation when the latest message is compaction but the previous agent matches atlas", async () => {

@@ -6,6 +6,7 @@ import {
   expect,
   it,
   mock,
+  spyOn,
 } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -14,8 +15,15 @@ import { join } from "node:path";
 
 import type { PluginInput } from "@opencode-ai/plugin";
 
+import * as loggerModule from "../../shared/logger";
+
 const storageMaps = new Map<string, Set<string>>();
 const logMock = mock(() => undefined);
+
+// Query-string cache buster so each test re-instantiates ./injector with its
+// logger binding capturing the spy installed in beforeEach. Unlike
+// mock.module(), this is immune to other files' global module-mock registry.
+let injectorBust = 0;
 
 mock.module("./storage", () => ({
   loadInjectedPaths: (sessionID: string) =>
@@ -25,9 +33,6 @@ mock.module("./storage", () => ({
   },
 }));
 
-mock.module("../../shared/logger", () => ({
-  log: logMock,
-}));
 
 afterAll(() => {
   mock.restore();
@@ -60,6 +65,11 @@ describe("processFilePathForReadmeInjection", () => {
     mkdirSync(testRoot, { recursive: true });
     storageMaps.clear();
     logMock.mockClear();
+    spyOn(loggerModule, "log").mockImplementation(
+      (msg: string, data?: unknown) => {
+        logMock(msg, data);
+      },
+    );
   });
 
   afterEach(() => {
@@ -76,7 +86,7 @@ describe("processFilePathForReadmeInjection", () => {
       "# Source README\nlocal context",
     );
 
-    const { processFilePathForReadmeInjection } = await import("./injector");
+    const { processFilePathForReadmeInjection } = await import(`./injector?inject=${injectorBust++}`);
     const output = { title: "Result", output: "base", metadata: {} };
     const truncator = createTruncator();
 
@@ -100,7 +110,7 @@ describe("processFilePathForReadmeInjection", () => {
     // given
     writeFileSync(join(testRoot, "README.md"), "# Root README\nroot context");
 
-    const { processFilePathForReadmeInjection } = await import("./injector");
+    const { processFilePathForReadmeInjection } = await import(`./injector?inject=${injectorBust++}`);
     const output = { title: "Result", output: "", metadata: {} };
     const truncator = createTruncator();
 
@@ -136,7 +146,7 @@ describe("processFilePathForReadmeInjection", () => {
       "export const button = true",
     );
 
-    const { processFilePathForReadmeInjection } = await import("./injector");
+    const { processFilePathForReadmeInjection } = await import(`./injector?inject=${injectorBust++}`);
     const output = { title: "Result", output: "", metadata: {} };
     const truncator = createTruncator();
 
@@ -192,7 +202,7 @@ describe("processFilePathForReadmeInjection", () => {
     mkdirSync(sourceDirectory, { recursive: true });
     writeFileSync(join(sourceDirectory, "README.md"), "# Source README");
 
-    const { processFilePathForReadmeInjection } = await import("./injector");
+    const { processFilePathForReadmeInjection } = await import(`./injector?inject=${injectorBust++}`);
     const sessionCaches = new Map<string, Set<string>>();
     const sessionID = "session-cache";
     const truncator = createTruncator();
@@ -228,7 +238,7 @@ describe("processFilePathForReadmeInjection", () => {
     mkdirSync(sourceDirectory, { recursive: true });
     writeFileSync(join(sourceDirectory, "README.md"), "# Truncated README");
 
-    const { processFilePathForReadmeInjection } = await import("./injector");
+    const { processFilePathForReadmeInjection } = await import(`./injector?inject=${injectorBust++}`);
     const output = { title: "Result", output: "", metadata: {} };
     const truncator = createTruncator({
       result: "trimmed content",
@@ -252,7 +262,7 @@ describe("processFilePathForReadmeInjection", () => {
 
   it("does nothing when filePath cannot be resolved", async () => {
     // given
-    const { processFilePathForReadmeInjection } = await import("./injector");
+    const { processFilePathForReadmeInjection } = await import(`./injector?inject=${injectorBust++}`);
     const output = { title: "Result", output: "unchanged", metadata: {} };
     const truncator = createTruncator();
 
@@ -277,7 +287,7 @@ describe("processFilePathForReadmeInjection", () => {
     const readmePath = join(sourceDirectory, "README.md");
     writeFileSync(readmePath, "# Source README");
 
-    const { processFilePathForReadmeInjection } = await import("./injector");
+    const { processFilePathForReadmeInjection } = await import(`./injector?inject=${injectorBust++}`);
     const output = { title: "Result", output: "base", metadata: {} };
     const sessionID = "session-truncation-failure";
     const sessionCaches = new Map<string, Set<string>>();

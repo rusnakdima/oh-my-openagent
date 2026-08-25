@@ -1,9 +1,17 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from "bun:test";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
-import type { PluginInput } from "@opencode-ai/plugin";
+import * as storageDetection from "../../shared/opencode-storage-detection";
 import { createAtlasHook } from "./atlas-hook";
 import {
   clearBoulderState,
@@ -20,10 +28,6 @@ import { RETRY_DELAY_MS } from "./idle-constants";
 import { unsafeTestValue } from "../../../../../test-support/unsafe-test-value";
 
 // Force process isolation in CI runner (globalThis.setTimeout override conflicts with other atlas tests)
-mock.module("../../shared/opencode-storage-detection", () => ({
-  isSqliteBackend: () => true,
-  resetSqliteBackendCache: () => {},
-}));
 
 type LongTimerCallback = (...args: unknown[]) => void | Promise<void>;
 
@@ -74,6 +78,8 @@ describe("atlas background task retry", () => {
   }
 
   beforeEach(() => {
+    mock.restore();
+    spyOn(storageDetection, "isSqliteBackend").mockReturnValue(true);
     _resetForTesting();
     registerAgentName("atlas");
     registerAgentName("sisyphus");
@@ -135,6 +141,7 @@ describe("atlas background task retry", () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+    mock.restore();
   });
 
   test("#given background tasks are still running #when retry fires before they finish #then atlas keeps retrying until continuation can resume", async () => {

@@ -8,7 +8,10 @@ import {
   expect,
   it,
   mock,
+  spyOn,
 } from "bun:test";
+
+import * as loggerModule from "../shared/logger";
 
 const ANTHROPIC_CONTEXT_ENV_KEY = "ANTHROPIC_1M_CONTEXT";
 const VERTEX_CONTEXT_ENV_KEY = "VERTEX_ANTHROPIC_1M_CONTEXT";
@@ -32,9 +35,16 @@ function resetContextLimitEnv(): void {
 
 const logMock = mock(() => {});
 
-mock.module("../shared/logger", () => ({
-  log: logMock,
-}));
+beforeEach(() => {
+  mock.restore();
+  spyOn(loggerModule, "log").mockImplementation((message, data) => {
+    logMock(message, data);
+  });
+});
+
+afterEach(() => {
+  mock.restore();
+});
 
 afterAll(() => {
   mock.restore();

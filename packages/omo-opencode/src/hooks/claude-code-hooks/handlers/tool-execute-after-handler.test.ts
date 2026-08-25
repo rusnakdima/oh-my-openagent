@@ -1,5 +1,17 @@
-import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
-import { restoreModuleMocksForTestFile } from "../../../testing/module-mock-lifecycle";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
+import * as configModule from "../config";
+import * as configLoaderModule from "../config-loader";
+import * as postToolUseModule from "../post-tool-use";
+import * as transcriptModule from "../transcript";
 
 type PostToolUseMockResult = {
   block?: boolean;
@@ -19,26 +31,31 @@ const appendTranscriptEntry = mock((sessionId: string, entry: unknown) => {
 });
 let postToolUseResult: PostToolUseMockResult = { warnings: [] };
 
-mock.module("../config", () => ({
-  loadClaudeHooksConfig: async () => ({}),
-}));
+beforeEach(() => {
+  mock.restore();
+  spyOn(configModule, "loadClaudeHooksConfig").mockImplementation(
+    async () => ({}),
+  );
+  spyOn(configLoaderModule, "loadPluginExtendedConfig").mockImplementation(
+    async () => ({}),
+  );
+  spyOn(postToolUseModule, "executePostToolUseHooks").mockImplementation(
+    async () => postToolUseResult,
+  );
+  spyOn(transcriptModule, "appendTranscriptEntry").mockImplementation(
+    appendTranscriptEntry as unknown as typeof transcriptModule.appendTranscriptEntry,
+  );
+  spyOn(transcriptModule, "getTranscriptPath").mockImplementation(
+    () => "/tmp/transcript.jsonl",
+  );
+});
 
-mock.module("../config-loader", () => ({
-  loadPluginExtendedConfig: async () => ({}),
-}));
-
-mock.module("../post-tool-use", () => ({
-  executePostToolUseHooks: async () => postToolUseResult,
-}));
-
-mock.module("../transcript", () => ({
-  appendTranscriptEntry,
-  getTranscriptPath: () => "/tmp/transcript.jsonl",
-}));
+afterEach(() => {
+  mock.restore();
+});
 
 afterAll(() => {
   mock.restore();
-  restoreModuleMocksForTestFile(import.meta.url);
 });
 
 const { createToolExecuteAfterHandler } = await import(

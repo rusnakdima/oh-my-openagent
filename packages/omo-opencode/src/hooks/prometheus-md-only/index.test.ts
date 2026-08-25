@@ -5,6 +5,7 @@ import {
   describe,
   expect,
   mock,
+  spyOn,
   test,
 } from "bun:test";
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
@@ -17,11 +18,8 @@ import {
   clearSessionAgent,
   setSessionAgent,
 } from "../../features/claude-code-session-state";
-// Force stable (JSON) mode for tests that rely on message file storage
-mock.module("../../shared/opencode-storage-detection", () => ({
-  isSqliteBackend: () => false,
-  resetSqliteBackendCache: () => {},
-}));
+
+import * as storageDetection from "../../shared/opencode-storage-detection";
 
 afterAll(() => {
   mock.restore();
@@ -84,6 +82,11 @@ describe("prometheus-md-only", () => {
         // ignore
       }
     }
+  });
+
+  beforeEach(() => {
+    mock.restore();
+    spyOn(storageDetection, "isSqliteBackend").mockReturnValue(false);
   });
 
   describe("agent name matching", () => {

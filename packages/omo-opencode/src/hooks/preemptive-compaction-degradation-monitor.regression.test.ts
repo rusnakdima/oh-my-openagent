@@ -1,12 +1,30 @@
 /// <reference types="bun-types" />
 
-import { afterAll, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from "bun:test";
+
+import * as loggerModule from "../shared/logger";
 
 const logMock = mock(() => {});
 
-mock.module("../shared/logger", () => ({
-  log: logMock,
-}));
+beforeEach(() => {
+  mock.restore();
+  spyOn(loggerModule, "log").mockImplementation((message, data) => {
+    logMock(message, data);
+  });
+});
+
+afterEach(() => {
+  mock.restore();
+});
 
 afterAll(() => {
   mock.restore();

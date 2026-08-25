@@ -1,5 +1,16 @@
-import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
-import { restoreModuleMocksForTestFile } from "../../../testing/module-mock-lifecycle";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from "bun:test";
+import * as configModule from "../config";
+import * as configLoaderModule from "../config-loader";
+import * as stopModule from "../stop";
 
 const executeStopHooks = mock(async (
   context: { parentSessionId?: string; transcriptPath?: string },
@@ -8,23 +19,31 @@ const executeStopHooks = mock(async (
   observedParentSessionId: context.parentSessionId,
 }));
 
-mock.module("../config", () => ({
-  clearClaudeHooksConfigCache: () => {},
-  loadClaudeHooksConfig: async () => null,
-}));
+beforeEach(() => {
+  mock.restore();
+  spyOn(configModule, "clearClaudeHooksConfigCache").mockImplementation(
+    () => {},
+  );
+  spyOn(configModule, "loadClaudeHooksConfig").mockImplementation(
+    async () => null,
+  );
+  spyOn(configLoaderModule, "clearPluginExtendedConfigCache").mockImplementation(
+    () => {},
+  );
+  spyOn(configLoaderModule, "loadPluginExtendedConfig").mockImplementation(
+    async () => ({}),
+  );
+  spyOn(stopModule, "executeStopHooks").mockImplementation(
+    executeStopHooks as unknown as typeof stopModule.executeStopHooks,
+  );
+});
 
-mock.module("../config-loader", () => ({
-  clearPluginExtendedConfigCache: () => {},
-  loadPluginExtendedConfig: async () => ({}),
-}));
-
-mock.module("../stop", () => ({
-  executeStopHooks,
-}));
+afterEach(() => {
+  mock.restore();
+});
 
 afterAll(() => {
   mock.restore();
-  restoreModuleMocksForTestFile(import.meta.url);
 });
 
 const { createSessionEventHandler } = await import("./session-event-handler");

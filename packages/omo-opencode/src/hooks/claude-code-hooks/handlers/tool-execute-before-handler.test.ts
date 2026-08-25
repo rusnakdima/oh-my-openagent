@@ -1,5 +1,6 @@
 import {
   afterAll,
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -7,7 +8,10 @@ import {
   mock,
   spyOn,
 } from "bun:test";
-import { restoreModuleMocksForTestFile } from "../../../testing/module-mock-lifecycle";
+import * as configModule from "../config";
+import * as configLoaderModule from "../config-loader";
+import * as preToolUseModule from "../pre-tool-use";
+import * as boulderStateModule from "../../../features/boulder-state";
 import type { PreToolUseContext } from "../pre-tool-use";
 
 type PreToolUseMockResult = {
@@ -24,28 +28,31 @@ let preToolUseResult: PreToolUseMockResult = { decision: "allow" };
 let preToolUseContexts: PreToolUseContext[] = [];
 const mockGetWorkForSession = mock(() => null);
 
-mock.module("../config", () => ({
-  loadClaudeHooksConfig: async () => ({}),
-}));
+beforeEach(() => {
+  mock.restore();
+  spyOn(configModule, "loadClaudeHooksConfig").mockImplementation(
+    async () => ({}),
+  );
+  spyOn(configLoaderModule, "loadPluginExtendedConfig").mockImplementation(
+    async () => ({}),
+  );
+  spyOn(preToolUseModule, "executePreToolUseHooks").mockImplementation(
+    async (context: PreToolUseContext) => {
+      preToolUseContexts.push(context);
+      return preToolUseResult;
+    },
+  );
+  spyOn(boulderStateModule, "getWorkForSession").mockImplementation(
+    mockGetWorkForSession as unknown as typeof boulderStateModule.getWorkForSession,
+  );
+});
 
-mock.module("../config-loader", () => ({
-  loadPluginExtendedConfig: async () => ({}),
-}));
-
-mock.module("../pre-tool-use", () => ({
-  executePreToolUseHooks: async (context: PreToolUseContext) => {
-    preToolUseContexts.push(context);
-    return preToolUseResult;
-  },
-}));
-
-mock.module("../../../features/boulder-state", () => ({
-  getWorkForSession: mockGetWorkForSession,
-}));
+afterEach(() => {
+  mock.restore();
+});
 
 afterAll(() => {
   mock.restore();
-  restoreModuleMocksForTestFile(import.meta.url);
 });
 
 const { createToolExecuteBeforeHandler } = await import(

@@ -1,4 +1,13 @@
-import { afterAll, describe, expect, mock, test } from "bun:test";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  mock,
+  spyOn,
+  test,
+} from "bun:test";
 import { randomUUID } from "node:crypto";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -9,6 +18,10 @@ import {
   registerFinalWaveTestEnvironment,
   writeFinalWavePlanState,
 } from "./final-wave-approval-gate.test-support";
+import * as originalInjectorConstants from "../../features/hook-message-injector/constants";
+import * as messageDirModule from "../../shared/opencode-message-dir";
+import * as storageDetection from "../../shared/opencode-storage-detection";
+
 
 const TEST_STORAGE_ROOT = join(
   tmpdir(),
@@ -17,31 +30,39 @@ const TEST_STORAGE_ROOT = join(
 const TEST_MESSAGE_STORAGE = join(TEST_STORAGE_ROOT, "message");
 const TEST_PART_STORAGE = join(TEST_STORAGE_ROOT, "part");
 
-mock.module("../../features/hook-message-injector/constants", () => ({
-  OPENCODE_STORAGE: TEST_STORAGE_ROOT,
-  MESSAGE_STORAGE: TEST_MESSAGE_STORAGE,
-  PART_STORAGE: TEST_PART_STORAGE,
-}));
+beforeEach(() => {
+  mock.restore();
+  mock.module("../../features/hook-message-injector/constants", () => ({
+    OPENCODE_STORAGE: TEST_STORAGE_ROOT,
+    MESSAGE_STORAGE: TEST_MESSAGE_STORAGE,
+    PART_STORAGE: TEST_PART_STORAGE,
+  }));
+  spyOn(messageDirModule, "getMessageDir").mockImplementation(
+    (sessionID: string) => {
+      const directoryPath = join(TEST_MESSAGE_STORAGE, sessionID);
+      return existsSync(directoryPath) ? directoryPath : null;
+    },
+  );
+  spyOn(storageDetection, "isSqliteBackend").mockReturnValue(false);
+});
 
-mock.module("../../shared/opencode-message-dir", () => ({
-  getMessageDir: (sessionID: string) => {
-    const directoryPath = join(TEST_MESSAGE_STORAGE, sessionID);
-    return existsSync(directoryPath) ? directoryPath : null;
-  },
-}));
-
-mock.module("../../shared/opencode-storage-detection", () => ({
-  isSqliteBackend: () => false,
-}));
+afterEach(() => {
+  mock.module(
+    "../../features/hook-message-injector/constants",
+    () => originalInjectorConstants,
+  );
+  mock.restore();
+});
 
 afterAll(() => {
+  mock.module(
+    "../../features/hook-message-injector/constants",
+    () => originalInjectorConstants,
+  );
   mock.restore();
 });
 
 const { createToolExecuteAfterHandler } = await import("./tool-execute-after");
-const { MESSAGE_STORAGE } = await import(
-  "../../features/hook-message-injector"
-);
 
 describe("Atlas final-wave approval gate regressions", () => {
   const env = registerFinalWaveTestEnvironment();
@@ -68,7 +89,7 @@ describe("Atlas final-wave approval gate regressions", () => {
   }
 
   function setupMessageStorage(sessionID: string): void {
-    const messageDirectory = join(MESSAGE_STORAGE, sessionID);
+    const messageDirectory = join(TEST_MESSAGE_STORAGE, sessionID);
     if (!existsSync(messageDirectory)) {
       mkdirSync(messageDirectory, { recursive: true });
     }
