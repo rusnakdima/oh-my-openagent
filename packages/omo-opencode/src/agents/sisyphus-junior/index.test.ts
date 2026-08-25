@@ -381,6 +381,7 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
       const result = createSisyphusJuniorAgentWithOverrides(
         override,
         undefined,
+        undefined,
         true,
       );
 
@@ -397,6 +398,7 @@ describe("createSisyphusJuniorAgentWithOverrides", () => {
       //#when
       const result = createSisyphusJuniorAgentWithOverrides(
         override,
+        undefined,
         undefined,
         true,
       );

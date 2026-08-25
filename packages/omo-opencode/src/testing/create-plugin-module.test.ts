@@ -275,11 +275,9 @@ describe("createPluginModule()", () => {
         ?.[0];
       expect(sourceArgs?.skills.map((skill) => skill.name)).toEqual([
         "security-research",
-        "security-review",
       ]);
       expect(mockCreateManagers.mock.calls.at(0)?.[0]).toMatchObject({
-        runtimeSkillSourceUrl:
-          "http://127.0.0.1:49152/security-research,security-review",
+        runtimeSkillSourceUrl: "http://127.0.0.1:49152/security-research",
       });
     });
 
@@ -338,7 +336,7 @@ describe("createPluginModule()", () => {
   });
 
   describe("#given security-research is disabled", () => {
-    it("#then startup still exposes security-review through the runtime skill source", async () => {
+    it("#then startup creates no runtime skill source", async () => {
       // given
       const pluginModule = createTestPluginModule();
       mockLoadPluginConfig.mockReturnValue({
@@ -354,14 +352,9 @@ describe("createPluginModule()", () => {
       );
 
       // then
-      const sourceArgs = mockCreateRuntimeSkillSourceServer.mock.calls.at(0)
-        ?.[0];
-      expect(sourceArgs?.skills.map((skill) => skill.name)).toEqual([
-        "security-review",
-      ]);
-      expect(mockCreateManagers.mock.calls.at(0)?.[0]).toMatchObject({
-        runtimeSkillSourceUrl: "http://127.0.0.1:49152/security-review",
-      });
+      expect(mockCreateRuntimeSkillSourceServer).not.toHaveBeenCalled();
+      expect(mockCreateManagers.mock.calls.at(0)?.[0]?.runtimeSkillSourceUrl)
+        .toBeUndefined();
     });
   });
 

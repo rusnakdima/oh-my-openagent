@@ -3,30 +3,37 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 
-import * as opencodeConfigDir from "../../shared/opencode-config-dir";
 import { readOpencodeConfigSkills } from "./opencode-config-skills-reader";
 
 describe("readOpencodeConfigSkills", () => {
   let tmpDir: string;
   let globalConfigDir: string;
-  let getOpenCodeConfigDirSpy: ReturnType<typeof spyOn>;
+  let originalEnv: Record<string, string | undefined>;
 
   beforeEach(() => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "ohmo-host-skills-"));
-    // Hermetic: redirect the "global" opencode config dir into an isolated
-    // empty tmp dir so the developer's real ~/.config/opencode does not
+    // Hermetic: redirect the "global" opencode config dirs into isolated
+    // empty tmp dirs so the developer's real ~/.config/opencode does not
     // leak into these tests (or vice versa: CI passes while local fails).
+    // Env-based isolation is required because the reader resolves config
+    // dirs inside skills-loader-core; spying on a local re-export would
+    // mutate a different module instance and have no effect.
     globalConfigDir = fs.mkdtempSync(
       path.join(os.tmpdir(), "ohmo-global-opencode-"),
     );
-    getOpenCodeConfigDirSpy = spyOn(opencodeConfigDir, "getOpenCodeConfigDir")
-      .mockReturnValue(
-        globalConfigDir,
-      );
+    originalEnv = {
+      XDG_CONFIG_HOME: process.env.XDG_CONFIG_HOME,
+      OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR,
+    };
+    process.env.XDG_CONFIG_HOME = globalConfigDir;
+    process.env.OPENCODE_CONFIG_DIR = globalConfigDir;
   });
 
   afterEach(() => {
-    getOpenCodeConfigDirSpy.mockRestore();
+    for (const [key, value] of Object.entries(originalEnv)) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
     fs.rmSync(tmpDir, { recursive: true, force: true });
     fs.rmSync(globalConfigDir, { recursive: true, force: true });
   });

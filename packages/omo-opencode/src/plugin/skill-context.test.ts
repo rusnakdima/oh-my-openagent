@@ -66,7 +66,10 @@ describe("createSkillContext", () => {
       "getSystemMcpServerNames",
     ).mockReturnValue(new Set<string>());
 
-    const pluginConfig = OhMyOpenCodeConfigSchema.parse({});
+    // security-research is a team-mode-gated builtin skill.
+    const pluginConfig = OhMyOpenCodeConfigSchema.parse({
+      team_mode: { enabled: true },
+    });
 
     try {
       // when
@@ -79,17 +82,9 @@ describe("createSkillContext", () => {
       expect(
         result.mergedSkills.some((skill) => skill.name === "security-research"),
       ).toBe(true);
-      expect(
-        result.mergedSkills.some((skill) => skill.name === "security-review"),
-      ).toBe(true);
       expect(result.availableSkills).toContainEqual({
         name: "security-research",
         description: expect.stringContaining("security research"),
-        location: "plugin",
-      });
-      expect(result.availableSkills).toContainEqual({
-        name: "security-review",
-        description: expect.stringContaining("/security-review"),
         location: "plugin",
       });
     } finally {

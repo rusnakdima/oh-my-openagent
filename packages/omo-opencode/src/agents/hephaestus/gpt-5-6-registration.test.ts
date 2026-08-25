@@ -52,7 +52,7 @@ describe("maybeCreateHephaestusConfig GPT-5.6 registration", () => {
     });
   }
 
-  test("#given an unsupported Claude model #when Hephaestus registers #then no config is registered", () => {
+  test("#given an unsupported Claude model #when Hephaestus registers #then it registers with the generic GPT prompt", () => {
     // given
     const model = "anthropic/claude-sonnet-4-6";
     const agentOverrides: AgentOverrides = {
@@ -77,7 +77,10 @@ describe("maybeCreateHephaestusConfig GPT-5.6 registration", () => {
       useTaskSystem: false,
     });
 
-    // then
-    expect(config).toBeUndefined();
+    // then - unsupported models no longer block registration; they route to the
+    // generic GPT fallback prompt instead.
+    expect(config).toBeDefined();
+    expect(config?.model).toBe(model);
+    expect(getHephaestusPromptSource(config?.model)).toBe("gpt");
   });
 });

@@ -2,14 +2,15 @@ import { describe, expect, test } from "bun:test";
 
 import {
   createHephaestusAgent,
-  UnsupportedHephaestusModelError,
+  getHephaestusPrompt,
+  getHephaestusPromptSource,
 } from "./hephaestus";
 import { maybeCreateHephaestusConfig } from "./builtin-agents/hephaestus-agent";
 import type { AgentOverrides } from "./types";
 import type { CategoryConfig } from "../config/schema";
 
 describe("Hephaestus model eligibility", () => {
-  test("#given non-GPT Hephaestus variants #when rendering prompts #then Hephaestus is rejected", () => {
+  test("#given non-GPT Hephaestus variants #when rendering prompts #then the generic GPT fallback prompt is used", () => {
     // given
     const models = [
       "opencode-go/qwen3.7-plus",
@@ -21,15 +22,15 @@ describe("Hephaestus model eligibility", () => {
     ];
 
     for (const model of models) {
-      // when
-      const createAgent = () => createHephaestusAgent(model);
-
-      // then
-      expect(createAgent).toThrow(UnsupportedHephaestusModelError);
+      // when / then - non-GPT models no longer throw; they route to the
+      // generic GPT fallback prompt so the agent still registers and runs.
+      expect(getHephaestusPromptSource(model)).toBe("gpt");
+      const config = createHephaestusAgent(model);
+      expect(config.prompt).toBe(getHephaestusPrompt(model));
     }
   });
 
-  test("#given non-GPT Hephaestus override #when plugin config creates the agent #then Hephaestus is not registered", () => {
+  test("#given non-GPT Hephaestus override #when plugin config creates the agent #then Hephaestus registers with the override model", () => {
     // given
     const agentOverrides: AgentOverrides = {
       hephaestus: {
@@ -52,7 +53,8 @@ describe("Hephaestus model eligibility", () => {
       useTaskSystem: false,
     });
 
-    // then
-    expect(config).toBeUndefined();
+    // then - non-GPT models no longer block registration
+    expect(config).toBeDefined();
+    expect(config?.model).toBe("opencode-go/qwen3.7PLUS");
   });
 });

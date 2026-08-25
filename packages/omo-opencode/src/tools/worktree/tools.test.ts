@@ -64,14 +64,8 @@ describe("worktree tools", () => {
         mockContext("test_session"),
       );
 
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: expect.stringContaining("my-worktree"),
-          },
-        ],
-      });
+      expect(result).toEqual(expect.stringContaining("Entered worktree at"));
+      expect(result).toEqual(expect.stringContaining("my-worktree"));
 
       const stored = mockWorktreeStates.get("test_session");
       expect(stored?.worktree_path).toContain("my-worktree");
@@ -90,14 +84,8 @@ describe("worktree tools", () => {
         mockContext("new_session"),
       );
 
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: expect.stringContaining("my-worktree"),
-          },
-        ],
-      });
+      expect(result).toEqual(expect.stringContaining("Entered worktree at"));
+      expect(result).toEqual(expect.stringContaining("my-worktree"));
     });
   });
 
@@ -120,14 +108,8 @@ describe("worktree tools", () => {
         mockContext("test_session"),
       );
 
-      expect(result).toEqual({
-        content: [
-          {
-            type: "text",
-            text: expect.stringContaining("exited"),
-          },
-        ],
-      });
+      expect(result).toEqual(expect.stringContaining("Exited worktree"));
+      expect(result).toEqual(expect.stringContaining(tempDir));
 
       const cleared = mockWorktreeStates.get("test_session");
       expect(cleared?.worktree_path).toBeUndefined();

@@ -151,7 +151,11 @@ describe("resolveMultimodalLookerAgentMetadata", () => {
     });
   });
 
-  test("falls back to the hardcoded multimodal chain when no dynamic vision model exists", async () => {
+  // Commit 99e0649fc gated fallback chains behind modelFallbackEnabled
+  // (default false): with no registered multimodal-looker agent and the gate
+  // off, dynamic resolution yields no override and the child session uses the
+  // agent's own provider-default model.
+  test("returns no override when only the fallback chain could resolve (modelFallbackEnabled=false)", async () => {
     // given
     setVisionCapableModelsCache(
       new Map([
@@ -172,10 +176,7 @@ describe("resolveMultimodalLookerAgentMetadata", () => {
     const result = await resolveMultimodalLookerAgentMetadata(ctx);
 
     // then
-    expect(result).toEqual({
-      agentModel: { providerID: "google", modelID: "gemini-3-flash" },
-      agentVariant: undefined,
-    });
+    expect(result).toEqual({});
   });
 
   test("returns registered model even when not in vision-capable cache", async () => {

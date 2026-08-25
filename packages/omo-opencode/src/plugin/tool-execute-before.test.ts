@@ -47,10 +47,17 @@ describe("createToolExecuteBeforeHandler", () => {
     );
 
     //#then
-    for (const run of runs) {
-      await expect(run).rejects.toThrow(
-        "BTW side conversations cannot delegate work.",
-      );
+    // Assert via allSettled: with multiple concurrently-rejected promises,
+    // Bun flags rejections observed through sequential .rejects matchers as
+    // unhandled errors and fails the test even when every rejection matches.
+    const settled = await Promise.allSettled(runs);
+    for (const outcome of settled) {
+      expect(outcome.status).toBe("rejected");
+      if (outcome.status === "rejected") {
+        expect(
+          (outcome.reason as Error).message,
+        ).toBe("BTW side conversations cannot delegate work.");
+      }
     }
   });
 
@@ -502,15 +509,20 @@ describe("createToolRegistry", () => {
         expect(Object.keys(result.filteredTools)).toHaveLength(10);
       });
 
-      test("#then it keeps the task tool when lower-priority tools can satisfy the cap", () => {
-        const result = createToolRegistry(
-          createRegistryInput({
-            experimental: { max_tools: 10 },
-          }),
-        );
+    test("#then it keeps the task tool when lower-priority tools can satisfy the cap", () => {
+      // The default registry exposes 25 tools; 13 of them rank below `task`
+      // in LOW_PRIORITY_TOOL_ORDER (ast_grep_search/ast_grep_replace were
+      // removed from that tier by e32135858). A cap of 13 is satisfiable by
+      // those 13 lower-priority tools alone, so `task` must survive.
+      const result = createToolRegistry(
+        createRegistryInput({
+          experimental: { max_tools: 25 - 13 },
+        }),
+      );
 
-        expect(result.filteredTools.task).toBeDefined();
-      });
+      expect(result.filteredTools.task).toBeDefined();
+      expect(Object.keys(result.filteredTools)).toHaveLength(12);
+    });
     });
   });
 });

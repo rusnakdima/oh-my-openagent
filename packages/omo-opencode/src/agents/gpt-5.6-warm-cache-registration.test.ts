@@ -9,8 +9,10 @@ type AgentSources = Parameters<
 >[0]["agentSources"];
 
 describe("Momus GPT-5.6 warm-cache registration", () => {
-  test("registers transformed Vercel terra ahead of Copilot terra", () => {
-    // given
+  test("skips momus when only fallback-chain models are available and no system default or override is configured", () => {
+    // given - hardcoded fallback chains are disabled by default
+    // (model_fallback_enabled=false), so chain-only availability no longer
+    // registers the agent.
     const availableModels = new Set([
       "github-copilot/gpt-5.6-terra",
       "vercel/openai/gpt-5.6-terra",
@@ -29,7 +31,6 @@ describe("Momus GPT-5.6 warm-cache registration", () => {
     const config = pendingAgentConfigs.get("momus");
 
     // then
-    expect(config?.model).toBe("vercel/openai/gpt-5.6-terra");
-    expect(config?.variant).toBe("high");
+    expect(config).toBeUndefined();
   });
 });

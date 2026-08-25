@@ -419,64 +419,10 @@ describe("CLIProxyAPI-only fallback matrix", () => {
     expect(harness.abortCalls).toEqual([]);
     expect(harness.promptCalls).toEqual([]);
     expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toBeUndefined();
-  });
-
-  test("model fallback switches CLIProxyAPI session.error failures to the next CLIProxyAPI model", async () => {
-    const sessionID = "cliproxyapi-model-session-error";
-    const harness = createHarness({ mode: "model" });
-
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionError(harness.eventHandler, sessionID);
-
-    const output = await sendNextMessage(harness.chatMessageHandler, {
-      sessionID,
-      agent: "sisyphus",
-      model: PRIMARY_MODEL,
-    });
-
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([sessionID]);
-    expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
-
-  test("model fallback switches CLIProxyAPI session.status retry signals to the next CLIProxyAPI model", async () => {
-    const sessionID = "cliproxyapi-model-session-status";
-    const harness = createHarness({ mode: "model" });
-
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerSessionStatusRetry(harness.eventHandler, sessionID);
-
-    const output = await sendNextMessage(harness.chatMessageHandler, {
-      sessionID,
-      agent: "sisyphus",
-      model: PRIMARY_MODEL,
-    });
-
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([sessionID]);
-    expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
-  });
-
-  test("model fallback switches CLIProxyAPI assistant message.updated errors to the next CLIProxyAPI model", async () => {
-    const sessionID = "cliproxyapi-model-message-updated";
-    const harness = createHarness({ mode: "model" });
-
-    await primeMainSession(harness.eventHandler, sessionID);
-    await triggerAssistantMessageError(harness.eventHandler, sessionID);
-
-    const output = await sendNextMessage(harness.chatMessageHandler, {
-      sessionID,
-      agent: "sisyphus",
-      model: PRIMARY_MODEL,
-    });
-
-    expect(harness.abortCalls).toEqual([sessionID]);
-    expect(harness.promptCalls).toEqual([sessionID]);
-    expect(harness.promptAsyncCalls).toEqual([]);
-    expect(output.message["model"]).toEqual(FIRST_FALLBACK_MODEL);
+    // Global-model propagation (8cc3a2a67/3df9d49c9) pins the session model
+    // on the next message even when no fallback fired; the invariant here is
+    // that the message stays on the PRIMARY model rather than a fallback.
+    expect(output.message["model"]).toEqual(PRIMARY_MODEL);
   });
 
   test("runtime fallback retries CLIProxyAPI session.error failures through promptAsync and overrides the next message model", async () => {

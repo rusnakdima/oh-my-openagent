@@ -85,15 +85,17 @@ describe("OpenCode runtime skill source config", () => {
     expect(config.skills).toBeUndefined();
   });
 
-  test("security-research disablement keeps security-review enabled", () => {
+  test("security-research disablement suppresses all runtime security skills", () => {
     // given
+    // security-review was a thin alias removed in ffd656646; disabling the
+    // canonical security-research skill now suppresses the whole surface.
     const pluginConfig = createPluginConfig(["security-research"]);
 
     // when
     const skills = selectRuntimeSecuritySkills(pluginConfig);
 
     // then
-    expect(skills.map((skill) => skill.name)).toEqual(["security-review"]);
+    expect(skills).toEqual([]);
   });
 
   test("security-review disablement suppresses only the review alias", () => {

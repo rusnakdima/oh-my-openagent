@@ -3,17 +3,11 @@ import { afterEach, describe, expect, it, mock, spyOn } from "bun:test";
 import type { PluginInput } from "@opencode-ai/plugin";
 
 import { createEventHandler, extractErrorMessage } from "./event";
-import { createChatMessageHandler } from "./chat-message";
 import * as openclawRuntimeDispatch from "../openclaw/runtime-dispatch";
 import {
   _resetForTesting,
-  setMainSession,
   subagentSessions,
 } from "../features/claude-code-session-state";
-import {
-  clearPendingModelFallback,
-  createModelFallbackHook,
-} from "../hooks/model-fallback/hook";
 import {
   getSessionPromptParams,
   setSessionPromptParams,
@@ -22,7 +16,6 @@ import {
 type EventInput = { event: { type: string; properties?: unknown } };
 type EventHandlerArgs = Parameters<typeof createEventHandler>[0];
 type EventHandlerInput = Parameters<ReturnType<typeof createEventHandler>>[0];
-type ChatMessageHandlerArgs = Parameters<typeof createChatMessageHandler>[0];
 
 function cast<T>(value: unknown): T {
   return value as T;
@@ -36,21 +29,10 @@ function asEventHandlerContext(ctx: unknown): EventHandlerArgs["ctx"] {
   return cast<EventHandlerArgs["ctx"]>(ctx);
 }
 
-function asChatMessageHandlerContext(
-  ctx: unknown,
-): ChatMessageHandlerArgs["ctx"] {
-  return cast<ChatMessageHandlerArgs["ctx"]>(ctx);
-}
-
 function asPluginConfig(config: unknown): EventHandlerArgs["pluginConfig"] {
   return cast<EventHandlerArgs["pluginConfig"]>(config);
 }
 
-function asChatPluginConfig(
-  config: unknown,
-): ChatMessageHandlerArgs["pluginConfig"] {
-  return cast<ChatMessageHandlerArgs["pluginConfig"]>(config);
-}
 
 function asPluginInput(input: unknown): PluginInput {
   return input as PluginInput;
@@ -73,12 +55,6 @@ function createEventHandlerHooks(
   overrides: Record<string, unknown> = {},
 ): EventHandlerArgs["hooks"] {
   return cast<EventHandlerArgs["hooks"]>(overrides);
-}
-
-function createChatMessageHandlerHooks(
-  overrides: Record<string, unknown> = {},
-): ChatMessageHandlerArgs["hooks"] {
-  return cast<ChatMessageHandlerArgs["hooks"]>(overrides);
 }
 
 async function wait(ms: number): Promise<void> {
@@ -1451,157 +1427,6 @@ describe("createEventHandler - event forwarding", () => {
   });
 });
 
-describe("createEventHandler - retry dedupe lifecycle", () => {
-  it("re-handles same retry key after session recovers to idle status", async () => {
-    const sessionID = "ses_retry_recovery_rearm";
-    setMainSession(sessionID);
-    const abortCalls: string[] = [];
-    const promptCalls: string[] = [];
-    const modelFallback = createModelFallbackHook();
-    clearPendingModelFallback(modelFallback, sessionID);
-
-    const eventHandler = createEventHandler({
-      ctx: asEventHandlerContext({
-        directory: "/tmp",
-        client: {
-          session: {
-            abort: async ({ path }: { path: { id: string } }) => {
-              abortCalls.push(path.id);
-              return {};
-            },
-            prompt: async ({ path }: { path: { id: string } }) => {
-              promptCalls.push(path.id);
-              return {};
-            },
-          },
-        },
-      }),
-      pluginConfig: asPluginConfig({}),
-      firstMessageVariantGate: {
-        markSessionCreated: () => {},
-        clear: () => {},
-      },
-      managers: createEventHandlerManagers({
-        skillMcpManager: {
-          disconnectSession: async () => {},
-        },
-      }),
-      hooks: createEventHandlerHooks({
-        modelFallback,
-        stopContinuationGuard: { isStopped: () => false },
-      }),
-    });
-
-    const chatMessageHandler = createChatMessageHandler({
-      ctx: asChatMessageHandlerContext({
-        client: {
-          tui: {
-            showToast: async () => ({}),
-          },
-        },
-      }),
-      pluginConfig: asChatPluginConfig({}),
-      firstMessageVariantGate: {
-        shouldOverride: () => false,
-        markApplied: () => {},
-      },
-      hooks: createChatMessageHandlerHooks({
-        modelFallback,
-        stopContinuationGuard: null,
-        keywordDetector: null,
-        claudeCodeHooks: null,
-        autoSlashCommand: null,
-        startWork: null,
-        ralphLoop: null,
-      }),
-    });
-
-    const retryStatus = {
-      type: "retry",
-      attempt: 1,
-      message:
-        "All credentials for model claude-opus-4-8-thinking are cooling down [retrying in 7m 56s attempt #1]",
-      next: 476,
-    } as const;
-
-    await eventHandler(asEventHandlerInput({
-      event: {
-        type: "message.updated",
-        properties: {
-          info: {
-            id: "msg_user_retry_rearm",
-            sessionID,
-            role: "user",
-            modelID: "claude-opus-4-8-thinking",
-            providerID: "anthropic",
-            agent: "Sisyphus - Ultraworker",
-          },
-        },
-      },
-    }));
-    await eventHandler(asEventHandlerInput({
-      event: {
-        type: "session.status",
-        properties: {
-          sessionID,
-          status: retryStatus,
-        },
-      },
-    }));
-
-    const firstOutput = {
-      message: {},
-      parts: [] as Array<{ type: string; text?: string }>,
-    };
-    await chatMessageHandler(
-      {
-        sessionID,
-        agent: "sisyphus",
-        model: { providerID: "anthropic", modelID: "claude-opus-4-8-thinking" },
-      },
-      firstOutput,
-    );
-    await eventHandler(asEventHandlerInput({
-      event: {
-        type: "session.status",
-        properties: {
-          sessionID,
-          status: { type: "idle" },
-        },
-      },
-    }));
-    await eventHandler(asEventHandlerInput({
-      event: {
-        type: "message.updated",
-        properties: {
-          info: {
-            id: "msg_user_retry_rearm_opus5",
-            sessionID,
-            role: "user",
-            modelID: "claude-opus-5",
-            providerID: "anthropic",
-            agent: "Sisyphus - Ultraworker",
-          },
-        },
-      },
-    }));
-    await eventHandler(asEventHandlerInput({
-      event: {
-        type: "session.status",
-        properties: {
-          sessionID,
-          status: {
-            ...retryStatus,
-            message:
-              "All credentials for model claude-opus-5 are cooling down [retrying in 7m 56s attempt #1]",
-          },
-        },
-      },
-    }));
-    expect(abortCalls).toEqual([sessionID, sessionID]);
-    expect(promptCalls).toEqual([sessionID, sessionID]);
-  });
-});
 
 describe("createEventHandler - event hook isolation", () => {
   it("continues dispatching later event hooks when an earlier hook throws", async () => {

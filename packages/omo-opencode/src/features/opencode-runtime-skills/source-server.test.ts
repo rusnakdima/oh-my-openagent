@@ -25,28 +25,17 @@ describe("runtime security skill source server", () => {
     const researchResponse = await source.fetch(
       new Request(new URL("security-research/SKILL.md", source.url)),
     );
-    const reviewResponse = await source.fetch(
-      new Request(new URL("security-review/SKILL.md", source.url)),
-    );
     const researchMarkdown = await researchResponse.text();
-    const reviewMarkdown = await reviewResponse.text();
 
     // then
     expect(indexResponse.status).toBe(200);
     expect(index).toEqual({
       skills: [
         { name: "security-research", files: ["SKILL.md"] },
-        { name: "security-review", files: ["SKILL.md"] },
       ],
     });
     expect(researchResponse.status).toBe(200);
-    expect(reviewResponse.status).toBe(200);
-    expect(researchMarkdown).toStartWith("---\nname: security-research\n");
-    expect(reviewMarkdown).toStartWith("---\nname: security-review\n");
     expect(researchMarkdown).toContain(
-      "Security Research - Team Mode Vulnerability Audit",
-    );
-    expect(reviewMarkdown).toContain(
       "Security Research - Team Mode Vulnerability Audit",
     );
   });
@@ -89,7 +78,6 @@ describe("runtime security skill source server", () => {
     expect(index).toEqual({
       skills: [
         { name: "security-research", files: ["SKILL.md"] },
-        { name: "security-review", files: ["SKILL.md"] },
       ],
     });
   });

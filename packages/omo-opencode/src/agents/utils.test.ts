@@ -25,10 +25,10 @@ const TEST_DEFAULT_MODEL = "anthropic/claude-opus-5";
 let createBuiltinAgents:
   (typeof import("./builtin-agents"))["createBuiltinAgents"];
 
-// The runtime contract is composition against the real skill loader, not any
-// particular wording inside the frontend SKILL.md.
-function frontendSkillContent(): string {
-  const { resolved } = resolveMultipleSkills(["frontend"]);
+// The runtime contract is composition against the real skill loader; "debugging"
+// is a stable builtin skill (the old "frontend" builtin was removed).
+function builtinSkillContent(): string {
+  const { resolved } = resolveMultipleSkills(["debugging"]);
   return Array.from(resolved.values()).join("\n\n");
 }
 
@@ -75,6 +75,7 @@ describe("createBuiltinAgents with model overrides", () => {
         overrides,
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -129,6 +130,7 @@ describe("createBuiltinAgents with model overrides", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         undefined,
         undefined,
@@ -143,6 +145,7 @@ describe("createBuiltinAgents with model overrides", () => {
         overrides,
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -195,6 +198,7 @@ describe("createBuiltinAgents with model overrides", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -229,6 +233,7 @@ describe("createBuiltinAgents with model overrides", () => {
       TEST_DEFAULT_MODEL,
       undefined,
       undefined,
+      undefined,
       [],
       undefined,
       undefined,
@@ -256,6 +261,7 @@ describe("createBuiltinAgents with model overrides", () => {
         {},
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -291,6 +297,7 @@ describe("createBuiltinAgents with model overrides", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         undefined,
         undefined,
@@ -324,6 +331,7 @@ describe("createBuiltinAgents with model overrides", () => {
         overrides,
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -398,6 +406,7 @@ describe("createBuiltinAgents with model overrides", () => {
         systemDefaultModel,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -411,8 +420,9 @@ describe("createBuiltinAgents with model overrides", () => {
     }
   });
 
-  test("Oracle uses connected provider fallback when availableModels is empty and cache exists", async () => {
-    // #given - connected providers cache has "openai", which matches oracle's first fallback entry
+  test("Oracle falls back to systemDefaultModel when availableModels is empty and cache exists", async () => {
+    // #given - connected providers cache has "openai", but fallback chains are
+    // disabled by default (model_fallback_enabled=false) so the system default wins.
     const providerModelsSpy = spyOn(
       connectedProvidersCache,
       "readProviderModelsCache",
@@ -433,15 +443,17 @@ describe("createBuiltinAgents with model overrides", () => {
       TEST_DEFAULT_MODEL,
       undefined,
       undefined,
+      undefined,
       [],
       undefined,
       undefined,
     );
 
-    // #then - oracle resolves via connected cache fallback to openai/gpt-5.6-sol xhigh (not system default)
-    expect(agents.oracle.model).toBe("openai/gpt-5.6-sol");
-    expect(agents.oracle.reasoningEffort).toBe("xhigh");
+    // #then - oracle resolves via system default (no hardcoded chain fallback)
+    expect(agents.oracle.model).toBe(TEST_DEFAULT_MODEL);
+    // Opus 4.8+ omits explicit thinking config so the core drives adaptive thinking
     expect(agents.oracle.thinking).toBeUndefined();
+    expect(agents.oracle.reasoningEffort).toBeUndefined();
     cacheSpy.mockRestore?.();
     providerModelsSpy.mockRestore();
     fetchSpy.mockRestore();
@@ -489,6 +501,7 @@ describe("createBuiltinAgents with model overrides", () => {
       TEST_DEFAULT_MODEL,
       undefined,
       undefined,
+      undefined,
       [],
       undefined,
       undefined,
@@ -522,6 +535,7 @@ describe("createBuiltinAgents with model overrides", () => {
       overrides,
       undefined,
       TEST_DEFAULT_MODEL,
+      undefined,
       undefined,
       undefined,
       [],
@@ -562,6 +576,7 @@ describe("createBuiltinAgents with model overrides", () => {
       TEST_DEFAULT_MODEL,
       undefined,
       undefined,
+      undefined,
       [],
       undefined,
       undefined,
@@ -595,6 +610,7 @@ describe("createBuiltinAgents with model overrides", () => {
       {},
       undefined,
       TEST_DEFAULT_MODEL,
+      undefined,
       undefined,
       undefined,
       [],
@@ -643,6 +659,7 @@ describe("createBuiltinAgents with model overrides", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         customAgentSummaries,
       );
@@ -677,6 +694,7 @@ describe("createBuiltinAgents with model overrides", () => {
         {},
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -715,6 +733,7 @@ describe("createBuiltinAgents with model overrides", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         customAgentSummaries,
       );
@@ -751,6 +770,7 @@ describe("createBuiltinAgents with model overrides", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         customAgentSummaries,
       );
@@ -782,6 +802,7 @@ describe("createBuiltinAgents with model overrides", () => {
         {},
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -820,6 +841,7 @@ describe("createBuiltinAgents with model overrides", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         customAgentSummaries,
       );
@@ -833,8 +855,9 @@ describe("createBuiltinAgents with model overrides", () => {
 });
 
 describe("createBuiltinAgents without systemDefaultModel", () => {
-  test("agents created via connected cache fallback even without systemDefaultModel", async () => {
-    // #given - connected cache has "openai", which matches oracle's fallback chain
+  test("oracle is skipped without systemDefaultModel when fallback chains are disabled", async () => {
+    // #given - connected cache has "openai", but fallback chains are disabled by
+    // default (model_fallback_enabled=false), so only the system default could apply.
     const providerModelsSpy = spyOn(
       connectedProvidersCache,
       "readProviderModelsCache",
@@ -850,16 +873,15 @@ describe("createBuiltinAgents without systemDefaultModel", () => {
     // #when
     const agents = await createBuiltinAgents([], {}, undefined, undefined);
 
-    // #then - connected cache enables model resolution despite no systemDefaultModel
-    expect(agents.oracle).toBeDefined();
-    expect(agents.oracle.model).toBe("openai/gpt-5.6-sol");
+    // #then - without a system default the agent is not registered at all
+    expect(agents.oracle).toBeUndefined();
     cacheSpy.mockRestore?.();
     providerModelsSpy.mockRestore();
     fetchSpy.mockRestore();
   });
 
-  test("oracle is created on first run when no cache and no systemDefaultModel", async () => {
-    // #given
+  test("oracle is skipped on first run when no cache and no systemDefaultModel", async () => {
+    // #given - no cache at all and fallback chains disabled by default
     const cacheSpy = spyOn(
       connectedProvidersCache,
       "readConnectedProvidersCache",
@@ -873,16 +895,16 @@ describe("createBuiltinAgents without systemDefaultModel", () => {
       const agents = await createBuiltinAgents([], {}, undefined, undefined);
 
       // #then
-      expect(agents.oracle).toBeDefined();
-      expect(agents.oracle.model).toBe("openai/gpt-5.6-sol");
+      expect(agents.oracle).toBeUndefined();
     } finally {
       fetchSpy.mockRestore();
       cacheSpy.mockRestore();
     }
   });
 
-  test("sisyphus created via connected cache fallback when all providers available", async () => {
-    // #given
+  test("sisyphus is skipped without systemDefaultModel when fallback chains are disabled", async () => {
+    // #given - providers connected, but no override/ui model/system default and
+    // hardcoded chain fallback disabled (model_fallback_enabled defaults to false)
     const cacheSpy = spyOn(
       connectedProvidersCache,
       "readConnectedProvidersCache",
@@ -911,13 +933,13 @@ describe("createBuiltinAgents without systemDefaultModel", () => {
         undefined,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
 
       // #then
-      expect(agents.sisyphus).toBeDefined();
-      expect(agents.sisyphus.model).toBe("anthropic/claude-opus-5");
+      expect(agents.sisyphus).toBeUndefined();
     } finally {
       cacheSpy.mockRestore();
       fetchSpy.mockRestore();
@@ -954,6 +976,7 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -967,8 +990,8 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
     }
   });
 
-  test("hephaestus is not created when no required provider is connected", async () => {
-    // #given - only anthropic models available, not in hephaestus requiresProvider
+  test("hephaestus is created even when only non-GPT providers are connected", async () => {
+    // #given - only anthropic models available; hephaestus has no provider restriction.
     const fetchSpy = spyOn(shared, "fetchAvailableModels").mockResolvedValue(
       new Set(["anthropic/claude-opus-5"]),
     );
@@ -986,12 +1009,13 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
 
-      // #then
-      expect(agents.hephaestus).toBeUndefined();
+      // #then - provider gating was removed: hephaestus resolves via system default
+      expect(agents.hephaestus).toBeDefined();
     } finally {
       fetchSpy.mockRestore();
       cacheSpy.mockRestore();
@@ -1011,6 +1035,7 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
         {},
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -1043,6 +1068,7 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -1070,6 +1096,7 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -1082,7 +1109,8 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
   });
 
   test("hephaestus is created on first run when no availableModels or cache exist", async () => {
-    // #given
+    // #given - cold cache; resolution falls through to the system default because
+    // hardcoded fallback chains are disabled by default.
     const cacheSpy = spyOn(
       connectedProvidersCache,
       "readConnectedProvidersCache",
@@ -1100,21 +1128,23 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
 
       // #then
       expect(agents.hephaestus).toBeDefined();
-      expect(agents.hephaestus.model).toBe("openai/gpt-5.6-sol");
+      expect(agents.hephaestus.model).toBe(TEST_DEFAULT_MODEL);
     } finally {
       cacheSpy.mockRestore();
       fetchSpy.mockRestore();
     }
   });
 
-  test("hephaestus is not created when explicit config uses an unsupported model", async () => {
-    // #given
+  test("hephaestus honors explicit config model even when it is not in availableModels", async () => {
+    // #given - user explicitly configures a model that availability cannot confirm;
+    // the user's choice is honored as-is instead of dropping the agent.
     const fetchSpy = spyOn(shared, "fetchAvailableModels").mockResolvedValue(
       new Set(["anthropic/claude-opus-5"]),
     );
@@ -1131,12 +1161,14 @@ describe("createBuiltinAgents with requiresProvider gating (hephaestus)", () => 
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
 
       // #then
-      expect(agents.hephaestus).toBeUndefined();
+      expect(agents.hephaestus).toBeDefined();
+      expect(agents.hephaestus.model).toBe("anthropic/claude-opus-5");
     } finally {
       fetchSpy.mockRestore();
     }
@@ -1162,6 +1194,7 @@ describe("Hephaestus environment context toggle", () => {
       {},
       "/tmp/work",
       TEST_DEFAULT_MODEL,
+      undefined,
       undefined,
       undefined,
       [],
@@ -1212,6 +1245,7 @@ describe("Sisyphus and Librarian environment context toggle", () => {
       {},
       "/tmp/work",
       TEST_DEFAULT_MODEL,
+      undefined,
       undefined,
       undefined,
       [],
@@ -1268,6 +1302,7 @@ describe("Atlas is unaffected by environment context toggle", () => {
       TEST_DEFAULT_MODEL,
       undefined,
       undefined,
+      undefined,
       [],
       undefined,
       undefined,
@@ -1282,6 +1317,7 @@ describe("Atlas is unaffected by environment context toggle", () => {
       {},
       "/tmp/work",
       TEST_DEFAULT_MODEL,
+      undefined,
       undefined,
       undefined,
       [],
@@ -1315,6 +1351,7 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -1343,6 +1380,7 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
         {},
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -1376,6 +1414,7 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -1404,6 +1443,7 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
         {},
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -1441,6 +1481,7 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
         overrides,
         undefined,
         TEST_DEFAULT_MODEL,
+        undefined,
         undefined,
         undefined,
         [],
@@ -1483,6 +1524,7 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         {},
       );
@@ -1498,8 +1540,9 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
     }
   });
 
-  test("metis and atlas resolve to Sol in an OpenAI-only environment without a system default", async () => {
-    // #given
+  test("metis and atlas are skipped in an OpenAI-only environment without a system default", async () => {
+    // #given - openai connected, but no override/ui model/system default and
+    // hardcoded fallback chains disabled by default → nothing to resolve to.
     const fetchSpy = spyOn(shared, "fetchAvailableModels").mockResolvedValue(
       new Set(["openai/gpt-5.6-sol"]),
     );
@@ -1510,25 +1553,11 @@ describe("createBuiltinAgents with requiresAnyModel gating (sisyphus)", () => {
 
     try {
       // #when
-      const agents = await createBuiltinAgents(
-        [],
-        {},
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        [],
-        {},
-      );
+      const agents = await createBuiltinAgents([], {}, undefined, undefined);
 
-      // #then
-      expect(agents.atlas).toMatchObject({
-        model: "openai/gpt-5.6-sol",
-        variant: "medium",
-      });
-      expect(agents.metis).toBeDefined();
-      expect(agents.metis.model).toBe("anthropic/claude-opus-5");
-      expect(agents.metis.variant).toBe("high");
+      // #then - both agents require a resolvable model; none is available
+      expect(agents.atlas).toBeUndefined();
+      expect(agents.metis).toBeUndefined();
     } finally {
       fetchSpy.mockRestore();
       cacheSpy.mockRestore();
@@ -1563,8 +1592,10 @@ describe("buildAgent with category and skills", () => {
       buildAgent(source["test-agent"], TEST_MODEL),
     );
 
-    // #then - category's built-in model is applied
-    expect(agent.model).toBe("anthropic/claude-opus-5");
+    // #then - builtin categories no longer pin models (model resolution owns
+    // models); visual-engineering contributes its variant instead.
+    expect(agent.model).toBeUndefined();
+    expect(agent.variant).toBe("max");
   });
 
   test("agent with category and existing model keeps existing model", () => {
@@ -1618,7 +1649,7 @@ describe("buildAgent with category and skills", () => {
       "test-agent": () =>
         ({
           description: "Test agent",
-          skills: ["frontend"],
+          skills: ["debugging"],
           prompt: "Original prompt content",
         }) as AgentConfig,
     };
@@ -1630,7 +1661,7 @@ describe("buildAgent with category and skills", () => {
 
     // #then - resolved skill content is composed in before the original prompt
     expect(agent.prompt).toBe(
-      `${frontendSkillContent()}\n\nOriginal prompt content`,
+      `${builtinSkillContent()}\n\nOriginal prompt content`,
     );
   });
 
@@ -1640,7 +1671,7 @@ describe("buildAgent with category and skills", () => {
       "test-agent": () =>
         ({
           description: "Test agent",
-          skills: ["frontend"],
+          skills: ["debugging"],
           prompt: "Agent prompt",
         }) as AgentConfig,
     };
@@ -1651,7 +1682,7 @@ describe("buildAgent with category and skills", () => {
     );
 
     // #then
-    expect(agent.prompt).toBe(`${frontendSkillContent()}\n\nAgent prompt`);
+    expect(agent.prompt).toBe(`${builtinSkillContent()}\n\nAgent prompt`);
   });
 
   test("agent without category or skills works as before", () => {
@@ -1684,7 +1715,7 @@ describe("buildAgent with category and skills", () => {
         ({
           description: "Test agent",
           category: "ultrabrain",
-          skills: ["frontend"],
+          skills: ["debugging"],
           prompt: "SENTINEL_CATEGORY_PROMPT",
         }) as AgentConfig,
     };
@@ -1694,11 +1725,11 @@ describe("buildAgent with category and skills", () => {
       buildAgent(source["test-agent"], TEST_MODEL),
     );
 
-    // #then - category's built-in model and skills are applied
-    expect(agent.model).toBe("openai/gpt-5.6-sol");
+    // #then - category's built-in variant and skills are applied (no pinned model)
+    expect(agent.model).toBeUndefined();
     expect(agent.variant).toBe("xhigh");
     const prompt = agent.prompt ?? "";
-    const skillContent = frontendSkillContent();
+    const skillContent = builtinSkillContent();
     expect(prompt).toContain(skillContent);
     expect(prompt).toContain("SENTINEL_CATEGORY_PROMPT");
     expect(prompt.indexOf(skillContent)).toBeLessThan(
@@ -1735,7 +1766,7 @@ describe("buildAgent with category and skills", () => {
       "test-agent": () =>
         ({
           description: "Test agent",
-          skills: ["frontend", "non-existent-skill"],
+          skills: ["debugging", "non-existent-skill"],
           prompt: "Base prompt",
         }) as AgentConfig,
     };
@@ -1746,7 +1777,7 @@ describe("buildAgent with category and skills", () => {
     );
 
     // #then - only the found skill is composed in
-    expect(agent.prompt).toBe(`${frontendSkillContent()}\n\nBase prompt`);
+    expect(agent.prompt).toBe(`${builtinSkillContent()}\n\nBase prompt`);
   });
 
   test("agent with empty skills array keeps original prompt", () => {
@@ -1818,7 +1849,7 @@ describe("createBuiltinAgents with skill overrides", () => {
       new Set(),
     );
     const overrides = {
-      librarian: { skills: ["frontend"] },
+      librarian: { skills: ["debugging"] },
     } as AgentOverrides;
 
     try {
@@ -1831,7 +1862,7 @@ describe("createBuiltinAgents with skill overrides", () => {
       );
 
       // #then - the injected skill's real content is composed into the prompt
-      expect(agents.librarian.prompt).toContain(frontendSkillContent());
+      expect(agents.librarian.prompt).toContain(builtinSkillContent());
       expect("skills" in agents.librarian).toBe(false);
     } finally {
       fetchSpy.mockRestore();
@@ -1870,9 +1901,9 @@ describe("override.category expansion in createBuiltinAgents", () => {
       TEST_DEFAULT_MODEL,
     );
 
-    // #then - ultrabrain category: model=openai/gpt-5.6-sol, variant=xhigh
-    expect(agents.oracle).toBeDefined();
-    expect(agents.oracle.model).toBe("openai/gpt-5.6-sol");
+    // #then - ultrabrain category: variant=xhigh; builtin categories no longer
+    // pin models, so the resolved model stays the system default.
+    expect(agents.oracle.model).toBe(TEST_DEFAULT_MODEL);
     expect(agents.oracle.variant).toBe("xhigh");
   });
 
@@ -1913,6 +1944,7 @@ describe("override.category expansion in createBuiltinAgents", () => {
       overrides,
       undefined,
       TEST_DEFAULT_MODEL,
+      undefined,
       categories,
     );
 
@@ -1939,6 +1971,7 @@ describe("override.category expansion in createBuiltinAgents", () => {
       overrides,
       undefined,
       TEST_DEFAULT_MODEL,
+      undefined,
       categories,
     );
 
@@ -1961,9 +1994,9 @@ describe("override.category expansion in createBuiltinAgents", () => {
       TEST_DEFAULT_MODEL,
     );
 
-    // #then - ultrabrain category: model=openai/gpt-5.6-sol, variant=xhigh
-    expect(agents.sisyphus).toBeDefined();
-    expect(agents.sisyphus.model).toBe("openai/gpt-5.6-sol");
+    // #then - ultrabrain category: variant=xhigh; builtin categories no longer
+    // pin models, so the resolved model stays the system default.
+    expect(agents.sisyphus.model).toBe(TEST_DEFAULT_MODEL);
     expect(agents.sisyphus.variant).toBe("xhigh");
   });
 
@@ -1981,9 +2014,9 @@ describe("override.category expansion in createBuiltinAgents", () => {
       TEST_DEFAULT_MODEL,
     );
 
-    // #then - ultrabrain category: model=openai/gpt-5.6-sol, variant=xhigh
-    expect(agents.atlas).toBeDefined();
-    expect(agents.atlas.model).toBe("openai/gpt-5.6-sol");
+    // #then - ultrabrain category: variant=xhigh; builtin categories no longer
+    // pin models, so the resolved model stays the system default.
+    expect(agents.atlas.model).toBe(TEST_DEFAULT_MODEL);
     expect(agents.atlas.variant).toBe("xhigh");
   });
 
@@ -2109,6 +2142,7 @@ describe("Deadlock prevention - fetchAvailableModels must not receive client", (
       {},
       undefined,
       TEST_DEFAULT_MODEL,
+      undefined,
       undefined,
       undefined,
       [],

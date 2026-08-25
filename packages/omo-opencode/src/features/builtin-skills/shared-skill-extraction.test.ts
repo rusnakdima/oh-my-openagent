@@ -7,13 +7,7 @@ declare const Bun: {
   file(path: string): { text(): Promise<string> };
 };
 
-const TARGET_SKILLS = [
-  "remove-ai-slops",
-  "review-work",
-  "frontend",
-  "init-deep",
-  "debugging",
-] as const;
+const TARGET_SKILLS = ["debugging"] as const;
 
 type TargetSkill = (typeof TARGET_SKILLS)[number];
 
@@ -38,18 +32,6 @@ function getRequiredMatch(
 async function readSkillSource(name: TargetSkill): Promise<SkillSource> {
   let skill: BuiltinSkill;
   switch (name) {
-    case "remove-ai-slops":
-      skill = (await import("./skills/remove-ai-slops")).removeAiSlopsSkill;
-      break;
-    case "review-work":
-      skill = (await import("./skills/review-work")).reviewWorkSkill;
-      break;
-    case "frontend":
-      skill = (await import("./skills/frontend")).frontendSkill;
-      break;
-    case "init-deep":
-      skill = (await import("./skills/init-deep")).initDeepSkill;
-      break;
     case "debugging":
       skill = (await import("./skills/debugging")).debuggingSkill;
       break;

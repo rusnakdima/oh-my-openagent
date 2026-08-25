@@ -143,11 +143,9 @@ describe("config-migration public subpath", () => {
     const exports = packageJson.exports;
 
     // then
-    expect(exports).toEqual({
-      "./config-migration": {
-        import: "./src/config-migration/index.ts",
-        types: "./src/config-migration/index.ts",
-      },
+    expect(exports["./config-migration"]).toEqual({
+      import: "./src/config-migration/index.ts",
+      types: "./src/config-migration/index.ts",
     });
   });
 

@@ -178,27 +178,21 @@ describe("getHephaestusPromptSource", () => {
     expect(source3).toBe("gpt");
   });
 
-  test("throws for generic GPT, unsupported GPT 5.x, non-GPT, and undefined models", () => {
+  test("falls back to 'gpt' for generic GPT, unsupported GPT 5.x, non-GPT, and undefined models", () => {
     // given
-    const model1 = "openai/gpt-4o";
-    const model2 = "openai/gpt-5.9";
-    const model3 = "openai/gpt-5.10";
-    const model4 = "anthropic/claude-opus-4-7";
-    const model5 = undefined;
+    const cases: ReadonlyArray<readonly [string | undefined, string]> = [
+      ["openai/gpt-4o", "gpt"],
+      ["openai/gpt-5.9", "gpt"],
+      ["openai/gpt-5.10", "gpt"],
+      ["anthropic/claude-opus-4-7", "gpt"],
+      [undefined, "gpt"],
+    ];
 
-    // when
-    const getSource1 = () => getHephaestusPromptSource(model1);
-    const getSource2 = () => getHephaestusPromptSource(model2);
-    const getSource3 = () => getHephaestusPromptSource(model3);
-    const getSource4 = () => getHephaestusPromptSource(model4);
-    const getSource5 = () => getHephaestusPromptSource(model5);
-
-    // then
-    expect(getSource1).toThrow(UnsupportedHephaestusModelError);
-    expect(getSource2).toThrow(UnsupportedHephaestusModelError);
-    expect(getSource3).toThrow(UnsupportedHephaestusModelError);
-    expect(getSource4).toThrow(UnsupportedHephaestusModelError);
-    expect(getSource5).toThrow(UnsupportedHephaestusModelError);
+    // when / then - unknown models no longer throw; they route to the
+    // generic GPT fallback prompt so the agent still registers and runs.
+    for (const [model, expected] of cases) {
+      expect(getHephaestusPromptSource(model)).toBe(expected);
+    }
   });
 });
 
@@ -212,15 +206,15 @@ describe("getHephaestusPrompt", () => {
     expect(prompt).not.toBe(getHephaestusPrompt("openai/gpt-5.4"));
   });
 
-  test("Claude model is rejected", () => {
+  test("Claude model falls back to the generic GPT prompt", () => {
     // given
     const model = "anthropic/claude-opus-4-7";
 
     // when
-    const getPrompt = () => getHephaestusPrompt(model);
+    const prompt = getHephaestusPrompt(model);
 
-    // then
-    expect(getPrompt).toThrow(UnsupportedHephaestusModelError);
+    // then - same prompt as the generic gpt source, no throw
+    expect(prompt).toBe(getHephaestusPrompt(undefined));
   });
 
   test("useTaskSystem=true wires the task tool contract", () => {
@@ -270,15 +264,16 @@ describe("createHephaestusAgent", () => {
     expect(config).toHaveProperty("reasoningEffort", "medium");
   });
 
-  test("generic GPT model is rejected", () => {
+  test("generic GPT model is accepted with the fallback prompt", () => {
     // given
     const model = "openai/gpt-4o";
 
-    // when
-    const createAgent = () => createHephaestusAgent(model);
+    // when - non-GPT-5.x models no longer throw; they use the generic prompt.
+    const config = createHephaestusAgent(model);
 
     // then
-    expect(createAgent).toThrow(UnsupportedHephaestusModelError);
+    expect(config).toHaveProperty("model", "openai/gpt-4o");
+    expect(config).toHaveProperty("prompt");
   });
 
   test("supported GPT models do not force-deny apply_patch", () => {
@@ -361,7 +356,7 @@ describe("maybeCreateHephaestusConfig apply_patch permission", () => {
   });
 
   describe("#given non-GPT model with user override allowing apply_patch", () => {
-    test("#when config is created #then Hephaestus is not registered", () => {
+    test("#when config is created #then Hephaestus registers and the override is respected", () => {
       // given
       const agentOverrides: AgentOverrides = {
         hephaestus: {
@@ -387,13 +382,15 @@ describe("maybeCreateHephaestusConfig apply_patch permission", () => {
         useTaskSystem: false,
       });
 
-      // then
-      expect(config).toBeUndefined();
+      // then - non-GPT models no longer block registration
+      expect(config).toBeDefined();
+      expect(config?.model).toBe("anthropic/claude-opus-4-7");
+      expect(config?.permission).toHaveProperty("apply_patch", "allow");
     });
   });
 
   describe("#given generic GPT model with user override allowing apply_patch", () => {
-    test("#when config is created #then Hephaestus is not registered", () => {
+    test("#when config is created #then Hephaestus registers and the override is respected", () => {
       // given
       const agentOverrides: AgentOverrides = {
         hephaestus: {
@@ -419,13 +416,15 @@ describe("maybeCreateHephaestusConfig apply_patch permission", () => {
         useTaskSystem: false,
       });
 
-      // then
-      expect(config).toBeUndefined();
+      // then - generic GPT models no longer block registration
+      expect(config).toBeDefined();
+      expect(config?.model).toBe("openai/gpt-4o");
+      expect(config?.permission).toHaveProperty("apply_patch", "allow");
     });
   });
 
   describe("#given Opus 4.7 model with user override allowing grep and glob", () => {
-    test("#when config is created #then Hephaestus is not registered", () => {
+    test("#when config is created #then grep and glob are still denied", () => {
       // given
       const agentOverrides: AgentOverrides = {
         hephaestus: {
@@ -452,13 +451,15 @@ describe("maybeCreateHephaestusConfig apply_patch permission", () => {
         useTaskSystem: false,
       });
 
-      // then
-      expect(config).toBeUndefined();
+      // then - frontier tool-schema guard still denies grep/glob
+      expect(config).toBeDefined();
+      expect(config?.permission).toHaveProperty("grep", "deny");
+      expect(config?.permission).toHaveProperty("glob", "deny");
     });
   });
 
   describe("#given dotted Opus 4.7 model with user override allowing grep and glob", () => {
-    test("#when config is created #then Hephaestus is not registered", () => {
+    test("#when config is created #then grep and glob are still denied", () => {
       // given
       const agentOverrides: AgentOverrides = {
         hephaestus: {
@@ -485,8 +486,10 @@ describe("maybeCreateHephaestusConfig apply_patch permission", () => {
         useTaskSystem: false,
       });
 
-      // then
-      expect(config).toBeUndefined();
+      // then - frontier tool-schema guard still denies grep/glob
+      expect(config).toBeDefined();
+      expect(config?.permission).toHaveProperty("grep", "deny");
+      expect(config?.permission).toHaveProperty("glob", "deny");
     });
   });
 

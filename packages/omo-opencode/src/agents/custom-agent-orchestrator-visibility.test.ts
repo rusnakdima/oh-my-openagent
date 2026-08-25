@@ -24,6 +24,7 @@ describe("createBuiltinAgents custom agent visibility", () => {
         TEST_DEFAULT_MODEL,
         undefined,
         undefined,
+        undefined,
         [],
         [
           {
