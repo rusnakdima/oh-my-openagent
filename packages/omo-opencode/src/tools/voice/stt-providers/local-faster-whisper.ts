@@ -2,6 +2,7 @@ import * as childProcess from "node:child_process";
 import * as fs from "node:fs";
 import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
+import { bunWrite } from "../../../shared/bun-file-shim";
 import { log } from "../../../shared";
 import type { AudioBuffer, STTProvider } from "./types";
 
@@ -49,7 +50,7 @@ export function createLocalFasterWhisperProvider(
 
       // Write audio to a temp file for faster-whisper to process
       const tmpWav = `${tmpdir()}/omo-voice-${randomUUID()}.wav`;
-      await Bun.write(tmpWav, audio.data);
+      await bunWrite(tmpWav, audio.data);
 
       log(`[voice] Transcribing via local faster-whisper (${config.model})`);
 
