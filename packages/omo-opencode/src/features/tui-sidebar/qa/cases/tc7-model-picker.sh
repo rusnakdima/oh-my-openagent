@@ -17,7 +17,7 @@ case_main() {
   it_log "tc7: Model picker modal open/close"
 
   it_mk_isolated_xdg || { tc7_log "isolated xdg failed"; return 1; }
-  write_project_config "$IT_PROJ" || { tc7_log "config write failed"; return 1; }
+  write_project_config "$IT_PLUGIN_FILE" || { tc7_log "config write failed"; return 1; }
 
   it_start_server || { tc7_log "server start failed"; return 1; }
   it_tmux_start || { tc7_log "tmux start failed"; return 1; }
@@ -64,7 +64,7 @@ case_main() {
     # Modal indicators: model list items or Close button
     if printf '%s' "$cap" | grep -Eq "Close|Pick model|anthropic|openai|opencode"; then
       picker_opened=1
-      tc7_log "model picker modal appeared after ~$((i * 0.5))s"
+      tc7_log "model picker modal appeared after ~$((i / 2))s"
       break
     fi
     sleep 0.5
@@ -101,6 +101,10 @@ case_main() {
     assert_idle_roster "$pane" || tc7_FAILS=$((tc7_FAILS+1))
     assert_no_broken_banner "$pane" || tc7_FAILS=$((tc7_FAILS+1))
     tc7_log "tc7 gracefully skipped (modal API not available)"
+    # Graceful skip is a pass when the sidebar stayed functional.
+    if [ "$tc7_FAILS" -eq 0 ]; then
+      return 0
+    fi
     return $tc7_FAILS
   fi
 

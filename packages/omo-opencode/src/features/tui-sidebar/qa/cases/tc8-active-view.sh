@@ -19,7 +19,7 @@ case_main() {
   it_log "tc8: Sidebar shows active view during active session"
 
   it_mk_isolated_xdg || { tc8_log "isolated xdg failed"; return 1; }
-  write_project_config "$IT_PROJ" || { tc8_log "config write failed"; return 1; }
+  write_project_config "$IT_PLUGIN_FILE" || { tc8_log "config write failed"; return 1; }
 
   it_start_server || { tc8_log "server start failed"; return 1; }
   it_tmux_start || { tc8_log "tmux start failed"; return 1; }
@@ -58,7 +58,7 @@ case_main() {
     # Check for active view indicators
     if printf '%s' "$cap" | grep -Eq "Agents|Jobs|ULW"; then
       active_view_found=1
-      tc8_log "active view detected at ~$((i * 0.5))s"
+      tc8_log "active view detected at ~$((i / 2))s"
       # Try to capture the transition
       if [ "$transition_captured" -eq 0 ]; then
         transition_captured=1
@@ -88,7 +88,7 @@ case_main() {
     # or the model is not available. The important guarantee is no crash.
     tc8_log "no active view observed (model may not be available)"
     # Verify sidebar is still rendering (idle or active)
-    if ! wait_for_text -t "$pane" -p "Models|Agents" -T 5; then
+    if ! wait_for_text -t "$pane" -p "Agents|tab agents|Models" -T 5; then
       tc8_log "sidebar became unresponsive"
       asc_dump "$pane" "tc8-unresponsive"
       tc8_FAILS=$((tc8_FAILS+1))

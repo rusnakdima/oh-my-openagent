@@ -14,7 +14,7 @@ case_main() {
   it_log "tc5: Mirror file deleted → graceful degradation"
 
   it_mk_isolated_xdg || { tc5_log "isolated xdg failed"; return 1; }
-  write_project_config "$IT_PROJ" || { tc5_log "config write failed"; return 1; }
+  write_project_config "$IT_PLUGIN_FILE" || { tc5_log "config write failed"; return 1; }
 
   it_start_server || { tc5_log "server start failed"; return 1; }
   it_tmux_start || { tc5_log "tmux start failed"; return 1; }

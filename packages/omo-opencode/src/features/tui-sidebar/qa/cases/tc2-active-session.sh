@@ -18,7 +18,7 @@ case_main() {
   it_log "tc2: Active session shows agents + jobs"
 
   it_mk_isolated_xdg || { tc2_log "isolated xdg failed"; return 1; }
-  write_project_config "$IT_PROJ" || { tc2_log "config write failed"; return 1; }
+  write_project_config "$IT_PLUGIN_FILE" || { tc2_log "config write failed"; return 1; }
 
   it_start_server || { tc2_log "server start failed"; return 1; }
   it_tmux_start || { tc2_log "tmux start failed"; return 1; }
@@ -56,7 +56,7 @@ case_main() {
     cap="$(tmux capture-pane -t "$pane" -p 2>/dev/null)" || cap=""
     if printf '%s' "$cap" | grep -Eq "Agents|Jobs|ULW"; then
       active_found=1
-      tc2_log "active view detected (Agents/Jobs/ULW) after ~$((i * 0.5))s"
+      tc2_log "active view detected (Agents/Jobs/ULW) after ~$((i / 2))s"
       break
     fi
     sleep 0.5

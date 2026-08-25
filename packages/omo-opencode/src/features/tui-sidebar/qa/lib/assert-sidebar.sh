@@ -149,5 +149,5 @@ asc_dump() {
   local pane="$1" label="${2:-pane}"
   local cap
   cap="$(tmux capture-pane -t "$pane" -p 2>/dev/null)" || cap="(empty)"
-  printf '--- %s ---\n%s\n--- end ---\n' "$label" "$cap" >&2
+  printf -- '--- %s ---\n%s\n--- end ---\n' "$label" "$cap" >&2
 }

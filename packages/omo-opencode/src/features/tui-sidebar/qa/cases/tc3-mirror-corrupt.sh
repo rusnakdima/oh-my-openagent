@@ -14,7 +14,7 @@ case_main() {
   it_log "tc3: Mirror file corrupted → graceful degradation"
 
   it_mk_isolated_xdg || { tc3_log "isolated xdg failed"; return 1; }
-  write_project_config "$IT_PROJ" || { tc3_log "config write failed"; return 1; }
+  write_project_config "$IT_PLUGIN_FILE" || { tc3_log "config write failed"; return 1; }
 
   it_start_server || { tc3_log "server start failed"; return 1; }
   it_tmux_start || { tc3_log "tmux start failed"; return 1; }
@@ -38,6 +38,7 @@ case_main() {
   sleep 4
 
   # Inject corrupt mirror
+  it_seed_mirror
   inject_corrupt "$IT_MIRROR_FILE" || {
     tc3_log "inject-error corrupt failed"
     tc3_FAILS=$((tc3_FAILS+1))

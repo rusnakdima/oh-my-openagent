@@ -92,6 +92,18 @@ it_resolve_mirror() {
   it_log "mirror file: $IT_MIRROR_FILE"
 }
 
+# Seed a minimal VALID mirror snapshot if the plugin has not written one yet.
+# The heartbeat only persists on activity; corrupt/stale injections need an
+# existing file to mutate. Schema mirrors snapshot-schema.ts (version 3).
+it_seed_mirror() {
+  if [ -s "$IT_MIRROR_FILE" ]; then
+    return 0
+  fi
+  mkdir -p "$(dirname "$IT_MIRROR_FILE")"
+  printf '%s' "{\"version\":3,\"projectDir\":\"$IT_PROJ\",\"updatedAt\":$(date +%s000),\"activeAgents\":[],\"jobBoard\":[],\"loop\":null,\"tuiSelectedModel\":null,\"perAgentModels\":{}}" \
+    > "$IT_MIRROR_FILE"
+}
+
 # ---- server lifecycle -------------------------------------------------------
 
 # Start opencode serve under the isolated XDG sandbox.
@@ -104,16 +116,13 @@ it_start_server() {
   local logfile="$XDG_STATE_HOME/serve.log"
   mkdir -p "$(dirname "$logfile")"
 
-  nohup env \
-    HOME="$HOME" \
-    XDG_DATA_HOME="$XDG_DATA_HOME" \
-    XDG_CONFIG_HOME="$XDG_CONFIG_HOME" \
-    XDG_CACHE_HOME="$XDG_CACHE_HOME" \
-    XDG_STATE_HOME="$XDG_STATE_HOME" \
-    OPENCODE_SERVER_PASSWORD="$pass" \
-    OPENCODE_DISABLE_AUTOUPDATE=1 \
-    OPENCODE_DISABLE_MODELS_FETCH=1 \
-    opencode serve --port "$port" --hostname 127.0.0.1 \
+  # Run the server with cwd=IT_PROJ so every process (server + TUI) resolves
+  # the SAME project directory — mirror hashes and config chains stay in sync,
+  # and the repo's own .opencode/tui.json (whose dist/index.js entry silently
+  # breaks TUI plugin loading) is out of scope.
+  export OPENCODE_SERVER_PASSWORD="$pass"
+  nohup bash -c \
+    "cd '$IT_PROJ' && exec opencode serve --port '$port' --hostname 127.0.0.1" \
     >"$logfile" 2>&1 &
   IT_SERVER_PID=$!
 
@@ -124,7 +133,7 @@ it_start_server() {
   # Wait for server to be ready (up to 90s — plugin loading can be slow)
   local deadline=$(($(date +%s) + 90))
   while [ $(date +%s) -lt $deadline ]; do
-    if curl -s -o /dev/null -u "opencode:$pass" "$IT_SERVER_URL/global/health" 2>/dev/null; then
+    if curl -s --max-time 2 -o /dev/null -u "opencode:$pass" "$IT_SERVER_URL/global/health" 2>/dev/null; then
       it_log "server ready at $IT_SERVER_URL"
       return 0
     fi
@@ -155,8 +164,15 @@ it_tmux_start() {
 
   tmux new-session -d -s "$sess" -x 200 -y 50 2>/dev/null || return 1
 
+  # Standalone boot (NO OPENCODE_SERVER_URL/PASSWORD): opencode >= 1.18 loads
+  # tui.json plugins ONLY when the TUI owns its embedded server — in client
+  # mode (connected to `opencode serve`) the TUI plugin host stays empty and
+  # the sidebar never renders (verified live 2026-08-25).
+  # cwd=IT_PROJ keeps the project directory away from the repo's
+  # .opencode/tui.json, whose dist/index.js entry silently breaks TUI plugin
+  # loading.
   tmux send-keys -t "$sess" \
-    "HOME='$HOME' XDG_DATA_HOME='$XDG_DATA_HOME' XDG_CONFIG_HOME='$XDG_CONFIG_HOME' XDG_CACHE_HOME='$XDG_CACHE_HOME' XDG_STATE_HOME='$XDG_STATE_HOME' OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1 OPENCODE_SERVER_PASSWORD='$IT_SERVER_PASS' OPENCODE_SERVER_URL='$IT_SERVER_URL' opencode" Enter
+    "cd '$IT_PROJ' && HOME='$HOME' XDG_DATA_HOME='$XDG_DATA_HOME' XDG_CONFIG_HOME='$XDG_CONFIG_HOME' XDG_CACHE_HOME='$XDG_CACHE_HOME' XDG_STATE_HOME='$XDG_STATE_HOME' OPENCODE_DISABLE_AUTOUPDATE=1 OPENCODE_DISABLE_MODELS_FETCH=1 opencode" Enter
 
   export IT_TMUX_SESS="$sess"
   it_log "tmux session: $sess"
@@ -185,6 +201,31 @@ it_tmux_send_enter() {
 
 # ---- project config ----------------------------------------------------------
 
+# Write the sandbox TUI plugin config. ONLY dist/tui.js may be listed: adding
+# the server bundle (dist/index.js) to tui.json makes opencode's TUI plugin
+# host fail silently and NO tui plugin loads (verified live 2026-08-25).
+write_tui_config() {
+  local plugin_file="${1:-"$IT_PLUGIN_FILE"}"
+  if [ -z "$plugin_file" ]; then
+    it_log "WARN: plugin file path not provided and IT_PLUGIN_FILE is empty"
+    return 1
+  fi
+  local config_dir="$XDG_CONFIG_HOME/opencode"
+  mkdir -p "$config_dir"
+  local tui_entry="${plugin_file%index.js}tui.js"
+  if [ ! -f "$tui_entry" ]; then
+    it_log "WARN: tui bundle not found at $tui_entry"
+    return 1
+  fi
+  # Stage a COPY inside the sandbox: opencode's TUI plugin host fails to load
+  # file: entries that point into the oh-my-openagent monorepo (its
+  # package.json/workspaces hijack resolution), while a plain copied file
+  # loads reliably (A/B verified live 2026-08-25).
+  cp "$tui_entry" "$config_dir/omo-tui-bundle.js"
+  printf '{\n  "plugin": ["file://%s"]\n}\n' "$config_dir/omo-tui-bundle.js" \
+    > "$config_dir/tui.json"
+  it_log "sandbox tui config written: $config_dir/tui.json"
+}
 # Write the opencode.jsonc for the isolated project, pointing at the plugin dist.
 # Takes the plugin file path as first argument (recommended) or falls back to
 # IT_PLUGIN_FILE from the environment.
@@ -204,6 +245,7 @@ write_project_config() {
   "plugin": ["file:$plugin_file"]
 }
 JSON
+  write_tui_config "$plugin_file" || return 1
   it_log "project config written: $config_file"
 }
 
@@ -224,11 +266,18 @@ write_broken_config() {
   cat > "$config_file" <<JSON
 {
   "model": "opencode/big-pickle",
-  "plugin": ["file:$plugin_file"],
-  "unknown_config_key_for_tc6": true
+  "plugin": ["file:$plugin_file"]
 }
 JSON
-  it_log "broken config written: $config_file"
+  it_log "project config written: $config_file"
+
+  # The OMO validator reads the .omo/omo.jsonc chain, NOT opencode.jsonc —
+  # an unknown key there is what makes validatePluginConfig report valid=false
+  # and the sidebar show its broken view.
+  write_tui_config "$plugin_file" || return 1
+  mkdir -p "$HOME/.omo"
+  printf '%s\n' '{ "unknown_config_key_for_tc6": true }' > "$HOME/.omo/omo.jsonc"
+  it_log "broken omo config written: $HOME/.omo/omo.jsonc"
 }
 
 # ---- wait-for-text ----------------------------------------------------------
@@ -254,7 +303,6 @@ wait_for_text() {
           pane) pane="${!OPTIND}"; OPTIND=$((OPTIND+1)) ;;
           pattern) pattern="${!OPTIND}"; OPTIND=$((OPTIND+1)) ;;
           timeout) timeout="${!OPTIND}"; OPTIND=$((OPTIND+1)) ;;
-          help) printf 'usage: wait-for-text -t pane -p pattern [-T seconds]\n' >&2; return 2 ;;
           *) printf 'FAIL: unknown long option --%s\n' "$OPTARG" >&2; return 2 ;;
         esac
         ;;
@@ -324,7 +372,8 @@ trap it_cleanup EXIT
 it__self_check() {
   local fails=0
 
-  if it_require opencode tmux python3 shasum; then
+  # it_require returns 0 (success) when every binary is present.
+  if ! it_require opencode tmux python3 shasum; then
     it_log "FAIL: missing dependencies"; fails=$((fails+1))
   else
     it_pass "dependencies present"
@@ -333,7 +382,8 @@ it__self_check() {
   # Isolation test
   local marker
   marker="$(mktemp -t it-marker.XXXXXX)"
-  bash -c 'HOME='"'"'$HOME'"'"' . "'"${BASH_SOURCE[0]}"'"; it_mk_isolated_xdg; printf '"'"'%s\n'"'"' "$IT_XDG_ROOT" > '"'"'$marker'"'"''
+  local this_script="$BASH_SOURCE"
+  IT_SELF_CHECK_MARKER="$marker" bash -c '. "$1"; it_mk_isolated_xdg; printf "%s\n" "$IT_XDG_ROOT" > "$IT_SELF_CHECK_MARKER"' _ "$this_script"
   local isol_dir
   isol_dir="$(cat "$marker" 2>/dev/null)"
   rm -f "$marker"
@@ -352,7 +402,7 @@ it__self_check() {
   return 1
 }
 
-if [ "${1:-}" = "--self-check" ]; then
+if [ "${BASH_SOURCE[0]}" = "$0" ] && [ "${1:-}" = "--self-check" ]; then
   it__self_check
   exit $?
 fi

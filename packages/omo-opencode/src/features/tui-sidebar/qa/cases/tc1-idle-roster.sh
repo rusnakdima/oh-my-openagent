@@ -16,7 +16,7 @@ case_main() {
 
   # Set up isolated environment
   it_mk_isolated_xdg || { tc1_log "isolated xdg failed"; return 1; }
-  write_project_config "$IT_PROJ" || { tc1_log "config write failed"; return 1; }
+  write_project_config "$IT_PLUGIN_FILE" || { tc1_log "config write failed"; return 1; }
 
   # Start server in background
   it_start_server || { tc1_log "server start failed"; return 1; }

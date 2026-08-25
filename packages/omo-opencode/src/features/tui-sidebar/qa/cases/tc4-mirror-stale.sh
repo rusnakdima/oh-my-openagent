@@ -14,7 +14,7 @@ case_main() {
   it_log "tc4: Mirror file stale (>6s) → falls back to idle"
 
   it_mk_isolated_xdg || { tc4_log "isolated xdg failed"; return 1; }
-  write_project_config "$IT_PROJ" || { tc4_log "config write failed"; return 1; }
+  write_project_config "$IT_PLUGIN_FILE" || { tc4_log "config write failed"; return 1; }
 
   it_start_server || { tc4_log "server start failed"; return 1; }
   it_tmux_start || { tc4_log "tmux start failed"; return 1; }
@@ -36,6 +36,7 @@ case_main() {
   sleep 4
 
   # Make mirror stale (touch with 10s-old mtime; STALE_MS = 6000ms)
+  it_seed_mirror
   inject_stale "$IT_MIRROR_FILE" || {
     tc4_log "inject-error stale failed"
     tc4_FAILS=$((tc4_FAILS+1))

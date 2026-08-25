@@ -25,12 +25,30 @@ function runShell(
   args: string[],
 ): { exitCode: number; stdout: string; stderr: string } {
   return new Promise((resolve) => {
+    // New process group so orphaned grandchildren (servers, tmux helpers)
+    // that inherit our stdio pipes can never stall the `close` event.
     const proc = spawn("bash", [SHELL_SCRIPT, ...args], {
       cwd: REPO_ROOT,
       env: { ...process.env },
+      detached: true,
     });
     let stdout = "";
     let stderr = "";
+    let settled = false;
+    const settle = (exitCode: number, stderrOverride?: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hardTimer);
+      resolve({ exitCode, stdout, stderr: stderrOverride ?? stderr });
+    };
+    const hardTimer = setTimeout(() => {
+      try {
+        process.kill(-proc.pid!, "SIGKILL");
+      } catch {
+        // already gone
+      }
+      settle(124, `${stderr}\n[runShell] hard timeout — process group killed`);
+    }, SHELL_HARD_DEADLINE_MS);
     proc.stdout?.on("data", (d) => {
       stdout += d.toString();
     });
@@ -38,13 +56,17 @@ function runShell(
       stderr += d.toString();
     });
     proc.on("close", (code) => {
-      resolve({ exitCode: code ?? 1, stdout, stderr });
+      settle(code ?? 1);
     });
     proc.on("error", (err) => {
-      resolve({ exitCode: 1, stdout, stderr: err.message });
+      settle(1, err.message);
     });
   });
 }
+
+// Kill the whole process group well before bun's per-test deadline so a hung
+// grandchild surfaces as a clean assertion failure with captured output.
+const SHELL_HARD_DEADLINE_MS = 150_000;
 
 async function runCase(
   caseName: string,
@@ -55,15 +77,21 @@ async function runCase(
 
 async function checkDependencies(): Promise<boolean> {
   const { exitCode } = await runShell(["--self-check"]);
+
   return exitCode === 0;
 }
+
+// Each TC boots a real opencode TUI inside tmux (~12-20s); give them room
+// well above bun's default 5s per-test deadline.
+const IT_TIMEOUT_MS = 180_000;
+const DEPS_AVAILABLE = await checkDependencies();
 
 describe("tui-sidebar-it.sh self-check", () => {
   it("self-check passes", async () => {
     const { exitCode, stdout } = await runShell(["--self-check"]);
     expect(exitCode).toBe(0);
     expect(stdout).toContain("PASS");
-  });
+  }, IT_TIMEOUT_MS);
 });
 
 describe("tui-sidebar-it.sh listing", () => {
@@ -78,12 +106,12 @@ describe("tui-sidebar-it.sh listing", () => {
     expect(stdout).toContain("tc6-broken-config");
     expect(stdout).toContain("tc7-model-picker");
     expect(stdout).toContain("tc8-active-view");
-  });
+  }, IT_TIMEOUT_MS);
 });
 
 // Integration tests — these spawn opencode + tmux, so require the full toolchain
 // They are marked with the opencode-it tag so they can be filtered in CI
-describe("TC1: idle roster", { skip: false }, () => {
+describe("TC1: idle roster", { skip: !DEPS_AVAILABLE }, () => {
   // given the TUI boots and the plugin loads
   // when the sidebar appears
   // then it shows the Models section (idle roster) with no error banners
@@ -93,10 +121,10 @@ describe("TC1: idle roster", { skip: false }, () => {
     console.log(`[tc1] stdout:\n${result.stdout}`);
     console.error(`[tc1] stderr:\n${result.stderr}`);
     expect(result.exitCode).toBe(0);
-  });
+  }, IT_TIMEOUT_MS);
 });
 
-describe("TC3: mirror corrupt → graceful degradation", { skip: false }, () => {
+describe("TC3: mirror corrupt → graceful degradation", { skip: !DEPS_AVAILABLE }, () => {
   // given the TUI is showing an idle roster
   // when the mirror file is corrupted (invalid JSON)
   // then the sidebar continues to render without crashing
@@ -106,41 +134,41 @@ describe("TC3: mirror corrupt → graceful degradation", { skip: false }, () => 
     console.log(`[tc3] stdout:\n${result.stdout}`);
     console.error(`[tc3] stderr:\n${result.stderr}`);
     expect(result.exitCode).toBe(0);
-  });
+  }, IT_TIMEOUT_MS);
 });
 
 describe(
   "TC4: mirror stale (>6s) → falls back to idle",
-  { skip: false },
+  { skip: !DEPS_AVAILABLE },
   () => {
     it("#when mirror is stale #then sidebar falls back to idle roster", async () => {
       const result = await runCase("tc4");
       console.log(`[tc4] stdout:\n${result.stdout}`);
       console.error(`[tc4] stderr:\n${result.stderr}`);
       expect(result.exitCode).toBe(0);
-    });
+    }, IT_TIMEOUT_MS);
   },
 );
 
-describe("TC5: mirror deleted → graceful degradation", { skip: false }, () => {
+describe("TC5: mirror deleted → graceful degradation", { skip: !DEPS_AVAILABLE }, () => {
   it("#when mirror is deleted #then sidebar continues rendering", async () => {
     const result = await runCase("tc5");
     console.log(`[tc5] stdout:\n${result.stdout}`);
     console.error(`[tc5] stderr:\n${result.stderr}`);
     expect(result.exitCode).toBe(0);
-  });
+  }, IT_TIMEOUT_MS);
 });
 
-describe("TC6: broken config shows error banner", { skip: false }, () => {
+describe("TC6: broken config shows error banner", { skip: !DEPS_AVAILABLE }, () => {
   it("#when config is invalid #then sidebar shows broken view", async () => {
     const result = await runCase("tc6");
     console.log(`[tc6] stdout:\n${result.stdout}`);
     console.error(`[tc6] stderr:\n${result.stderr}`);
     expect(result.exitCode).toBe(0);
-  });
+  }, IT_TIMEOUT_MS);
 });
 
-describe("TC2: active session (requires live model)", { skip: false }, () => {
+describe("TC2: active session (requires live model)", { skip: !DEPS_AVAILABLE }, () => {
   // NOTE: TC2 and TC8 are best-effort tests — they submit a real prompt.
   // They PASS if the sidebar remains stable (no crash) even if no active
   // view appears (because the model is unavailable).
@@ -152,16 +180,18 @@ describe("TC2: active session (requires live model)", { skip: false }, () => {
     // The key guarantee is: no crash, no broken banner
     if (result.exitCode !== 0) {
       // Check if it failed for an acceptable reason (model unavailable)
+      // case scripts log to stderr; match against both streams
+      const output = `${result.stdout}\n${result.stderr}`;
       const acceptableFailure =
-        result.stdout.includes("no active view appeared") ||
-        result.stdout.includes("model not available") ||
-        result.stdout.includes("sidebar stable");
+        output.includes("no active view appeared") ||
+        output.includes("model not available") ||
+        output.includes("sidebar stable");
       expect(acceptableFailure).toBe(true);
     }
-  });
+  }, IT_TIMEOUT_MS);
 });
 
-describe("TC7: model picker (API-dependent)", { skip: false }, () => {
+describe("TC7: model picker (API-dependent)", { skip: !DEPS_AVAILABLE }, () => {
   it("#given a click on model row #then picker modal may appear", async () => {
     const result = await runCase("tc7");
     console.log(`[tc7] stdout:\n${result.stdout}`);
@@ -169,25 +199,27 @@ describe("TC7: model picker (API-dependent)", { skip: false }, () => {
     // tc7 may gracefully skip if the click API is not available
     // We allow this as a pass
     if (result.exitCode !== 0) {
+      const output = `${result.stdout}\n${result.stderr}`;
       const acceptableSkip =
-        result.stdout.includes("modal API not available") ||
-        result.stdout.includes("gracefully skipped");
+        output.includes("modal API not available") ||
+        output.includes("gracefully skipped");
       expect(acceptableSkip).toBe(true);
     }
-  });
+  }, IT_TIMEOUT_MS);
 });
 
-describe("TC8: active view during session", { skip: false }, () => {
+describe("TC8: active view during session", { skip: !DEPS_AVAILABLE }, () => {
   it("#given a prompt is running #then sidebar may show active view", async () => {
     const result = await runCase("tc8");
     console.log(`[tc8] stdout:\n${result.stdout}`);
     console.error(`[tc8] stderr:\n${result.stderr}`);
     // tc8 may fail gracefully if no model is available
     if (result.exitCode !== 0) {
+      const output = `${result.stdout}\n${result.stderr}`;
       const acceptableFailure =
-        result.stdout.includes("no active view observed") ||
-        result.stdout.includes("model may not be available");
+        output.includes("no active view observed") ||
+        output.includes("model may not be available");
       expect(acceptableFailure).toBe(true);
     }
-  });
+  }, IT_TIMEOUT_MS);
 });
