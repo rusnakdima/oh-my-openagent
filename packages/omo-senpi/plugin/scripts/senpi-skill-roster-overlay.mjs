@@ -1,5 +1,5 @@
 const rawSisyphusLeadPattern =
-  /^\s*"lead": \{ "kind": "subagent_type", "subagent_type": "sisyphus" \},\n/m;
+  /"lead":\s*\{\s*"kind":\s*"subagent_type",\s*"subagent_type":\s*"sisyphus"\s*\},?\n?/g;
 
 function routeNamedAgent(content, agentName, categoryName) {
   return content.replaceAll(

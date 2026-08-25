@@ -1,5 +1,6 @@
-import { describe, expect, mock, test, vi } from "bun:test";
+import { afterEach, describe, expect, spyOn, test } from "bun:test";
 import type { ToolContext } from "@opencode-ai/plugin/tool";
+import * as promptAsyncGate from "../../shared/prompt-async-gate";
 
 function createToolContext(): ToolContext {
   return {
@@ -14,35 +15,45 @@ function createToolContext(): ToolContext {
   };
 }
 
+type DispatchCall = {
+  mode: string;
+  input: { body: { parts: Array<{ type: string; text: string }> } };
+};
+
+// Spy on the gate's dispatch function instead of vi.mock/mock.module, which
+// permanently replaces the module for every later test file in the process.
+const calls: DispatchCall[] = [];
+let dispatchSpy: ReturnType<
+  typeof spyOn<typeof promptAsyncGate, "dispatchInternalPrompt">
+> | undefined;
+
+function recordDispatch(opts: DispatchCall): Promise<unknown> {
+  calls.push(opts);
+  return Promise.resolve({ status: "dispatched" as const });
+}
+
 describe("session-injector", () => {
+  afterEach(() => {
+    calls.length = 0;
+    dispatchSpy?.mockRestore();
+    dispatchSpy = undefined;
+  });
+
   describe("injectTranscription", () => {
     test("dispatches /voice via session.promptAsync with correct parts", async () => {
-      const calls: Array<
-        {
-          mode: string;
-          input: { body: { parts: Array<{ type: string; text: string }> } };
-        }
-      > = [];
-      vi.mock("../../shared/prompt-async-gate", () => ({
-        dispatchInternalPrompt: mock(
-          async (
-            opts: {
-              mode: string;
-              input: { body: { parts: Array<{ type: string; text: string }> } };
-            },
-          ) => {
-            calls.push(opts);
-            return { status: "dispatched" as const };
-          },
-        ),
-      }));
+      dispatchSpy = spyOn(
+        promptAsyncGate,
+        "dispatchInternalPrompt",
+      ).mockImplementation(recordDispatch);
 
       const { injectTranscription } = await import("./session-injector");
 
       const ctx = createToolContext();
       await injectTranscription({
-        text: "/voice",
+        client: ctx.sessionID as never,
         sessionID: ctx.sessionID,
+        directory: "/project",
+        text: "/voice",
       });
 
       expect(calls.length).toBe(1);
@@ -53,32 +64,19 @@ describe("session-injector", () => {
     });
 
     test("dispatches transcription text via session.promptAsync", async () => {
-      const calls: Array<
-        {
-          mode: string;
-          input: { body: { parts: Array<{ type: string; text: string }> } };
-        }
-      > = [];
-      vi.mock("../../shared/prompt-async-gate", () => ({
-        dispatchInternalPrompt: mock(
-          async (
-            opts: {
-              mode: string;
-              input: { body: { parts: Array<{ type: string; text: string }> } };
-            },
-          ) => {
-            calls.push(opts);
-            return { status: "dispatched" as const };
-          },
-        ),
-      }));
+      dispatchSpy = spyOn(
+        promptAsyncGate,
+        "dispatchInternalPrompt",
+      ).mockImplementation(recordDispatch);
 
       const { injectTranscription } = await import("./session-injector");
 
       const ctx = createToolContext();
       await injectTranscription({
-        text: "hello world transcribed",
+        client: ctx.sessionID as never,
         sessionID: ctx.sessionID,
+        directory: "/project",
+        text: "hello world transcribed",
       });
 
       const body = calls[0]!.input!.body;

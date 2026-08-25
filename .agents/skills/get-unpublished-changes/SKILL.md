@@ -29,3 +29,18 @@ Purpose: Track and manage unpublished changes across the project.
 - Updated unpublished changes tracker
 - Change review documentation
 - Audit trail of all unpublished changes
+
+## Release Layers
+
+Analyze every change against these exact layers:
+
+- `omo pure components`: `packages/*-core`, MCP packages,
+  `packages/shared-skills`, reusable scripts.
+- `omo opencode`: root `oh-my-opencode` / `oh-my-openagent`, `src/`,
+  `.opencode/`, `.agents/`, CLI, config, hooks, tools, docs.
+- `omo codex`: `packages/omo-codex`, `lazycodex-ai`, Codex plugin
+  metadata/hooks, bundled MCP runtimes, `code-yeongyu/lazycodex` marketplace
+  payload.
+
+Classify every unpublished change into one or more layers and recommend a
+layer-specific version bump for each layer alongside one overall workflow bump.

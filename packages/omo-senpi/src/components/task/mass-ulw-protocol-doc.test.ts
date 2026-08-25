@@ -83,7 +83,7 @@ describe("mass-ulw protocol doc", () => {
         const sourceBlock = eventTypesSource.match(
           /readonly type: "dag\.stream\.overflow"([\s\S]*?)\n\s*}/,
         )?.[1];
-        const docBlock = doc.match(/\| `dag\.stream\.overflow` \|([^|]+)\|/)
+        const docBlock = doc.match(/\| `dag\.stream\.overflow`\s+\|([^|]+)\|/)
           ?.[1];
         if (sourceBlock === undefined || docBlock === undefined) {
           throw new Error("overflow contract block missing");

@@ -89,7 +89,7 @@ describe("OpenCode runtime skill source config", () => {
     expect(config.skills).toBeUndefined();
   });
 
-  test("security-research disablement keeps security-review enabled", () => {
+  test("security-research disablement suppresses the runtime security skill", () => {
     // given
     const pluginConfig = createPluginConfig({
       disabledSkills: ["security-research"],
@@ -98,8 +98,9 @@ describe("OpenCode runtime skill source config", () => {
     // when
     const skills = selectRuntimeSecuritySkills(pluginConfig);
 
-    // then
-    expect(skills.map((skill) => skill.name)).toEqual(["security-review"]);
+    // then: security-research is the only runtime security skill since the
+    // security-review wrapper was removed
+    expect(skills.map((skill) => skill.name)).toEqual([]);
   });
 
   test("security-review disablement suppresses only the review alias", () => {
@@ -132,7 +133,7 @@ describe("OpenCode runtime skill source config", () => {
     expect(config.skills).toBeUndefined();
   });
 
-  test("skills.<name>: false suppresses security-research only", () => {
+  test("skills.<name>: false suppresses the runtime security skill", () => {
     // given
     const pluginConfig = createPluginConfig({
       skills: { "security-research": false },
@@ -142,7 +143,7 @@ describe("OpenCode runtime skill source config", () => {
     const skills = selectRuntimeSecuritySkills(pluginConfig);
 
     // then
-    expect(skills.map((skill) => skill.name)).toEqual(["security-review"]);
+    expect(skills.map((skill) => skill.name)).toEqual([]);
   });
 
   test("skills.<name>.disable: true suppresses security-review only", () => {

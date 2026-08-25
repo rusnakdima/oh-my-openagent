@@ -9,7 +9,7 @@ const buildSource = readFileSync(
 describe("build dependency graph", () => {
   test("#given Codex and Senpi share plugin dependencies #when scheduled #then Codex installation completes first", () => {
     const senpiNode = buildSource.match(
-      /\{ id: "senpi-plugin".*deps: \[([^\]]*)\] \}/,
+      /id: "senpi-plugin",[\s\S]*?deps: \[([^\]]*)\]/,
     );
 
     expect(senpiNode?.[1]).toContain('"codex-plugin"');

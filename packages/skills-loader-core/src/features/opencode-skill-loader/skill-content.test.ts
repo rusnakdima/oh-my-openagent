@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdirSync, writeFileSync } from "node:fs";
-import { playwrightSkill } from "../builtin-skills/skills/index";
+import { debuggingSkill, playwrightSkill } from "../builtin-skills/skills/index";
 import {
   clearSkillCache,
   resolveMultipleSkills,
@@ -95,14 +95,14 @@ describe("resolveSkillContent", () => {
 describe("resolveMultipleSkills", () => {
   it("should resolve all existing skills", () => {
     // given: list of existing skill names
-    const skillNames = ["playwright"];
+    const skillNames = ["debugging", "playwright"];
 
     // when: resolving multiple skills
     const result = resolveMultipleSkills(skillNames);
 
     // then: all skills resolve to their source templates in request order
     expect([...result.resolved.entries()]).toEqual([
-      ["playwright", playwrightSkill.template],
+      ["debugging", debuggingSkill.template],
       ["playwright", playwrightSkill.template],
     ]);
     expect(result.notFound).toEqual([]);
@@ -116,10 +116,10 @@ describe("resolveMultipleSkills", () => {
     const result = resolveMultipleSkills(skillNames);
 
     // then: resolves the correct source templates and preserves missing-name order
-    expect([...result.resolved.entries()]).toEqual([
-      ["playwright", playwrightSkill.template],
-      ["playwright", playwrightSkill.template],
-    ]);
+    expect([...result.resolved.entries()]).toEqual([[
+      "playwright",
+      playwrightSkill.template,
+    ]]);
     expect(result.notFound).toEqual(["nonexistent", "another-missing"]);
   });
 
@@ -148,24 +148,24 @@ describe("resolveMultipleSkills", () => {
   });
 
   it("should treat disabled skills as not found", () => {
-    // #given: frontend disabled, playwright not disabled
-    const skillNames = ["playwright"];
+    // #given: playwright disabled, debugging not disabled
+    const skillNames = ["playwright", "debugging"];
     const options = { disabledSkills: new Set(["playwright"]) };
 
     // #when: resolving multiple skills with disabled one
     const result = resolveMultipleSkills(skillNames, options);
 
-    // #then: frontend in notFound, playwright resolves to its source template
+    // #then: disabled skill is not found, the rest resolves to its source template
     expect([...result.resolved.entries()]).toEqual([[
-      "playwright",
-      playwrightSkill.template,
+      "debugging",
+      debuggingSkill.template,
     ]]);
-    expect(result.notFound).toEqual(["frontend"]);
+    expect(result.notFound).toEqual(["playwright"]);
   });
 
   it("should preserve skill order in resolved map", () => {
     // given: list of skill names in specific order
-    const skillNames = ["playwright", "frontend"];
+    const skillNames = ["playwright", "debugging"];
 
     // when: resolving multiple skills
     const result = resolveMultipleSkills(skillNames);
@@ -173,7 +173,7 @@ describe("resolveMultipleSkills", () => {
     // then: map preserves request order and routes each key to the correct source template
     expect([...result.resolved.entries()]).toEqual([
       ["playwright", playwrightSkill.template],
-      ["playwright", playwrightSkill.template],
+      ["debugging", debuggingSkill.template],
     ]);
   });
 });

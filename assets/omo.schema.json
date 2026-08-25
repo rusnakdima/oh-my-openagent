@@ -11760,6 +11760,11 @@
           "additionalProperties": false
         },
         "tui": {
+          "default": {
+            "sidebar": {
+              "enabled": true
+            }
+          },
           "type": "object",
           "properties": {
             "sidebar": {
@@ -26857,6 +26862,11 @@
                 "additionalProperties": false
               },
               "tui": {
+                "default": {
+                  "sidebar": {
+                    "enabled": true
+                  }
+                },
                 "type": "object",
                 "properties": {
                   "sidebar": {

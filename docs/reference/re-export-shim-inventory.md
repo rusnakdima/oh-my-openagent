@@ -15,74 +15,34 @@ Generated command:
 git ls-files packages/omo-opencode/src packages/omo-codex/src | grep '\.ts$' | sort | xargs awk 'FNR==1 && /^export (\*|\{).*from ["'"'"']@oh-my-opencode\// { print FILENAME }'
 ```
 
-Snapshot date: 2026-06-13. Total shim exports found: 316.
+Snapshot date: 2026-08-25. Total shim exports found: 261.
 
 ## Aggregate By Target Package
 
-| Target package                            | Shim exports |
-| ----------------------------------------- | -----------: |
+| Target package                          | Shim exports |
+| --------------------------------------- | -----------: |
 | `@oh-my-opencode/agents-md-core`          |            2 |
 | `@oh-my-opencode/boulder-state`           |            1 |
 | `@oh-my-opencode/claude-code-compat-core` |           36 |
 | `@oh-my-opencode/delegate-core`           |            1 |
-| `@oh-my-opencode/hashline-core`           |            6 |
+| `@oh-my-opencode/hashline-core`           |            4 |
 | `@oh-my-opencode/mcp-client-core`         |           21 |
-| `@oh-my-opencode/model-core`              |            7 |
-| `@oh-my-opencode/omo-codex`               |           41 |
+| `@oh-my-opencode/model-core`              |            5 |
+| `@oh-my-opencode/omo-codex`               |            1 |
 | `@oh-my-opencode/omo-senpi`               |            1 |
 | `@oh-my-opencode/openclaw-core`           |           30 |
-| `@oh-my-opencode/rules-engine`            |            4 |
-| `@oh-my-opencode/skills-loader-core`      |           65 |
+| `@oh-my-opencode/rules-engine`            |            3 |
+| `@oh-my-opencode/skills-loader-core`      |           59 |
 | `@oh-my-opencode/team-core`               |           45 |
 | `@oh-my-opencode/tmux-core`               |            3 |
-| `@oh-my-opencode/utils`                   |           53 |
+| `@oh-my-opencode/utils`                   |           49 |
 
 ## Exhaustive Shim Paths
 
-| Shim path                                                                                                       | Target package                            |
-| --------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| Shim path                                                                                                     | Target package                          |
+| ------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
 | `packages/omo-codex/src/telemetry/atomic-write.ts`                                                              | `@oh-my-opencode/utils`                   |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-bins.ts`                                               | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-bundled-mcps.ts`                                       | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-command-shim.ts`                                       | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-fs.ts`                                                 | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-install.ts`                                            | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-legacy-bins.ts`                                        | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-local-dependencies.ts`                                 | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-mcp-manifest.ts`                                       | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-paths.ts`                                              | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache-prune.ts`                                              | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cache.ts`                                                    | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cached-marketplace-manifest.ts`                              | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cleanup-config.ts`                                           | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-cleanup.ts`                                                  | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-agents.ts`                                            | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-features.ts`                                          | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-marketplaces.ts`                                      | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-permissions.ts`                                       | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-plugins.ts`                                           | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-reasoning.ts`                                         | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-toml-sections.ts`                                     | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-config-toml.ts`                                              | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-hook-trust.ts`                                               | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-installation-detection.ts`                                   | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-installer-bin-dir.ts`                                        | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-marketplace-snapshot.ts`                                     | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-marketplace.ts`                                              | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-model-catalog.ts`                                            | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-multi-agent-v2-config.ts`                                    | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-package-layout.ts`                                           | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-process.ts`                                                  | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-project-local-cleanup-best-effort.ts`                        | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/codex-project-local-cleanup.ts`                                    | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/git-bash.ts`                                                       | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/index.ts`                                                          | `@oh-my-opencode/omo-codex`               |
 | `packages/omo-opencode/src/cli/install-codex/install-codex.ts`                                                  | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/lazycodex-version-stamp.ts`                                        | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/link-cached-plugin-agents.ts`                                      | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/lsp-daemon-reaper.ts`                                              | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/toml-section-editor.ts`                                            | `@oh-my-opencode/omo-codex`               |
-| `packages/omo-opencode/src/cli/install-codex/types.ts`                                                          | `@oh-my-opencode/omo-codex`               |
 | `packages/omo-opencode/src/cli/install-senpi/index.ts`                                                          | `@oh-my-opencode/omo-senpi`               |
 | `packages/omo-opencode/src/cli/provider-model-id-transform.ts`                                                  | `@oh-my-opencode/model-core`              |
 | `packages/omo-opencode/src/config/schema/git-env-prefix.ts`                                                     | `@oh-my-opencode/skills-loader-core`      |
@@ -96,7 +56,6 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/features/builtin-skills/skills/agent-browser-template.ts`                            | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/debugging.ts`                                         | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/dev-browser.ts`                                       | `@oh-my-opencode/skills-loader-core`      |
-| `packages/omo-opencode/src/features/builtin-skills/skills/frontend.ts`                                          | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/git-master-sections/commit-atomic-planning.ts`        | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/git-master-sections/commit-context-analysis.ts`       | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/git-master-sections/commit-execution-verification.ts` | `@oh-my-opencode/skills-loader-core`      |
@@ -108,16 +67,11 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/features/builtin-skills/skills/git-master-skill-metadata.ts`                         | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/git-master.ts`                                        | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/index.ts`                                             | `@oh-my-opencode/skills-loader-core`      |
-| `packages/omo-opencode/src/features/builtin-skills/skills/init-deep.ts`                                         | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/playwright-cli.ts`                                    | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/playwright-mcp-skill.ts`                              | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/playwright.ts`                                        | `@oh-my-opencode/skills-loader-core`      |
-| `packages/omo-opencode/src/features/builtin-skills/skills/remove-ai-slops.ts`                                   | `@oh-my-opencode/skills-loader-core`      |
-| `packages/omo-opencode/src/features/builtin-skills/skills/review-work.ts`                                       | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/security-research.ts`                                 | `@oh-my-opencode/skills-loader-core`      |
-| `packages/omo-opencode/src/features/builtin-skills/skills/security-review.ts`                                   | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/skills/team-mode.ts`                                         | `@oh-my-opencode/skills-loader-core`      |
-| `packages/omo-opencode/src/features/builtin-skills/skills/visual-qa.ts`                                         | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/builtin-skills/types.ts`                                                    | `@oh-my-opencode/skills-loader-core`      |
 | `packages/omo-opencode/src/features/claude-code-agent-loader/agent-definitions-loader.ts`                       | `@oh-my-opencode/claude-code-compat-core` |
 | `packages/omo-opencode/src/features/claude-code-agent-loader/claude-model-mapper.ts`                            | `@oh-my-opencode/claude-code-compat-core` |
@@ -255,7 +209,6 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/hooks/directory-agents-injector/finder.ts`                                           | `@oh-my-opencode/agents-md-core`          |
 | `packages/omo-opencode/src/hooks/directory-agents-injector/injector.ts`                                         | `@oh-my-opencode/agents-md-core`          |
 | `packages/omo-opencode/src/hooks/rules-injector/parser.ts`                                                      | `@oh-my-opencode/rules-engine`            |
-| `packages/omo-opencode/src/hooks/rules-injector/project-root-finder.ts`                                         | `@oh-my-opencode/rules-engine`            |
 | `packages/omo-opencode/src/hooks/rules-injector/rule-distance.ts`                                               | `@oh-my-opencode/rules-engine`            |
 | `packages/omo-opencode/src/hooks/rules-injector/rule-scan-cache.ts`                                             | `@oh-my-opencode/rules-engine`            |
 | `packages/omo-opencode/src/openclaw/config.ts`                                                                  | `@oh-my-opencode/openclaw-core`           |
@@ -289,7 +242,6 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/openclaw/tmux.ts`                                                                    | `@oh-my-opencode/openclaw-core`           |
 | `packages/omo-opencode/src/openclaw/types.ts`                                                                   | `@oh-my-opencode/openclaw-core`           |
 | `packages/omo-opencode/src/shared/archive-entry-validator.ts`                                                   | `@oh-my-opencode/utils`                   |
-| `packages/omo-opencode/src/shared/bun-file-shim.ts`                                                             | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/bun-which-shim.ts`                                                            | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/classify-path-environment.ts`                                                 | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/command-executor.ts`                                                          | `@oh-my-opencode/utils`                   |
@@ -302,8 +254,6 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/shared/contains-path.ts`                                                             | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/deep-merge.ts`                                                                | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/extract-semver.ts`                                                            | `@oh-my-opencode/utils`                   |
-| `packages/omo-opencode/src/shared/file-utils.ts`                                                                | `@oh-my-opencode/utils`                   |
-| `packages/omo-opencode/src/shared/frontmatter.ts`                                                               | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/git-worktree/collect-git-diff-stats.ts`                                       | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/git-worktree/format-file-changes.ts`                                          | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/git-worktree/index.ts`                                                        | `@oh-my-opencode/utils`                   |
@@ -319,7 +269,6 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/shared/model-format-normalizer.ts`                                                   | `@oh-my-opencode/model-core`              |
 | `packages/omo-opencode/src/shared/model-normalization.ts`                                                       | `@oh-my-opencode/model-core`              |
 | `packages/omo-opencode/src/shared/model-sanitizer.ts`                                                           | `@oh-my-opencode/model-core`              |
-| `packages/omo-opencode/src/shared/model-string-parser.ts`                                                       | `@oh-my-opencode/model-core`              |
 | `packages/omo-opencode/src/shared/process-stream-reader.ts`                                                     | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/prompt-async-gate/message-inspection-error.ts`                                | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/prompt-async-gate/pending-tool-turn.ts`                                       | `@oh-my-opencode/utils`                   |
@@ -337,7 +286,6 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/shared/replace-tool-args.ts`                                                         | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/session-idle-settle.ts`                                                       | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/skill-path-resolver.ts`                                                       | `@oh-my-opencode/skills-loader-core`      |
-| `packages/omo-opencode/src/shared/snake-case.ts`                                                                | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/tmux/cmux-detect.ts`                                                          | `@oh-my-opencode/tmux-core`               |
 | `packages/omo-opencode/src/shared/tmux/runner.ts`                                                               | `@oh-my-opencode/tmux-core`               |
 | `packages/omo-opencode/src/shared/tmux/tmux-utils/spawn-process.ts`                                             | `@oh-my-opencode/tmux-core`               |
@@ -348,10 +296,7 @@ Snapshot date: 2026-06-13. Total shim exports found: 316.
 | `packages/omo-opencode/src/shared/zip-entry-listing/read-zip-symlink-target.ts`                                 | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/zip-entry-listing/tar-zip-entry-listing.ts`                                   | `@oh-my-opencode/utils`                   |
 | `packages/omo-opencode/src/shared/zip-entry-listing/zipinfo-zip-entry-listing.ts`                               | `@oh-my-opencode/utils`                   |
-| `packages/omo-opencode/src/tools/delegate-task/model-string-parser.ts`                                          | `@oh-my-opencode/model-core`              |
 | `packages/omo-opencode/src/tools/hashline-edit/edit-deduplication.ts`                                           | `@oh-my-opencode/hashline-core`           |
-| `packages/omo-opencode/src/tools/hashline-edit/edit-ordering.ts`                                                | `@oh-my-opencode/hashline-core`           |
-| `packages/omo-opencode/src/tools/hashline-edit/file-text-canonicalization.ts`                                   | `@oh-my-opencode/hashline-core`           |
 | `packages/omo-opencode/src/tools/hashline-edit/hashline-chunk-formatter.ts`                                     | `@oh-my-opencode/hashline-core`           |
 | `packages/omo-opencode/src/tools/hashline-edit/hashline-edit-diff.ts`                                           | `@oh-my-opencode/hashline-core`           |
 | `packages/omo-opencode/src/tools/hashline-edit/normalize-edits.ts`                                              | `@oh-my-opencode/hashline-core`           |

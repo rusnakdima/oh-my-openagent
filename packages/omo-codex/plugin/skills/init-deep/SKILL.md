@@ -2,6 +2,7 @@
 name: init-deep
 description: "(builtin) Initialize hierarchical AGENTS.md knowledge base"
 ---
+
 ## Codex Harness Tool Compatibility
 
 This skill may include examples copied from the OpenCode harness. In Codex, do not call OpenCode-only tools such as `call_omo_agent(...)`, `task(...)`, `background_output(...)`, or `team_*(...)` literally. Translate those examples to Codex native tools:
@@ -42,7 +43,8 @@ Generate hierarchical AGENTS.md files. Root + complexity-scored subdirectories.
 
 1. **Discovery + Analysis** (concurrent)
    - Fire background explore agents immediately
-   - Main session: bash structure + LSP/codegraph code map + read existing AGENTS.md
+   - Main session: bash structure + LSP/codegraph code map + read existing
+     AGENTS.md
 2. **Score & Decide** - Determine AGENTS.md locations from merged findings
 3. **Generate** - Root first, then subdirs in parallel
 4. **Review** - Deduplicate, trim, validate
@@ -67,7 +69,12 @@ TodoWrite([
 
 ### Fire Background Explore Agents IMMEDIATELY
 
-Don't wait-these run async while main session works. **Equip every agent with the code graph**: any task touching structure, entry points, dependencies, or hotspots MUST query `codegraph_*` (explore/search/callers/callees/impact) and `lsp_symbols` when present, and ground its claims in that data instead of guessing from conventions. Richer real-graph context per agent = a more accurate project map.
+Don't wait-these run async while main session works. **Equip every agent with
+the code graph**: any task touching structure, entry points, dependencies, or
+hotspots MUST query `codegraph_*` (explore/search/callers/callees/impact) and
+`lsp_symbols` when present, and ground its claims in that data instead of
+guessing from conventions. Richer real-graph context per agent = a more accurate
+project map.
 
 ```
 // Fire all at once, collect results later
@@ -82,14 +89,14 @@ task(subagent_type="explore", load_skills=[], description="Find test patterns", 
 <dynamic-agents>
 **DYNAMIC AGENT SPAWNING**: After bash analysis, spawn ADDITIONAL explore agents based on project scale:
 
-| Factor | Threshold | Additional Agents |
-|--------|-----------|-------------------|
-| **Total files** | >100 | +1 per 100 files |
-| **Total lines** | >10k | +1 per 10k lines |
-| **Directory depth** | ≥4 | +2 for deep exploration |
+| Factor                       | Threshold | Additional Agents          |
+| ---------------------------- | --------- | -------------------------- |
+| **Total files**              | >100      | +1 per 100 files           |
+| **Total lines**              | >10k      | +1 per 10k lines           |
+| **Directory depth**          | ≥4        | +2 for deep exploration    |
 | **Large files (>500 lines)** | >10 files | +1 for complexity hotspots |
-| **Monorepo** | detected | +1 per package/workspace |
-| **Multiple languages** | >1 | +1 per language |
+| **Monorepo**                 | detected  | +1 per package/workspace   |
+| **Multiple languages**       | >1        | +1 per language            |
 
 ```bash
 # Measure project scale first
@@ -100,6 +107,7 @@ max_depth=$(find . -type d -not -path '*/node_modules/*' -not -path '*/.git/*' |
 ```
 
 Example spawning:
+
 ```
 // 500 files, 50k lines, depth 6, 15 large files → spawn 5+5+2+1 = 13 additional agents
 task(subagent_type="explore", load_skills=[], description="Analyze large files", run_in_background=true, prompt="Large file analysis: FIND files >500 lines, REPORT complexity hotspots")
@@ -107,6 +115,7 @@ task(subagent_type="explore", load_skills=[], description="Explore deep modules"
 task(subagent_type="explore", load_skills=[], description="Find shared utilities", run_in_background=true, prompt="Cross-cutting concerns: FIND shared utilities across directories")
 // ... more based on calculation
 ```
+
 </dynamic-agents>
 
 ### Main Session: Concurrent Analysis
@@ -114,6 +123,7 @@ task(subagent_type="explore", load_skills=[], description="Find shared utilities
 **While background agents run**, main session does:
 
 #### 1. Bash Structural Analysis
+
 ```bash
 # Directory depth + file counts
 find . -type d -not -path '*/\\.*' -not -path '*/node_modules/*' -not -path '*/venv/*' -not -path '*/dist/*' -not -path '*/build/*' | awk -F/ '{print NF-1}' | sort -n | uniq -c
@@ -129,6 +139,7 @@ find . -type f \\( -name "AGENTS.md" -o -name "CLAUDE.md" \\) -not -path '*/node
 ```
 
 #### 2. Read Existing AGENTS.md
+
 ```
 For each existing file found:
   Read(filePath=file)
@@ -136,21 +147,35 @@ For each existing file found:
   Store in EXISTING_AGENTS map
 ```
 
-If `--create-new`: Read all existing first (preserve context) → then delete all → regenerate.
+If `--create-new`: Read all existing first (preserve context) → then delete all
+→ regenerate.
 
 #### 3. Code Map - drive LSP AND codegraph (do NOT skip)
 
-Highest-signal source for the CODE MAP and the Symbol/Export/Reference scoring rows. Complementary, not alternatives - run BOTH when present, alongside the explore agents.
+Highest-signal source for the CODE MAP and the Symbol/Export/Reference scoring
+rows. Complementary, not alternatives - run BOTH when present, alongside the
+explore agents.
 
-**LSP** - check `lsp_status`; model-facing names are `lsp_status`/`lsp_symbols`/`lsp_find_references`/`lsp_goto_definition` (some harnesses drop the `lsp_` prefix):
+**LSP** - check `lsp_status`; model-facing names are
+`lsp_status`/`lsp_symbols`/`lsp_find_references`/`lsp_goto_definition` (some
+harnesses drop the `lsp_` prefix):
+
 - `lsp_symbols` scope="document" on each entry point -> file outline.
-- `lsp_symbols` scope="workspace", query by kind (class/interface/function) -> symbol inventory.
-- `lsp_find_references` on top exports (line/character from the symbols result) -> reference centrality.
+- `lsp_symbols` scope="workspace", query by kind (class/interface/function) ->
+  symbol inventory.
+- `lsp_find_references` on top exports (line/character from the symbols result)
+  -> reference centrality.
 
-**codegraph** - when `codegraph_*` tools exist (check `codegraph_status`); a first-class peer to LSP, NOT a last resort:
-- `codegraph_explore` -> overview; `codegraph_callers`/`codegraph_callees`/`codegraph_impact` -> centrality + blast radius for the scoring matrix; `codegraph_search`/`codegraph_files` -> symbol/file inventory.
+**codegraph** - when `codegraph_*` tools exist (check `codegraph_status`); a
+first-class peer to LSP, NOT a last resort:
 
-Only if NEITHER exists: explore agents + the ast-grep skill (`sg`), and mark centrality unmeasured in the CODE MAP.
+- `codegraph_explore` -> overview;
+  `codegraph_callers`/`codegraph_callees`/`codegraph_impact` -> centrality +
+  blast radius for the scoring matrix; `codegraph_search`/`codegraph_files` ->
+  symbol/file inventory.
+
+Only if NEITHER exists: explore agents + the ast-grep skill (`sg`), and mark
+centrality unmeasured in the CODE MAP.
 
 ### Collect Background Results
 
@@ -159,7 +184,8 @@ Only if NEITHER exists: explore agents + the ast-grep skill (`sg`), and mark cen
 for each background task ID (`bg_...`): background_output(task_id="bg_...")
 ```
 
-**Merge: bash + LSP/codegraph + existing + explore findings. Mark "discovery" as completed.**
+**Merge: bash + LSP/codegraph + existing + explore findings. Mark "discovery" as
+completed.**
 
 ---
 
@@ -169,27 +195,28 @@ for each background task ID (`bg_...`): background_output(task_id="bg_...")
 
 ### Scoring Matrix
 
-| Factor | Weight | High Threshold | Source |
-|--------|--------|----------------|--------|
-| File count | 3x | >20 | bash |
-| Subdir count | 2x | >5 | bash |
-| Code ratio | 2x | >70% | bash |
-| Unique patterns | 1x | Has own config | explore |
-| Module boundary | 2x | Has index.ts/__init__.py | bash |
-| Symbol density | 2x | >30 symbols | LSP/cg |
-| Export count | 2x | >10 exports | LSP/cg |
-| Reference centrality | 3x | >20 refs | LSP/cg |
+| Factor               | Weight | High Threshold           | Source  |
+| -------------------- | ------ | ------------------------ | ------- |
+| File count           | 3x     | >20                      | bash    |
+| Subdir count         | 2x     | >5                       | bash    |
+| Code ratio           | 2x     | >70%                     | bash    |
+| Unique patterns      | 1x     | Has own config           | explore |
+| Module boundary      | 2x     | Has index.ts/**init**.py | bash    |
+| Symbol density       | 2x     | >30 symbols              | LSP/cg  |
+| Export count         | 2x     | >10 exports              | LSP/cg  |
+| Reference centrality | 3x     | >20 refs                 | LSP/cg  |
 
 ### Decision Rules
 
-| Score | Action |
-|-------|--------|
-| **Root (.)** | ALWAYS create |
-| **>15** | Create AGENTS.md |
-| **8-15** | Create if distinct domain |
-| **<8** | Skip (parent covers) |
+| Score        | Action                    |
+| ------------ | ------------------------- |
+| **Root (.)** | ALWAYS create             |
+| **>15**      | Create AGENTS.md          |
+| **8-15**     | Create if distinct domain |
+| **<8**       | Skip (parent covers)      |
 
 ### Output
+
 ```
 AGENTS_LOCATIONS = [
   { path: ".", type: "root" },
@@ -216,20 +243,18 @@ NEVER use Write to overwrite an existing file. ALWAYS check existence first via 
 ```markdown
 # PROJECT KNOWLEDGE BASE
 
-**Generated:** {TIMESTAMP}
-**Commit:** {SHORT_SHA}
-**Branch:** {BRANCH}
+**Generated:** {TIMESTAMP} **Commit:** {SHORT_SHA} **Branch:** {BRANCH}
 
 ## OVERVIEW
+
 {1-2 sentences: what + core stack}
 
 ## STRUCTURE
 ```
-{root}/
-├── {dir}/    # {non-obvious purpose only}
-└── {entry}
-```
 
+{root}/ ├── {dir}/ # {non-obvious purpose only} └── {entry}
+
+````
 ## WHERE TO LOOK
 | Task | Location | Notes |
 |------|----------|-------|
@@ -252,29 +277,29 @@ NEVER use Write to overwrite an existing file. ALWAYS check existence first via 
 ## COMMANDS
 ```bash
 {dev/test/build}
-```
+````
 
 ## NOTES
-{Gotchas}
-```
 
+{Gotchas}
+
+```
 **Quality gates**: 50-150 lines, no generic advice, no obvious info.
 
 ### Subdirectory AGENTS.md (Parallel)
 
 Launch writing tasks for each location:
-
 ```
-for loc in AGENTS_LOCATIONS (except root):
-  task(category="writing", load_skills=[], run_in_background=false, description="Generate AGENTS.md", prompt=`
-    Generate AGENTS.md for: ${loc.path}
+
+for loc in AGENTS_LOCATIONS (except root): task(category="writing",
+load_skills=[], run_in_background=false, description="Generate AGENTS.md",
+prompt=`Generate AGENTS.md for: ${loc.path}
     - Reason: ${loc.reason}
     - 30-80 lines max
     - NEVER repeat parent content
-    - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS
-  `)
-```
+    - Sections: OVERVIEW (1 line), STRUCTURE (if >5 subdirs), WHERE TO LOOK, CONVENTIONS (if different), ANTI-PATTERNS`)
 
+```
 **Wait for all. Mark "generate" as completed.**
 
 ---
@@ -294,25 +319,19 @@ For each generated file:
 ---
 
 ## Final Report
-
 ```
+
 === init-deep Complete ===
 
 Mode: {update | create-new}
 
-Files:
-  [OK] ./AGENTS.md (root, {N} lines)
-  [OK] ./src/hooks/AGENTS.md ({N} lines)
+Files: [OK] ./AGENTS.md (root, {N} lines) [OK] ./src/hooks/AGENTS.md ({N} lines)
 
-Dirs Analyzed: {N}
-AGENTS.md Created: {N}
-AGENTS.md Updated: {N}
+Dirs Analyzed: {N} AGENTS.md Created: {N} AGENTS.md Updated: {N}
 
-Hierarchy:
-  ./AGENTS.md
-  └── src/hooks/AGENTS.md
+Hierarchy: ./AGENTS.md └── src/hooks/AGENTS.md
+
 ```
-
 ---
 
 ## Anti-Patterns
@@ -324,3 +343,4 @@ Hierarchy:
 - **Redundancy**: Child never repeats parent
 - **Generic content**: Remove anything that applies to ALL projects
 - **Verbose style**: Telegraphic or die
+```

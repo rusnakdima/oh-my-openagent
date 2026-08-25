@@ -4,10 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { mkdirSync, writeFileSync } from "node:fs";
-import {
-  gitMasterSkill,
-  playwrightSkill,
-} from "../builtin-skills/skills/index";
+import { gitMasterSkill } from "../builtin-skills/skills/index";
 import { clearSkillCache, resolveMultipleSkillsAsync } from "./skill-content";
 
 function createNestedSkill(
@@ -66,11 +63,11 @@ describe("resolveMultipleSkillsAsync", () => {
       },
     });
 
-    // then: all builtin skills resolve to their source templates in request order
-    expect([...result.resolved.entries()]).toEqual([
-      ["playwright", playwrightSkill.template],
-      ["git-master", gitMasterSkill.template],
-    ]);
+    // then: all builtin skills resolve in request order; the browser slot serves
+    // the active provider surface (tiered stack or a discovered user skill)
+    expect([...result.resolved.keys()]).toEqual(["playwright", "git-master"]);
+    expect(result.resolved.get("playwright")).toContain("Browser Automation");
+    expect(result.resolved.get("git-master")).toEqual(gitMasterSkill.template);
     expect(result.notFound).toEqual([]);
   });
 
@@ -81,11 +78,9 @@ describe("resolveMultipleSkillsAsync", () => {
     // when: resolving multiple skills async
     const result = await resolveMultipleSkillsAsync(skillNames);
 
-    // then: the existing skill resolves to its source template and the missing skill is reported
-    expect([...result.resolved.entries()]).toEqual([[
-      "playwright",
-      playwrightSkill.template,
-    ]]);
+    // then: the existing skill resolves to the active browser surface and the missing skill is reported
+    expect([...result.resolved.keys()]).toEqual(["playwright"]);
+    expect(result.resolved.get("playwright")).toContain("Browser Automation");
     expect(result.notFound).toEqual(["nonexistent-skill-12345"]);
   });
 
@@ -97,11 +92,9 @@ describe("resolveMultipleSkillsAsync", () => {
     // #when: resolving multiple skills async with disabled one
     const result = await resolveMultipleSkillsAsync(skillNames, options);
 
-    // #then: frontend in notFound, playwright resolves to its source template
-    expect([...result.resolved.entries()]).toEqual([[
-      "playwright",
-      playwrightSkill.template,
-    ]]);
+    // #then: frontend in notFound, playwright resolves to the active browser surface
+    expect([...result.resolved.keys()]).toEqual(["playwright"]);
+    expect(result.resolved.get("playwright")).toContain("Browser Automation");
     expect(result.notFound).toEqual(["frontend"]);
   });
 
@@ -270,11 +263,13 @@ describe("resolveMultipleSkillsAsync", () => {
       "playwright",
     ]);
 
-    // then: both resolve exactly and preserve request order
-    expect([...result.resolved.entries()]).toEqual([
-      ["systematic-debugging", nestedTemplate],
-      ["playwright", playwrightSkill.template],
+    // then: both resolve and preserve request order
+    expect([...result.resolved.keys()]).toEqual([
+      "systematic-debugging",
+      "playwright",
     ]);
+    expect(result.resolved.get("systematic-debugging")).toBe(nestedTemplate);
+    expect(result.resolved.get("playwright")).toContain("Browser Automation");
     expect(result.notFound).toEqual([]);
   });
 
@@ -289,11 +284,9 @@ describe("resolveMultipleSkillsAsync", () => {
       "playwright",
     ]);
 
-    // then: ambiguous short name is absent and playwright resolves to its source template
-    expect([...result.resolved.entries()]).toEqual([[
-      "playwright",
-      playwrightSkill.template,
-    ]]);
+    // then: ambiguous short name is absent and playwright resolves to the active browser surface
+    expect([...result.resolved.keys()]).toEqual(["playwright"]);
+    expect(result.resolved.get("playwright")).toContain("Browser Automation");
     expect(result.notFound).toEqual(["nested-debug"]);
   });
 
@@ -320,10 +313,9 @@ describe("resolveMultipleSkillsAsync", () => {
     ]);
 
     // then: exact match wins and request order is preserved
-    expect([...result.resolved.entries()]).toEqual([
-      ["debugging", exactTemplate],
-      ["playwright", playwrightSkill.template],
-    ]);
+    expect([...result.resolved.keys()]).toEqual(["debugging", "playwright"]);
+    expect(result.resolved.get("debugging")).toBe(exactTemplate);
+    expect(result.resolved.get("playwright")).toContain("Browser Automation");
     expect(result.notFound).toEqual([]);
   });
 });

@@ -25,6 +25,7 @@ const corePackagePaths: readonly string[] = [
   "packages/telemetry-core",
   "packages/claude-code-compat-core",
   "packages/skills-loader-core",
+  "packages/tui-core",
 ] as const;
 
 const mcpPackagePaths: readonly string[] = [

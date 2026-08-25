@@ -13,11 +13,9 @@ declare const Bun: {
   file(path: string): { text(): Promise<string> };
 };
 
+// Builtins whose templates are extracted from packages/shared-skills bodies.
+// frontend/review-work/remove-ai-slops/init-deep wrappers were removed.
 const SHARED_BUILTIN_SKILLS = [
-  "remove-ai-slops",
-  "review-work",
-  "frontend",
-  "init-deep",
   "debugging",
 ] as const;
 

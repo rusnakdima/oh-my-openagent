@@ -187,6 +187,7 @@ const pkg = JSON.parse(readFileSync(resolve(repoRoot, "package.json"), "utf8"));
 const distPkg = {
   name: pkg.name,
   version: pkg.version,
+  type: "module",
   exports: {
     ".": {
       types: "./dist/index.d.ts",

@@ -23,6 +23,7 @@ const corePackages = [
   "packages/telemetry-core",
   "packages/claude-code-compat-core",
   "packages/skills-loader-core",
+  "packages/tui-core",
 ] as const;
 
 type ForbiddenSourcePattern = {

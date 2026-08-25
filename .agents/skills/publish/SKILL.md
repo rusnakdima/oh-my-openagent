@@ -27,7 +27,7 @@ Publishing is complete only after all release surfaces are verified:
 
 | Release layer         | Surface                                                                                 | Required proof                                                                                                                                                       |
 | --------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `omo pure components` | Core/MCP/shared-skill changes inside the published package payload                      | Release notes call out layer-specific version impact from the workflow changelog.                                                                                    |
+| `omo pure components` | Core/MCP/shared-skill changes inside the published package payload                      | Release notes call out layer-specific version impact (from the workflow changelog, or `/get-unpublished-changes` when the user requested it).                        |
 | `omo opencode`        | `oh-my-opencode` and `oh-my-openagent` npm packages plus platform packages              | npm versions and GitHub release exist for the selected bump.                                                                                                         |
 | `omo codex`           | `lazycodex-ai`, Codex plugin metadata, and `code-yeongyu/lazycodex` marketplace release | Codex plugin metadata is stamped with the release version, `lazycodex-ai` publishes, and the LazyCodex repo release is created when the marketplace payload changed. |
 
