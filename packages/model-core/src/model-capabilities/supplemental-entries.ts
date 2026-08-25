@@ -114,4 +114,19 @@ export const SUPPLEMENTAL_MODEL_CAPABILITIES: Record<
       output: 128000,
     },
   },
+  "glm-5.3": {
+    id: "glm-5.3",
+    family: "glm",
+    reasoning: true,
+    temperature: true,
+    toolCall: true,
+    modalities: {
+      input: ["text"],
+      output: ["text"],
+    },
+    limit: {
+      context: 1000000,
+      output: 131072,
+    },
+  },
 };

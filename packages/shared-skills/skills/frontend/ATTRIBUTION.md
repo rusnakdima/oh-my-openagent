@@ -33,7 +33,7 @@ pinned submodule under `packages/shared-skills/upstreams/open-design` into
 upstream directory name, e.g. `linear.app` -> `linear-app`).
 
 - Source: https://github.com/nexu-io/open-design
-- Pinned upstream commit: 6afe7eae156bfa29251a51fd0636649c257f7444
+- Pinned upstream commit: 43dbf53073a88f6fac618308de1ddb2a5e485399
 - Copyright 2026 Open Design contributors
 - Licensed under the Apache License, Version 2.0 (the "License"); you may not
   use these files except in compliance with the License. You may obtain a copy
@@ -87,7 +87,7 @@ description quoting normalization described above may alter these materialized
 
 - Source: https://github.com/Leonxlnx/taste-skill
 - Official site: https://www.tasteskill.dev/
-- Pinned upstream commit: b17742737e796305d829b3ad39eda3add0d79060
+- Pinned upstream commit: 8f7bc1680605a31cbd5f0f2f4d51414d1933cc1e
 
 ```
 MIT License
@@ -128,7 +128,7 @@ materializes them from the pinned submodule under
 `README.md` from `.claude/skills/ui-ux-pro-max/SKILL.md`.
 
 - Source: https://github.com/nextlevelbuilder/ui-ux-pro-max-skill
-- Pinned upstream commit: f32d6a61cdf0bfd57404c45854583fd19ff95088
+- Pinned upstream commit: 6455a9b4cabaa55be26ac1e895eac62951b1f186
 - "UI/UX Pro Max" is the upstream project's branding; no trademark rights are
   granted by the MIT license, and this distribution does not claim that name as
   its own.
@@ -175,7 +175,7 @@ quoting normalization described above may alter these materialized
 `reference.md` files.
 
 - Source: https://github.com/Owl-Listener/designpowers
-- Pinned upstream commit: cb00757da9d554591fa78d27aa1854d60a05c4f7
+- Pinned upstream commit: 8192413609bc1ae0ff2a6ac6d1bc7d7fa62431bf
 
 ```
 MIT License

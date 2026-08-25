@@ -1,6 +1,10 @@
 import {
+  fuzzyMatchModel,
+  normalizeModel,
+  parseModelString,
+  parseVariantFromModelID,
+  transformModelForProvider,
   type DelegateFallbackEntry,
-  resolveModelForDelegateTask,
 } from "@oh-my-opencode/delegate-core";
 import {
   type CompiledOpenAiOnlyModelRecommendations,
@@ -29,9 +33,11 @@ import {
 import {
   compileSenpiOpenAiOnlyModelRecommendations,
   filterAutomaticRuntimeModelIdentities,
-  projectVerifiedUpstreamAliases,
-  recommendationToFallbackEntry,
+  hasContradictedOpenAiIdentity,
+  hasTrustworthyOpenAiIdentity,
   type ResolvedRuntimeModelIdentity,
+  recommendationToFallbackEntry,
+  projectVerifiedUpstreamAliases,
   resolveRuntimeModelIdentities,
   runtimeModelIds,
 } from "../openai-only-runtime-recommendations";
@@ -468,6 +474,200 @@ function promptAppendForCategory(
     : userPromptAppend;
 }
 
+type SelectionCandidate = {
+  readonly baseModel: string;
+  readonly providerHint?: readonly string[];
+  readonly variant?: string;
+};
+
+type CategoryModelSelectionResolution = {
+  readonly model: string;
+  readonly variant?: string;
+  readonly fallbackEntry?: DelegateFallbackEntry;
+  readonly matchedFallback?: boolean;
+};
+
+type CategoryModelSelectionRequest = {
+  readonly userModel: string | undefined;
+  readonly userFallbackModels: readonly string[] | undefined;
+  readonly categoryDefaultModel: string | undefined;
+  readonly fallbackChain: readonly DelegateFallbackEntry[] | undefined;
+  readonly availableModels: ReadonlySet<string>;
+  // Builtin chain rungs are maintained declarations: directly declared providers match against
+  // the full registry minus upstream-contradicted identities, while cross-provider aliasing is
+  // restricted to the trust-filtered subset. coldCache marks a registry with no models at all.
+  readonly declaredMatchModels: ReadonlySet<string>;
+  readonly chainMatchModels: ReadonlySet<string>;
+  readonly coldCache: boolean;
+  readonly systemDefaultModel: string | undefined;
+};
+
+function parseSelectionCandidate(
+  model: string,
+): SelectionCandidate | undefined {
+  const normalized = normalizeModel(model);
+  if (normalized === undefined) return undefined;
+  const parsed = parseModelString(normalized);
+  if (parsed !== undefined) {
+    return {
+      baseModel: `${parsed.providerID}/${parsed.modelID}`,
+      providerHint: [parsed.providerID],
+      ...(parsed.variant !== undefined ? { variant: parsed.variant } : {}),
+    };
+  }
+  const bare = parseVariantFromModelID(normalized);
+  return bare.modelID.length === 0
+    ? undefined
+    : { baseModel: bare.modelID, ...(bare.variant ? { variant: bare.variant } : {}) };
+}
+
+function fuzzySelectionMatch(
+  candidate: SelectionCandidate,
+  availableModels: ReadonlySet<string>,
+): string | null {
+  return fuzzyMatchModel(
+    candidate.baseModel,
+    new Set(availableModels),
+    candidate.providerHint ? [...candidate.providerHint] : undefined,
+  );
+}
+
+// Category-scoped restoration of the resolution sequence that the simplified global-only
+// delegate-core primitive no longer performs (c32068d12): explicit user/canonical model, then
+// the builtin category default, then user-configured fallback_models, then builtin chain rungs
+// (with provider id transforms and cross-provider aliases), then the caller system default.
+export function resolveCategoryModelSelection(
+  input: CategoryModelSelectionRequest,
+): CategoryModelSelectionResolution | undefined {
+  const {
+    availableModels,
+    categoryDefaultModel,
+    chainMatchModels,
+    coldCache,
+    declaredMatchModels,
+    fallbackChain,
+    systemDefaultModel,
+    userFallbackModels,
+    userModel,
+  } = input;
+
+  if (userModel !== undefined) {
+    const candidate = parseSelectionCandidate(userModel);
+    const match = candidate === undefined
+      ? null
+      : coldCache
+      ? candidate.baseModel
+      : fuzzySelectionMatch(candidate, availableModels);
+    if (candidate !== undefined && match !== null) {
+      return {
+        model: match,
+        ...(candidate.variant !== undefined ? { variant: candidate.variant } : {}),
+      };
+    }
+  }
+
+  if (categoryDefaultModel !== undefined) {
+    const candidate = parseSelectionCandidate(categoryDefaultModel);
+    const match = candidate === undefined
+      ? null
+      : coldCache
+      ? candidate.baseModel
+      : fuzzySelectionMatch(candidate, availableModels);
+    if (candidate !== undefined && match !== null) {
+      return {
+        model: match,
+        ...(candidate.variant !== undefined ? { variant: candidate.variant } : {}),
+      };
+    }
+  }
+
+  for (const fallbackModel of userFallbackModels ?? []) {
+    const candidate = parseSelectionCandidate(fallbackModel);
+    const match = candidate === undefined
+      ? null
+      : coldCache
+      ? candidate.baseModel
+      : fuzzySelectionMatch(candidate, availableModels);
+    if (candidate !== undefined && match !== null) {
+      return {
+        model: match,
+        matchedFallback: true,
+        ...(candidate.variant !== undefined ? { variant: candidate.variant } : {}),
+      };
+    }
+  }
+
+  for (const [entryIndex, entry] of (fallbackChain ?? []).entries()) {
+    for (const provider of entry.providers) {
+      const transformedModelId = transformModelForProvider(
+        provider,
+        entry.model,
+      );
+      const candidateModelIds = transformedModelId === entry.model
+        ? [entry.model]
+        : [entry.model, transformedModelId];
+      for (const modelId of candidateModelIds) {
+        if (coldCache) {
+          return {
+            model: `${provider}/${transformedModelId}`,
+            matchedFallback: true,
+            ...(entry.variant !== undefined ? { variant: entry.variant } : {}),
+            fallbackEntry: entry,
+          };
+        }
+        const match = fuzzyMatchModel(
+          `${provider}/${modelId}`,
+          new Set(declaredMatchModels),
+          [provider],
+        );
+        if (match !== null) {
+          return {
+            model: match,
+            matchedFallback: true,
+            ...(entry.variant !== undefined ? { variant: entry.variant } : {}),
+            fallbackEntry: entry,
+          };
+        }
+      }
+    }
+    // Cross-provider aliasing over the trust-filtered inventory only: later rungs declaring the
+    // same model keep their providers ahead in line, so unrelated providers cannot shadow them.
+    const laterRungProviders = new Set(
+      (fallbackChain ?? [])
+        .slice(entryIndex + 1)
+        .filter((candidate) => candidate.model === entry.model)
+        .flatMap((candidate) => candidate.providers),
+    );
+    const crossProviderCandidates = new Set(
+      [...chainMatchModels].filter((model) => {
+        const provider = model.split("/")[0];
+        return provider !== undefined && !laterRungProviders.has(provider);
+      }),
+    );
+    const crossProviderMatch =
+      crossProviderCandidates.size === 0
+        ? null
+        : fuzzyMatchModel(entry.model, crossProviderCandidates);
+    if (crossProviderMatch !== null) {
+      return {
+        model: crossProviderMatch,
+        matchedFallback: true,
+        ...(entry.variant !== undefined ? { variant: entry.variant } : {}),
+        fallbackEntry: entry,
+      };
+    }
+  }
+
+  const systemDefault = normalizeModel(systemDefaultModel);
+  if (systemDefault !== undefined) {
+    return { model: systemDefault };
+  }
+
+  return undefined;
+}
+
+
+
 function nearestFallback(
   selection: CategoryModelSelection,
 ): string | undefined {
@@ -558,6 +758,11 @@ export function resolveCategory<TModel extends SenpiModelPort>(
   const availableModelIds = runtimeModelIds(resolutionRuntimeModels, {
     includeUpstreamModelIds: availableModelsResult.completeIdentityInventory,
   });
+  // Builtin chain rungs are maintained code: their viability is measured against the complete
+  // parsed inventory, not the unproven-route-filtered automatic routing subset.
+  const chainInventoryModelIds = runtimeModelIds(runtimeModels, {
+    includeUpstreamModelIds: availableModelsResult.completeIdentityInventory,
+  });
   const recommendations = availableModelsResult.completeIdentityInventory
     ? compileRegistryRecommendations(
       senpiModelRegistry,
@@ -586,7 +791,7 @@ export function resolveCategory<TModel extends SenpiModelPort>(
   const chainDead = fallbackChain !== undefined &&
     fallbackChain.length > 0 &&
     !fallbackChain.some((rung) =>
-      isCategoryChainRungResolvable(rung, availableModelIds)
+      isCategoryChainRungResolvable(rung, chainInventoryModelIds)
     );
   const deadChain = chainDead && fallbackChain !== undefined
     ? {
@@ -648,16 +853,23 @@ export function resolveCategory<TModel extends SenpiModelPort>(
   const userFallbackModels = canonicalChain !== undefined
     ? canonicalChain.slice(1).map((candidate) => candidate.model)
     : flattenFallbackModels(config.fallback_models);
-  const resolution = resolveModelForDelegateTask(
-    {
-      userModel,
-      availableModels: new Set(availableModels),
-      systemDefaultModel: options.systemDefaultModel,
-    },
-    {},
-  );
+  const resolution = resolveCategoryModelSelection({
+    userModel,
+    userFallbackModels,
+    categoryDefaultModel: builtinConfig?.model,
+    fallbackChain,
+    availableModels: new Set(availableModels),
+    declaredMatchModels: new Set(
+      runtimeModels.filter((m) => !hasContradictedOpenAiIdentity(m)).map(formatModel),
+    ),
+    chainMatchModels: new Set(
+      runtimeModels.filter(hasTrustworthyOpenAiIdentity).map(formatModel),
+    ),
+    systemDefaultModel: options.systemDefaultModel,
+    coldCache: runtimeModels.length === 0,
+  });
 
-  if (!resolution || "skipped" in resolution) {
+  if (resolution === undefined) {
     return {
       kind: "model_unavailable",
       category: categoryName,
@@ -670,6 +882,8 @@ export function resolveCategory<TModel extends SenpiModelPort>(
   const selection = modelSelection({
     selectedModel: resolution.model,
     variant: resolution.variant,
+    fallbackEntry: resolution.fallbackEntry,
+    matchedFallback: resolution.matchedFallback,
   });
   const parsedModel = parseModel(selection.selectedModel);
   const foundModel = parsedModel

@@ -101,6 +101,36 @@ export function filterAutomaticRuntimeModelIdentities<
   );
 }
 
+// A rung that explicitly declares a provider may target it even when Senpi cannot prove the
+// OpenAI mapping — but never when the live upstream identity contradicts or corrupts it.
+export function hasContradictedOpenAiIdentity<TModel extends SenpiModelPort>(
+  model: ResolvedRuntimeModelIdentity<TModel>,
+): boolean {
+  const localOpenAiModelId = localOpenAiModelIdCandidate(model.modelId);
+  if (localOpenAiModelId === undefined) return false;
+  if (model.upstreamIdentityInvalid === true) return true;
+  if (model.upstreamModelId !== undefined) {
+    return model.canonicalOpenAiModelId !== localOpenAiModelId;
+  }
+  return false;
+}
+
+// Builtin chain rungs are maintained declarations, so unlike automatic routing they may target a
+// provider that is not itself a known OpenAI host — but they must never bind to a display id whose
+// upstream identity contradicts or fails to prove the OpenAI mapping.
+export function hasTrustworthyOpenAiIdentity<TModel extends SenpiModelPort>(
+  model: ResolvedRuntimeModelIdentity<TModel>,
+): boolean {
+  const localOpenAiModelId = localOpenAiModelIdCandidate(model.modelId);
+  if (localOpenAiModelId === undefined) return true;
+  if (model.upstreamIdentityInvalid === true) return false;
+  if (model.upstreamModelId !== undefined) {
+    return model.canonicalOpenAiModelId === localOpenAiModelId;
+  }
+  if (model.canonicalOpenAiModelId !== undefined) return true;
+  return KNOWN_OPENAI_MODEL_PROVIDER_IDS.has(model.provider);
+}
+
 export function runtimeModelIds<TModel extends SenpiModelPort>(
   models: readonly ResolvedRuntimeModelIdentity<TModel>[],
   options: { readonly includeUpstreamModelIds?: boolean } = {},

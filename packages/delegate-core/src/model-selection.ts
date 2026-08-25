@@ -5,7 +5,13 @@ import {
   transformModelForProvider,
 } from "@oh-my-opencode/model-core";
 
-export { transformModelForProvider } from "@oh-my-opencode/model-core";
+export {
+  fuzzyMatchModel,
+  normalizeModel,
+  parseModelString,
+  parseVariantFromModelID,
+  transformModelForProvider,
+} from "@oh-my-opencode/model-core";
 
 // Deprecated: kept for backward compatibility with senpi-task
 export type DelegateFallbackEntry = {

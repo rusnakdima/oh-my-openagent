@@ -1,7 +1,10 @@
 import type { SenpiModelPort, SenpiModelRegistryPort } from "../category";
 import { buildRuntimeModelChain } from "../model-chain";
 import {
+  compileSenpiOpenAiOnlyModelRecommendations,
   filterAutomaticRuntimeModelIdentities,
+  projectVerifiedUpstreamAliases,
+  recommendationToFallbackEntry,
   resolveRuntimeModelIdentities,
 } from "../openai-only-runtime-recommendations";
 import type { ResolvedModelRecord } from "../state";
@@ -14,6 +17,7 @@ import {
   parseAvailableAgentRegistryModels,
   type ParsedAgentModel,
 } from "./agent-model-registry";
+import { fuzzyMatchModel, transformModelForProvider } from "@oh-my-opencode/delegate-core";
 import { AGENT_FALLBACK_CHAINS } from "./builtin/fallback-chains";
 import type { AgentDefinition } from "./types";
 
@@ -171,6 +175,56 @@ export function resolveAgent<TModel extends SenpiModelPort>(
         source: "agent",
       }),
     );
+  }
+
+  // Builtin chain rungs are maintained declarations: when no configured model is available they
+  // still resolve against the auth-filtered inventory, with configured tuning outranking rung
+  // variant and never inventing an effort the configuration did not carry. Live OpenAI-only
+  // recommendations prepend a rung unless the user configured the agent explicitly, and verified
+  // upstream aliases of every rung join the walk — but a partially parseable registry fails
+  // closed, because identity classification cannot be trusted on an incomplete inventory.
+  const agentRecommendations = completeIdentityInventory
+    ? compileSenpiOpenAiOnlyModelRecommendations(
+      registry,
+      availableRegistryModels ?? [],
+    )
+    : undefined;
+  const recommendedRung = options.hasExplicitUserConfig ||
+      agentRecommendations === undefined
+    ? undefined
+    : recommendationToFallbackEntry(agentRecommendations.agents[name]);
+  const agentChain = !completeIdentityInventory
+    ? builtinFallbackChain
+    : projectVerifiedUpstreamAliases(
+      recommendedRung === undefined
+        ? builtinFallbackChain
+        : [recommendedRung, ...(builtinFallbackChain ?? [])],
+      runtimeModels ?? [],
+    );
+  for (const entry of agentChain ?? []) {
+    if (availableModels === undefined || availableModels.length === 0) break;
+    for (const provider of entry.providers) {
+      const transformedModelId = transformModelForProvider(provider, entry.model);
+      const candidateModelIds = transformedModelId === entry.model
+        ? [entry.model]
+        : [entry.model, transformedModelId];
+      for (const modelId of candidateModelIds) {
+        const match = fuzzyMatchModel(
+          `${provider}/${modelId}`,
+          new Set(availableModels),
+          [provider],
+        );
+        if (match === null) continue;
+        const found = findExactAgentModel(match, registry);
+        if (found === undefined) continue;
+        return resolvedAgent(
+          context,
+          found,
+          configuredTuning.variant ?? entry.variant,
+          configuredTuning.reasoningEffort,
+        );
+      }
+    }
   }
 
   return {
