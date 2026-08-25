@@ -23,6 +23,8 @@ type AssembleAgentConfigParams = {
   builtinAgents: BuiltinAgentMap;
   sources: AgentSources;
   currentModel: string | undefined;
+  /** Global TUI-selected model (live/persisted), distinct from config.model. */
+  globalModel?: string | undefined;
   useTaskSystem: boolean;
   disabledAgentNames: ReadonlySet<string>;
 };
@@ -185,7 +187,7 @@ async function createCoreAgentConfig(
 
   agentConfig["sisyphus-junior"] = createSisyphusJuniorAgentWithOverrides(
     pluginConfig.agents?.["sisyphus-junior"],
-    params.currentModel ??
+    params.globalModel ??
       (builtinAgents.atlas as { model?: string } | undefined)?.model,
     pluginConfig.default_model,
     useTaskSystem,

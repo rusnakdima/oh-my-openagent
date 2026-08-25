@@ -147,7 +147,7 @@ describe("applyAgentConfig .agents skills", () => {
     });
 
     // then
-    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<
+    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[7] as Array<
       { name: string }
     >;
     expect(discoveredSkills.map((skill) => skill.name)).toContain(
@@ -183,7 +183,7 @@ describe("applyAgentConfig .agents skills", () => {
     });
 
     // then
-    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<
+    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[7] as Array<
       { name: string }
     >;
     expect(discoveredSkills.map((skill) => skill.name)).toContain(
@@ -237,7 +237,7 @@ describe("applyAgentConfig .agents skills", () => {
 
     // then - createBuiltinAgents must receive each skill name only once so the
     // **YOUR SKILLS (PRIORITY)** prompt line does not render duplicates
-    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6] as Array<
+    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[7] as Array<
       { name: string }
     >;
     const names = discoveredSkills.map((skill) => skill.name);

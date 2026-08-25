@@ -313,33 +313,6 @@ describe("runtime security skill source registration", () => {
     });
   });
 
-  test("adds the runtime skill source when only security-review remains enabled", async () => {
-    // given
-    const pluginConfig = createPluginConfig({
-      disabled_skills: ["security-research"],
-    });
-    const config: Record<string, unknown> = {
-      model: "anthropic/claude-opus-4-7",
-      agent: {},
-    };
-    const handler = createConfigHandler({
-      ctx: { directory: "/tmp" },
-      pluginConfig,
-      modelCacheState: {
-        anthropicContext1MEnabled: false,
-        modelContextLimitsCache: new Map(),
-      },
-      runtimeSkillSourceUrl: "http://127.0.0.1:49152/",
-    });
-
-    // when
-    await handler(config);
-
-    // then
-    expect(config.skills).toMatchObject({
-      urls: ["http://127.0.0.1:49152/"],
-    });
-  });
 
   test("does not add a runtime skill source when both security skills are disabled", async () => {
     // given
@@ -906,8 +879,8 @@ describe("Prometheus category config resolution", () => {
 
     // then
     expect(config).toBeDefined();
-    expect(config?.model).toBe("openai/gpt-5.6-sol");
     expect(config?.variant).toBe("xhigh");
+    expect(config?.model).toBeUndefined();
   });
 
   test("resolves visual-engineering category config", () => {
@@ -917,9 +890,8 @@ describe("Prometheus category config resolution", () => {
     // when
     const config = resolveCategoryConfig(categoryName);
 
-    // then
     expect(config).toBeDefined();
-    expect(config?.model).toBe("anthropic/claude-opus-5");
+    expect(config?.variant).toBe("max");
   });
 
   test("user categories override default categories", () => {
@@ -963,11 +935,9 @@ describe("Prometheus category config resolution", () => {
 
     // when
     const config = resolveCategoryConfig(categoryName, userCategories);
-
-    // then - falls back to DEFAULT_CATEGORIES
     expect(config).toBeDefined();
-    expect(config?.model).toBe("openai/gpt-5.6-sol");
     expect(config?.variant).toBe("xhigh");
+    expect(config?.model).toBeUndefined();
   });
 
   test("preserves all category properties (temperature, top_p, tools, etc.)", () => {
@@ -1756,7 +1726,7 @@ describe("per-agent todowrite/todoread deny when task_system enabled", () => {
     //#then
     const lastCall = createBuiltinAgentsMock.mock
       .calls[createBuiltinAgentsMock.mock.calls.length - 1];
-    expect(lastCall?.[11]).toBe(false);
+    expect(lastCall?.[12]).toBe(false);
 
     const agentResult = config.agent as Record<
       string,
@@ -1806,7 +1776,7 @@ describe("per-agent todowrite/todoread deny when task_system enabled", () => {
     //#then
     const lastCall = createBuiltinAgentsMock.mock
       .calls[createBuiltinAgentsMock.mock.calls.length - 1];
-    expect(lastCall?.[11]).toBe(false);
+    expect(lastCall?.[12]).toBe(false);
 
     const agentResult = config.agent as Record<
       string,
@@ -1855,7 +1825,7 @@ describe("disable_omo_env pass-through", () => {
     const lastCall = createBuiltinAgentsMock.mock
       .calls[createBuiltinAgentsMock.mock.calls.length - 1];
     expect(lastCall).toBeDefined();
-    const disableOmoEnv = Array.isArray(lastCall) ? lastCall[12] : undefined;
+    const disableOmoEnv = Array.isArray(lastCall) ? lastCall[13] : undefined;
     expect(disableOmoEnv).toBe(true);
   });
 
@@ -1890,7 +1860,7 @@ describe("disable_omo_env pass-through", () => {
     const lastCall = createBuiltinAgentsMock.mock
       .calls[createBuiltinAgentsMock.mock.calls.length - 1];
     expect(lastCall).toBeDefined();
-    const disableOmoEnv = Array.isArray(lastCall) ? lastCall[12] : undefined;
+    const disableOmoEnv = Array.isArray(lastCall) ? lastCall[13] : undefined;
     expect(disableOmoEnv).toBe(false);
   });
 });

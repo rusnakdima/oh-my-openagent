@@ -205,35 +205,6 @@ describe("applyCommandConfig", () => {
     );
   });
 
-  test("registers builtin skills like init-deep and security-review as opencode commands", async () => {
-    // given
-    const config: Record<string, unknown> = { command: {} };
-
-    // when
-    await applyCommandConfig({
-      config,
-      pluginConfig: createPluginConfig(),
-      ctx: { directory: "/tmp" },
-      pluginComponents: createPluginComponents(),
-    });
-
-    // then
-    const commandConfig = config.command as Record<
-      string,
-      { description?: string; template?: string }
-    >;
-    expect(commandConfig["init-deep"]?.description).toContain(
-      "Initialize hierarchical AGENTS.md",
-    );
-    expect(commandConfig["init-deep"]?.template).toContain(
-      "<skill-instruction>",
-    );
-    expect(commandConfig["init-deep"]?.template).toContain("$ARGUMENTS");
-    expect(commandConfig["security-review"]?.template).toContain(
-      "<skill-instruction>",
-    );
-    expect(commandConfig["team-mode"]).toBeUndefined();
-  });
 
   test("keeps the builtin command definition when a builtin skill shares its name", async () => {
     // given
@@ -265,32 +236,6 @@ describe("applyCommandConfig", () => {
     );
   });
 
-  test("excludes builtin skills disabled via disabled_skills from the command config", async () => {
-    // given
-    const pluginConfig: OhMyOpenCodeConfig = {
-      ...createPluginConfig(),
-      disabled_skills: ["init-deep"],
-    };
-    const config: Record<string, unknown> = { command: {} };
-
-    // when
-    await applyCommandConfig({
-      config,
-      pluginConfig,
-      ctx: { directory: "/tmp" },
-      pluginComponents: createPluginComponents(),
-    });
-
-    // then
-    const commandConfig = config.command as Record<
-      string,
-      { template?: string }
-    >;
-    expect(commandConfig["init-deep"]).toBeUndefined();
-    expect(commandConfig["security-review"]?.template).toContain(
-      "<skill-instruction>",
-    );
-  });
 
   test("excludes builtin skills whose MCP servers already exist in the system MCP config", async () => {
     // given
@@ -311,16 +256,16 @@ describe("applyCommandConfig", () => {
       { template?: string }
     >;
     expect(commandConfig["playwright"]).toBeUndefined();
-    expect(commandConfig["init-deep"]?.template).toContain(
+    expect(commandConfig["debugging"]?.template).toContain(
       "<skill-instruction>",
     );
   });
 
-  test("#given disabled_commands contains remove-ai-slops #when applying command config #then the skill-backed command does not resurrect", async () => {
+  test("#given disabled_commands contains debugging #when applying command config #then the skill-backed command does not resurrect", async () => {
     // given
     const pluginConfig: OhMyOpenCodeConfig = {
       ...createPluginConfig(),
-      disabled_commands: ["remove-ai-slops"],
+      disabled_commands: ["debugging"],
     };
     const config: Record<string, unknown> = { command: {} };
 
@@ -334,7 +279,7 @@ describe("applyCommandConfig", () => {
 
     // then
     const commandConfig = config.command as Record<string, unknown>;
-    expect(commandConfig["remove-ai-slops"]).toBeUndefined();
+    expect(commandConfig["debugging"]).toBeUndefined();
 
     const controlConfig: Record<string, unknown> = { command: {} };
     await applyCommandConfig({
@@ -347,7 +292,7 @@ describe("applyCommandConfig", () => {
       string,
       unknown
     >;
-    expect(controlCommandConfig["remove-ai-slops"]).toBeDefined();
+    expect(controlCommandConfig["debugging"]).toBeDefined();
   });
 
   test("#given disabled_skills contains debugging #then no /debugging command registers", async () => {

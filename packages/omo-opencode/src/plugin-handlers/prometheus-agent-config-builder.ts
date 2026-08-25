@@ -54,12 +54,27 @@ export async function buildPrometheusAgentConfig(params: {
   const configuredPrometheusModel = params.pluginPrometheusOverride?.model ??
     categoryConfig?.model;
 
+  // A TUI-selected model only overrides the Prometheus pipeline when it is a
+  // member of the Prometheus fallback chain; anything else falls through to
+  // the chain instead of being used as an override.
+  const currentModelInChain = (() => {
+    const current = params.currentModel;
+    if (!current) return false;
+    const modelParts = current.split("/");
+    const modelName = modelParts.length >= 2
+      ? modelParts.slice(1).join("/")
+      : modelParts[0];
+    return requirement?.fallbackChain.some((entry) =>
+      entry.model === modelName
+    ) ?? false;
+  })();
   const modelResolution = resolveModelPipeline({
     intent: {
-      // No model restriction — any TUI model is accepted for Prometheus
       uiSelectedModel: configuredPrometheusModel
         ? undefined
-        : params.currentModel,
+        : currentModelInChain
+        ? params.currentModel
+        : undefined,
       userModel: params.pluginPrometheusOverride?.model ?? params.defaultModel,
       categoryDefaultModel: categoryConfig?.model,
     },

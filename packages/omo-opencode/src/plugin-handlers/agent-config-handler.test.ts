@@ -497,6 +497,7 @@ describe("applyAgentConfig builtin override protection", () => {
     expect(createSisyphusJuniorAgentSpy).toHaveBeenCalledWith(
       undefined,
       "openai/gpt-5.4",
+      undefined,
       false,
     );
   });
@@ -626,8 +627,7 @@ describe("applyAgentConfig builtin override protection", () => {
       pluginComponents: createPluginComponents(),
     });
 
-    // then
-    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6];
+    const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[7];
     expect(discoveredSkills).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "project-agent-skill" }),
@@ -684,13 +684,11 @@ describe("applyAgentConfig builtin override protection", () => {
         pluginComponents: createPluginComponents(),
       });
 
-      // then
-      const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[6];
+      const discoveredSkills = createBuiltinAgentsSpy.mock.calls[0]?.[7];
       expect(discoveredSkills).toEqual([
         expect.objectContaining({ name: "Blocked-Skill" }),
       ]);
-
-      const disabledSkills = createBuiltinAgentsSpy.mock.calls[0]?.[10];
+      const disabledSkills = createBuiltinAgentsSpy.mock.calls[0]?.[11];
       expect(disabledSkills).toBeInstanceOf(Set);
       if (disabledSkills instanceof Set) {
         expect(disabledSkills.has("blocked-skill")).toBe(true);

@@ -71,6 +71,7 @@ export async function applyAgentConfig(
     builtinAgents,
     sources,
     currentModel: effectiveUiModel ?? currentModel,
+    globalModel: effectiveGlobalModel,
     useTaskSystem,
     disabledAgentNames,
   });
