@@ -232,6 +232,7 @@ export function createAutoSlashCommandHook(
 
       const executionOptions: ExecutorOptions = {
         ...executorOptions,
+        sessionID: input.sessionID,
         agent: input.agent,
       };
 
@@ -350,25 +351,17 @@ export function createAutoSlashCommandHook(
           // Fall through to template-based approach
           const taggedContent =
             `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`;
-          output.parts[idx].text = taggedContent
-            .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
-            .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
-            .replace(/\n?<command-instruction>\n?/g, "")
-            .replace(/\n?<\/command-instruction>\n?/g, "");
+          output.parts[idx].text = taggedContent;
         }
         return;
       }
 
       const taggedContent =
         `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`;
-      // For non-btw commands, strip BOTH wrappers — OpenCode 1.18.19 does not strip them,
-      // causing visible tags in chat. For /btw, keep tags so the goal guard in loop-commands.ts works.
-      const outputText = isBuiltinBtw ? taggedContent : taggedContent
-        .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
-        .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
-        .replace(/\n?<command-instruction>\n?/g, "")
-        .replace(/\n?<\/command-instruction>\n?/g, "");
-      output.parts[idx].text = outputText;
+      // Keep the wrapper tags on every expansion: they are the downstream
+      // contract for the goal guard (loop-commands.ts), start-work detection,
+      // and re-entry dedup above.
+      output.parts[idx].text = taggedContent;
       if (isBuiltinBtw) {
         markBtwCommandPart(parsed.command, output.parts[idx]);
         markBtwCommandMessage(parsed.command, output);
@@ -439,6 +432,7 @@ export function createAutoSlashCommandHook(
 
         const executionOptions: ExecutorOptions = {
           ...executorOptions,
+          sessionID: input.sessionID,
           agent: input.agent,
         };
 
@@ -480,13 +474,9 @@ export function createAutoSlashCommandHook(
 
         const taggedContent =
           `${AUTO_SLASH_COMMAND_TAG_OPEN}\n${result.replacementText}\n${AUTO_SLASH_COMMAND_TAG_CLOSE}`;
-        // For non-btw commands, strip BOTH wrappers — OpenCode 1.18.19 does not strip them,
-        // causing visible tags in chat. For /btw, keep tags so the goal guard in loop-commands.ts works.
-        const outputText = isBuiltinBtw ? taggedContent : taggedContent
-          .replace(AUTO_SLASH_COMMAND_TAG_OPEN, "")
-          .replace(AUTO_SLASH_COMMAND_TAG_CLOSE, "")
-          .replace(/\n?<command-instruction>\n?/g, "")
-          .replace(/\n?<\/command-instruction>\n?/g, "");
+        // Keep the wrapper tags on every expansion: they are the downstream
+        // contract for the goal guard (loop-commands.ts) and re-entry dedup.
+        const outputText = taggedContent;
 
         const idx = findSlashCommandPartIndex(output.parts);
         if (idx >= 0) {

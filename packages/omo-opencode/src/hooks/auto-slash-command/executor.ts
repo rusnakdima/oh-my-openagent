@@ -24,6 +24,16 @@ interface SkillCommandInfo {
 
 type CommandInfo = DiscoveredCommandInfo | SkillCommandInfo;
 
+const COMMAND_TEMPLATE_VARIABLE_PATTERN =
+  /\$\{user_message\}|\$ARGUMENTS|\$SESSION_ID|\$TIMESTAMP/g;
+
+class MissingCommandSessionIDError extends Error {
+  constructor() {
+    super("Command template requires a session ID");
+    this.name = "MissingCommandSessionIDError";
+  }
+}
+
 function skillToCommandInfo(skill: LoadedSkill): SkillCommandInfo {
   return {
     name: skill.name,
@@ -49,6 +59,7 @@ export interface ExecutorOptions {
   agent?: string;
   directory?: string;
   disabledCommands?: string[];
+  sessionID?: string;
 }
 
 async function discoverAllCommands(
@@ -104,9 +115,38 @@ async function findCommand(
   ) ?? null;
 }
 
+function substituteCommandTemplate(
+  content: string,
+  args: string,
+  sessionID: string | undefined,
+): string {
+  if (content.includes("$SESSION_ID") && !sessionID) {
+    throw new MissingCommandSessionIDError();
+  }
+
+  const timestamp = new Date().toISOString();
+  // Replacer-function form: substituted values are inserted verbatim, so
+  // hostile arguments containing "$&", "$`", "$'" cannot expand into
+  // surrounding template text.
+  return content.replace(COMMAND_TEMPLATE_VARIABLE_PATTERN, (variable) => {
+    switch (variable) {
+      case "${user_message}":
+      case "$ARGUMENTS":
+        return args;
+      case "$SESSION_ID":
+        return sessionID ?? "";
+      case "$TIMESTAMP":
+        return timestamp;
+      default:
+        return variable;
+    }
+  });
+}
+
 async function formatCommandTemplate(
   cmd: CommandInfo,
   args: string,
+  sessionID?: string,
 ): Promise<string> {
   const sections: string[] = [];
 
@@ -140,10 +180,11 @@ async function formatCommandTemplate(
   const commandDir = cmd.path ? dirname(cmd.path) : process.cwd();
   const withFileRefs = await resolveFileReferencesInText(content, commandDir);
   const resolvedContent = await resolveCommandsInText(withFileRefs);
-  const resolvedArguments = args;
-  const substitutedContent = resolvedContent
-    .replace(/\$\{user_message\}/g, resolvedArguments)
-    .replace(/\$ARGUMENTS/g, resolvedArguments);
+  const substitutedContent = substituteCommandTemplate(
+    resolvedContent,
+    args,
+    sessionID,
+  );
   sections.push(substitutedContent.trim());
 
   if (args) {
@@ -187,7 +228,11 @@ export async function executeSlashCommand(
   }
 
   try {
-    const template = await formatCommandTemplate(command, parsed.args);
+    const template = await formatCommandTemplate(
+      command,
+      parsed.args,
+      options?.sessionID,
+    );
     return {
       success: true,
       replacementText: template,
